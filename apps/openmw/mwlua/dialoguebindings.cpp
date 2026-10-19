@@ -1,5 +1,8 @@
 #include "dialoguebindings.hpp"
 
+#include <cstddef>
+#include <tuple>
+
 #include "context.hpp"
 
 #include "apps/openmw/mwbase/environment.hpp"
@@ -137,8 +140,23 @@ namespace
             std::advance(iter, LuaUtil::fromLuaIndex(index));
             return &(*iter);
         };
-        recordInfosBindingsClass[sol::meta_function::ipairs] = lua["ipairsForArray"].template get<sol::function>();
-        recordInfosBindingsClass[sol::meta_function::pairs] = lua["ipairsForArray"].template get<sol::function>();
+        // Each iterator owns its cursor, so nested/interleaved loops are
+        // independent. INFO records are immutable while Lua scripts run.
+        // Numeric access above remains unchanged; iteration must not perform
+        // a new std::advance from the list head for every element.
+        auto pairs = [](const DialogueInfos& store) {
+            const auto& infos = store.parentDialogueRecord.mInfo;
+            auto next = [iter = infos.cbegin(), end = infos.cend(), index = std::size_t{ 0 }]() mutable
+                -> sol::optional<std::tuple<std::size_t, const ESM::DialInfo*>> {
+                if (iter == end)
+                    return sol::nullopt;
+                const ESM::DialInfo* info = &*iter++;
+                return std::make_tuple(++index, info);
+            };
+            return std::make_tuple(next, sol::nil, sol::nil);
+        };
+        recordInfosBindingsClass[sol::meta_function::ipairs] = pairs;
+        recordInfosBindingsClass[sol::meta_function::pairs] = pairs;
     }
 
     void prepareBindingsForDialogueRecordInfoListElement(sol::state_view& lua)

@@ -1,0 +1,14 @@
+name: Custom dialogue iteration build
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  Windows:
+    uses: ./.github/workflows/windows.yml
+    with:
+      image: "2022"
+      msvc: "2022"
+      build-type: Release
+      package: false
+      release: false

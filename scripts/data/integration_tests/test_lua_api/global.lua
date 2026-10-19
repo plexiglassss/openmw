@@ -471,3 +471,44 @@ return {
     },
     eventHandlers = testing.globalEventHandlers,
 }
+
+-- Dialogue INFO iteration must preserve order and independent cursors.
+testing.registerGlobalTest('dialogue INFO independent iterators', function()
+    for _, kind in ipairs({'greeting', 'topic', 'journal', 'persuasion', 'voice'}) do
+        for _, record in pairs(core.dialogue[kind].records) do
+            local infos = record.infos
+            local count = 0
+            for i, info in pairs(infos) do
+                count = count + 1
+                testing.expectEqual(i, count)
+                testing.expectEqual(info.id, infos[i].id)
+                -- Limit the nested check: test independence without quadratic work.
+                if i <= 2 then
+                    for j, nested in ipairs(infos) do
+                        testing.expectEqual(j, 1)
+                        testing.expectEqual(nested.id, infos[1].id)
+                        break
+                    end
+                end
+            end
+            testing.expectEqual(count, #infos)
+            local nextA, stateA, keyA = pairs(infos)
+            local nextB, stateB, keyB = pairs(infos)
+            if #infos > 0 then
+                local a, infoA = nextA(stateA, keyA)
+                local b, infoB = nextB(stateB, keyB)
+                testing.expectEqual(a, 1)
+                testing.expectEqual(b, 1)
+                testing.expectEqual(infoA.id, infoB.id)
+                if #infos > 1 then
+                    local second, info = nextA(stateA, a)
+                    testing.expectEqual(second, 2)
+                    testing.expectEqual(info.id, infos[2].id)
+                end
+            else
+                testing.expectEqual(nextA(stateA, keyA), nil)
+                testing.expectEqual(nextB(stateB, keyB), nil)
+            end
+        end
+    end
+end)
