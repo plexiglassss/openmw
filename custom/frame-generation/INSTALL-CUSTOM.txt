@@ -17,11 +17,11 @@ Added: GPU-side fences before reusing a texture previously sampled by the presen
 This prevents a missing cross-context dependency; it is not a claim of higher FPS.
 The GPU wait is queued; glFinish is used only if fence creation fails.
 
-Current delivery: locally cross-compiled Windows x64 Release with LLVM-MinGW;
-PE architecture/import/export checks passed. It has not been executed on Windows.
-The prepared Windows CI additionally runs DLL load/version-export forwarding; that
-workflow has not run for this revision because the source upload awaits approval.
-Neither check exercises optical flow or the real NVIDIA display path.
+The Windows CI package is built as x64 Release with MSVC and is produced only after
+the DLL-load/version-export-forwarding smoke test passes. BUILD-ID.txt identifies
+the exact commit and build run. See that run for the complete engine-test outcome.
+The smoke test does not exercise hooking, optical flow or the real NVIDIA display
+path. Earlier LLVM-MinGW rebuilds remain separate recovery/test packages.
 Check in game: F8 camera isolation and restored mouse; F9 display; End toggle;
 quick-save/load and F12; resize and alt-tab; fast camera turns; cap and vsync behavior.
 Compare native frame time and input response, not only generated FPS.

@@ -48,10 +48,13 @@ namespace
         mModel.addFiles(mLow.path(), false);
         const auto* a = mModel.item("a.omwscripts");
         const auto* b = mModel.item("b.omwscripts");
-        mModel.setContentList({ "b.omwscripts", "a.omwscripts" }, true);
+        // Exercise model reordering without setContentList's GUI progress dialog:
+        // components-tests deliberately does not create a QApplication.
+        mModel.setNonUserContent({ "b.omwscripts", "a.omwscripts", "Missing.esm" });
+        EXPECT_EQ(mModel.item(0), b);
+        EXPECT_EQ(mModel.item(1), a);
         EXPECT_EQ(mModel.item("A.OMWSCRIPTS"), a);
         EXPECT_EQ(mModel.item("B.OMWSCRIPTS"), b);
-        mModel.setNonUserContent({ "Missing.esm" });
         ASSERT_NE(mModel.item("MISSING.ESM"), nullptr);
         EXPECT_TRUE(mModel.item("Missing.esm")->isMissing());
         EXPECT_TRUE(mModel.item("Missing.esm")->fromAnotherConfigFile());
