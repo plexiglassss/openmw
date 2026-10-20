@@ -1,6 +1,11 @@
 name: Diagnostic timing build
 on:
   workflow_dispatch:
+    inputs:
+      full_build:
+        description: Build all editor/tools/benchmarks without the diagnostic compiler cache
+        type: boolean
+        default: false
   push:
     branches: [diagnostic-timing-2829ae6d]
 permissions:
@@ -35,3 +40,4 @@ jobs:
       build-type: Release
       package: false
       release: false
+      diagnostic-fast: ${{ github.event_name != 'workflow_dispatch' || !inputs.full_build }}

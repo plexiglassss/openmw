@@ -20,6 +20,10 @@ on:
       release:
         default: false
         type: boolean
+      diagnostic-fast:
+        description: Cache compilation and omit editor, unrelated tools and benchmarks
+        default: false
+        type: boolean
 
 jobs:
   Windows:
@@ -29,6 +33,9 @@ jobs:
 
     env:
       archive: FAILEDTODOWNLOAD
+      SCCACHE_GHA_ENABLED: ${{ inputs.diagnostic-fast && 'on' || 'off' }}
+      SCCACHE_GHA_VERSION: openmw-msvc-${{ inputs.msvc }}-${{ inputs.build-type }}-v1
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
 
     steps:
     - name: Install NSIS
@@ -36,6 +43,13 @@ jobs:
       run: choco install nsis
 
     - uses: actions/checkout@v6
+
+    - name: Validate diagnostic build settings
+      if: ${{ inputs.diagnostic-fast }}
+      run: |
+        if ('${{ inputs.build-type }}' -ne 'Release' -or '${{ inputs.package }}' -eq 'true' -or '${{ inputs.release }}' -eq 'true') {
+          throw 'The fast diagnostic profile requires Release, package=false and release=false.'
+        }
 
     - shell: bash
       name: Add deps version env to GITHUB_ENV, stripping comments
@@ -92,6 +106,13 @@ jobs:
 
     - uses: seanmiddleditch/gha-setup-ninja@master
 
+    - name: Set up compiler cache
+      if: ${{ inputs.diagnostic-fast }}
+      id: sccache
+      uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
+      with:
+        version: v0.18.0
+
     - name: Configure OpenMW
       run: >
         cmake
@@ -101,19 +122,34 @@ jobs:
         -D CMAKE_BUILD_TYPE=${{ inputs.build-type }}
         -D CMAKE_TOOLCHAIN_FILE='${{ github.workspace }}/deps/vcpkg-x64-windows-${{ inputs.msvc }}-${{ env.VCPKG_TAG }}/scripts/buildsystems/vcpkg.cmake'
         -D CMAKE_PREFIX_PATH='${{ github.workspace }}/deps/Qt/${{ env.QT_VER }}/msvc2019_64'
-        -D CMAKE_CXX_FLAGS_RELEASE="/O2 /Ob2 /DNDEBUG /Zi"
+        -D CMAKE_CXX_FLAGS_RELEASE="/O2 /Ob2 /DNDEBUG ${{ ! inputs.diagnostic-fast && '/Zi' || '' }}"
         -D "CMAKE_EXE_LINKER_FLAGS_RELEASE=/DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO"
         -D LuaJit_INCLUDE_DIR='${{ github.workspace }}/deps/vcpkg-x64-windows-${{ inputs.msvc }}-${{ env.VCPKG_TAG }}/installed/x64-windows/include/luajit'
         -D LuaJit_LIBRARY='${{ github.workspace }}/deps/vcpkg-x64-windows-${{ inputs.msvc }}-${{ env.VCPKG_TAG }}/installed/x64-windows/lib/lua51.lib'
-        -D BUILD_BENCHMARKS=${{ ! inputs.package }}
+        -D BUILD_BENCHMARKS=${{ ! inputs.package && ! inputs.diagnostic-fast }}
         -D BUILD_COMPONENTS_TESTS=${{ ! inputs.package }}
         -D BUILD_OPENMW_TESTS=${{ ! inputs.package }}
-        -D BUILD_OPENCS_TESTS=${{ ! inputs.package }}
+        -D BUILD_OPENCS_TESTS=${{ ! inputs.package && ! inputs.diagnostic-fast }}
+        -D BUILD_OPENCS=${{ ! inputs.diagnostic-fast }}
+        -D BUILD_ESSIMPORTER=${{ ! inputs.diagnostic-fast }}
+        -D BUILD_BSATOOL=${{ ! inputs.diagnostic-fast }}
+        -D BUILD_ESMTOOL=${{ ! inputs.diagnostic-fast }}
+        -D BUILD_NIFTEST=${{ ! inputs.diagnostic-fast }}
+        -D BUILD_BULLETOBJECTTOOL=${{ ! inputs.diagnostic-fast }}
         -D OPENMW_USE_SYSTEM_SQLITE3=OFF
         -D OPENMW_USE_SYSTEM_YAML_CPP=OFF
         -D OPENMW_LTO_BUILD=ON
+        ${{ inputs.diagnostic-fast && '-D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache -D CMAKE_CXX_COMPILER_LAUNCHER=sccache' || '' }}
         ${{ inputs.package && '-D "VCREDIST64=$env:VCToolsRedistDir/vc_redist.x64.exe"' || '' }}
         -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+    - name: Check compiler cache configuration
+      if: ${{ inputs.diagnostic-fast }}
+      run: |
+        python custom/timing-tests/check-build-profile.py build
+        if ($LASTEXITCODE) { throw 'Diagnostic build configuration check failed' }
+        sccache --zero-stats
+        if ($LASTEXITCODE) { throw 'Could not initialize compiler cache statistics' }
 
     - name: Build component regression test target
       if: ${{ ! inputs.package }}
@@ -149,7 +185,22 @@ jobs:
       run: build/components-tests.exe --gtest_filter=ContentModelTest.*
 
     - name: Build OpenMW
-      run: cmake --build ${{ github.workspace }}/build
+      run: >
+        cmake --build ${{ github.workspace }}/build
+        ${{ inputs.diagnostic-fast && '--target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests' || '' }}
+
+    - name: Record compiler cache statistics
+      if: ${{ always() && inputs.diagnostic-fast && steps.sccache.outcome == 'success' }}
+      run: |
+        New-Item -ItemType Directory -Force build | Out-Null
+        sccache --show-stats | Tee-Object -FilePath build/sccache-stats.txt
+        if ($LASTEXITCODE) { throw 'Could not read compiler cache statistics' }
+        sccache --show-stats --stats-format=json | Set-Content -Encoding utf8 build/sccache-stats.json
+        if ($LASTEXITCODE) { throw 'Could not export compiler cache statistics' }
+        '### Windows diagnostic compiler cache' >> $env:GITHUB_STEP_SUMMARY
+        '```text' >> $env:GITHUB_STEP_SUMMARY
+        Get-Content build/sccache-stats.txt >> $env:GITHUB_STEP_SUMMARY
+        '```' >> $env:GITHUB_STEP_SUMMARY
 
     - name: Check real Lua callback timing output
       if: ${{ ! inputs.package && github.ref_name == 'diagnostic-timing-2829ae6d' }}
@@ -163,6 +214,7 @@ jobs:
         if ($LASTEXITCODE) { throw "Lua timing export verification failed" }
 
     - name: Create symbol server directory structure
+      if: ${{ ! inputs.diagnostic-fast }}
       working-directory: ${{ github.workspace }}/build
       run: |
         ${{ github.workspace }}\CI\Store-Symbols.ps1
@@ -186,6 +238,10 @@ jobs:
         Copy-Item custom/timing-tests/README.md install/PROFILING.md
         Copy-Item custom/timing-tests/IYANI-CAPTURE.md install/
 
+    - name: Include diagnostic build profile
+      if: ${{ inputs.diagnostic-fast }}
+      run: Copy-Item custom/timing-tests/BUILD-PROFILE.md install/
+
     - name: Package OpenMW
       if: ${{ inputs.package }}
       run: |
@@ -207,7 +263,9 @@ jobs:
         job_url=$(gh run --repo ${{ github.repository }} view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name | endswith("windows-${{ inputs.msvc }}")) | .url')
         printf "Ref ${{ github.ref }}\nJob ${job_url}\nCommit ${{ github.sha }}\n" > install/CI-ID.txt
         cp install/CI-ID.txt pdb/CI-ID.txt
-        cp install/CI-ID.txt SymStore/CI-ID.txt
+        if [ '${{ inputs.diagnostic-fast }}' != 'true' ]; then
+          cp install/CI-ID.txt SymStore/CI-ID.txt
+        fi
 
     - name: Store OpenMW archived pdb files
       uses: actions/upload-artifact@v6
@@ -222,20 +280,25 @@ jobs:
         path: ${{ github.workspace }}/install/*
 
     - name: Store symbol server artifacts
+      if: ${{ ! inputs.diagnostic-fast }}
       uses: actions/upload-artifact@v6
       with:
         name: openmw-windows-${{ inputs.msvc }}-sym-store-${{ github.sha }}
         path: ${{ github.workspace }}/SymStore/*
 
     - name: Store log etc. artifacts
+      if: ${{ always() }}
       uses: actions/upload-artifact@v6
       with:
         name: openmw-windows-${{ inputs.msvc }}-logs-and-stuff-${{ github.sha }}
+        include-hidden-files: true
         path: |
           ${{ github.workspace }}/build/compile_commands.json
           ${{ github.workspace }}/build/**/*.log
           ${{ github.workspace }}/build/**/*.ninja_log
           ${{ github.workspace }}/build/**/CMakeCache.txt
+          ${{ github.workspace }}/build/.ninja_log
+          ${{ github.workspace }}/build/sccache-stats.*
 
     - name: Upload to symbol server
       env:
@@ -263,19 +326,19 @@ jobs:
       run: build/openmw-tests.exe
 
     - name: Run OpenMW-CS tests
-      if: ${{ ! inputs.package }}
+      if: ${{ ! inputs.package && ! inputs.diagnostic-fast }}
       run: build/openmw-cs-tests.exe
 
     - name: Run detournavigator navmeshtilescache benchmark
-      if: ${{ ! inputs.package }}
+      if: ${{ ! inputs.package && ! inputs.diagnostic-fast }}
       run: build/openmw_detournavigator_navmeshtilescache_benchmark.exe
 
     - name: Run settings access benchmark
-      if: ${{ ! inputs.package }}
+      if: ${{ ! inputs.package && ! inputs.diagnostic-fast }}
       run: build/openmw_settings_access_benchmark.exe
 
     - name: Run esm refid benchmark
-      if: ${{ ! inputs.package }}
+      if: ${{ ! inputs.package && ! inputs.diagnostic-fast }}
       run: build/openmw_esm_refid_benchmark.exe
 
     - name: Create prerelease
