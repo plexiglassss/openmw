@@ -7,6 +7,36 @@ import subprocess
 import sys
 
 
+def check_engine_object_links(build, commands, errors):
+    """Reject the /Z7 engine archive before compiling gigabytes of objects."""
+    graph = (build / "build.ninja").read_text(encoding="utf-8").replace("\\", "/")
+    prefix = str(build.resolve()).replace("\\", "/") + "/"
+    objects = set()
+    for entry in commands:
+        output = entry.get("output", "").replace("\\", "/")
+        if output.lower().startswith(prefix.lower()):
+            output = output[len(prefix):]
+        if "/openmw-lib.dir/" in output:
+            objects.add(output)
+    if not objects:
+        errors.append("No engine objects found for checking direct executable links")
+        return
+    if re.search(r"^build [^\n]*openmw-lib\.lib:", graph, re.MULTILINE):
+        errors.append("Embedded debug info must not be archived into openmw-lib.lib (LNK1248)")
+    for target in ("openmw.exe", "openmw-tests.exe"):
+        edge = re.search(r"^build " + re.escape(target) + r"(?: |:)[^\n]*", graph, re.MULTILINE)
+        if edge is None:
+            errors.append(f"Missing final executable build edge for {target}")
+            continue
+        # Only explicit inputs are passed to the linker. Order-only/implicit
+        # dependencies alone do not prove that the executable gets the objects.
+        explicit = edge[0].split(": ", 1)[1].split(" |", 1)[0].split()
+        missing = objects.difference(explicit)
+        if missing:
+            errors.append(f"{target}: {len(missing)} engine objects missing from direct link")
+    print(f"Checked direct links of {len(objects)} engine objects into both executables.")
+
+
 def main():
     build = Path(sys.argv[1])
     cache = {}
@@ -62,6 +92,7 @@ def main():
 
     if not checked:
         errors.append("No engine/component/launcher C++ compile commands found")
+    check_engine_object_links(build, commands, errors)
     # CMake can put a $LAUNCHER placeholder in rules.ninja and the actual
     # command in build.ninja. Ask Ninja to expand the real engine command.
     probe = next((entry for entry in commands

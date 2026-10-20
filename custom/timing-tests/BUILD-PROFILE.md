@@ -8,6 +8,8 @@ The game, launcher, installation wizard, INI importer and navmesh tool are built
 
 Release optimization remains `/O2 /Ob2 /DNDEBUG`, with link-time optimization (`/GL` and the CMake IPO link settings), `/OPT:REF` and `/OPT:ICF`. The matching PDB files remain available in the separate symbols artifact. `/Z7` embeds compile-time debugging information in object files; `/DEBUG` produces the final PDB at link time.
 
+With MSVC's Embedded debug-information format, the engine uses a CMake object library. Its compiled objects link directly into both the game and the engine test executable, with the same dependencies and usage requirements. This avoids creating a single `openmw-lib.lib`: run 39461127514 exceeded the librarian's 4 GiB limit after `/Z7` enlarged the objects. It does not disable symbols, link-time optimization, or compilation caching. Other debug-information profiles retain the static library. The early configuration check verifies that both final executable links contain every engine object and that the oversized intermediate archive has not returned.
+
 The timing-recorder and actor-diagnostic smoke tests, full component and engine test suites, early launcher regression checks and actual Lua callback timing checks remain enabled. OpenMW-CS, its tests, standalone development tools, the ESS importer and benchmarks are omitted. A symbol-server directory is no longer generated for this profile; this does not remove the downloadable PDBs.
 
 ## Reusing compilation results

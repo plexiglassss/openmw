@@ -118,7 +118,16 @@ add_openmw_dir (mwbase
 
 # Main executable
 
-add_library(openmw-lib STATIC
+# The cacheable MSVC /Z7 profile embeds debug information in each object.
+# Archiving the engine's objects can exceed lib.exe's 4 GiB COFF limit.
+# Link the same objects directly into openmw and openmw-tests in that profile;
+# target_link_libraries still propagates all dependencies and usage requirements.
+set(OPENMW_LIB_TYPE STATIC)
+if (MSVC AND CMAKE_MSVC_DEBUG_INFORMATION_FORMAT STREQUAL "Embedded")
+    set(OPENMW_LIB_TYPE OBJECT)
+endif()
+
+add_library(openmw-lib ${OPENMW_LIB_TYPE}
     ${OPENMW_FILES}
     ${OPENMW_SOURCES}
 )
