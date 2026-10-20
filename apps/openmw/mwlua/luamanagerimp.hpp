@@ -261,6 +261,7 @@ namespace MWLua
             std::string mCallerTraceback;
             std::function<void()> mFn;
             std::string mName;
+            std::string mTimingSource;
         };
         std::vector<DelayedAction> mActionQueue;
         std::optional<DelayedAction> mTeleportPlayerAction;

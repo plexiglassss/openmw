@@ -1,3 +1,4 @@
+#include <components/diagnostics/timing.hpp>
 #include "luamanagerimp.hpp"
 
 #include <cassert>
@@ -308,6 +309,7 @@ namespace MWLua
 
     bool LuaManager::gcStep(int steps)
     {
+        Diagnostics::Scope timing("gc", "Lua", "step");
         return lua_gc(mLua.unsafeState(), LUA_GCSTEP, steps) == 1;
     }
 
@@ -338,6 +340,7 @@ namespace MWLua
 
     void LuaManager::synchronizedUpdate()
     {
+        Diagnostics::Scope timing("phase", "LuaManager", "synchronizedUpdate");
         mLua.protectedCall([&](LuaUtil::LuaView&) { synchronizedUpdateUnsafe(); });
     }
 
@@ -404,6 +407,7 @@ namespace MWLua
 
     void LuaManager::applyDelayedActions()
     {
+        Diagnostics::Scope timing("phase", "LuaManager", "queuedActions");
         BoolScopeGuard applyingGuard(mApplyingDelayedActions);
         for (DelayedAction& action : mActionQueue)
             action.apply();
@@ -446,7 +450,10 @@ namespace MWLua
         mQueuedAutoStartedScripts.clear();
         clearObjectCaches(mLua.unsafeState());
         for (int i = 0; i < 5; ++i)
+        {
+            Diagnostics::Scope timing("gc", "Lua", "fullCollection");
             lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
+        }
     }
 
     void LuaManager::setupPlayer(const MWWorld::Ptr& ptr)
@@ -998,6 +1005,7 @@ namespace MWLua
     LuaManager::DelayedAction::DelayedAction(LuaUtil::LuaState* state, std::function<void()> fn, std::string_view name)
         : mFn(std::move(fn))
         , mName(name)
+        , mTimingSource(Diagnostics::Scope::currentSource())
     {
         if (Settings::lua().mLuaDebug)
             mCallerTraceback = state->debugTraceback();
@@ -1005,6 +1013,7 @@ namespace MWLua
 
     void LuaManager::DelayedAction::apply() const
     {
+        Diagnostics::Scope timing("action", mTimingSource, mName);
         try
         {
             mFn();

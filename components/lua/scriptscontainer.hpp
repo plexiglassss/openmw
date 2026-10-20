@@ -184,6 +184,8 @@ namespace LuaUtil
         void collectStats(std::vector<ScriptStats>& stats) const;
         static int64_t getInstanceCount() { return sInstanceCount; }
 
+        std::string_view timingName(int scriptId) const { return scriptPath(scriptId).value(); }
+
         virtual bool isActive() const { return false; }
 
         ScriptsContainerWeakPtr getWeakPointer() const;
@@ -239,6 +241,7 @@ namespace LuaUtil
             {
                 try
                 {
+                    Diagnostics::Callback timingCallback(handlers.mName);
                     LuaUtil::call({ this, handler.mScriptId }, handler.mFn, args...);
                 }
                 catch (std::exception& e)

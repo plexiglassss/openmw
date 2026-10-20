@@ -361,6 +361,7 @@ namespace LuaUtil
         const std::string& envName, const std::map<std::string, sol::main_object>& packages,
         const sol::main_object& hiddenData)
     {
+        Diagnostics::Scope timing("lua-load", path.value(), "sandbox");
         // TODO
         sol::protected_function script = loadScriptAndCache(path);
 

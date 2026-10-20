@@ -1,6 +1,8 @@
 #ifndef COMPONENTS_LUA_LUASTATE_H
 #define COMPONENTS_LUA_LUASTATE_H
 
+#include <components/diagnostics/timing.hpp>
+
 #include <filesystem>
 #include <map>
 #include <typeinfo>
@@ -28,6 +30,8 @@ namespace LuaUtil
         ScriptsContainer* mContainer = nullptr;
         int mIndex = -1; // index in LuaUtil::ScriptsConfiguration
     };
+
+    std::string_view timingScriptName(ScriptId scriptId);
 
     struct LuaStateSettings
     {
@@ -255,6 +259,7 @@ namespace LuaUtil
     template <typename... Args>
     sol::protected_function_result call(ScriptId scriptId, const sol::protected_function& fn, Args&&... args)
     {
+        Diagnostics::Scope timing("lua", Diagnostics::enabled() ? timingScriptName(scriptId) : std::string_view{});
         LuaState* luaState = nullptr;
         if (LuaState::sProfilerEnabled && scriptId.mContainer)
         {

@@ -1,3 +1,4 @@
+#include <components/diagnostics/timing.hpp>
 #include "scriptmanagerimp.hpp"
 
 #include <algorithm>
@@ -86,6 +87,7 @@ namespace MWScript
 
     bool ScriptManager::run(const ESM::RefId& name, Interpreter::Context& interpreterContext)
     {
+        Diagnostics::Scope timing("mwscript", Diagnostics::enabled() ? name.toDebugString() : std::string{}, "run");
         // compile script
         auto iter = mScripts.find(name);
 

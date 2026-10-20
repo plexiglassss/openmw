@@ -1,3 +1,4 @@
+#include <components/diagnostics/timing.hpp>
 #include "engine.hpp"
 
 #include <cerrno>
@@ -190,6 +191,7 @@ void OMW::Engine::executeLocalScripts()
 
 bool OMW::Engine::frame(unsigned frameNumber, float frametime)
 {
+    Diagnostics::setFrame(frameNumber);
     const osg::Timer_t frameStart = mViewer->getStartTick();
     const osg::Timer* const timer = osg::Timer::instance();
     osg::Stats* const stats = mViewer->getViewerStats();

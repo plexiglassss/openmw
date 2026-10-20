@@ -1,3 +1,4 @@
+#include <components/diagnostics/timing.hpp>
 #include "worker.hpp"
 
 #include "luamanagerimp.hpp"
@@ -46,6 +47,7 @@ namespace MWLua
 
     void Worker::finishUpdate(osg::Timer_t frameStart, unsigned frameNumber, osg::Stats& stats)
     {
+        Diagnostics::Scope timing("wait", "LuaWorker", "finishUpdate");
         if (mThread)
         {
             std::unique_lock<std::mutex> lk(mMutex);
@@ -74,6 +76,7 @@ namespace MWLua
 
     void Worker::finishGc()
     {
+        Diagnostics::Scope timing("wait", "LuaWorker", "finishGc");
         if (!mThread)
             return;
         std::unique_lock<std::mutex> lk(mMutex);
@@ -96,6 +99,8 @@ namespace MWLua
 
     void Worker::update(osg::Timer_t frameStart, unsigned frameNumber, osg::Stats& stats)
     {
+        Diagnostics::setFrame(frameNumber);
+        Diagnostics::Scope timing("phase", "LuaWorker", "update");
         const osg::Timer* const timer = osg::Timer::instance();
         OMW::ScopedProfile<OMW::UserStatsType::Lua> profile(frameStart, frameNumber, *timer, stats);
 

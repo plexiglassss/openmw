@@ -17,6 +17,11 @@ namespace
 
 namespace LuaUtil
 {
+    std::string_view timingScriptName(ScriptId id)
+    {
+        return id.mContainer ? id.mContainer->timingName(id.mIndex) : std::string_view("unattributed");
+    }
+
     static constexpr std::string_view ENGINE_HANDLERS = "engineHandlers";
     static constexpr std::string_view EVENT_HANDLERS = "eventHandlers";
 
@@ -372,6 +377,7 @@ namespace LuaUtil
                 const Handler& h = list[i - 1];
                 try
                 {
+                    Diagnostics::Callback timingCallback(eventName);
                     sol::object res = LuaUtil::call({ this, h.mScriptId }, h.mFn, object);
                     if (res.is<bool>() && !res.as<bool>())
                         break; // Skip other handlers if 'false' was returned.
@@ -393,6 +399,7 @@ namespace LuaUtil
 
     void ScriptsContainer::callOnInit(LuaView& view, int scriptId, const sol::function& onInit, std::string_view data)
     {
+        Diagnostics::Callback timingCallback("onInit");
         try
         {
             LuaUtil::call({ this, scriptId }, onInit, deserialize(view.sol(), data, mSerializer));
@@ -445,6 +452,7 @@ namespace LuaUtil
             {
                 try
                 {
+                    Diagnostics::Callback timingCallback("onSave");
                     sol::object state = LuaUtil::call({ this, scriptId }, *script.mOnSave);
                     savedScript.mData = serialize(state, mSerializer);
                 }
@@ -573,6 +581,7 @@ namespace LuaUtil
                     {
                         sol::object state = deserialize(view.sol(), scriptInfo.mSavedData->mData, mSerializer);
                         sol::object initializationData = deserialize(view.sol(), scriptInfo.mInitData, mSerializer);
+                        Diagnostics::Callback timingCallback("onLoad");
                         LuaUtil::call({ this, scriptId }, *onLoad, state, initializationData);
                     }
                     catch (std::exception& e)
@@ -720,6 +729,7 @@ namespace LuaUtil
 
     void ScriptsContainer::callTimer(const Timer& t)
     {
+        Diagnostics::Callback timingCallback("timer");
         try
         {
             Script& script = getScript(t.mScriptId);
