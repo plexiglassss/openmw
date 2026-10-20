@@ -151,6 +151,17 @@ jobs:
     - name: Build OpenMW
       run: cmake --build ${{ github.workspace }}/build
 
+    - name: Check real Lua callback timing output
+      if: ${{ ! inputs.package && github.ref_name == 'diagnostic-timing-2829ae6d' }}
+      run: |
+        $env:OPENMW_TIMING_FILE = "$PWD/lua-integration-timing.csv"
+        try {
+          build/components-tests.exe --gtest_filter=LuaScriptsContainerTest.CallHandler:LuaScriptsContainerTest.CallEvent
+          if ($LASTEXITCODE) { throw "Lua integration tests failed" }
+        } finally { Remove-Item Env:OPENMW_TIMING_FILE }
+        python custom/timing-tests/verify-integration.py lua-integration-timing.csv
+        if ($LASTEXITCODE) { throw "Lua timing export verification failed" }
+
     - name: Create symbol server directory structure
       working-directory: ${{ github.workspace }}/build
       run: |
@@ -167,6 +178,12 @@ jobs:
     - name: Install OpenMW
       if: ${{ ! inputs.package }}
       run: cmake --install ${{ github.workspace }}/build --prefix ${{ github.workspace }}/install
+
+    - name: Include diagnostic capture instructions
+      if: ${{ ! inputs.package && github.ref_name == 'diagnostic-timing-2829ae6d' }}
+      run: |
+        Copy-Item custom/timing-tests/Start-Profiling.ps1 install/
+        Copy-Item custom/timing-tests/README.md install/PROFILING.md
 
     - name: Package OpenMW
       if: ${{ inputs.package }}
