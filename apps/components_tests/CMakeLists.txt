@@ -108,7 +108,7 @@ target_link_libraries(components-tests
 )
 
 if (USE_QT)
-    target_sources(components-tests PRIVATE config/testlaunchersettings.cpp)
+    target_sources(components-tests PRIVATE config/testlaunchersettings.cpp contentselector/testcontentmodel.cpp)
     target_link_libraries(components-tests components_qt)
 endif()
 

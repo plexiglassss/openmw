@@ -1,0 +1,154 @@
+OpenMW Frame Generation 0.2.0 - diagnostics, passive overlay positioning, and OpenMW fixes
+
+Changes
+-------
+
+1. Passive FPS overlay positioning through F8
+---------------------------------------------
+The FPS overlay is passive again, matching upstream 0.2.0: it never accepts
+mouse input and cannot be dragged directly.
+
+Use the existing F8 Frame Generation menu instead:
+- choose Top right / Top left / Bottom right / Bottom left
+- adjust Horizontal offset
+- adjust Vertical offset
+- press Save Settings to persist the position
+- Reset FPS overlay position restores Top right, 12 px / 12 px
+
+New INI keys:
+    fps_overlay_anchor=top_right
+    fps_overlay_offset_x=12
+    fps_overlay_offset_y=12
+
+Old experimental fps_overlay_x / fps_overlay_y keys are accepted and ignored,
+so an INI from one of the draggable test builds will not generate warnings.
+
+IMPORTANT: Windows mouse/input handling has been restored to the original
+Frame Generation 0.2.0 implementation. The experimental cursor-replay and
+SDL_PollEvent mouse-suppression hooks have been removed. The original upstream
+SetCursorPos / ClipCursor handling used by the F8 menu is retained unchanged.
+
+2. Optional frame-generation verification panel
+------------------------------------------------
+Enable in F8:
+    Detailed verification stats
+
+or in openmw_fg.ini:
+    diagnostics_overlay=1
+
+The expanded FPS overlay shows:
+- Native FPS
+- Presented FPS
+- FG ratio
+- Native frames
+- Generated frames
+- Presented frames
+- Dropped input submissions
+
+For healthy 2x frame generation, Presented FPS should be close to twice Native
+FPS, Generated frames should increase continuously, and Presented frames should
+track Native + Generated.
+
+The option defaults to off.
+
+3. Save/screenshot interface-flash guard
+----------------------------------------
+OpenMW performs an auxiliary render traversal when it reads the framebuffer
+for a save/F12 screenshot. The asynchronous presenter can otherwise expose that
+helper traversal as a visible frame.
+
+This build hooks glReadPixels. When a readback occurs from the redirected game
+framebuffer, the following helper swap is suppressed while the screenshot
+readback itself is left intact.
+
+INI key:
+    suppress_readback_frames=1
+
+Set it to 0 if another renderer uses regular glReadPixels and this guard causes
+unwanted skipped frames.
+
+The log reports:
+    fg: suppressed framebuffer-readback helper frame (... total)
+
+The loading-screen half of the reported Nexus flashing bug still requires
+runtime verification because OpenMW renders loading screens through a different
+path.
+
+4. Live-readable logging + writable fallback
+---------------------------------------------
+On Windows, openmw_fg.log is opened with read sharing enabled, so editors/tail
+tools can read it while OpenMW is still running. Log lines are flushed
+immediately.
+
+If the install directory is not writable (for example Program Files):
+- openmw_fg.log falls back to:
+  %USERPROFILE%\Documents\My Games\OpenMW\openmw_fg.log
+- Save Settings falls back to:
+  %USERPROFILE%\Documents\My Games\OpenMW\openmw_fg.ini
+
+The user-data INI is loaded after the install-directory INI and acts as the
+writable override.
+
+Testing
+-------
+1. Build with BUILD-FIXED.cmd.
+2. Copy version.dll and openmw_fg.ini next to openmw.exe.
+3. Confirm normal gameplay mouse/camera behavior before opening F8.
+4. Open F8 and confirm mouse behavior matches original Frame Generation 0.2.0.
+5. Change anchor/offset values and verify the FPS overlay moves live while the
+   FPS overlay itself remains non-interactive.
+6. Save Settings, restart OpenMW, and verify position persistence.
+7. Enable Detailed verification stats and confirm native/generated/presented
+   counters behave as expected.
+8. Save/load several times and check the interface-flash behavior.
+9. Open openmw_fg.log in a text editor while the game is running and verify it
+   remains readable.
+
+F8 mouse isolation refinement
+-----------------------------
+- Keeps upstream Win32 cursor/message handling unchanged.
+- Does NOT hook SDL_PollEvent or alter normal gameplay mouse handling.
+- While F8 is open, uses SDL2's official SDL_EventState API to temporarily
+  ignore only SDL_MOUSEMOTION, flushing boundary motion.
+- Restores the exact previous SDL mouse-motion event state when F8 closes.
+- The ImGui menu still receives mouse position/buttons through its existing
+  Win32 polling path, so F8 remains interactive without rotating the world.
+
+8. Local UI transition flash guard
+----------------------------------
+The interpolation shader now detects abrupt colour changes in near-zero-motion
+regions (save/load overlays, menu text, HUD elements appearing/disappearing).
+Those pixels use the current real frame instead of blending old/new UI 50/50.
+This is layered on top of the enhanced F8 branch; all existing F8 diagnostics
+and passive FPS-overlay positioning controls are preserved.
+
+9. Save/load temporal-history reset (2026-09-07)
+-------------------------------------------------
+The previous save/load fixes did not address a presenter-state bug in the stock
+0.2.0 timing logic. Frame intervals >= 250 ms were excluded from the cadence
+EMA, but the old pre-stall frame and the old EMA remained valid. As a result,
+the first frame after a save/load stall could still be interpolated against a
+stale frame from before the stall.
+
+This build treats any >= 250 ms input-frame gap as a hard temporal-history
+boundary:
+- prevValid is cleared
+- the cadence EMA is cleared
+- the first post-gap frame is presented real-only
+- interpolation resumes only after a fresh consecutive frame pair exists
+
+A successful trigger is logged as:
+    fg: timeline discontinuity NNN.N ms, interpolation history reset
+
+This is independent of the existing glReadPixels/readback suppression and is
+intended to handle both saving stalls and loading/transition stalls.
+
+2026-10-20 custom-build review (GPU sync variant)
+- Recovered the complete September patched source; retained all previous changes.
+- Added presenter-to-game GPU fences for texture reuse. Producer-to-presenter fences
+  alone did not protect textures against overwrites while earlier GPU reads were pending.
+- Added Windows Release build integration, DLL load/export smoke check, source/license
+  packaging, and install instructions that preserve the user's existing INI.
+- Live OpenMW/NVIDIA testing is still required. No FPS gain has been measured.
+
+- Explicit Windows system-library links and static C++ runtime for LLVM-MinGW cross-builds.

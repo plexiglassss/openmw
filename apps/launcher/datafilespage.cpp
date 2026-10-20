@@ -4,12 +4,14 @@
 #include <QClipboard>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QElapsedTimer>
 #include <QFileDialog>
 #include <QList>
 #include <QMessageBox>
 #include <QPair>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QTimer>
 
 #include <algorithm>
@@ -341,12 +343,20 @@ bool Launcher::DataFilesPage::loadSettings()
 
     qDebug() << "The current profile is: " << currentProfile;
 
-    for (const QString& item : profiles)
-        addProfile(item, false);
+    {
+        // Inserting the first item selects it and emits currentIndexChanged.
+        // Populate the choices before loading the requested profile, so startup
+        // does not scan every data directory for an intermediate profile.
+        const QSignalBlocker blocker(ui.profilesComboBox);
+        for (const QString& item : profiles)
+            addProfile(item, false);
+    }
 
     // Hack: also add the current profile
     if (!currentProfile.isEmpty())
         addProfile(currentProfile, true);
+    else
+        setProfile(ui.profilesComboBox->currentIndex(), false);
 
     auto language = mLauncherSettings.getLanguage();
 
@@ -365,6 +375,8 @@ bool Launcher::DataFilesPage::loadSettings()
 
 void Launcher::DataFilesPage::populateFileViews(const QString& contentModelName)
 {
+    QElapsedTimer scanTimer;
+    scanTimer.start();
     mSelector->clearFiles();
     ui.archiveListWidget->clear();
     ui.directoryListWidget->clear();
@@ -408,7 +420,7 @@ void Launcher::DataFilesPage::populateFileViews(const QString& contentModelName)
         QStringList tooltip;
 
         // add content files presents in current directory
-        mSelector->addFiles(currentDir.value, mNewDataDirs.contains(currentDir.value));
+        mSelector->addFiles(currentDir.value, mNewDataDirs.contains(currentDir.value), false);
 
         // add current directory to list
         ui.directoryListWidget->addItem(currentDir.originalRepresentation);
@@ -462,6 +474,7 @@ void Launcher::DataFilesPage::populateFileViews(const QString& contentModelName)
         item->setToolTip(tooltip.join('\n'));
     }
     progressBar.setValue(progressBar.maximum());
+    mSelector->refreshGameFiles();
     mSelector->sortFiles();
 
     QList<Config::SettingValue> selectedArchives = mGameSettings.getArchiveList();
@@ -511,6 +524,8 @@ void Launcher::DataFilesPage::populateFileViews(const QString& contentModelName)
     mSelector->setNonUserContent(nonUserContent);
     mSelector->setProfileContent(mLauncherSettings.getContentListFiles(contentModelName),
         mLauncherSettings.getUserFilesInOrder(contentModelName));
+    qInfo() << "Launcher content scan:" << visitedDirectories.size() << "directories in" << scanTimer.elapsed()
+            << "ms; profile:" << contentModelName;
 }
 
 void Launcher::DataFilesPage::saveSettings(const QString& profile)

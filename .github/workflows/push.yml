@@ -1,8 +1,10 @@
 name: Build and test
 
 on:
-- push
-- pull_request
+  push:
+    branches-ignore:
+      - performance-and-framegen-2062366
+  pull_request:
 
 env:
   BUILD_TYPE: RelWithDebInfo

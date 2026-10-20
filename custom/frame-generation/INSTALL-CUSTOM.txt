@@ -1,0 +1,34 @@
+OpenMW Frame Generation 0.2.0 - recovered fixes plus GPU texture reuse synchronization
+Custom build 2026-10-20. Offline test build; live NVIDIA/OpenMW validation remains required.
+
+Close OpenMW. Back up the version.dll next to the custom build's openmw.exe.
+Copy this version.dll beside that openmw.exe, replacing the existing FG version.dll.
+Keep your existing openmw_fg.ini. openmw_fg.example.ini is a reference only: do not
+rename it over your settings unless you want the supplied defaults. A saved user INI
+in Documents/My Games/OpenMW takes precedence over an install-directory INI.
+No plugin, content entry, save conversion or new game is required.
+Rubic0n lua51.dll is independent; keep your existing sandboxed build when updating
+OpenMW, because the engine's standard distribution also supplies a lua51.dll.
+
+Preserved repairs: F8 mouse-motion gate, passive FPS display positioning, optional
+native/generated counters, readable logging and writable INI fallback, screenshot
+helper suppression, near-static UI transition guard, >=250 ms history reset.
+Added: GPU-side fences before reusing a texture previously sampled by the presenter.
+This prevents a missing cross-context dependency; it is not a claim of higher FPS.
+The GPU wait is queued; glFinish is used only if fence creation fails.
+
+Current delivery: locally cross-compiled Windows x64 Release with LLVM-MinGW;
+PE architecture/import/export checks passed. It has not been executed on Windows.
+The prepared Windows CI additionally runs DLL load/version-export forwarding; that
+workflow has not run for this revision because the source upload awaits approval.
+Neither check exercises optical flow or the real NVIDIA display path.
+Check in game: F8 camera isolation and restored mouse; F9 display; End toggle;
+quick-save/load and F12; resize and alt-tab; fast camera turns; cap and vsync behavior.
+Compare native frame time and input response, not only generated FPS.
+To revert, restore the backed-up DLL; settings need not change.
+
+Complete modified source and AGPLv3 license are included in source/. CMake downloads
+Dear ImGui v1.91.8 and MinHook v1.3.4 with their own licenses. The package validation
+records source/toolchain provenance; CI packages additionally include BUILD-ID.txt.
+Existing runtime DLL injection remains
+separate from the engine source to preserve independent rollback.
