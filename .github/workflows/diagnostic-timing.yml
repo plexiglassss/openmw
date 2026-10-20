@@ -21,6 +21,10 @@ jobs:
           ./timing-smoke.exe
           if ($LASTEXITCODE) { throw "Recorder test failed" }
           python custom/timing-tests/verify.py timing-test.csv
+          if ($LASTEXITCODE) { throw "Timing verification failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/actorfailure.cpp /Fe:actorfailure-smoke.exe
+          if ($LASTEXITCODE) { throw "Actor diagnostic compile failed" }
+          ./actorfailure-smoke.exe
           if ($LASTEXITCODE) { throw "CSV verification failed" }
   Engine:
     needs: TimingTests
