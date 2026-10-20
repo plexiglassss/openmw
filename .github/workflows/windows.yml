@@ -115,8 +115,9 @@ jobs:
         ${{ inputs.package && '-D "VCREDIST64=$env:VCToolsRedistDir/vc_redist.x64.exe"' || '' }}
         -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
 
-    - name: Build OpenMW
-      run: cmake --build ${{ github.workspace }}/build
+    - name: Build component regression test target
+      if: ${{ ! inputs.package }}
+      run: cmake --build ${{ github.workspace }}/build --target components-tests
 
     - name: Copy missing DLLs
       run: |
@@ -142,6 +143,13 @@ jobs:
         cp plugins/imageformats/qsvg.dll ${{ github.workspace }}/build/imageformats
         mkdir ${{ github.workspace }}/build/iconengines
         cp plugins/iconengines/qsvgicon.dll ${{ github.workspace }}/build/iconengines
+
+    - name: Check launcher regressions before the full engine build
+      if: ${{ ! inputs.package }}
+      run: build/components-tests.exe --gtest_filter=ContentModelTest.*
+
+    - name: Build OpenMW
+      run: cmake --build ${{ github.workspace }}/build
 
     - name: Create symbol server directory structure
       working-directory: ${{ github.workspace }}/build

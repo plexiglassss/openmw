@@ -640,7 +640,9 @@ target_link_libraries(components ${BULLET_LIBRARIES})
 
 if (USE_QT)
     add_library(components_qt STATIC ${COMPONENT_QT_FILES})
-    target_link_libraries(components_qt components Qt::Widgets Qt::Core)
+    # ScalableIcon uses QSvgRenderer. Propagate that dependency to every consumer,
+    # including the content-model regression tests.
+    target_link_libraries(components_qt components Qt::Widgets Qt::Core Qt::Svg)
 
     if (BUILD_LAUNCHER OR BUILD_WIZARD)
         add_dependencies(components_qt qm-files)
