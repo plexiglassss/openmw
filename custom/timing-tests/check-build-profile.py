@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 
@@ -61,12 +62,24 @@ def main():
 
     if not checked:
         errors.append("No engine/component/launcher C++ compile commands found")
-    if "sccache" not in (build / "CMakeFiles" / "rules.ninja").read_text(encoding="utf-8"):
-        errors.append("Generated Ninja rules do not invoke sccache")
+    # CMake can put a $LAUNCHER placeholder in rules.ninja and the actual
+    # command in build.ninja. Ask Ninja to expand the real engine command.
+    probe = next((entry for entry in commands
+                  if entry["file"].replace("\\", "/").endswith("/apps/openmw/main.cpp")), None)
+    if probe is None:
+        errors.append("No main.cpp compilation found for checking the compiler launcher")
+    else:
+        resolved = subprocess.run(
+            [cache["CMAKE_MAKE_PROGRAM"], "-C", str(build), "-t", "commands",
+             probe["output"].replace("\\", "/")],
+            capture_output=True, text=True, check=True,
+        )
+        if "sccache" not in resolved.stdout:
+            errors.append("Expanded Ninja engine compile command does not invoke sccache")
 
     if errors:
         raise SystemExit("Invalid diagnostic configuration:\n" + "\n".join(errors[:30]))
-    print(f"Verified {checked} optimized /GL /Z7 compile commands, PDB linking, targets and compiler cache.")
+    print(f"Verified {checked} optimized /GL /Z7 compile commands, PDB linking, targets and expanded cache launcher.")
 
 
 if __name__ == "__main__":

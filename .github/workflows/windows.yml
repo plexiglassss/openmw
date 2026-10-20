@@ -36,6 +36,7 @@ jobs:
       SCCACHE_GHA_ENABLED: ${{ inputs.diagnostic-fast && 'on' || 'off' }}
       SCCACHE_GHA_VERSION: openmw-msvc-${{ inputs.msvc }}-${{ inputs.build-type }}-v1
       SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
+      SCCACHE_IDLE_TIMEOUT: "0"
 
     steps:
     - name: Install NSIS
@@ -298,6 +299,8 @@ jobs:
           ${{ github.workspace }}/build/**/*.ninja_log
           ${{ github.workspace }}/build/**/CMakeCache.txt
           ${{ github.workspace }}/build/.ninja_log
+          ${{ github.workspace }}/build/build.ninja
+          ${{ github.workspace }}/build/CMakeFiles/rules.ninja
           ${{ github.workspace }}/build/sccache-stats.*
 
     - name: Upload to symbol server
