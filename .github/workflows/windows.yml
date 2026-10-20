@@ -184,6 +184,7 @@ jobs:
       run: |
         Copy-Item custom/timing-tests/Start-Profiling.ps1 install/
         Copy-Item custom/timing-tests/README.md install/PROFILING.md
+        Copy-Item custom/timing-tests/IYANI-CAPTURE.md install/
 
     - name: Package OpenMW
       if: ${{ inputs.package }}

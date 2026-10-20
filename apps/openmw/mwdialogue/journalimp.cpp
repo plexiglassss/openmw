@@ -2,6 +2,8 @@
 
 #include <iterator>
 
+#include <components/diagnostics/timing.hpp>
+
 #include <components/esm3/esmreader.hpp>
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/journalentry.hpp>
@@ -80,6 +82,7 @@ namespace MWDialogue
 
     void Journal::addEntry(const ESM::RefId& id, int index, const MWWorld::Ptr& actor)
     {
+        Diagnostics::Scope timing("journal", Diagnostics::enabled() ? id.serializeText() : std::string{}, "addEntry");
         // bail out if we already have heard this...
         const ESM::RefId& infoId = JournalEntry::idFromIndex(id, index);
         for (const JournalEntry& entry : mJournal)
@@ -117,6 +120,7 @@ namespace MWDialogue
 
     void Journal::setJournalIndex(const ESM::RefId& id, int index)
     {
+        Diagnostics::Scope timing("journal", Diagnostics::enabled() ? id.serializeText() : std::string{}, "setIndex");
         Quest& quest = getOrStartQuest(id);
 
         quest.setIndex(index);

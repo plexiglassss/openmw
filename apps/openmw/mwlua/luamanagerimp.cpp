@@ -329,6 +329,10 @@ namespace MWLua
 
     void LuaManager::questUpdated(const ESM::RefId& questId, int stage)
     {
+        Diagnostics::Scope timing("journal", Diagnostics::enabled() ? questId.serializeText() : std::string{},
+            "dispatchQuestUpdate");
+        if (Diagnostics::enabled())
+            Log(Debug::Info) << "[DialogueTrace] quest=" << questId << " stage=" << stage;
         if (mPlayer.isEmpty())
             return; // The game is not started yet.
         PlayerScripts* playerScripts = dynamic_cast<PlayerScripts*>(mPlayer.getRefData().getLuaScripts());
@@ -543,6 +547,11 @@ namespace MWLua
     void LuaManager::onDialogueResponse(
         const MWWorld::Ptr& actor, const ESM::DialInfo& info, const ESM::Dialogue& record)
     {
+        Diagnostics::Scope timing("dialogue", Diagnostics::enabled() ? info.mId.serializeText() : std::string{},
+            "queueDialogueResponse");
+        if (Diagnostics::enabled() && record.mType != ESM::Dialogue::Type::Voice)
+            Log(Debug::Info) << "[DialogueTrace] response actor=" << actor.getCellRef().getRefId()
+                             << " topic=" << record.mId << " info=" << info.mId;
         mLua.protectedCall([&](LuaUtil::LuaView& view) {
             sol::table data = view.newTable();
             data["actor"] = LObject(actor);

@@ -8,6 +8,7 @@
 #include <MyGUI_Window.h>
 
 #include <components/debug/debuglog.hpp>
+#include <components/diagnostics/timing.hpp>
 #include <components/esm3/loadcrea.hpp>
 #include <components/settings/values.hpp>
 #include <components/translation/translation.hpp>
@@ -648,6 +649,7 @@ namespace MWGui
 
     void DialogueWindow::updateHistory(bool scrollbar)
     {
+        Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "updateHistory");
         if (!scrollbar && mScrollBar->getVisible())
         {
             mHistory->setSize(mHistory->getSize() + MyGUI::IntSize(mScrollBar->getWidth(), 0));
@@ -753,6 +755,9 @@ namespace MWGui
 
     void DialogueWindow::onChoiceActivated(int id)
     {
+        Diagnostics::Scope timing("dialogue-ui",
+            Diagnostics::enabled() && !mPtr.isEmpty() ? mPtr.getCellRef().getRefId().serializeText() : std::string{},
+            "onChoiceActivated");
         if (mGoodbye)
         {
             onGoodbyeActivated();
@@ -776,6 +781,7 @@ namespace MWGui
 
     void DialogueWindow::addResponse(std::string_view title, std::string_view text, bool needMargin)
     {
+        Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "addResponse");
         mHistoryContents.push_back(std::make_unique<Response>(text, title, needMargin));
         updateHistory();
     }
@@ -839,6 +845,7 @@ namespace MWGui
 
     void DialogueWindow::updateTopicFormat()
     {
+        Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "updateTopicFormat");
         if (!Settings::gui().mColorTopicEnable)
             return;
 
@@ -875,6 +882,9 @@ namespace MWGui
 
     void DialogueWindow::updateTopics()
     {
+        Diagnostics::Scope timing("dialogue-ui",
+            Diagnostics::enabled() && !mPtr.isEmpty() ? mPtr.getCellRef().getRefId().serializeText() : std::string{},
+            "updateTopics");
         // Topic formatting needs to be updated regardless of whether the topic list has changed
         if (!setKeywords(MWBase::Environment::get().getDialogueManager()->getAvailableTopics()))
             updateTopicFormat();

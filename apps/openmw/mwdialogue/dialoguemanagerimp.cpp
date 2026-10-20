@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include <components/debug/debuglog.hpp>
+#include <components/diagnostics/timing.hpp>
 
 #include <components/esm3/dialoguestate.hpp>
 #include <components/esm3/esmwriter.hpp>
@@ -54,6 +55,16 @@
 
 namespace MWDialogue
 {
+    namespace
+    {
+        std::string timingActor(const MWWorld::Ptr& actor)
+        {
+            if (!Diagnostics::enabled() || actor.isEmpty())
+                return {};
+            return actor.getCellRef().getRefId().serializeText();
+        }
+    }
+
     DialogueManager::DialogueManager(
         const Compiler::Extensions& extensions, Translation::Storage& translationDataStorage)
         : mTranslationDataStorage(translationDataStorage)
@@ -88,6 +99,7 @@ namespace MWDialogue
 
     const MWDialogue::KeywordSearch& DialogueManager::getKeywordSearch() const
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "getKeywordSearch");
         const auto& dialogue = MWBase::Environment::get().getESMStore()->get<ESM::Dialogue>();
         if (dialogue.getKeywordSearchModFlag() || !mKeywordSearchInitialized)
         {
@@ -104,6 +116,7 @@ namespace MWDialogue
 
     std::vector<ESM::RefId> DialogueManager::parseTopicIdsFromText(const std::string& text) const
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "parseTopicIdsFromText");
         std::vector<ESM::RefId> topicIdList;
 
         std::vector<KeywordSearch::Match> matches = getKeywordSearch().parseHyperText(text, mTranslationDataStorage);
@@ -116,6 +129,7 @@ namespace MWDialogue
 
     void DialogueManager::addTopicsFromText(const std::string& text)
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "addTopicsFromText");
         updateActorKnownTopics();
 
         for (const auto& topicId : parseTopicIdsFromText(text))
@@ -141,6 +155,7 @@ namespace MWDialogue
 
     bool DialogueManager::startDialogue(const MWWorld::Ptr& actor, ResponseCallback* callback)
     {
+        Diagnostics::Scope timing("dialogue", timingActor(actor), "startDialogue");
         updateGlobals();
 
         // Dialogue with dead actor (e.g. through script) should not be allowed.
@@ -198,6 +213,7 @@ namespace MWDialogue
 
     std::optional<Interpreter::Program> DialogueManager::compile(const std::string& cmd, const MWWorld::Ptr& actor)
     {
+        Diagnostics::Scope timing("dialogue", timingActor(actor), "compileResultScript");
         bool success = true;
         std::optional<Interpreter::Program> program;
 
@@ -252,6 +268,7 @@ namespace MWDialogue
 
     void DialogueManager::executeScript(const std::string& script, const MWWorld::Ptr& actor)
     {
+        Diagnostics::Scope timing("dialogue", timingActor(actor), "executeResultScript");
         if (const std::optional<Interpreter::Program> program = compile(script, actor))
         {
             try
@@ -259,6 +276,7 @@ namespace MWDialogue
                 MWScript::InterpreterContext interpreterContext(&actor.getRefData().getLocals(), actor);
                 Interpreter::Interpreter interpreter;
                 MWScript::installOpcodes(interpreter);
+                Diagnostics::Scope runTiming("dialogue", timingActor(actor), "runResultScript");
                 interpreter.run(*program, interpreterContext);
             }
             catch (const std::exception& error)
@@ -338,11 +356,13 @@ namespace MWDialogue
 
     void DialogueManager::updateGlobals()
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "updateGlobals");
         MWBase::Environment::get().getWorld()->updateDialogueGlobals();
     }
 
     void DialogueManager::updateActorKnownTopics()
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "updateActorKnownTopics");
         updateGlobals();
 
         mActorKnownTopics.clear();
@@ -397,6 +417,7 @@ namespace MWDialogue
 
     std::list<std::string> DialogueManager::getAvailableTopics()
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "getAvailableTopics");
         updateActorKnownTopics();
 
         std::list<std::string> keywordList;
@@ -463,6 +484,10 @@ namespace MWDialogue
 
     void DialogueManager::questionAnswered(int answer, ResponseCallback* callback)
     {
+        Diagnostics::Scope timing("dialogue", timingActor(mActor), "questionAnswered");
+        if (Diagnostics::enabled())
+            Log(Debug::Info) << "[DialogueTrace] choice actor=" << mActor.getCellRef().getRefId()
+                             << " topic=" << mLastTopic << " answer=" << answer;
         mChoice = answer;
 
         const ESM::Dialogue* dialogue = searchDialogue(mLastTopic);
@@ -472,7 +497,10 @@ namespace MWDialogue
 
             if (dialogue->mType == ESM::Dialogue::Topic || dialogue->mType == ESM::Dialogue::Greeting)
             {
-                const auto [responseTopic, info] = filter.search(*dialogue, true);
+                const auto [responseTopic, info] = [&] {
+                    Diagnostics::Scope selectTiming("dialogue", timingActor(mActor), "selectChoiceResponse");
+                    return filter.search(*dialogue, true);
+                }();
                 if (info)
                 {
                     const std::string& text = info->mResponse;
