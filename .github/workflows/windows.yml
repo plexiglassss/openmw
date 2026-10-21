@@ -152,6 +152,12 @@ jobs:
         sccache --zero-stats
         if ($LASTEXITCODE) { throw 'Could not initialize compiler cache statistics' }
 
+    - name: Compile cell lookup regression before the full build
+      if: ${{ ! inputs.package }}
+      run: >
+        cmake --build ${{ github.workspace }}/build
+        --target apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
+
     - name: Build component regression test target
       if: ${{ ! inputs.package }}
       run: cmake --build ${{ github.workspace }}/build --target components-tests

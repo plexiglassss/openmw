@@ -2,6 +2,9 @@
 #define OPENMW_TESTS_MWWORLD_LOOKUP_LUA_HPP
 
 #include "apps/openmw/mwbase/luamanager.hpp"
+
+#include <components/esm/refid.hpp>
+
 #include <stdexcept>
 
 namespace MWWorld
