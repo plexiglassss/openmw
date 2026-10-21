@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
+#include <iterator>
 #include <optional>
 #include <stdexcept>
 
@@ -29,6 +31,15 @@ namespace MWWorld
     namespace
     {
         const ESM::RefId draftCellId = ESM::RefId::index(ESM::REC_CSTA, 0);
+
+        bool useWorldCellIndex()
+        {
+            static const bool enabled = [] {
+                const char* value = std::getenv("OPENMW_WORLD_CELL_INDEX");
+                return value == nullptr || std::string_view(value) != "0";
+            }();
+            return enabled;
+        }
 
         template <class T>
         CellStore& emplaceCellStore(ESM::RefId id, const T& cell, ESMStore& store, ESM::ReadersCache& readers,
@@ -106,7 +117,8 @@ namespace MWWorld
 
         CellStore* getOrCreateExterior(const ESM::ExteriorCellLocation& location,
             std::map<ESM::ExteriorCellLocation, MWWorld::CellStore*>& exteriors, ESMStore& store,
-            ESM::ReadersCache& readers, std::unordered_map<ESM::RefId, CellStore>& cells, bool triggerEvent)
+            ESM::ReadersCache& readers, std::unordered_map<ESM::RefId, CellStore>& cells, const WorldModel& world,
+            bool triggerEvent)
         {
             if (const auto it = exteriors.find(location); it != exteriors.end())
             {
@@ -117,6 +129,7 @@ namespace MWWorld
             const ESM::RefId id = cell.getId();
             CellStore* const cellStore = &emplaceCellStore(id, std::move(cell), store, readers, cells);
             exteriors.emplace(location, cellStore);
+            world.trackCellLookup(*cellStore);
             if (created && triggerEvent)
                 MWBase::Environment::get().getLuaManager()->exteriorCreated(*cellStore);
             return cellStore;
@@ -143,10 +156,18 @@ MWWorld::CellStore& MWWorld::WorldModel::insertCellStore(const ESM::Cell& cell)
 {
     CellStore& cellStore = emplaceCellStore(cell.mId, cell, mStore, mReaders, mCells);
     if (cell.mData.mFlags & ESM::Cell::Interior)
-        mInteriors.emplace(cell.mName, &cellStore);
+    {
+        if (mInteriors.emplace(cell.mName, &cellStore).second)
+            trackCellLookup(cellStore);
+    }
     else
-        mExteriors.emplace(
-            ESM::ExteriorCellLocation(cell.getGridX(), cell.getGridY(), ESM::Cell::sDefaultWorldspaceId), &cellStore);
+    {
+        if (mExteriors
+                .emplace(ESM::ExteriorCellLocation(cell.getGridX(), cell.getGridY(), ESM::Cell::sDefaultWorldspaceId),
+                    &cellStore)
+                .second)
+            trackCellLookup(cellStore);
+    }
     return cellStore;
 }
 
@@ -154,14 +175,24 @@ MWWorld::CellStore& MWWorld::WorldModel::insertCellStore(const ESM4::Cell& cell)
 {
     CellStore& cellStore = emplaceCellStore(cell.mId, cell, mStore, mReaders, mCells);
     if (cellStore.isExterior())
-        mExteriors.emplace(cellStore.getCell()->getExteriorCellLocation(), &cellStore);
+    {
+        if (mExteriors.emplace(cellStore.getCell()->getExteriorCellLocation(), &cellStore).second)
+            trackCellLookup(cellStore);
+    }
     else
-        mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore);
+    {
+        if (mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore).second)
+            trackCellLookup(cellStore);
+    }
     return cellStore;
 }
 
 void MWWorld::WorldModel::clear()
 {
+    mDirtyLookupCells.clear();
+    mUnindexedLookupCells.clear();
+    mRefIdLookupCells.clear();
+    mIndexedCellIds.clear();
     mPtrRegistry.clear();
     mInteriors.clear();
     mExteriors.clear();
@@ -215,7 +246,7 @@ namespace MWWorld
 {
     CellStore& WorldModel::getExterior(ESM::ExteriorCellLocation location, bool forceLoad) const
     {
-        CellStore* cellStore = getOrCreateExterior(location, mExteriors, mStore, mReaders, mCells, true);
+        CellStore* cellStore = getOrCreateExterior(location, mExteriors, mStore, mReaders, mCells, *this, true);
 
         if (forceLoad && cellStore->getState() != CellStore::State_Loaded)
             cellStore->load();
@@ -233,7 +264,8 @@ namespace MWWorld
             cellStore = emplaceInteriorCellStore(name, mStore, mReaders, mCells);
             if (cellStore == nullptr)
                 return cellStore;
-            mInteriors.emplace(name, cellStore);
+            if (mInteriors.emplace(name, cellStore).second)
+                trackCellLookup(*cellStore);
         }
         else
         {
@@ -285,11 +317,19 @@ namespace MWWorld
         CellStore& cellStore = emplaceCellStore(id, std::move(*cell), mStore, mReaders, mCells);
 
         if (cellStore.isExterior())
-            mExteriors.emplace(ESM::ExteriorCellLocation(cellStore.getCell()->getGridX(),
-                                   cellStore.getCell()->getGridY(), cellStore.getCell()->getWorldSpace()),
-                &cellStore);
+        {
+            if (mExteriors
+                    .emplace(ESM::ExteriorCellLocation(cellStore.getCell()->getGridX(), cellStore.getCell()->getGridY(),
+                                 cellStore.getCell()->getWorldSpace()),
+                        &cellStore)
+                    .second)
+                trackCellLookup(cellStore);
+        }
         else
-            mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore);
+        {
+            if (mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore).second)
+                trackCellLookup(cellStore);
+        }
 
         if (forceLoad && cellStore.getState() != CellStore::State_Loaded)
             cellStore.load();
@@ -378,6 +418,64 @@ namespace MWWorld
     }
 }
 
+bool MWWorld::WorldModel::CellLookupOrder::operator()(const CellStore* left, const CellStore* right) const
+{
+    if (left->isExterior() != right->isExterior())
+        return left->isExterior();
+    if (left->isExterior())
+        return right->getCell()->getExteriorCellLocation() < left->getCell()->getExteriorCellLocation();
+    return Misc::StringUtils::CiComp{}(left->getCell()->getNameId(), right->getCell()->getNameId());
+}
+
+void MWWorld::WorldModel::trackCellLookup(CellStore& cell) const
+{
+    if (!useWorldCellIndex())
+        return;
+    cell.mLookupWorld = this;
+    mUnindexedLookupCells.insert(&cell);
+    mDirtyLookupCells.insert(&cell);
+}
+
+void MWWorld::WorldModel::invalidateCellLookup(CellStore& cell) const
+{
+    mDirtyLookupCells.insert(&cell);
+}
+
+void MWWorld::WorldModel::updateCellLookupIndex()
+{
+    if (mDirtyLookupCells.empty())
+        return;
+    Diagnostics::MWScriptNativeScope timing("world.cellCandidates.update");
+    for (CellStore* cell : mDirtyLookupCells)
+    {
+        // An unloaded cell must still be searched at its original position.
+        // Do not preload it merely to maintain the index.
+        if (cell->getState() == CellStore::State_Unloaded)
+            continue;
+        std::vector<ESM::RefId> ids = cell->listLookupIds();
+        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+        auto& oldIds = mIndexedCellIds[cell];
+        for (const ESM::RefId& id : oldIds)
+        {
+            if (std::binary_search(ids.begin(), ids.end(), id))
+                continue;
+            auto found = mRefIdLookupCells.find(id);
+            if (found != mRefIdLookupCells.end())
+            {
+                found->second.erase(cell);
+                if (found->second.empty())
+                    mRefIdLookupCells.erase(found);
+            }
+        }
+        for (const ESM::RefId& id : ids)
+            if (!std::binary_search(oldIds.begin(), oldIds.end(), id))
+                mRefIdLookupCells[id].insert(cell);
+        oldIds = std::move(ids);
+        mUnindexedLookupCells.erase(cell);
+    }
+    mDirtyLookupCells.clear();
+}
+
 MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
 {
     Diagnostics::MWScriptNativeScope timing("world.findInactive");
@@ -390,21 +488,45 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
             return ptr;
     }
 
-    // Then check cells that are already listed
-    // Search in reverse, this is a workaround for an ambiguous chargen_plank reference in the vanilla game.
-    // there is one at -22,16 and one at -2,-9, the latter should be used.
-    for (auto iter = mExteriors.rbegin(); iter != mExteriors.rend(); ++iter)
+    if (useWorldCellIndex())
     {
-        Ptr ptr = getPtrAndCache(name, *iter->second);
-        if (!ptr.isEmpty())
-            return ptr;
+        updateCellLookupIndex();
+        // Snapshot in the same order as the original two loops. Keep unknown
+        // cells in that order too, and keep the original cache precedence above.
+        std::vector<CellStore*> candidates;
+        if (const auto found = mRefIdLookupCells.find(name); found != mRefIdLookupCells.end())
+        {
+            std::set_union(found->second.begin(), found->second.end(), mUnindexedLookupCells.begin(),
+                mUnindexedLookupCells.end(), std::back_inserter(candidates), CellLookupOrder{});
+        }
+        else
+            candidates.assign(mUnindexedLookupCells.begin(), mUnindexedLookupCells.end());
+        for (CellStore* cell : candidates)
+        {
+            Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");
+            Ptr ptr = getPtrAndCache(name, *cell);
+            if (!ptr.isEmpty())
+                return ptr;
+        }
     }
-
-    for (auto iter = mInteriors.begin(); iter != mInteriors.end(); ++iter)
+    else
     {
-        Ptr ptr = getPtrAndCache(name, *iter->second);
-        if (!ptr.isEmpty())
-            return ptr;
+        // Then check cells that are already listed
+        // Search in reverse, this is a workaround for an ambiguous chargen_plank reference in the vanilla game.
+        // there is one at -22,16 and one at -2,-9, the latter should be used.
+        for (auto iter = mExteriors.rbegin(); iter != mExteriors.rend(); ++iter)
+        {
+            Ptr ptr = getPtrAndCache(name, *iter->second);
+            if (!ptr.isEmpty())
+                return ptr;
+        }
+
+        for (auto iter = mInteriors.begin(); iter != mInteriors.end(); ++iter)
+        {
+            Ptr ptr = getPtrAndCache(name, *iter->second);
+            if (!ptr.isEmpty())
+                return ptr;
+        }
     }
 
     // Now try the other cells
@@ -530,8 +652,8 @@ public:
         if (const auto* exteriorId = cellId.getIf<ESM::ESM3ExteriorCellRefId>())
         {
             ESM::ExteriorCellLocation location(exteriorId->getX(), exteriorId->getY(), ESM::Cell::sDefaultWorldspaceId);
-            return getOrCreateExterior(
-                location, mWorldModel.mExteriors, mWorldModel.mStore, mWorldModel.mReaders, mWorldModel.mCells, false);
+            return getOrCreateExterior(location, mWorldModel.mExteriors, mWorldModel.mStore, mWorldModel.mReaders,
+                mWorldModel.mCells, mWorldModel, false);
         }
         return mWorldModel.findCell(cellId);
     }

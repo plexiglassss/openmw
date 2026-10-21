@@ -3,9 +3,11 @@
 
 #include <list>
 #include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <components/esm/exteriorcelllocation.hpp>
 #include <components/misc/algorithm.hpp>
@@ -81,6 +83,10 @@ namespace MWWorld
 
         void deregisterLiveCellRef(LiveCellRefBase& ref) noexcept;
 
+        // Internal notifications for cells participating in global ID lookup.
+        void trackCellLookup(CellStore& cell) const;
+        void invalidateCellLookup(CellStore& cell) const;
+
         void assignSaveFileRefNum(ESM::CellRef& ref) { mPtrRegistry.assign(ref); }
 
         template <typename Fn>
@@ -116,6 +122,18 @@ namespace MWWorld
         ESM::Cell mDraftCell;
         std::vector<std::pair<ESM::RefId, CellStore*>> mIdCache;
         std::size_t mIdCacheIndex = 0;
+
+        struct CellLookupOrder
+        {
+            bool operator()(const CellStore* left, const CellStore* right) const;
+        };
+        using LookupCells = std::set<CellStore*, CellLookupOrder>;
+        mutable LookupCells mUnindexedLookupCells;
+        mutable std::unordered_set<CellStore*> mDirtyLookupCells;
+        std::unordered_map<ESM::RefId, LookupCells> mRefIdLookupCells;
+        std::unordered_map<CellStore*, std::vector<ESM::RefId>> mIndexedCellIds;
+
+        void updateCellLookupIndex();
 
         CellStore& getOrInsertCellStore(const ESM::Cell& cell);
 

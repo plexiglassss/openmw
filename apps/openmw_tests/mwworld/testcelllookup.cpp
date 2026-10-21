@@ -336,5 +336,170 @@ namespace MWWorld
             std::cout << "CELL_LOOKUP_BENCH refs=" << count << " queries=" << queries.size()
                       << " linear_ms=" << before.first << " candidate_ms=" << after.first << '\n';
         }
+
+        class WorldCellLookupTest : public CellLookupTest
+        {
+        protected:
+            Ptr find(std::string_view name) { return mWorld.getPtrByRefId(ESM::RefId::stringRefId(name)); }
+
+            CellStore& exterior(int x, int y)
+            {
+                return mWorld.getExterior(ESM::ExteriorCellLocation(x, y, ESM::Cell::sDefaultWorldspaceId));
+            }
+        };
+
+        TEST_F(WorldCellLookupTest, missDoesNotHideInsertionOrNewCell)
+        {
+            CellStore& a = cell("a");
+            add(a, "other");
+            EXPECT_TRUE(find("new").isEmpty());
+            const Ptr inserted = add(a, "new");
+            EXPECT_EQ(find("NEW"), inserted);
+            EXPECT_TRUE(find("later").isEmpty());
+            const Ptr later = add(cell("later cell"), "later");
+            EXPECT_EQ(find("later"), later);
+        }
+
+        TEST_F(WorldCellLookupTest, followsMovementAndReturnAfterCachedHit)
+        {
+            CellStore& a = cell("a");
+            CellStore& b = cell("b");
+            CellStore& c = exterior(3, 4);
+            Ptr ref = add(a, "traveller");
+            EXPECT_EQ(find("traveller"), ref);
+            for (CellStore* destination : { &b, &c, &a })
+            {
+                ref = ref.getCell()->moveTo(ref, destination);
+                EXPECT_EQ(find("traveller"), ref);
+                EXPECT_EQ(find("traveller").getCell(), destination);
+            }
+        }
+
+        TEST_F(WorldCellLookupTest, preservesExteriorAndCaseInsensitiveInteriorOrder)
+        {
+            add(cell("beta"), "inside");
+            const Ptr firstInterior = add(cell("Alpha"), "inside");
+            EXPECT_EQ(find("inside"), firstInterior);
+            add(cell("another interior"), "chargen_plank");
+            add(exterior(-22, 16), "chargen_plank");
+            const Ptr plank = add(exterior(-2, -9), "chargen_plank");
+            EXPECT_EQ(find("chargen_plank"), plank);
+        }
+
+        TEST_F(WorldCellLookupTest, preservesCachePrecedenceAndChecksAccessibilityLive)
+        {
+            CellStore& a = cell("a");
+            CellStore& b = cell("b");
+            const Ptr cached = add(b, "duplicate");
+            EXPECT_EQ(find("duplicate"), cached);
+            const Ptr earlier = add(a, "duplicate");
+            EXPECT_EQ(find("duplicate"), cached);
+            cached.getRefData().setDeletedByContentFile(true);
+            EXPECT_EQ(find("duplicate"), earlier);
+            count(earlier, 0);
+            EXPECT_TRUE(find("duplicate").isEmpty());
+            count(earlier, 1);
+            earlier.getRefData().disable();
+            EXPECT_EQ(find("duplicate"), earlier);
+        }
+
+        TEST_F(WorldCellLookupTest, inaccessibleReferenceIsNotOmittedFromCandidateIndex)
+        {
+            CellStore& a = cell("a");
+            const Ptr ref = add(a, "restored");
+            a.count(); // Keep the pre-existing merged-view accessibility behavior identical.
+            count(ref, 0);
+            EXPECT_TRUE(find("unrelated").isEmpty());
+            count(ref, 1);
+            EXPECT_EQ(find("restored"), ref);
+            const Ptr content = add(a, "content", true);
+            count(content, 0);
+            EXPECT_EQ(find("content"), content);
+        }
+
+        TEST_F(WorldCellLookupTest, unloadedAndPreloadedCellsRemainSearchableAfterInsertion)
+        {
+            CellStore& a = cell("a", false);
+            CellStore& b = cell("b", false);
+            b.preload();
+            EXPECT_TRUE(find("missing").isEmpty());
+            EXPECT_EQ(a.getState(), CellStore::State_Preloaded);
+            EXPECT_EQ(b.getState(), CellStore::State_Preloaded);
+            a.load();
+            b.load();
+            const Ptr first = add(a, "first");
+            const Ptr second = add(b, "second");
+            EXPECT_EQ(find("first"), first);
+            EXPECT_EQ(find("second"), second);
+        }
+
+        TEST_F(WorldCellLookupTest, draftCellDoesNotJoinNormalSearch)
+        {
+            add(mWorld.getDraftCell(), "draft only");
+            EXPECT_TRUE(find("draft only").isEmpty());
+        }
+
+        TEST_F(WorldCellLookupTest, clearDiscardsCandidatesAndDirtyCells)
+        {
+            add(cell("a"), "old");
+            EXPECT_FALSE(find("old").isEmpty());
+            add(mWorld.getInterior("a"), "dirty");
+            mWorld.clear();
+            EXPECT_TRUE(find("old").isEmpty());
+            EXPECT_TRUE(find("dirty").isEmpty());
+            const Ptr replacement = add(mWorld.getInterior("a"), "old");
+            EXPECT_EQ(find("old"), replacement);
+        }
+
+        TEST_F(WorldCellLookupTest, saveRestoreRefreshesCandidatesWithoutChangingSaveBytes)
+        {
+            CellStore& source = cell("source");
+            const Ptr original = add(source, "saved");
+            mWorld.registerPtr(original);
+            const auto save = [&] {
+                auto stream = std::make_unique<std::stringstream>();
+                ESM::ESMWriter writer;
+                writer.setFormatVersion(ESM::CurrentSaveGameFormatVersion);
+                writer.save(*stream);
+                writer.startRecord(ESM::REC_CSTA);
+                source.writeReferences(writer);
+                writer.endRecord(ESM::REC_CSTA);
+                writer.close();
+                return stream;
+            };
+            auto before = save();
+            EXPECT_EQ(find("saved"), original);
+            EXPECT_EQ(save()->str(), before->str());
+            mWorld.clear();
+            CellStore& restored = mWorld.getInterior("source");
+            EXPECT_TRUE(find("saved").isEmpty());
+            ESM::ESMReader reader;
+            reader.open(std::move(before), "world-cell-lookup-save");
+            ASSERT_EQ(reader.getRecName().toInt(), ESM::REC_CSTA);
+            reader.getRecHeader();
+            restored.readReferences(reader, nullptr);
+            const Ptr result = find("saved");
+            ASSERT_FALSE(result.isEmpty());
+            EXPECT_EQ(result.getCell(), &restored);
+        }
+
+        TEST_F(WorldCellLookupTest, benchmarkKnownCellMisses)
+        {
+            constexpr int cells = 1000;
+            constexpr int refsPerCell = 32;
+            for (int i = 0; i < cells; ++i)
+            {
+                CellStore& room = cell("bench room " + std::to_string(i));
+                for (int j = 0; j < refsPerCell; ++j)
+                    add(room, "bench item " + std::to_string(j));
+            }
+            const auto start = std::chrono::steady_clock::now();
+            for (int i = 0; i < 100; ++i)
+                EXPECT_TRUE(find("absent " + std::to_string(i)).isEmpty());
+            const double ms
+                = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+            std::cout << "WORLD_CELL_LOOKUP_BENCH cells=" << cells << " refs_per_cell=" << refsPerCell
+                      << " queries=100 including_index_build_ms=" << ms << '\n';
+        }
     }
 }

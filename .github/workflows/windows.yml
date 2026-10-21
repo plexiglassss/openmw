@@ -152,11 +152,13 @@ jobs:
         sccache --zero-stats
         if ($LASTEXITCODE) { throw 'Could not initialize compiler cache statistics' }
 
-    - name: Compile cell lookup regression before the full build
+    - name: Compile cell lookup changes before the full build
       if: ${{ ! inputs.package }}
       run: >
         cmake --build ${{ github.workspace }}/build
         --target apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
+        apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/cellstore.cpp.obj
+        apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
 
     - name: Build component regression test target
       if: ${{ ! inputs.package }}
@@ -202,13 +204,19 @@ jobs:
         try {
           $env:OPENMW_TIMING_FILE = "$PWD/cell-lookup-timing.csv"
           $env:OPENMW_CELL_ID_INDEX = '1'
-          build/openmw-tests.exe --gtest_filter=CellLookupTest.*
+          $env:OPENMW_WORLD_CELL_INDEX = '1'
+          build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.*
           if ($LASTEXITCODE) { throw 'Indexed cell lookup tests failed' }
           $env:OPENMW_CELL_ID_INDEX = '0'
-          build/openmw-tests.exe --gtest_filter=CellLookupTest.*
+          build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.*
           if ($LASTEXITCODE) { throw 'Linear cell lookup tests failed' }
+          $env:OPENMW_CELL_ID_INDEX = '1'
+          $env:OPENMW_WORLD_CELL_INDEX = '0'
+          build/openmw-tests.exe --gtest_filter=WorldCellLookupTest.*
+          if ($LASTEXITCODE) { throw 'Original world cell traversal tests failed' }
         } finally {
           Remove-Item Env:OPENMW_CELL_ID_INDEX -ErrorAction SilentlyContinue
+          Remove-Item Env:OPENMW_WORLD_CELL_INDEX -ErrorAction SilentlyContinue
           Remove-Item Env:OPENMW_TIMING_FILE -ErrorAction SilentlyContinue
         }
 
@@ -261,6 +269,7 @@ jobs:
         Copy-Item custom/timing-tests/README.md install/PROFILING.md
         Copy-Item custom/timing-tests/IYANI-CAPTURE.md install/
         Copy-Item custom/timing-tests/MWSCRIPT-LOOKUP.md install/
+        Copy-Item custom/timing-tests/WORLD-CELL-LOOKUP.md install/
 
     - name: Include diagnostic build profile
       if: ${{ inputs.diagnostic-fast }}

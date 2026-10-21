@@ -573,6 +573,30 @@ namespace MWWorld
     {
         mRechargingItemsUpToDate = false;
         mMergedRefsNeedsUpdate = true;
+        if (mLookupWorld != nullptr)
+            mLookupWorld->invalidateCellLookup(*this);
+    }
+
+    std::vector<ESM::RefId> CellStore::listLookupIds() const
+    {
+        if (mState == State_Preloaded)
+            return mIds;
+
+        std::vector<ESM::RefId> ids;
+        // Do not use the merged view: it may have been built while a reference
+        // was inaccessible. Counts and deletion flags can change without an
+        // insertion, so the candidate index must include those references too.
+        auto visitor = [&](const Ptr& ptr) {
+            if (!mMovedToAnotherCell.contains(ptr.getBase()))
+                ids.push_back(ptr.getCellRef().getRefId());
+            return true;
+        };
+        CellStoreImp::forEachInternal(visitor, const_cast<CellStore&>(*this), true);
+        for (const auto& [ref, _] : mMovedHere)
+            ids.push_back(ref->mRef.getRefId());
+        std::sort(ids.begin(), ids.end());
+        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+        return ids;
     }
 
     void CellStore::updateMergedRefs(bool includeDeleted) const
@@ -772,6 +796,8 @@ namespace MWWorld
             listRefs();
 
             mState = State_Preloaded;
+            if (mLookupWorld != nullptr)
+                mLookupWorld->invalidateCellLookup(*this);
         }
     }
 

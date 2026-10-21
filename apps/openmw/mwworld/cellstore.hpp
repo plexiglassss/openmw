@@ -86,6 +86,7 @@ namespace ESM4
 namespace MWWorld
 {
     class ESMStore;
+    class WorldModel;
     struct CellStoreImp;
 
     using CellStoreTuple = std::tuple<CellRefList<ESM::Activator>, CellRefList<ESM::Potion>,
@@ -339,6 +340,11 @@ namespace MWWorld
 
     private:
         friend struct CellStoreImp;
+        friend class WorldModel;
+
+        // Only cells in WorldModel's normal search order have an observer.
+        const WorldModel* mLookupWorld = nullptr;
+        std::vector<ESM::RefId> listLookupIds() const;
 
         const MWWorld::ESMStore& mStore;
         ESM::ReadersCache& mReaders;
