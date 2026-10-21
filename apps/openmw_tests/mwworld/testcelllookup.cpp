@@ -56,7 +56,7 @@ namespace MWWorld
                 record.mName = name;
                 record.mData.mFlags = ESM::Cell::Interior;
                 record.updateId();
-                mStore.insertStatic(record);
+                mStore.insert(record);
                 return mWorld.getCell(record.mId, load);
             }
 
