@@ -344,6 +344,16 @@ namespace MWWorld
 
             CellStore& exterior(int x, int y)
             {
+                // Supply an existing cell, just as cell() does for interiors.
+                // Generating a new exterior intentionally notifies Lua, which
+                // is outside these lookup tests and rejected by the strict stub.
+                ESM::Cell record;
+                record.blank();
+                record.mData.mFlags = ESM::Cell::HasWater;
+                record.mData.mX = x;
+                record.mData.mY = y;
+                record.updateId();
+                mStore.insert(record);
                 return mWorld.getExterior(ESM::ExteriorCellLocation(x, y, ESM::Cell::sDefaultWorldspaceId));
             }
         };
