@@ -2,9 +2,11 @@
 #include "magiceffects.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 
 #include <components/debug/debuglog.hpp>
+#include <components/diagnostics/mwscript.hpp>
 
 #include <components/esm/format.hpp>
 #include <components/esm3/actoridconverter.hpp>
@@ -580,6 +582,8 @@ namespace MWWorld
         CellStoreImp::forEachInternal(visitor, const_cast<CellStore&>(*this), includeDeleted);
         visitor.merge();
         mMergedRefsNeedsUpdate = false;
+        mRefsByIdNeedsUpdate = true;
+        mRefIdSearched = false;
     }
 
     bool CellStore::movedHere(const MWWorld::Ptr& ptr) const
@@ -641,38 +645,66 @@ namespace MWWorld
         return searchConst(id).isEmpty();
     }
 
-    template <typename PtrType>
-    struct SearchVisitor
+    LiveCellRefBase* CellStore::searchById(const ESM::RefId& id) const
     {
-        PtrType mFound;
-        const ESM::RefId& mIdToFind;
-        SearchVisitor(const ESM::RefId& id)
-            : mIdToFind(id)
+        if (mState != State_Loaded)
+            return nullptr;
+
+        if (mMergedRefsNeedsUpdate)
+            updateMergedRefs();
+
+        // Same executable and timers can exercise the old traversal for an A/B
+        // capture. This switch is read once; it does not alter save data.
+        static const bool useIndex = [] {
+            const char* value = std::getenv("OPENMW_CELL_ID_INDEX");
+            return value == nullptr || std::string_view(value) != "0";
+        }();
+
+        if (!useIndex || !mRefIdSearched)
         {
-        }
-        bool operator()(const PtrType& ptr)
-        {
-            if (ptr.getCellRef().getRefId() == mIdToFind)
+            mRefIdSearched = true;
+            for (LiveCellRefBase* ref : mMergedRefs)
             {
-                mFound = ptr;
-                return false;
+                if (isAccessible(ref->mData, ref->mRef) && ref->mRef.getRefId() == id)
+                    return ref;
             }
-            return true;
+            return nullptr;
         }
-    };
+
+        if (mRefsByIdNeedsUpdate)
+        {
+            Diagnostics::MWScriptNativeScope timing("cell.refIdIndex.build");
+            mRefsById = mMergedRefs;
+            std::stable_sort(mRefsById.begin(), mRefsById.end(),
+                [](const auto* left, const auto* right) { return left->mRef.getRefId() < right->mRef.getRefId(); });
+            mRefsByIdNeedsUpdate = false;
+        }
+
+        auto it = std::lower_bound(mRefsById.begin(), mRefsById.end(), id,
+            [](const auto* ref, const ESM::RefId& key) { return ref->mRef.getRefId() < key; });
+        for (; it != mRefsById.end() && (*it)->mRef.getRefId() == id; ++it)
+        {
+            // Count and deletion flags can change without a merged-view rebuild.
+            // Check live state; do not cache a hit, miss or accessible duplicate.
+            if (isAccessible((*it)->mData, (*it)->mRef))
+                return *it;
+        }
+        return nullptr;
+    }
 
     Ptr CellStore::search(const ESM::RefId& id)
     {
-        SearchVisitor<MWWorld::Ptr> searchVisitor(id);
-        forEach(searchVisitor);
-        return searchVisitor.mFound;
+        LiveCellRefBase* ref = searchById(id);
+        // Preserve forEach's state bookkeeping even for an unsuccessful search.
+        if (mState == State_Loaded && !mMergedRefs.empty())
+            mHasState = true;
+        return ref == nullptr ? Ptr() : Ptr(ref, this);
     }
 
     ConstPtr CellStore::searchConst(const ESM::RefId& id) const
     {
-        SearchVisitor<MWWorld::ConstPtr> searchVisitor(id);
-        forEachConst(searchVisitor);
-        return searchVisitor.mFound;
+        const LiveCellRefBase* ref = searchById(id);
+        return ref == nullptr ? ConstPtr() : ConstPtr(ref, this);
     }
 
     class RefNumSearchVisitor
@@ -722,6 +754,7 @@ namespace MWWorld
     {
         if (mState != State_Loaded)
         {
+            Diagnostics::MWScriptNativeScope timing("cell.load");
             if (mState == State_Preloaded)
                 mIds.clear();
 
@@ -735,6 +768,7 @@ namespace MWWorld
     {
         if (mState == State_Unloaded)
         {
+            Diagnostics::MWScriptNativeScope timing("cell.preload");
             listRefs();
 
             mState = State_Preloaded;

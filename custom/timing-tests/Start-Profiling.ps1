@@ -1,7 +1,9 @@
 param(
     [string]$OpenMWExe = (Join-Path $PSScriptRoot 'openmw.exe'),
     [string]$UserConfigDir = (Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'My Games\OpenMW'),
-    [switch]$WithoutTiming
+    [switch]$WithoutTiming,
+    [ValidateSet('Indexed', 'Linear')]
+    [string]$CellLookup = 'Indexed'
 )
 $ErrorActionPreference = 'Stop'
 if (Get-Process openmw,openmw-launcher -ErrorAction SilentlyContinue) {
@@ -10,15 +12,17 @@ if (Get-Process openmw,openmw-launcher -ErrorAction SilentlyContinue) {
 $exe = (Resolve-Path -LiteralPath $OpenMWExe).Path
 $runDir = Join-Path ([Environment]::GetFolderPath('MyDocuments')) ('OpenMW Profiling\Run-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Path $runDir | Out-Null
-$names = @('OPENMW_TIMING_FILE','OPENMW_OSG_STATS_FILE','OPENMW_OSG_STATS_LIST')
+$names = @('OPENMW_TIMING_FILE','OPENMW_OSG_STATS_FILE','OPENMW_OSG_STATS_LIST','OPENMW_CELL_ID_INDEX')
 $old = @{}
 foreach ($name in $names) { $old[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
     $env:OPENMW_TIMING_FILE = if ($WithoutTiming) { $null } else { Join-Path $runDir 'script-timing.csv' }
     $env:OPENMW_OSG_STATS_FILE = Join-Path $runDir 'openmw-stats.log'
     $env:OPENMW_OSG_STATS_LIST = 'times;resource'
+    $env:OPENMW_CELL_ID_INDEX = if ($CellLookup -eq 'Linear') { '0' } else { '1' }
     $start = Get-Date
     @("Executable: $exe", "Start: $($start.ToString('o'))", "Timing: $(!$WithoutTiming)") | Set-Content (Join-Path $runDir 'capture.txt')
+    "Cell lookup: $CellLookup" | Add-Content (Join-Path $runDir 'capture.txt')
     foreach ($file in @('openmw.exe','lua51.dll','version.dll')) {
         $path = Join-Path (Split-Path $exe) $file
         if (Test-Path -LiteralPath $path) { Get-FileHash -LiteralPath $path -Algorithm SHA256 | Format-List | Out-File (Join-Path $runDir 'binary-hashes.txt') -Append }

@@ -1,5 +1,7 @@
 #include "worldimp.hpp"
 
+#include <components/diagnostics/mwscript.hpp>
+
 #include <charconv>
 #include <vector>
 
@@ -601,6 +603,7 @@ namespace MWWorld
 
     Ptr World::searchPtr(const ESM::RefId& name, bool activeOnly, bool searchInContainers)
     {
+        Diagnostics::MWScriptNativeScope timing("world.searchPtr");
         Ptr ret;
         // the player is always in an active cell.
         if (name == "Player")
@@ -719,6 +722,7 @@ namespace MWWorld
 
     void World::enable(const Ptr& reference)
     {
+        Diagnostics::MWScriptNativeScope timing("world.enable");
         if (!reference.isInCell())
             return;
 
@@ -732,9 +736,13 @@ namespace MWWorld
 
             if (reference.getCellRef().getRefNum().hasContentFile())
             {
+                Diagnostics::MWScriptNativeScope paging("world.pagingEnableObject");
                 int type = mStore.find(reference.getCellRef().getRefId());
                 if (mRendering->pagingEnableObject(type, reference, true))
+                {
+                    Diagnostics::MWScriptNativeScope terrain("world.reloadTerrain");
                     mWorldScene->reloadTerrain();
+                }
             }
         }
     }
@@ -759,6 +767,7 @@ namespace MWWorld
 
     void World::disable(const Ptr& reference)
     {
+        Diagnostics::MWScriptNativeScope timing("world.disable");
         if (!reference.getRefData().isEnabled())
             return;
 
@@ -773,14 +782,19 @@ namespace MWWorld
 
         if (reference.getCellRef().getRefNum().hasContentFile())
         {
+            Diagnostics::MWScriptNativeScope paging("world.pagingEnableObject");
             int type = mStore.find(reference.getCellRef().getRefId());
             if (mRendering->pagingEnableObject(type, reference, false))
+            {
+                Diagnostics::MWScriptNativeScope terrain("world.reloadTerrain");
                 mWorldScene->reloadTerrain();
+            }
         }
 
         if (mWorldScene->getActiveCells().find(reference.getCell()) != mWorldScene->getActiveCells().end()
             && reference.getCellRef().getCount())
         {
+            Diagnostics::MWScriptNativeScope scene("world.disable.sceneAndPhysics");
             mWorldScene->removeObjectFromScene(reference);
             mWorldScene->addPostponedPhysicsObjects();
         }

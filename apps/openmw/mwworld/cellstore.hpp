@@ -392,6 +392,14 @@ namespace MWWorld
         mutable std::vector<LiveCellRefBase*> mMergedRefs;
         mutable bool mMergedRefsNeedsUpdate = false;
 
+        // A separate view keeps forEach order (and duplicate-ID precedence) intact.
+        // Build only for repeated searches, and invalidate with the merged view.
+        mutable std::vector<LiveCellRefBase*> mRefsById;
+        mutable bool mRefsByIdNeedsUpdate = true;
+        mutable bool mRefIdSearched = false;
+
+        LiveCellRefBase* searchById(const ESM::RefId& id) const;
+
         // Get the Ptr for the given ref which originated from this cell (possibly moved to another cell at this point).
         Ptr getCurrentPtr(MWWorld::LiveCellRefBase* ref);
 

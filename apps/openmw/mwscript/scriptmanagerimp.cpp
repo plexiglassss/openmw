@@ -1,5 +1,5 @@
-#include <components/diagnostics/timing.hpp>
 #include "scriptmanagerimp.hpp"
+#include <components/diagnostics/mwscript.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -39,6 +39,8 @@ namespace MWScript
 
     bool ScriptManager::compile(const ESM::RefId& name)
     {
+        Diagnostics::Scope timing(
+            "mwscript_phase", Diagnostics::enabled() ? name.toDebugString() : std::string{}, "compile");
         mParser.reset();
         mErrorHandler.reset();
 
@@ -87,7 +89,9 @@ namespace MWScript
 
     bool ScriptManager::run(const ESM::RefId& name, Interpreter::Context& interpreterContext)
     {
-        Diagnostics::Scope timing("mwscript", Diagnostics::enabled() ? name.toDebugString() : std::string{}, "run");
+        const std::string timingName = Diagnostics::enabled() ? name.toDebugString() : std::string{};
+        Diagnostics::MWScriptContext timingContext(timingName);
+        Diagnostics::Scope timing("mwscript", timingName, "run");
         // compile script
         auto iter = mScripts.find(name);
 
@@ -111,6 +115,7 @@ namespace MWScript
         {
             try
             {
+                Diagnostics::Scope execution("mwscript_phase", timingName, "execute");
                 mInterpreter.run(iter->second.mProgram, interpreterContext);
                 return true;
             }

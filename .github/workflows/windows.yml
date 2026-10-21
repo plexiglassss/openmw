@@ -190,6 +190,22 @@ jobs:
         cmake --build ${{ github.workspace }}/build
         ${{ inputs.diagnostic-fast && '--target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests' || '' }}
 
+    - name: Check cell lookup with both algorithms before packaging
+      if: ${{ ! inputs.package }}
+      run: |
+        try {
+          $env:OPENMW_TIMING_FILE = "$PWD/cell-lookup-timing.csv"
+          $env:OPENMW_CELL_ID_INDEX = '1'
+          build/openmw-tests.exe --gtest_filter=CellLookupTest.*
+          if ($LASTEXITCODE) { throw 'Indexed cell lookup tests failed' }
+          $env:OPENMW_CELL_ID_INDEX = '0'
+          build/openmw-tests.exe --gtest_filter=CellLookupTest.*
+          if ($LASTEXITCODE) { throw 'Linear cell lookup tests failed' }
+        } finally {
+          Remove-Item Env:OPENMW_CELL_ID_INDEX -ErrorAction SilentlyContinue
+          Remove-Item Env:OPENMW_TIMING_FILE -ErrorAction SilentlyContinue
+        }
+
     - name: Record compiler cache statistics
       if: ${{ always() && inputs.diagnostic-fast && steps.sccache.outcome == 'success' }}
       run: |
@@ -238,6 +254,7 @@ jobs:
         Copy-Item custom/timing-tests/Start-Profiling.ps1 install/
         Copy-Item custom/timing-tests/README.md install/PROFILING.md
         Copy-Item custom/timing-tests/IYANI-CAPTURE.md install/
+        Copy-Item custom/timing-tests/MWSCRIPT-LOOKUP.md install/
 
     - name: Include diagnostic build profile
       if: ${{ inputs.diagnostic-fast }}

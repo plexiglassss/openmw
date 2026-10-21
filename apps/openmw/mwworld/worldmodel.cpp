@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include <components/debug/debuglog.hpp>
+#include <components/diagnostics/mwscript.hpp>
 #include <components/esm/defs.hpp>
 #include <components/esm3/cellid.hpp>
 #include <components/esm3/cellref.hpp>
@@ -379,6 +380,7 @@ namespace MWWorld
 
 MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
 {
+    Diagnostics::MWScriptNativeScope timing("world.findInactive");
     for (const auto& [cachedId, cellStore] : mIdCache)
     {
         if (cachedId != name || cellStore == nullptr)

@@ -31,6 +31,13 @@ jobs:
           if ($LASTEXITCODE) { throw "Actor diagnostic compile failed" }
           ./actorfailure-smoke.exe
           if ($LASTEXITCODE) { throw "CSV verification failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/mwscript.cpp /Fe:mwscript-smoke.exe
+          if ($LASTEXITCODE) { throw "MWScript diagnostic compile failed" }
+          $env:OPENMW_TIMING_FILE = "$PWD/mwscript-test.csv"
+          ./mwscript-smoke.exe
+          if ($LASTEXITCODE) { throw "MWScript diagnostic test failed" }
+          python custom/timing-tests/verify-mwscript.py mwscript-test.csv
+          if ($LASTEXITCODE) { throw "MWScript timing verification failed" }
   Engine:
     needs: TimingTests
     uses: ./.github/workflows/windows.yml
