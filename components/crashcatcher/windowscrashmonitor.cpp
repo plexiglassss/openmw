@@ -5,6 +5,7 @@
 
 #include <DbgHelp.h>
 
+#include <chrono>
 #include <memory>
 #include <thread>
 
@@ -13,6 +14,7 @@
 #include <components/debug/debuglog.hpp>
 #include <components/misc/strings/conversion.hpp>
 
+#include "freezewarningtimer.hpp"
 #include "windowscrashcatcher.hpp"
 #include "windowscrashdumppathhelpers.hpp"
 #include "windowscrashshm.hpp"
@@ -172,9 +174,10 @@ namespace Crash
 
             bool running = true;
             bool frozen = false;
+            FreezeWarningTimer warningTimer;
             while (isAppAlive() && running && !mFreezeAbort)
             {
-                if (isAppFrozen())
+                if (warningTimer.update(isAppFrozen(), std::chrono::steady_clock::now()))
                 {
                     if (!frozen)
                     {
@@ -182,10 +185,13 @@ namespace Crash
                         frozen = true;
                     }
                 }
-                else if (frozen)
+                else
                 {
-                    hideFreezeMessageBox();
-                    frozen = false;
+                    if (frozen)
+                    {
+                        hideFreezeMessageBox();
+                        frozen = false;
+                    }
                 }
 
                 if (!mFreezeAbort && waitApp(frozen))
@@ -330,7 +336,8 @@ namespace Crash
         std::thread messageBoxThread([&]() {
             SDL_MessageBoxButtonData button = { SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Abort" };
             SDL_MessageBoxData messageBoxData = { SDL_MESSAGEBOX_ERROR, nullptr, "OpenMW has frozen",
-                "OpenMW has frozen. This should never happen. Press Abort to terminate it and generate a crash dump to "
+                "OpenMW has been unresponsive for at least 60 seconds. A large modlist may still be loading. "
+                "Press Abort to terminate it and generate a crash dump to "
                 "help diagnose the problem.\nOpenMW may unfreeze if you wait, and this message box will disappear "
                 "after it becomes responsive.",
                 1, &button, nullptr };

@@ -1,9 +1,19 @@
 #include <components/diagnostics/timing.hpp>
 #include <cassert>
+#include <components/crashcatcher/freezewarningtimer.hpp>
 #include <stdexcept>
 
 int main()
 {
+    Crash::FreezeWarningTimer freeze;
+    const auto origin = std::chrono::steady_clock::time_point{};
+    assert(!freeze.update(true, origin));
+    assert(!freeze.update(true, origin + std::chrono::seconds(59)));
+    assert(freeze.update(true, origin + std::chrono::seconds(60)));
+    assert(!freeze.update(false, origin + std::chrono::seconds(61)));
+    assert(!freeze.update(true, origin + std::chrono::seconds(62)));
+    assert(!freeze.update(true, origin + std::chrono::seconds(121)));
+    assert(freeze.update(true, origin + std::chrono::seconds(122)));
     if (!Diagnostics::enabled()) return 2;
     Diagnostics::setFrame(42);
     {
@@ -32,5 +42,10 @@ int main()
     worker.join(); // Also verifies thread-exit output.
     Diagnostics::setFrame(43);
     { Diagnostics::Scope last("phase", "last", "shutdown"); }
-    // Main thread exit must flush the last partial frame.
+    for (unsigned i = 44; i < 172; ++i)
+    {
+        Diagnostics::setFrame(i);
+        Diagnostics::Scope row("test", "batched", "frame");
+    }
+    // Main thread exit must flush all buffered frames and the last partial frame.
 }

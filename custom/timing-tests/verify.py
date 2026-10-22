@@ -17,3 +17,9 @@ assert get('Lua')['thread'] != parent['thread']
 assert all(float(r['self_us']) >= 0 and float(r['total_us']) >= float(r['self_us']) for r in rows)
 assert all(float(r['last_us']) >= float(r['first_us']) for r in rows)
 print('PASS: nesting, exclusive accounting, aggregation, exception unwinding, CSV escaping, threads, frame IDs, shutdown flush')
+
+batched = [r for r in rows if r['source'] == 'batched']
+assert len(batched) == 128
+assert {int(r['frame']) for r in batched} == set(range(44, 172))
+assert all(int(r['calls']) == 1 for r in batched)
+print('PASS: buffered frames retained separately through final thread flush')

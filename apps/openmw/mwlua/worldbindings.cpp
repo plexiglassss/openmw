@@ -1,4 +1,5 @@
 #include "worldbindings.hpp"
+#include <components/diagnostics/timing.hpp>
 
 #include <components/esm3/loadacti.hpp>
 #include <components/esm3/loadalch.hpp>
@@ -305,7 +306,17 @@ namespace MWLua
                 [object, actor] {
                     const MWWorld::Ptr& objPtr = object.ptr();
                     const MWWorld::Ptr& actorPtr = actor.ptr();
-                    objPtr.getClass().activate(objPtr, actorPtr)->execute(actorPtr);
+                    const std::string identity
+                        = Diagnostics::enabled() ? objPtr.getCellRef().getRefId().serializeText() : std::string{};
+                    std::unique_ptr<MWWorld::Action> action;
+                    {
+                        Diagnostics::Scope timing("activation", identity, "createAction");
+                        action = objPtr.getClass().activate(objPtr, actorPtr);
+                    }
+                    {
+                        Diagnostics::Scope timing("activation", identity, "executeAction");
+                        action->execute(actorPtr);
+                    }
                 },
                 "_runStandardActivationAction");
         };

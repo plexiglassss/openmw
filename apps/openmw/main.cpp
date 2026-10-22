@@ -6,6 +6,7 @@
 #include <components/misc/rng.hpp>
 #include <components/platform/platform.hpp>
 #include <components/version/version.hpp>
+#include <iostream>
 
 #include "mwgui/debugwindow.hpp"
 
@@ -240,7 +241,9 @@ extern "C" int SDL_main(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-    return Debug::wrapApplication(&runApplication, argc, argv, "OpenMW");
+    const int result = Debug::wrapApplication(&runApplication, argc, argv, "OpenMW");
+    std::cerr << "[ShutdownTrace] application wrapper returned " << result << std::endl;
+    return result;
 }
 
 // Platform specific for Windows when there is no console built into the executable.

@@ -1,4 +1,5 @@
 #include "actiontalk.hpp"
+#include <components/diagnostics/timing.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -14,6 +15,7 @@ namespace MWWorld
 
     void ActionTalk::executeImp(const Ptr& actor)
     {
+        Diagnostics::Scope timing("activation", "dialogue", "pushGuiMode");
         if (actor == MWMechanics::getPlayer())
             MWBase::Environment::get().getWindowManager()->pushGuiMode(MWGui::GM_Dialogue, getTarget());
     }

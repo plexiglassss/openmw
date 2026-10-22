@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include <components/diagnostics/timing.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -363,6 +364,7 @@ namespace MWWorld
 
     void Scene::unloadCell(CellStore* cell, const DetourNavigator::UpdateGuard* navigatorUpdateGuard)
     {
+        Diagnostics::Scope timing("scene", "cell", "unload");
         if (mActiveCells.find(cell) == mActiveCells.end())
             return;
         Log(Debug::Info) << "Unloading cell " << cell->getCell()->getDescription();
@@ -427,6 +429,7 @@ namespace MWWorld
     void Scene::loadCell(CellStore& cell, Loading::Listener* loadingListener, bool respawn, const osg::Vec3f& position,
         const DetourNavigator::UpdateGuard* navigatorUpdateGuard)
     {
+        Diagnostics::Scope timing("scene", "cell", "load");
         using DetourNavigator::HeightfieldShape;
 
         assert(mActiveCells.find(&cell) == mActiveCells.end());
@@ -615,6 +618,7 @@ namespace MWWorld
 
     void Scene::changeCellGrid(const osg::Vec3f& pos, ESM::ExteriorCellLocation playerCellIndex, bool changeEvent)
     {
+        Diagnostics::Scope timing("scene", "exterior", "changeGrid");
         const int halfGridSize
             = isEsm4Ext(playerCellIndex.mWorldspace) ? Constants::ESM4CellGridRadius : Constants::CellGridRadius;
         auto navigatorUpdateGuard = mNavigator.makeUpdateGuard();

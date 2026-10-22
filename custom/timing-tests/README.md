@@ -49,6 +49,9 @@ those rows. Compare an otherwise identical run with OPENMW_TIMING_FILE unset to
 estimate total overhead. This is diagnostic instrumentation, not an FPS optimization.
 Output failures can produce incomplete files. A crash may lose the current frame.
 Normal exit and checking output integrity are required. Keep captures short initially.
+Frames retain separate rows, but output writes are now batched per thread until
+1 MiB or one second at a frame boundary. Thread exit flushes pending data.
+An abnormal exit can therefore lose buffered frames; no background writer is added.
 
 ## Validation
 
@@ -56,3 +59,28 @@ custom/timing-tests/smoke.cpp and verify.py check nesting/exclusive accounting,
 aggregation, exceptions, CSV quoting, two threads, frame IDs and final partial flush.
 The dedicated Windows workflow runs these before the complete engine build/tests.
 No live game, Rubic0n DLL or NVIDIA validation is implied by CI success.
+
+## 22 October combined diagnostics and responsiveness change
+
+- Windows freeze warnings wait for 60 continuous seconds of reported window
+  unresponsiveness. Recovery resets the timer. The Windows hung-window detection
+  delay and monitor polling are additional. Crash notification/dump handling and
+  its handshake timeouts are unchanged. The warning still permits Abort.
+- Timing CSV writes are batched per thread (1 MiB or one second, evaluated at
+  frame boundaries), preserving separate frame IDs and flushing on thread exit.
+  The recorder measurement includes formatting and writes when performed; it
+  still does not measure all per-scope bookkeeping overhead.
+- Standard activation records the object ID and separates creation of its action
+  from execution. Teleport, dialogue opening, scene load/unload and exterior-grid
+  transitions have nested scopes. Async rendering-ray actions now have a name.
+  This is attribution, not an unverified change to activation or queue behaviour.
+- Start-Profiling.ps1 captures stderr (including a checkpoint after application
+  wrapper cleanup) and copies fresh openmw*.dmp files from configured/user/temp/
+  runtime roots after abnormal exit. Dumps can be large. Existing unrelated or
+  older dumps are not copied. No dump being present is not proof of clean exit.
+- Both prior captures exited with -1073740791 after the engine destructor's
+  peaceful-quit message. No crash stack was supplied, so the cause is unresolved;
+  this revision does not claim a shutdown crash fix.
+
+The smoke test now checks the 60-second boundary and recovery reset without
+sleeping, plus preservation of 128 buffered frames and final thread flushing.

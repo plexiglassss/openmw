@@ -87,9 +87,11 @@ namespace Diagnostics
         Scope* active = nullptr;
         std::map<Key, Totals> rows;
         bool failed = false;
-        void flush() noexcept
+        std::string pending;
+        Clock::time_point lastWrite = Clock::now();
+        void flush(bool final = false) noexcept
         {
-            if (rows.empty()) return;
+            if (rows.empty() && (!final || pending.empty())) return;
             try
             {
                 const auto begin = Clock::now();
@@ -101,19 +103,40 @@ namespace Diagnostics
                          << ',' << t.total << ',' << t.self << ',' << t.maximum << ',' << t.first << ',' << t.last << '\n';
                 rows.clear();
                 auto& sink = output();
-                std::lock_guard<std::mutex> lock(sink.mutex);
-                sink.stream << text.str();
-                sink.stream.flush();
+                pending += text.str();
+                // Retain individual frame IDs, but batch stream writes and
+                // flushes. Never hold the output mutex while formatting rows.
+                const bool write = final || pending.size() >= 1024 * 1024
+                    || Clock::now() - lastWrite >= std::chrono::seconds(1);
+                if (write)
+                {
+                    std::lock_guard<std::mutex> lock(sink.mutex);
+                    sink.stream << pending;
+                    sink.stream.flush();
+                    pending.clear();
+                    lastWrite = Clock::now();
+                    if (!sink.stream) failed = true;
+                }
                 const auto end = Clock::now();
                 const double elapsed = microseconds(end - begin);
-                sink.stream << thread << ',' << frame << ",recorder,output,flush,1," << elapsed << ',' << elapsed
-                            << ',' << elapsed << ',' << microseconds(begin - sink.epoch) << ','
+                std::ostringstream measurement;
+                measurement << std::setprecision(12) << thread << ',' << frame
+                            << ",recorder,output,flush,1," << elapsed << ',' << elapsed << ',' << elapsed
+                            << ',' << microseconds(begin - sink.epoch) << ','
                             << microseconds(end - sink.epoch) << '\n';
-                if (!sink.stream) failed = true;
+                pending += measurement.str();
+                if (final)
+                {
+                    std::lock_guard<std::mutex> lock(sink.mutex);
+                    sink.stream << pending;
+                    sink.stream.flush();
+                    pending.clear();
+                    if (!sink.stream) failed = true;
+                }
             }
             catch (...) { rows.clear(); failed = true; }
         }
-        ~ThreadState() { flush(); }
+        ~ThreadState() { flush(true); }
     };
     inline ThreadState& state() { static thread_local ThreadState value; return value; }
     inline void setFrame(unsigned frame)
