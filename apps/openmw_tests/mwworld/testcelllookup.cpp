@@ -493,6 +493,44 @@ namespace MWWorld
             EXPECT_EQ(result.getCell(), &restored);
         }
 
+        TEST_F(WorldCellLookupTest, refreshRemovesMovedCandidateAndPreservesOtherDuplicates)
+        {
+            CellStore& a = cell("a");
+            CellStore& b = cell("b");
+            CellStore& c = cell("c");
+            Ptr first = add(a, "shared");
+            const Ptr second = add(b, "shared");
+            EXPECT_TRUE(find("build index").isEmpty());
+            first = a.moveTo(first, &c);
+            EXPECT_EQ(find("shared"), second);
+            count(second, 0);
+            EXPECT_EQ(find("shared"), first);
+            const Ptr added = add(a, "new id");
+            EXPECT_EQ(find("new id"), added);
+        }
+
+        TEST_F(WorldCellLookupTest, benchmarkDistinctIdsAndSharedCandidates)
+        {
+            constexpr int cells = 2000;
+            constexpr int uniquePerCell = 64;
+            for (int i = 0; i < cells; ++i)
+            {
+                CellStore& room = cell("distinct room " + std::to_string(i));
+                add(room, "shared scenery");
+                for (int j = 0; j < uniquePerCell; ++j)
+                    add(room, "unique " + std::to_string(i) + ":" + std::to_string(j));
+            }
+            const auto start = std::chrono::steady_clock::now();
+            EXPECT_TRUE(find("initial absent").isEmpty());
+            const auto built = std::chrono::steady_clock::now();
+            for (int i = 0; i < 100; ++i)
+                EXPECT_TRUE(find("absent " + std::to_string(i)).isEmpty());
+            const auto finish = std::chrono::steady_clock::now();
+            std::cout << "WORLD_DISTINCT_BENCH cells=" << cells << " unique_per_cell=" << uniquePerCell
+                      << " first_ms=" << std::chrono::duration<double, std::milli>(built - start).count()
+                      << " repeated_ms=" << std::chrono::duration<double, std::milli>(finish - built).count() << '\n';
+        }
+
         TEST_F(WorldCellLookupTest, benchmarkKnownCellMisses)
         {
             constexpr int cells = 1000;

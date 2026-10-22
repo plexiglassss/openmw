@@ -446,7 +446,11 @@ void MWWorld::WorldModel::updateCellLookupIndex()
     if (mDirtyLookupCells.empty())
         return;
     Diagnostics::MWScriptNativeScope timing("world.cellCandidates.update");
-    for (CellStore* cell : mDirtyLookupCells)
+    // Process in lookup order: initial candidate vectors can grow at the end
+    // instead of shifting their existing entries for every shared ID.
+    std::vector<CellStore*> dirty(mDirtyLookupCells.begin(), mDirtyLookupCells.end());
+    std::sort(dirty.begin(), dirty.end(), CellLookupOrder{});
+    for (CellStore* cell : dirty)
     {
         // An unloaded cell must still be searched at its original position.
         // Do not preload it merely to maintain the index.
@@ -455,21 +459,39 @@ void MWWorld::WorldModel::updateCellLookupIndex()
         std::vector<ESM::RefId> ids = cell->listLookupIds();
         ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
         auto& oldIds = mIndexedCellIds[cell];
-        for (const ESM::RefId& id : oldIds)
+        // Both lists are sorted and unique. Merge once instead of performing
+        // a binary search for every ID in both lists.
+        auto old = oldIds.begin();
+        auto current = ids.begin();
+        while (old != oldIds.end() || current != ids.end())
         {
-            if (std::binary_search(ids.begin(), ids.end(), id))
-                continue;
-            auto found = mRefIdLookupCells.find(id);
-            if (found != mRefIdLookupCells.end())
+            if (current == ids.end() || (old != oldIds.end() && *old < *current))
             {
-                found->second.erase(cell);
-                if (found->second.empty())
-                    mRefIdLookupCells.erase(found);
+                auto found = mRefIdLookupCells.find(*old++);
+                if (found != mRefIdLookupCells.end())
+                {
+                    auto& cells = found->second;
+                    const auto position = std::lower_bound(cells.begin(), cells.end(), cell, CellLookupOrder{});
+                    if (position != cells.end() && *position == cell)
+                        cells.erase(position);
+                    if (cells.empty())
+                        mRefIdLookupCells.erase(found);
+                }
+            }
+            else if (old == oldIds.end() || *current < *old)
+            {
+                auto& cells = mRefIdLookupCells[*current++];
+                if (cells.empty() || CellLookupOrder{}(cells.back(), cell))
+                    cells.push_back(cell);
+                else
+                    cells.insert(std::lower_bound(cells.begin(), cells.end(), cell, CellLookupOrder{}), cell);
+            }
+            else
+            {
+                ++old;
+                ++current;
             }
         }
-        for (const ESM::RefId& id : ids)
-            if (!std::binary_search(oldIds.begin(), oldIds.end(), id))
-                mRefIdLookupCells[id].insert(cell);
         oldIds = std::move(ids);
         mUnindexedLookupCells.erase(cell);
     }
@@ -491,22 +513,39 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
     if (useWorldCellIndex())
     {
         updateCellLookupIndex();
-        // Snapshot in the same order as the original two loops. Keep unknown
-        // cells in that order too, and keep the original cache precedence above.
-        std::vector<CellStore*> candidates;
-        if (const auto found = mRefIdLookupCells.find(name); found != mRefIdLookupCells.end())
+        const auto found = mRefIdLookupCells.find(name);
+        if (mUnindexedLookupCells.empty())
         {
-            std::set_union(found->second.begin(), found->second.end(), mUnindexedLookupCells.begin(),
-                mUnindexedLookupCells.end(), std::back_inserter(candidates), CellLookupOrder{});
+            // getPtrAndCache may mark cells dirty, but candidate membership
+            // changes only in updateCellLookupIndex, so this view stays valid.
+            if (found != mRefIdLookupCells.end())
+                for (CellStore* cell : found->second)
+                {
+                    Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");
+                    Ptr ptr = getPtrAndCache(name, *cell);
+                    if (!ptr.isEmpty())
+                        return ptr;
+                }
         }
         else
-            candidates.assign(mUnindexedLookupCells.begin(), mUnindexedLookupCells.end());
-        for (CellStore* cell : candidates)
         {
-            Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");
-            Ptr ptr = getPtrAndCache(name, *cell);
-            if (!ptr.isEmpty())
-                return ptr;
+            // Unknown cells can preload during lookup. Snapshot their union
+            // with known candidates in the original search order.
+            std::vector<CellStore*> candidates;
+            candidates.reserve(
+                mUnindexedLookupCells.size() + (found == mRefIdLookupCells.end() ? 0 : found->second.size()));
+            if (found != mRefIdLookupCells.end())
+                std::set_union(found->second.begin(), found->second.end(), mUnindexedLookupCells.begin(),
+                    mUnindexedLookupCells.end(), std::back_inserter(candidates), CellLookupOrder{});
+            else
+                candidates.assign(mUnindexedLookupCells.begin(), mUnindexedLookupCells.end());
+            for (CellStore* cell : candidates)
+            {
+                Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");
+                Ptr ptr = getPtrAndCache(name, *cell);
+                if (!ptr.isEmpty())
+                    return ptr;
+            }
         }
     }
     else

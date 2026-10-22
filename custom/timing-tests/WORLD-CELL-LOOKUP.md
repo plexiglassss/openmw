@@ -37,3 +37,21 @@ references each for 100 different absent IDs.
 
 No individual mod scripts, quest logic, script scheduling, Frame Generation,
 Lua behavior or timing-writer behavior are changed by this patch.
+
+## Construction refinement after the 22 October capture
+
+The original world index spent 2678.26 ms constructing its initial membership
+map. Subsequent seven updates totalled 16.26 ms. This revision replaces a
+separately allocated tree node per ID/cell association with sorted contiguous
+candidate vectors. Dirty cells are processed in lookup order so initial shared
+candidate lists grow at the end. Sorted old/new ID lists are compared in one
+linear merge. Ordinary fully indexed lookups visit the stored vector directly;
+the snapshot remains for unknown cells. Preloaded ID duplicates are still
+removed before membership updates. Cache precedence and final accessibility
+checks remain unchanged.
+
+Two additional tests cover moved duplicate candidates and a benchmark with
+128,000 distinct IDs plus an ID shared by 2,000 cells. The earlier benchmark
+reused only 32 IDs and did not represent construction with many distinct IDs.
+These changes require Windows CI and a subsequent real capture; no measured
+in-game improvement is claimed before those results exist.

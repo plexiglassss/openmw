@@ -130,7 +130,7 @@ namespace MWWorld
         using LookupCells = std::set<CellStore*, CellLookupOrder>;
         mutable LookupCells mUnindexedLookupCells;
         mutable std::unordered_set<CellStore*> mDirtyLookupCells;
-        std::unordered_map<ESM::RefId, LookupCells> mRefIdLookupCells;
+        std::unordered_map<ESM::RefId, std::vector<CellStore*>> mRefIdLookupCells;
         std::unordered_map<CellStore*, std::vector<ESM::RefId>> mIndexedCellIds;
 
         void updateCellLookupIndex();
