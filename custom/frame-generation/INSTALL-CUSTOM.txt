@@ -1,5 +1,5 @@
 OpenMW Frame Generation 0.2.0 - recovered fixes plus GPU texture reuse synchronization
-Custom build 2026-10-20. Offline test build; live NVIDIA/OpenMW validation remains required.
+Loading-frame continuity build 2026-10-23. Offline test build; live NVIDIA/OpenMW validation remains required.
 
 Close OpenMW. Back up the version.dll next to the custom build's openmw.exe.
 Copy this version.dll beside that openmw.exe, replacing the existing FG version.dll.
@@ -32,3 +32,17 @@ Dear ImGui v1.91.8 and MinHook v1.3.4 with their own licenses. The package valid
 records source/toolchain provenance; CI packages additionally include BUILD-ID.txt.
 Existing runtime DLL injection remains
 separate from the engine source to preserve independent rollback.
+
+Loading-background continuity repair
+-----------------------------------
+After each submitted game frame, the next writable texture inherits that frame
+instead of exposing an older viewpoint during OpenMW loading-screen readbacks.
+No engine executable change is required. This adds one GPU image copy per native
+frame (RGBA8, current window resolution), with no CPU pixel readback. Performance
+cost on your GPU is unmeasured. Keep your INI and lua51.dll unchanged.
+
+Focused test: repeat the filmed Seyda Neen route across both cell boundaries.
+The loading pause may remain, but the background should stop rocking backward
+and forward. Check normal movement afterward, save/load, F12, F8, resize and
+alt-tab. Report any remaining oscillation with openmw_fg.log and a short video.
+See LOADING-CONTINUITY-AUDIT.md for cause, scope and validation limits.

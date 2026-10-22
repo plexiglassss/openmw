@@ -1,4 +1,5 @@
 #include "framegen.hpp"
+#include "frame_contents.hpp"
 
 #include "../config.hpp"
 #include "../hooks.hpp"
@@ -923,6 +924,7 @@ namespace fg
             glFinish(); // no fence: complete the write before handing it off
         uint64_t now = plat::nowNs();
 
+        const int completedIdx = S.gameCur;
         GLsync reuseFence = nullptr;
         {
             std::lock_guard<std::mutex> lock(S.mtx);
@@ -954,6 +956,13 @@ namespace fg
             glWaitSync_(reuseFence, 0, GL_TIMEOUT_IGNORED);
             glDeleteSync_(reuseFence);
         }
+        // Loading traversals read the framebuffer before drawing their frozen
+        // scene background. Rotating straight to an old slot makes those reads
+        // alternate between old viewpoints even with interpolation disabled.
+        // Retain the just-completed native image, after waiting for the old
+        // presenter's reads of the destination. Subsequent game commands are
+        // ordered after this copy on the same context; no CPU readback is used.
+        fg::PreserveFrameContents(S.gameTex[completedIdx], S.gameTex[S.gameCur], S.width, S.height);
         attachGameTexture(S.gameCur);
 
         // The presenter owns the real backbuffer; nothing to present here.

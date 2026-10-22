@@ -152,3 +152,14 @@ intended to handle both saving stalls and loading/transition stalls.
 - Live OpenMW/NVIDIA testing is still required. No FPS gain has been measured.
 
 - Explicit Windows system-library links and static C++ runtime for LLVM-MinGW cross-builds.
+
+2026-10-23 loading-background continuity
+- The four-texture rotation exposed stale slot contents to OpenMW's loading
+  camera, which copies the framebuffer before rendering its frozen background.
+- Copy the completed native image to the next writable slot after its GPU reuse
+  dependency and before attachment. Uses GL 4.3 glCopyImageSubData, preserving
+  GL bindings, scissor and colour-mask state. Existing synchronization retained.
+- No presenter resubmission loop was found: the initial stale replay hypothesis
+  was replaced by this concrete copy-before-draw failure.
+- Real OpenGL/Mesa regression reproduces old slot cycling and passes with the
+  exact production helper. Live Windows/NVIDIA/OpenMW verification is pending.

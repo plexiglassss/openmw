@@ -93,6 +93,7 @@ using GLsync = struct __GLsync*;
     X(void, glUniform2f, (GLint location, GLfloat v0, GLfloat v1)) \
     X(void, glActiveTexture, (GLenum texture)) \
     X(void, glTexStorage2D, (GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)) \
+    X(void, glCopyImageSubData, (GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth)) \
     X(void, glGenFramebuffers, (GLsizei n, GLuint* framebuffers)) \
     X(void, glDeleteFramebuffers, (GLsizei n, const GLuint* framebuffers)) \
     X(void, glBindFramebuffer, (GLenum target, GLuint framebuffer)) \
