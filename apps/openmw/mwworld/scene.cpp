@@ -657,12 +657,10 @@ namespace MWWorld
         mPreloader->setTerrain(mRendering.getTerrain());
         if (mRendering.pagingUnlockCache())
             mPreloader->abortTerrainPreloadExcept(nullptr);
-        if (!mPreloader->isTerrainLoaded(PositionCellGrid{ pos, newGrid }, mRendering.getReferenceTime()))
-            preloadTerrain(pos, playerCellIndex.mWorldspace, true);
-        mPagedRefs.clear();
-        mRendering.getPagedRefnums(newGrid, mPagedRefs);
-
-        addPostponedPhysicsObjects();
+        const bool needsTerrainLoad
+            = !mPreloader->isTerrainLoaded(PositionCellGrid{ pos, newGrid }, mRendering.getReferenceTime());
+        if (needsTerrainLoad)
+            preloadTerrain(pos, playerCellIndex.mWorldspace, false);
 
         std::size_t refsToLoad = 0;
         std::vector<std::pair<int, int>> cellsPositionsToLoad;
@@ -676,6 +674,16 @@ namespace MWWorld
 
         Loading::Listener* loadingListener = MWBase::Environment::get().getWindowManager()->getLoadingScreen();
         Loading::ScopedLoad load(loadingListener);
+        if (needsTerrainLoad)
+        {
+            Diagnostics::Scope terrainWait("scene", "exterior", "waitTerrain");
+            loadingListener->setLabel("#{OMWEngine:InitializingData}");
+            mPreloader->syncTerrainLoad(*loadingListener);
+        }
+        mPagedRefs.clear();
+        mRendering.getPagedRefnums(newGrid, mPagedRefs);
+        addPostponedPhysicsObjects();
+
         loadingListener->setLabel("#{OMWEngine:LoadingExterior}");
         loadingListener->setProgressRange(refsToLoad);
 

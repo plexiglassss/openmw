@@ -20,6 +20,10 @@ jobs:
       - name: Test timing recorder
         shell: pwsh
         run: |
+          cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/parallel.cpp /Fe:parallel-smoke.exe
+          if ($LASTEXITCODE) { throw "Parallel scan test compile failed" }
+          ./parallel-smoke.exe
+          if ($LASTEXITCODE) { throw "Parallel scan test failed" }
           cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/smoke.cpp /Fe:timing-smoke.exe
           if ($LASTEXITCODE) { throw "Compile failed" }
           $env:OPENMW_TIMING_FILE = "$PWD/timing-test.csv"

@@ -1,5 +1,7 @@
 #include "renderingmanager.hpp"
 
+#include <components/diagnostics/timing.hpp>
+
 #include <cstdlib>
 
 #include <osg/ClipControl>
@@ -974,7 +976,7 @@ namespace MWRender
     public:
         bool skipTransform(osg::Transform& transform)
         {
-            if (mContainsPagedRefs)
+            if (mIgnoreList.empty() || mContainsPagedRefs)
                 return false;
 
             osg::UserDataContainer* userDataContainer = transform.getUserDataContainer();
@@ -1019,6 +1021,7 @@ namespace MWRender
         if (!mIntersectionVisitor)
             mIntersectionVisitor = new IntersectionVisitorWithIgnoreList;
 
+        mIntersectionVisitor->setUseKdTreeWhenAvailable(true);
         mIntersectionVisitor->setIgnoreList(ignoreList);
         mIntersectionVisitor->setContainsPagedRefs(false);
 
@@ -1065,7 +1068,10 @@ namespace MWRender
             = getIntersectionVisitor(intersector, ignorePlayer, ignoreActors, ignoreTerrain, ignoreList);
         visitor->setReferenceEyePoint(origin);
         visitor->setReferenceEyePointCoordinateFrame(osgUtil::Intersector::MODEL);
-        mRootNode->accept(*visitor);
+        {
+            Diagnostics::Scope rayTiming("render", "ray", "traverse");
+            mRootNode->accept(*visitor);
+        }
 
         return getIntersectionResult(intersector, mIntersectionVisitor, ignoreList);
     }

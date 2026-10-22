@@ -3,6 +3,7 @@ include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 
 file(GLOB UNITTEST_SRC_FILES
     main.cpp
+    terrain/testrayacceleration.cpp
 
     esm/testfixedstring.cpp
     esm/testrefid.cpp

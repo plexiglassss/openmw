@@ -1,5 +1,7 @@
 #include "chunkmanager.hpp"
 
+#include <osg/KdTree>
+
 #include <osg/Texture2D>
 
 #include <osgUtil/IncrementalCompileOperation>
@@ -255,6 +257,13 @@ namespace Terrain
             = static_cast<unsigned>((mStorage->getCellVertices(mWorldspace) - 1) * chunkSize / (1 << lod) + 1);
 
         geometry->addPrimitiveSet(mBufferCache.getIndexBuffer(numVerts, lodFlags));
+
+        // Each LOD/stitching variant has its own topology. Build before publication;
+        // never reuse a tree from templateGeometry with a different index buffer.
+        osg::ref_ptr<osg::KdTree> rayTree = new osg::KdTree;
+        osg::KdTree::BuildOptions rayOptions;
+        if (rayTree->build(rayOptions, geometry))
+            geometry->setShape(rayTree);
 
         bool useCompositeMap = chunkSize >= mCompositeMapLevel;
         unsigned int numUvSets = useCompositeMap ? 1 : 2;

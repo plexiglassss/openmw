@@ -106,6 +106,7 @@ namespace MWWorld
                 }
             }
 
+            std::set<VFS::Path::Normalized> loadedMeshes;
             VFS::Path::Normalized mesh;
             VFS::Path::Normalized kfname;
             for (VFS::Path::NormalizedView path : mMeshes)
@@ -122,6 +123,13 @@ namespace MWWorld
                     if (!vfs.exists(mesh))
                         continue;
 
+                    if (loadedMeshes.contains(mesh))
+                    {
+                        if (mPreloadInstances)
+                            mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
+                        continue;
+                    }
+
                     constexpr VFS::Path::ExtensionView nif("nif");
                     if (Misc::getFileName(mesh).starts_with('x') && mesh.extension() == nif)
                     {
@@ -137,6 +145,7 @@ namespace MWWorld
                         mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
                     else
                         mPreloadedObjects.insert(mBulletShapeManager->getShape(mesh));
+                    loadedMeshes.insert(mesh);
                 }
                 catch (const std::exception& e)
                 {

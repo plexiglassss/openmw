@@ -191,7 +191,7 @@ jobs:
 
     - name: Check launcher regressions before the full engine build
       if: ${{ ! inputs.package }}
-      run: build/components-tests.exe --gtest_filter=ContentModelTest.*
+      run: build/components-tests.exe --gtest_filter=ContentModelTest.*:TerrainRayAcceleration.*
 
     - name: Build OpenMW
       run: >
