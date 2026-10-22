@@ -1,10 +1,13 @@
 #include "quadtreeworld.hpp"
 
+#include <components/diagnostics/timing.hpp>
+
 #include <osg/PolygonMode>
 #include <osg/ShapeDrawable>
 #include <osgUtil/CullVisitor>
 
 #include <limits>
+#include <optional>
 
 #include <components/esm/util.hpp>
 #include <components/loadinglistener/reporter.hpp>
@@ -477,12 +480,18 @@ namespace Terrain
         if (!isCullVisitor && nv.getVisitorType() != osg::NodeVisitor::INTERSECTION_VISITOR)
             return;
 
+        std::optional<Diagnostics::Scope> acceptTiming;
+        if (!isCullVisitor)
+            acceptTiming.emplace("terrain", "ray", "accept");
         osg::Object* viewer = isCullVisitor ? static_cast<osgUtil::CullVisitor*>(&nv)->getCurrentCamera() : nullptr;
         bool needsUpdate = true;
         osg::Vec3f viewPoint = viewer ? nv.getViewPoint() : nv.getEyePoint();
         ViewData* vd = mViewDataMap->getViewData(viewer, viewPoint, mActiveGrid, needsUpdate);
         if (needsUpdate)
         {
+            std::optional<Diagnostics::Scope> selectTiming;
+            if (!isCullVisitor)
+                selectTiming.emplace("terrain", "ray", "selectLod");
             vd->reset();
             DefaultLodCallback lodCallback(
                 mLodFactor, mMinSize, mViewDistance, mActiveGrid, ESM::getCellSize(mWorldspace));
@@ -494,8 +503,18 @@ namespace Terrain
         for (unsigned int i = 0; i < vd->getNumEntries(); ++i)
         {
             ViewDataEntry& entry = vd->getEntry(i);
-            loadRenderingNode(entry, vd, cellWorldSize, mActiveGrid, false);
-            entry.mRenderingNode->accept(nv);
+            {
+                std::optional<Diagnostics::Scope> prepareTiming;
+                if (!isCullVisitor)
+                    prepareTiming.emplace("terrain", "ray", "prepareRenderingNode");
+                loadRenderingNode(entry, vd, cellWorldSize, mActiveGrid, false);
+            }
+            {
+                std::optional<Diagnostics::Scope> traverseTiming;
+                if (!isCullVisitor)
+                    traverseTiming.emplace("terrain", "ray", "traverseRenderingNode");
+                entry.mRenderingNode->accept(nv);
+            }
         }
 
         if (mHeightCullCallback && isCullVisitor)
@@ -547,6 +566,7 @@ namespace Terrain
     void QuadTreeWorld::preload(View* view, const osg::Vec3f& viewPoint, const osg::Vec4i& grid,
         std::atomic<bool>& abort, Loading::Reporter& reporter)
     {
+        Diagnostics::Scope preloadTiming("terrain", "worker", "preloadView");
         ensureQuadTreeBuilt();
         const float cellWorldSize = mStorage->getCellWorldSize(mWorldspace);
 

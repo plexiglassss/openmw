@@ -1,5 +1,7 @@
 #include "objectpaging.hpp"
 
+#include <components/diagnostics/timing.hpp>
+
 #include <limits>
 #include <unordered_map>
 #include <vector>
@@ -118,6 +120,7 @@ namespace MWRender
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
         unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
+        Diagnostics::Scope chunkTiming("terrain", "objects", "getChunk");
         if (activeGrid && !mActiveGrid)
             return nullptr;
 
@@ -618,6 +621,7 @@ namespace MWRender
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
         const osg::Vec3f& viewPoint, bool compile, unsigned char lod)
     {
+        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
         const osg::Vec2i startCell(static_cast<int>(std::floor(center.x() - size / 2.f)),
             static_cast<int>(std::floor(center.y() - size / 2.f)));
         const MWBase::World& world = *MWBase::Environment::get().getWorld();
@@ -902,7 +906,10 @@ namespace MWRender
             const unsigned int options = SceneUtil::Optimizer::FLATTEN_STATIC_TRANSFORMS
                 | SceneUtil::Optimizer::REMOVE_REDUNDANT_NODES | SceneUtil::Optimizer::MERGE_GEOMETRY;
 
-            optimizer.optimize(mergeGroup, options);
+            {
+                Diagnostics::Scope mergeTiming("terrain", "objects", "mergeGeometry");
+                optimizer.optimize(mergeGroup, options);
+            }
 
             group->addChild(mergeGroup);
 

@@ -1,5 +1,7 @@
 #include "cellpreloader.hpp"
 
+#include <components/diagnostics/timing.hpp>
+
 #include <algorithm>
 #include <atomic>
 #include <limits>
@@ -189,6 +191,7 @@ namespace MWWorld
 
         void doWork() override
         {
+            Diagnostics::Scope workTiming("terrain", "worker", "terrainJob");
             for (unsigned int i = 0; i < mTerrainViews.size() && i < mPreloadPositions.size() && !mAbort; ++i)
             {
                 mTerrainViews[i]->reset();
