@@ -21,7 +21,7 @@ namespace MWRender
     {
     public:
         ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace);
-        ~ObjectPaging() = default;
+        ~ObjectPaging();
 
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags,
             bool activeGrid, const osg::Vec3f& viewPoint, bool compile) override;
@@ -48,6 +48,8 @@ namespace MWRender
         void getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out);
 
     private:
+        struct ReferenceCache;
+        std::unique_ptr<ReferenceCache> mReferenceCache;
         Resource::SceneManager* mSceneManager;
         bool mActiveGrid;
         bool mDebugBatches;

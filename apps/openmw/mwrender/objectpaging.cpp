@@ -29,6 +29,7 @@
 #include <components/esm4/loadfurn.hpp>
 #include <components/esm4/loadstat.hpp>
 #include <components/esm4/loadtree.hpp>
+#include <components/misc/boundedcache.hpp>
 #include <components/misc/pathhelpers.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/rng.hpp>
@@ -57,6 +58,15 @@ namespace MWRender
 
     namespace
     {
+        struct PagedCellRef
+        {
+            ESM::RefId mRefId;
+            ESM::RefNum mRefNum;
+            osg::Vec3f mPosition;
+            osg::Vec3f mRotation;
+            float mScale;
+        };
+
         bool typeFilter(int type, bool far)
         {
             switch (type)
@@ -281,7 +291,7 @@ namespace MWRender
             void handleCallbacks(const osg::Node* node, osg::Node* cloned) const
             {
                 for (const osg::Callback* callback = node->getCullCallback(); callback != nullptr;
-                     callback = callback->getNestedCallback())
+                    callback = callback->getNestedCallback())
                 {
                     if (node->getCullCallback()->getNestedCallback())
                     {
@@ -463,9 +473,17 @@ namespace MWRender
         };
     }
 
+    struct ObjectPaging::ReferenceCache
+    {
+        Misc::BoundedCache<std::pair<int, int>, std::map<ESM::RefNum, PagedCellRef>> cells{ 64 };
+    };
+
+    ObjectPaging::~ObjectPaging() = default;
+
     ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace)
         : GenericResourceManager<ChunkId>(nullptr, Settings::cells().mCacheExpiryDelay)
         , Terrain::QuadTreeWorld::ChunkManager(worldspace)
+        , mReferenceCache(std::make_unique<ReferenceCache>())
         , mSceneManager(sceneManager)
         , mActiveGrid(Settings::terrain().mObjectPagingActiveGrid)
         , mDebugBatches(Settings::terrain().mDebugChunks)
@@ -479,15 +497,6 @@ namespace MWRender
 
     namespace
     {
-        struct PagedCellRef
-        {
-            ESM::RefId mRefId;
-            ESM::RefNum mRefNum;
-            osg::Vec3f mPosition;
-            osg::Vec3f mRotation;
-            float mScale;
-        };
-
         PagedCellRef makePagedCellRef(const ESM::CellRef& value)
         {
             return PagedCellRef{
@@ -511,7 +520,7 @@ namespace MWRender
         }
 
         std::map<ESM::RefNum, PagedCellRef> collectESM3References(
-            float size, const osg::Vec2i& startCell, const MWWorld::ESMStore& store)
+            float size, const osg::Vec2i& startCell, const MWWorld::ESMStore& store, bool* complete = nullptr)
         {
             std::map<ESM::RefNum, PagedCellRef> refs;
             ESM::ReadersCache readers;
@@ -556,6 +565,8 @@ namespace MWRender
                         }
                         catch (const std::exception& e)
                         {
+                            if (complete)
+                                *complete = false;
                             Log(Debug::Warning) << "Failed to collect references from cell \"" << cell->getDescription()
                                                 << "\": " << e.what();
                             continue;
@@ -631,7 +642,35 @@ namespace MWRender
 
         if (mWorldspace == ESM::Cell::sDefaultWorldspaceId)
         {
-            refs = collectESM3References(size, startCell, store);
+            Diagnostics::Scope refsTiming("terrain", "objects", "collectReferences");
+            if (size <= 1.f)
+            {
+                // Every subcell chunk reads the same full cell before filtering
+                // positions. Cache that exact resolved list, including moved and
+                // deleted-reference handling. Dynamic filters remain below.
+                struct IncompleteReferences
+                {
+                    std::map<ESM::RefNum, PagedCellRef> refs;
+                };
+                try
+                {
+                    const auto raw = mReferenceCache->cells.get({ startCell.x(), startCell.y() }, [&] {
+                        Diagnostics::Scope readTiming("terrain", "objects", "readCellReferences");
+                        bool complete = true;
+                        auto result = collectESM3References(1.f, startCell, store, &complete);
+                        if (!complete)
+                            throw IncompleteReferences{ std::move(result) };
+                        return result;
+                    });
+                    refs = *raw;
+                }
+                catch (IncompleteReferences& error)
+                {
+                    refs = std::move(error.refs);
+                }
+            }
+            else
+                refs = collectESM3References(size, startCell, store);
         }
         else
         {
@@ -743,7 +782,10 @@ namespace MWRender
                                 ->second;
             }
 
-            osg::ref_ptr<const osg::Node> cnode = mSceneManager->getTemplate(model, false);
+            osg::ref_ptr<const osg::Node> cnode = [&] {
+                Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
+                return mSceneManager->getTemplate(model, false);
+            }();
 
             if (activeGrid)
             {
@@ -1046,6 +1088,7 @@ namespace MWRender
 
     void ObjectPaging::clear()
     {
+        mReferenceCache->cells.clear();
         std::lock_guard<std::mutex> lock(mRefTrackerMutex);
         mRefTrackerNew.mDisabled.clear();
         mRefTrackerNew.mBlacklist.clear();

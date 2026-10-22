@@ -118,29 +118,42 @@ namespace
             return;
         }
 
-        const VFS::Path::Normalized model = getModel(ptr);
+        const VFS::Path::Normalized model = [&] {
+            Diagnostics::Scope phase("scene-object", "insert", "model");
+            return getModel(ptr);
+        }();
         const auto rotation = makeDirectNodeRotation(ptr);
 
-        ESM::RefNum refnum = ptr.getCellRef().getRefNum();
-        if (!refnum.hasContentFile() || !std::binary_search(pagedRefs.begin(), pagedRefs.end(), refnum))
-            ptr.getClass().insertObjectRendering(ptr, model, rendering);
-        else
-            ptr.getRefData().setBaseNode(pagedNode);
-        setNodeRotation(ptr, rendering, rotation);
+        {
+            Diagnostics::Scope phase("scene-object", "insert", "rendering");
+            ESM::RefNum refnum = ptr.getCellRef().getRefNum();
+            if (!refnum.hasContentFile() || !std::binary_search(pagedRefs.begin(), pagedRefs.end(), refnum))
+                ptr.getClass().insertObjectRendering(ptr, model, rendering);
+            else
+                ptr.getRefData().setBaseNode(pagedNode);
+            setNodeRotation(ptr, rendering, rotation);
+        }
 
-        if (ptr.getClass().useAnim())
-            MWBase::Environment::get().getMechanicsManager()->add(ptr);
+        {
+            Diagnostics::Scope phase("scene-object", "insert", "mechanicsAndEffects");
+            if (ptr.getClass().useAnim())
+                MWBase::Environment::get().getMechanicsManager()->add(ptr);
 
-        if (ptr.getClass().isActor())
-            rendering.addWaterRippleEmitter(ptr);
+            if (ptr.getClass().isActor())
+                rendering.addWaterRippleEmitter(ptr);
 
-        // Restore effect particles
-        world.applyLoopingParticles(ptr);
-
+            // Restore effect particles
+            world.applyLoopingParticles(ptr);
+        }
         if (!model.empty())
+        {
+            Diagnostics::Scope phase("scene-object", "insert", "physics");
             ptr.getClass().insertObject(ptr, model, rotation, physics);
-
-        MWBase::Environment::get().getLuaManager()->objectAddedToScene(ptr);
+        }
+        {
+            Diagnostics::Scope phase("scene-object", "insert", "luaNotification");
+            MWBase::Environment::get().getLuaManager()->objectAddedToScene(ptr);
+        }
     }
 
     void addObject(const MWWorld::Ptr& ptr, const MWWorld::World& world, const MWPhysics::PhysicsSystem& physics,
@@ -430,6 +443,7 @@ namespace MWWorld
         const DetourNavigator::UpdateGuard* navigatorUpdateGuard)
     {
         Diagnostics::Scope timing("scene", "cell", "load");
+        const auto description = cell.getCell()->getDescription();
         using DetourNavigator::HeightfieldShape;
 
         assert(mActiveCells.find(&cell) == mActiveCells.end());
@@ -445,6 +459,7 @@ namespace MWWorld
 
         if (cellVariant.isExterior())
         {
+            Diagnostics::Scope phase("scene-cell", description, "terrainPhysics");
             osg::ref_ptr<const ESMTerrain::LandObject> land = mRendering.getLandManager()->getLand(cellIndex);
             const ESM::LandData* data = land ? land->getData(ESM::Land::DATA_VHGT) : nullptr;
             const int verts = ESM::getLandSize(worldspace);
@@ -483,54 +498,78 @@ namespace MWWorld
             }
         }
 
-        ESM::visit(ESM::VisitOverload{
-                       [&](const ESM::Cell& c) {
-                           if (const auto pathgrid = mWorld.getStore().get<ESM::Pathgrid>().search(c))
-                               mNavigator.addPathgrid(c, *pathgrid);
+        {
+            Diagnostics::Scope phase("scene-cell", description, "pathgrid");
+            ESM::visit(ESM::VisitOverload{
+                           [&](const ESM::Cell& c) {
+                               if (const auto pathgrid = mWorld.getStore().get<ESM::Pathgrid>().search(c))
+                                   mNavigator.addPathgrid(c, *pathgrid);
+                           },
+                           [&](const ESM4::Cell& /*c*/) {},
                        },
-                       [&](const ESM4::Cell& /*c*/) {},
-                   },
-            *cell.getCell());
+                *cell.getCell());
+        }
 
         // register local scripts
         // do this before insertCell, to make sure we don't add scripts from levelled creature spawning twice
-        mWorld.getLocalScripts().addCell(&cell);
+        {
+            Diagnostics::Scope phase("scene-cell", description, "localScripts");
+            mWorld.getLocalScripts().addCell(&cell);
+        }
 
         if (respawn)
-            cell.respawn();
-
-        insertCell(cell, loadingListener, navigatorUpdateGuard);
-
-        mRendering.addCell(&cell);
-
-        MWBase::Environment::get().getWindowManager()->addCell(&cell);
-        bool waterEnabled = cellVariant.hasWater() || cell.isExterior();
-        float waterLevel = cell.getWaterLevel();
-        mRendering.setWaterEnabled(waterEnabled);
-        if (waterEnabled)
         {
-            mPhysics->enableWater(waterLevel);
-            mRendering.setWaterHeight(waterLevel);
+            Diagnostics::Scope phase("scene-cell", description, "respawn");
+            cell.respawn();
+        }
 
-            if (cellVariant.isExterior())
+        {
+            Diagnostics::Scope phase("scene-cell", description, "insertObjects");
+            insertCell(cell, loadingListener, navigatorUpdateGuard);
+        }
+
+        {
+            Diagnostics::Scope phase("scene-cell", description, "renderingCell");
+            mRendering.addCell(&cell);
+        }
+
+        {
+            Diagnostics::Scope phase("scene-cell", description, "windowCell");
+            MWBase::Environment::get().getWindowManager()->addCell(&cell);
+        }
+        {
+            Diagnostics::Scope phase("scene-cell", description, "waterAndAmbient");
+            bool waterEnabled = cellVariant.hasWater() || cell.isExterior();
+            float waterLevel = cell.getWaterLevel();
+            mRendering.setWaterEnabled(waterEnabled);
+            if (waterEnabled)
             {
-                if (mPhysics->getHeightField(cellX, cellY))
+                mPhysics->enableWater(waterLevel);
+                mRendering.setWaterHeight(waterLevel);
+
+                if (cellVariant.isExterior())
+                {
+                    if (mPhysics->getHeightField(cellX, cellY))
+                        mNavigator.addWater(
+                            osg::Vec2i(cellX, cellY), ESM::Land::REAL_SIZE, waterLevel, navigatorUpdateGuard);
+                }
+                else
+                {
                     mNavigator.addWater(
-                        osg::Vec2i(cellX, cellY), ESM::Land::REAL_SIZE, waterLevel, navigatorUpdateGuard);
+                        osg::Vec2i(cellX, cellY), std::numeric_limits<int>::max(), waterLevel, navigatorUpdateGuard);
+                }
             }
             else
-            {
-                mNavigator.addWater(
-                    osg::Vec2i(cellX, cellY), std::numeric_limits<int>::max(), waterLevel, navigatorUpdateGuard);
-            }
+                mPhysics->disableWater();
+
+            if (!cell.isExterior() && !cellVariant.isQuasiExterior())
+                mRendering.configureAmbient(cellVariant);
         }
-        else
-            mPhysics->disableWater();
 
-        if (!cell.isExterior() && !cellVariant.isQuasiExterior())
-            mRendering.configureAmbient(cellVariant);
-
-        mPreloader->notifyLoaded(&cell);
+        {
+            Diagnostics::Scope phase("scene-cell", description, "notifyPreloader");
+            mPreloader->notifyLoaded(&cell);
+        }
     }
 
     void Scene::clear()
@@ -1042,13 +1081,23 @@ namespace MWWorld
         CellStore& cell, Loading::Listener* loadingListener, const DetourNavigator::UpdateGuard* navigatorUpdateGuard)
     {
         const bool isInterior = !cell.isExterior();
+        const auto description = cell.getCell()->getDescription();
         InsertVisitor insertVisitor(cell, loadingListener);
-        cell.forEach(insertVisitor);
-        insertVisitor.insert(
-            [&](const MWWorld::Ptr& ptr) { addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering); });
-        insertVisitor.insert([&](const MWWorld::Ptr& ptr) {
-            addObject(ptr, mWorld, *mPhysics, mLowestPoint, isInterior, mNavigator, navigatorUpdateGuard);
-        });
+        {
+            Diagnostics::Scope phase("scene-cell", description, "collectObjects");
+            cell.forEach(insertVisitor);
+        }
+        {
+            Diagnostics::Scope phase("scene-cell", description, "renderAndPhysicsObjects");
+            insertVisitor.insert(
+                [&](const MWWorld::Ptr& ptr) { addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering); });
+        }
+        {
+            Diagnostics::Scope phase("scene-cell", description, "navigationObjects");
+            insertVisitor.insert([&](const MWWorld::Ptr& ptr) {
+                addObject(ptr, mWorld, *mPhysics, mLowestPoint, isInterior, mNavigator, navigatorUpdateGuard);
+            });
+        }
     }
 
     void Scene::addObjectToScene(const Ptr& ptr)
@@ -1132,7 +1181,7 @@ namespace MWWorld
     {
         const VFS::Path::Normalized meshPath = useAnim
             ? Misc::ResourceHelpers::correctActorModelPath(
-                VFS::Path::toNormalized(mesh), mRendering.getResourceSystem()->getVFS())
+                  VFS::Path::toNormalized(mesh), mRendering.getResourceSystem()->getVFS())
             : VFS::Path::toNormalized(mesh);
 
         if (mRendering.getResourceSystem()->getSceneManager()->checkLoaded(meshPath, mRendering.getReferenceTime()))
