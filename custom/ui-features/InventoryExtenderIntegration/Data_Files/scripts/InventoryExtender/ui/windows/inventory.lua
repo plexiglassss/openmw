@@ -1823,17 +1823,10 @@ function Inventory:create(windowType, ctx)
             },
         }
         self.paperDollDivider = {
-            type = ui.TYPE.Image,
-            props = {
-                resource = baseTemplates.createTexture('white'),
-                color = constants.Colors.GOLD,
-                alpha = 0.65,
-                ignorePointerEvents = true,
-                size = v2(1, 1),
-            },
+            template = I.MWUI.templates.verticalLine,
+            props = { ignorePointerEvents = true },
         }
         content:add(self.paperDoll)
-        content:add(self.paperDollDivider)
     end
 
     self.updateSize = function(self)
@@ -1863,8 +1856,10 @@ function Inventory:create(windowType, ctx)
             self.paperDoll.props.position = v2((portraitWidth - height * 0.5) * 0.5, portraitTop)
             self.paperDoll.props.size = v2(height * 0.5, height)
             self.paperDoll.props.visible = self.paperDollVisible
-            self.paperDollDivider.props.position = v2(portraitWidth - 4, portraitTop)
-            self.paperDollDivider.props.size = v2(1, math.max(1, portraitHeight))
+            local bodyOffset = self.element.layout.userData.getBodyOffset()
+            local dividerTop = fullHeight and 0 or (bodyOffset.y + categoryHeight)
+            self.paperDollDivider.props.position = v2(bodyOffset.x + portraitWidth - 4, dividerTop)
+            self.paperDollDivider.props.size = v2(I.MWUI.templates.verticalLine.props.size.x, -dividerTop)
             self.paperDollDivider.props.visible = self.paperDollVisible
         end
         self.itemTable.layout.props.position = v2(portraitWidth, categoryHeight)
@@ -2358,6 +2353,11 @@ function Inventory:create(windowType, ctx)
         pinned,
         ctx)
     self.element = element
+    if self.paperDollDivider then
+        -- Attach to the window content, above the body's header offset, so the
+        -- standard relative-height border reaches both outer content edges.
+        element.layout.content:add(self.paperDollDivider)
+    end
     self:loadState()
     self:updateSize()
 

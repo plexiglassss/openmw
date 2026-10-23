@@ -1,4 +1,4 @@
-# Inventory Extender custom integration v1.2.2 — offline test build
+# Inventory Extender custom integration v1.2.3 — offline test build
 
 Action required: replace the previous custom Inventory Extender integration
 package. This layout update uses the same engine as v1.2; no newer engine is needed. Keep the original Inventory
@@ -20,7 +20,17 @@ navmesh regeneration is required.
    settings. For equipment comparisons, choose Inventory Extender > Window options
    > Compare equipped item > Hold ALT or Always. Existing Never preferences remain.
 
-## Changes in v1.2.2
+## Changes in v1.2.3
+
+The divider now uses the same MWUI vertical border template and installed border
+textures as the other UI borders. No custom color, transparency or white-texture
+line is used. In full-height mode it attaches at the window-content level and
+runs from the top inner border to the bottom inner border, including the header
+space that previously left a gap. It still resizes and hides with the portrait.
+The alternate below-filter layout keeps the divider below its full-width filters.
+This is a cumulative integration-only update; keep the v1.2 engine.
+
+## Changes retained from v1.2.2
 
 A character silhouette button sits immediately after the search field and before
 the wrench. Click it to hide/show the paper doll. Its tooltip changes between

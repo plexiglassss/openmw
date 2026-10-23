@@ -846,6 +846,11 @@ Templates.window = function(title, content, draggable, onDrag, pinned, ctx)
         } 
     end
 
+    userData.getBodyOffset = function()
+        local inset = intRe and 0 or BORDER_THICKNESS_THICK
+        return v2(inset, HEADER_HEIGHT + inset)
+    end
+
     userData.getInnerSize = function()
         local size = window.layout.props.size
         local borderMult = intRe and 2 or 4

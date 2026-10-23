@@ -1,3 +1,13 @@
+# Border-style follow-up v1.2.3
+
+Replaced the tinted white-image divider with I.MWUI.templates.verticalLine, the
+vertical counterpart of the horizontalLine template already used by inventory.
+Reparented it from the body to the window-content level. The template's relative
+height now spans the full inner window, eliminating the body/header offset at the
+top in full-height mode. Native border textures and thickness are retained. The
+below-filter alternative starts below its filters to avoid drawing through them.
+Layout and syntax checks pass; live appearance remains to be verified.
+
 # Toolbar toggle follow-up v1.2.2
 
 Added the paper-doll visibility action as a character icon after Search and before
