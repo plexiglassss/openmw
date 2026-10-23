@@ -28,7 +28,7 @@ namespace Gui
         std::vector<SnapRect> targets;
         for (auto* other : snapWindows)
         {
-            if (other == moving || !other->getVisible())
+            if (other == moving || !other->getInheritedVisible())
                 continue;
             const auto r = other->getAbsoluteCoord();
             targets.push_back({ r.left, r.top, r.width, r.height });

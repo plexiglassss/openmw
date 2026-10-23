@@ -1,4 +1,5 @@
 #include "widget.hpp"
+#include <components/widgets/windowsnap.hpp>
 #include "components/lua/utilpackage.hpp"
 #include "components/lua_ui/util.hpp"
 #include "element.hpp"
@@ -59,6 +60,11 @@ namespace LuaUi
 
     void WidgetExtension::deinitialize()
     {
+        if (mWindowSnapTarget)
+        {
+            Gui::unregisterSnapWindow(mWidget);
+            mWindowSnapTarget = false;
+        }
         clearCallbacks();
         clearEvents(mWidget);
 
@@ -314,6 +320,15 @@ namespace LuaUi
 
     void WidgetExtension::updateProperties()
     {
+        const bool snapTarget = propertyValue("windowSnapTarget", false);
+        if (snapTarget != mWindowSnapTarget)
+        {
+            if (snapTarget)
+                Gui::registerSnapWindow(mWidget);
+            else
+                Gui::unregisterSnapWindow(mWidget);
+            mWindowSnapTarget = snapTarget;
+        }
         mPropagateEvents = propertyValue("propagateEvents", true);
         mAbsoluteCoord = propertyValue("position", MyGUI::IntPoint());
         mAbsoluteCoord = propertyValue("size", MyGUI::IntSize());
@@ -490,6 +505,7 @@ namespace LuaUi
     const std::vector<std::string_view>& WidgetExtension::allUsedProperties() const
     {
         static std::vector<std::string_view> usedProps = {
+            "windowSnapTarget",
             "propagateEvents",
             "position",
             "size",

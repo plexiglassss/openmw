@@ -169,6 +169,8 @@ namespace MWGui
 
     void InventoryWindow::updatePlayer()
     {
+        mPaperDollEquipment.clear();
+        mPaperDollViewport = {};
         mPtr = MWBase::Environment::get().getWorld()->getPlayerPtr();
         auto tradeModel = std::make_unique<TradeItemModel>(std::make_unique<InventoryItemModel>(mPtr), MWWorld::Ptr());
         mTradeModel = tradeModel.get();
@@ -553,6 +555,7 @@ namespace MWGui
 
     void InventoryWindow::updatePreviewSize()
     {
+        mPaperDollViewport = {};
         const MyGUI::IntSize viewport = getPreviewViewportSize();
         mPreview->setViewport(viewport.width, viewport.height);
         const float top = viewport.height / static_cast<float>(mPreview->getTextureHeight());
@@ -938,6 +941,35 @@ namespace MWGui
         useItem(model.getItem(cycled).mBase);
     }
 
+    void InventoryWindow::syncPaperDoll(int width, int height)
+    {
+        if (mPtr.isEmpty() || width <= 0 || height <= 0)
+            return;
+        auto& inventory = mPtr.getClass().getInventoryStore(mPtr);
+        bool changed = mPaperDollEquipment.size() != MWWorld::InventoryStore::Slots;
+        mPaperDollEquipment.resize(MWWorld::InventoryStore::Slots);
+        for (int slot = 0; slot < MWWorld::InventoryStore::Slots; ++slot)
+        {
+            const auto it = inventory.getSlot(slot);
+            const MWWorld::Ptr item = it == inventory.end() ? MWWorld::Ptr() : *it;
+            if (mPaperDollEquipment[slot] != item)
+            {
+                mPaperDollEquipment[slot] = item;
+                changed = true;
+            }
+        }
+        if (changed)
+            dirtyPreview();
+        const float scale = MWBase::Environment::get().getWindowManager()->getScalingFactor();
+        const MyGUI::IntSize viewport(std::clamp(int(width * scale), 1, mPreview->getTextureWidth()),
+            std::clamp(int(height * scale), 1, mPreview->getTextureHeight()));
+        if (viewport != mPaperDollViewport)
+        {
+            mPaperDollViewport = viewport;
+            mPreview->setViewport(viewport.width, viewport.height);
+        }
+    }
+
     MyGUI::ITexture* InventoryWindow::paperDollTexture() const
     {
         return mPreviewTexture.get();
@@ -945,7 +977,7 @@ namespace MWGui
 
     MyGUI::FloatRect InventoryWindow::paperDollUV() const
     {
-        const auto size = getPreviewViewportSize();
+        const auto size = mPaperDollViewport.width > 0 ? mPaperDollViewport : getPreviewViewportSize();
         return { 0.f, size.height / float(mPreview->getTextureHeight()),
             size.width / float(mPreview->getTextureWidth()), 0.f };
     }
@@ -954,7 +986,7 @@ namespace MWGui
     {
         if (mPtr.isEmpty() || width <= 0 || height <= 0)
             return -1;
-        const auto size = getPreviewViewportSize();
+        const auto size = mPaperDollViewport.width > 0 ? mPaperDollViewport : getPreviewViewportSize();
         return mPreview->getSlotSelected(
             std::clamp(int(float(x) / width * (size.width - 1)), 0, std::max(0, size.width - 1)),
             std::clamp(int((1.f - float(y) / height) * (size.height - 1)), 0, std::max(0, size.height - 1)));

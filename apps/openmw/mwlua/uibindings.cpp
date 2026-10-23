@@ -1,3 +1,4 @@
+#include <components/widgets/windowsnap.hpp>
 #include "uibindings.hpp"
 
 #include <components/lua/util.hpp>
@@ -150,6 +151,14 @@ namespace MWLua
                     "Set world tooltip");
             };
         }
+        api["snapWindow"] = [](const std::shared_ptr<LuaUi::Element>& element,
+                                  const osg::Vec2f& position, const osg::Vec2f& size) {
+            if (!element || !element->mRoot)
+                return position;
+            const auto point = Gui::snapWindow(element->mRoot->widget(),
+                MyGUI::IntCoord(int(position.x()), int(position.y()), int(size.x()), int(size.y())));
+            return osg::Vec2f(float(point.left), float(point.top));
+        };
         api["content"] = LuaUi::loadContentConstructor(context.mLua);
 
         api["create"]

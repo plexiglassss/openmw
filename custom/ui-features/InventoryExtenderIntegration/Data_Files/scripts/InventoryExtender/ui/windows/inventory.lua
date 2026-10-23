@@ -568,7 +568,7 @@ function Inventory:create(windowType, ctx)
     local nameRenderer = function(row, width, height)
         local nonDraggedCount = getNonDraggedCount(row)
 
-        local text = ((self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item)) and (l10n('UI_RecentBadge') .. ' ') or '') .. helpers.getItemName(row.item) .. (nonDraggedCount > 1 and (' (%s)'):format(helpers.addSeparators(nonDraggedCount)) or '')
+        local text = helpers.getItemName(row.item) .. (nonDraggedCount > 1 and (' (%s)'):format(helpers.addSeparators(nonDraggedCount)) or '')
 
         local badgeState = getItemBadgeState(row)
         local enchanted = false
@@ -592,6 +592,13 @@ function Inventory:create(windowType, ctx)
             },
         }
         local iconSize = math.min(specialTemplates.LINE_HEIGHT, 12)
+        if self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item) then
+            content:add(baseTemplates.intervalH(6))
+            content:add({ type = ui.TYPE.Image, props = {
+                resource = baseTemplates.createTexture('icons/InventoryExtender/custom/recent.png'),
+                size = v2(iconSize, iconSize),
+            } })
+        end
         local aacIndicator = getArmsArmorCompareIndicator(row.item)
         if aacIndicator then
             content:add(baseTemplates.intervalH(7))
@@ -1590,8 +1597,9 @@ function Inventory:create(windowType, ctx)
             local badgeSize = math.max(10, math.floor(itemSize * 0.18))
             local badgeContent = ui.content {}
             if self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item) then
-                badgeContent:add({ template = baseTemplates.textNormal, props = {
-                    text = l10n('UI_RecentBadge'), textColor = constants.Colors.GOLD, autoSize = true,
+                badgeContent:add({ type = ui.TYPE.Image, props = {
+                    resource = baseTemplates.createTexture('icons/InventoryExtender/custom/recent.png'),
+                    size = v2(badgeSize, badgeSize),
                 } })
             end
 
@@ -1818,38 +1826,50 @@ function Inventory:create(windowType, ctx)
     end
 
     self.updateSize = function(self)
-        if self.element then
-            if self.categoryFilter then
-                self.categoryFilter.layout.userData.resizeImages(self.element.layout.userData.getInnerSize().x)
-            end
-
-            local categoryFilterSize = v2(0, self.categoryFilter and self.categoryFilter.layout.props.size.y or 0)
-            local infoBarSize = v2(0, self.infoBar and self.infoBar.layout.props.size.y or 0)
-            local innerSize = self.element.layout.userData.getInnerSize()
-            local availableHeight = math.max(1, innerSize.y - categoryFilterSize.y - infoBarSize.y)
-            local portraitWidth = 0
-            if self.paperDoll then
-                portraitWidth = self.paperDollVisible and math.min(192, math.floor(innerSize.x * 0.3)) or 84
-                local height = math.max(1, math.min(availableHeight - 30, (portraitWidth - 8) * 2))
-                self.paperDoll.props.position = v2((portraitWidth - height * 0.5) * 0.5, categoryFilterSize.y + 30)
-                self.paperDoll.props.size = v2(height * 0.5, height)
-                self.paperDoll.props.visible = self.paperDollVisible
-                self.paperDollToggle.layout.props.position = v2(0, categoryFilterSize.y + 2)
-                self.paperDollToggle.layout.props.size = v2(portraitWidth - 4, 24)
-                self.paperDollToggle:update()
-            end
-            self.itemTable.layout.props.position = categoryFilterSize + v2(portraitWidth, 0)
-            self.itemTable.layout.userData.resize(v2(math.max(1, innerSize.x - portraitWidth), availableHeight))
-            if self.infoBar then
-                self.infoBar.layout.props.position = categoryFilterSize + v2(0, self.itemTable.layout.props.size.y + 1)
-                self.infoBar:update()
-            end
-            if self.infoBarDivider then
-                self.infoBarDivider.props.position = v2(0, self.itemTable.layout.props.size.y + self.itemTable.layout.props.position.y)
-            end
-            if self.categoryFilterDivider then
-                self.categoryFilterDivider.props.position = v2(0, self.categoryFilter.layout.props.size.y)
-            end
+        if not self.element then return end
+        local innerSize = self.element.layout.userData.getInnerSize()
+        local fullHeight = self.paperDoll and configPlayer.window.b_FullHeightPaperDoll ~= false
+        local portraitWidth = 0
+        if self.paperDoll then
+            portraitWidth = self.paperDollVisible and math.max(1, math.min(innerSize.x * 0.35, (innerSize.y - 30) * 0.5 + 8)) or 84
+        end
+        local menuX = fullHeight and portraitWidth or 0
+        local menuWidth = math.max(1, innerSize.x - menuX)
+        if self.categoryFilter then
+            self.categoryFilter.layout.userData.resizeImages(menuWidth)
+            self.categoryFilter.layout.props.position = v2(menuX, 0)
+            -- Keep the filter's existing relative width, subtract only the portrait column.
+            self.categoryFilter.layout.props.size = v2(-menuX, self.categoryFilter.layout.props.size.y)
+            self.categoryFilter:update()
+        end
+        local categoryHeight = self.categoryFilter and self.categoryFilter.layout.props.size.y or 0
+        local infoHeight = self.infoBar and self.infoBar.layout.props.size.y or 0
+        local availableHeight = math.max(1, innerSize.y - categoryHeight - infoHeight)
+        if self.paperDoll then
+            local portraitTop = fullHeight and 0 or categoryHeight
+            local portraitHeight = fullHeight and innerSize.y or availableHeight
+            local height = math.max(1, math.min(portraitHeight - 30, (portraitWidth - 8) * 2))
+            self.paperDoll.props.position = v2((portraitWidth - height * 0.5) * 0.5, portraitTop + 30 + math.max(0, (portraitHeight - 30 - height) * 0.5))
+            self.paperDoll.props.size = v2(height * 0.5, height)
+            self.paperDoll.props.visible = self.paperDollVisible
+            self.paperDollToggle.layout.props.position = v2(0, portraitTop + 2)
+            self.paperDollToggle.layout.props.size = v2(math.max(1, portraitWidth - 4), 24)
+            self.paperDollToggle:update()
+        end
+        self.itemTable.layout.props.position = v2(portraitWidth, categoryHeight)
+        self.itemTable.layout.userData.resize(v2(math.max(1, innerSize.x - portraitWidth), availableHeight))
+        if self.infoBar then
+            self.infoBar.layout.props.position = v2(menuX, categoryHeight + self.itemTable.layout.props.size.y + 1)
+            self.infoBar.layout.props.size = v2(-menuX, infoHeight)
+            self.infoBar:update()
+        end
+        if self.infoBarDivider then
+            self.infoBarDivider.props.position = v2(menuX, categoryHeight + self.itemTable.layout.props.size.y)
+            self.infoBarDivider.props.size = v2(-menuX, 2)
+        end
+        if self.categoryFilterDivider then
+            self.categoryFilterDivider.props.position = v2(menuX, categoryHeight)
+            self.categoryFilterDivider.props.size = v2(-menuX, 2)
         end
     end
 

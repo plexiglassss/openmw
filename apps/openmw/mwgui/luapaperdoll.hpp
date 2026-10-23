@@ -8,12 +8,16 @@ namespace MWGui
     class LuaPaperDoll : public MyGUI::ImageBox, public LuaUi::WidgetExtension
     {
         MYGUI_RTTI_DERIVED(LuaPaperDoll)
+    public:
+        ~LuaPaperDoll() override;
+
     protected:
         void initialize() override;
         void updateProperties() override;
 
     private:
         void clicked(MyGUI::Widget*);
+        void frameStarted(float);
     };
 }
 #endif

@@ -343,7 +343,7 @@ namespace MWGui
                 const int top = std::max(0, int(mFocusToolTipY * viewSize.height - tooltipSize.height - 20));
                 setCoord(left, top, tooltipSize.width, tooltipSize.height);
 
-                mDynamicToolTipBox->setVisible(true);
+                mDynamicToolTipBox->setVisible(!mLuaTooltipBox->getVisible());
             }
         }
     }
@@ -413,6 +413,8 @@ namespace MWGui
                 mLuaTooltipBox->setSize(size.width + 8, size.height + 8);
                 mLuaTooltipAdapter->setPosition(4, 4);
                 mLuaTooltipBox->setVisible(true);
+                mLuaTooltipAdapter->refresh();
+                mDynamicToolTipBox->setVisible(false);
                 return mLuaTooltipBox->getSize();
             }
         }

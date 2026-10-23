@@ -26,6 +26,8 @@ jobs:
           ./compiler-locals-test
           python3 custom/ui-features/test-lua.py
           python3 custom/ui-features/test-paper-doll.py
+          python3 custom/ui-features/test-integration-layout.py
+          python3 custom/ui-features/test-native-integration.py
           python3 custom/ui-features/test-dialogue-keys.py
           python3 -c "import xml.etree.ElementTree as E; E.parse('files/data/mygui/openmw_settings_window.layout')"
       - uses: actions/upload-artifact@v6
@@ -46,6 +48,8 @@ jobs:
           if ($LASTEXITCODE) { throw "Startup screen compile failed" }
           ./startup-screen-smoke.exe
           if ($LASTEXITCODE) { throw "Startup screen lifecycle test failed" }
+          python custom/ui-features/test-native-integration.py
+          if ($LASTEXITCODE) { throw "Native UI integration regression failed" }
           python custom/performance-tests/test-preload.py
           if ($LASTEXITCODE) { throw "Cell preload regression failed" }
           cl /nologo /std:c++20 /EHsc /O2 /I. custom/performance-tests/compiler-locals.cpp components/compiler/locals.cpp /Fe:compiler-locals-test.exe

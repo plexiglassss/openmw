@@ -4,6 +4,7 @@
 #include "inventorywindow.hpp"
 #include <MyGUI_ISubWidgetRect.h>
 #include <MyGUI_InputManager.h>
+#include <MyGUI_Gui.h>
 
 namespace MWGui
 {
@@ -12,6 +13,24 @@ namespace MWGui
         changeWidgetSkin("ImageBox");
         WidgetExtension::initialize();
         eventMouseButtonClick += MyGUI::newDelegate(this, &LuaPaperDoll::clicked);
+        MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate(this, &LuaPaperDoll::frameStarted);
+    }
+
+    LuaPaperDoll::~LuaPaperDoll()
+    {
+        MyGUI::Gui::getInstance().eventFrameStart -= MyGUI::newDelegate(this, &LuaPaperDoll::frameStarted);
+    }
+
+    void LuaPaperDoll::frameStarted(float)
+    {
+        if (!getInheritedVisible())
+            return;
+        auto* inventory = MWBase::Environment::get().getWindowManager()->getInventoryWindow();
+        if (!inventory)
+            return;
+        inventory->syncPaperDoll(getWidth(), getHeight());
+        setRenderItemTexture(inventory->paperDollTexture());
+        getSubWidgetMain()->_setUVSet(inventory->paperDollUV());
     }
 
     void LuaPaperDoll::updateProperties()

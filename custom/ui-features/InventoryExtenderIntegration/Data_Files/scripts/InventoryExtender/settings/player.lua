@@ -156,6 +156,13 @@ I.Settings.registerGroup {
             }
         },
         {
+            key = 'b_FullHeightPaperDoll',
+            renderer = 'checkbox',
+            name = 'FullHeightPaperDoll',
+            description = 'FullHeightPaperDollDesc',
+            default = true,
+        },
+        {
             key = C.OPT_KEYS.CompareItemsMode,
             renderer = 'select',
             name = 'ConfigCompareItemsMode',

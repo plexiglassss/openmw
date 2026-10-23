@@ -167,6 +167,7 @@ namespace LuaUi
         Padding mPadding;
 
         bool mPropagateEvents;
+        bool mWindowSnapTarget = false;
         bool mVisible; // used to implement updateVisible
 
     private:
