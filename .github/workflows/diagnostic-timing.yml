@@ -37,6 +37,10 @@ jobs:
       - name: Test timing recorder
         shell: pwsh
         run: |
+          cl /nologo /std:c++20 /EHsc /I. custom/startup-tests/smoke.cpp /Fe:startup-screen-smoke.exe /link user32.lib gdi32.lib
+          if ($LASTEXITCODE) { throw "Startup screen compile failed" }
+          ./startup-screen-smoke.exe
+          if ($LASTEXITCODE) { throw "Startup screen lifecycle test failed" }
           cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/singleflight.cpp /Fe:singleflight-smoke.exe
           if ($LASTEXITCODE) { throw "Model preparation test compile failed" }
           ./singleflight-smoke.exe

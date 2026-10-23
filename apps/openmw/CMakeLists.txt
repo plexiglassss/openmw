@@ -283,3 +283,8 @@ endif()
 if (NOT APPLE AND BUILD_OPENMW)
     INSTALL(TARGETS openmw)
 endif()
+
+# The early Windows startup panel uses native painting, before OpenGL/MyGUI assets.
+if (WIN32)
+    target_link_libraries(openmw-lib user32 gdi32)
+endif()

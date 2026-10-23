@@ -122,9 +122,11 @@ struct SDL_Window;
 
 namespace OMW
 {
+    class StartupScreen;
     /// \brief Main engine class, that brings together all the components of OpenMW
     class Engine
     {
+        StartupScreen* mStartupScreen = nullptr;
         SDL_Window* mWindow;
         std::unique_ptr<VFS::Manager> mVFS;
         std::unique_ptr<Resource::ResourceSystem> mResourceSystem;
@@ -203,6 +205,7 @@ namespace OMW
     public:
         Engine(Files::ConfigurationManager& configurationManager);
         virtual ~Engine();
+        void setStartupScreen(StartupScreen* screen) { mStartupScreen = screen; }
 
         /// Set data dirs
         void setDataDirs(const Files::PathContainer& dataDirs);

@@ -7,10 +7,12 @@
 #include <components/platform/platform.hpp>
 #include <components/version/version.hpp>
 #include <iostream>
+#include <string_view>
 
 #include "mwgui/debugwindow.hpp"
 
 #include "engine.hpp"
+#include "startupscreen.hpp"
 #include "options.hpp"
 
 #include <boost/program_options/variables_map.hpp>
@@ -212,6 +214,13 @@ namespace
 
 int runApplication(int argc, char* argv[])
 {
+    // Command-line information requests should remain quiet and windowless.
+    bool showStartup = true;
+    for (int i = 1; i < argc; ++i)
+        if (std::string_view(argv[i]) == "--help" || std::string_view(argv[i]) == "--version"
+            || std::string_view(argv[i]) == "-h" || std::string_view(argv[i]) == "-v")
+            showStartup = false;
+    OMW::StartupScreen startupScreen(showStartup);
     Platform::init();
 
 #ifdef __APPLE__
@@ -222,6 +231,7 @@ int runApplication(int argc, char* argv[])
     Files::ConfigurationManager cfgMgr;
     std::unique_ptr<OMW::Engine> engine = std::make_unique<OMW::Engine>(cfgMgr);
 
+    engine->setStartupScreen(&startupScreen);
     engine->setRecastMaxLogLevel(Debug::getRecastMaxLogLevel());
 
     if (parseOptions(argc, argv, *engine, cfgMgr))

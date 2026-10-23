@@ -1,5 +1,6 @@
 #include <components/diagnostics/timing.hpp>
 #include "engine.hpp"
+#include "startupscreen.hpp"
 
 #include <cerrno>
 #include <chrono>
@@ -742,12 +743,15 @@ void OMW::Engine::prepareEngine()
     osg::ref_ptr<osg::Group> rootNode(new osg::Group);
     mViewer->setSceneData(rootNode);
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Creating graphics window");
     createWindow();
 
     mVFS = std::make_unique<VFS::Manager>();
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Indexing mod files and archives");
     VFS::registerArchives(mVFS.get(), mFileCollections, mArchives, true, &mEncoder.get()->getStatelessEncoder());
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Preparing resources and scripting");
     mResourceSystem = std::make_unique<Resource::ResourceSystem>(
         mVFS.get(), Settings::cells().mCacheExpiryDelay, &mEncoder.get()->getStatelessEncoder());
     mResourceSystem->getSceneManager()->getShaderManager().setMaxTextureUnits(mGlMaxTextureImageUnits);
@@ -830,6 +834,7 @@ void OMW::Engine::prepareEngine()
     mStereoManager->disableStereoForNode(guiRoot);
     rootNode->addChild(guiRoot);
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Creating the user interface");
     mWindowManager = std::make_unique<MWGui::WindowManager>(mWindow, mViewer, guiRoot, mResourceSystem.get(),
         mWorkQueue.get(), mCfgMgr.getLogPath(), mScriptConsoleMode, mTranslationDataStorage, mEncoding, mExportFonts,
         Version::getOpenmwVersionDescription(), mCfgMgr);
@@ -839,6 +844,7 @@ void OMW::Engine::prepareEngine()
         keybinderUserExists, userGameControllerdb, gameControllerdb, mGrab);
     mEnvironment.setInputManager(*mInputManager);
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Initializing sound and world");
     // Create sound system
     mSoundManager = std::make_unique<MWSound::SoundManager>(mVFS.get(), mUseSound);
     mEnvironment.setSoundManager(*mSoundManager);
@@ -863,6 +869,7 @@ void OMW::Engine::prepareEngine()
 
     mWindowManager->setStore(mWorld->getStore());
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Preparing translations and game systems");
     // Load translation data
     mTranslationDataStorage.setEncoder(mEncoder.get());
     for (auto& mContentFile : mContentFiles)
@@ -888,6 +895,7 @@ void OMW::Engine::prepareEngine()
     mDialogueManager = std::make_unique<MWDialogue::DialogueManager>(mExtensions, mTranslationDataStorage);
     mEnvironment.setDialogueManager(*mDialogueManager);
 
+    if (mStartupScreen) mStartupScreen->setStage(L"Initializing mod scripts");
     mLuaManager->loadPermanentStorage(mCfgMgr.getUserConfigPath());
     mLuaManager->initPreLoad();
 
@@ -900,10 +908,15 @@ void OMW::Engine::prepareEngine()
     {
         std::string_view logo = Fallback::Map::getString("Movies_Company_Logo");
         if (!logo.empty())
+        {
+            if (mStartupScreen) mStartupScreen->finish();
             mWindowManager->playVideo(logo, true);
+        }
     }
 
     listener->loadingOn();
+    listener->increaseProgress(0); // Draw without inventing completed loading work.
+    if (mStartupScreen) mStartupScreen->finish();
     {
         using namespace std::chrono_literals;
         while (dataLoading.wait_for(50ms) != std::future_status::ready)
