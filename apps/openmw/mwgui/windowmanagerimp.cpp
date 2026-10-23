@@ -2584,6 +2584,15 @@ namespace MWGui
 
     bool WindowManager::injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat)
     {
+        // Only the visible, top-level native dialogue owns these shortcuts.
+        // Text inputs (including Lua edits), modal prompts, and modified keys
+        // retain their ordinary input handling.
+        if (getMode() == GM_Dialogue && mCurrentModals.empty()
+            && !SDL_IsTextInputActive()
+            && !(SDL_GetModState() & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT | KMOD_GUI))
+            && mDialogueWindow->onChoiceKeyPress(key, repeat))
+            return true;
+
         if (!mKeyboardNavigation->injectKeyPress(key, text, repeat))
         {
             MyGUI::Widget* focus = MyGUI::InputManager::getInstance().getKeyFocusWidget();

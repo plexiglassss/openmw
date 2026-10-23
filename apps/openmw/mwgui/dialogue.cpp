@@ -675,7 +675,8 @@ namespace MWGui
         mChoices = MWBase::Environment::get().getDialogueManager()->getChoices();
         mChoiceStyles.clear();
         mControllerChoice = -1; // -1 so you must make a choice (and can't accidentally pick the first answer)
-        for (std::pair<std::string, int>& choice : mChoices)
+        size_t choiceIndex = 0;
+        for (const std::pair<std::string, int>& choice : mChoices)
         {
             auto link = std::make_unique<Choice>(choice.second);
             link->eventChoiceActivated += MyGUI::newDelegate(this, &DialogueWindow::onChoiceActivated);
@@ -685,7 +686,12 @@ namespace MWGui
             typesetter->lineBreak();
             BookTypesetter::Style* questionStyle = typesetter->createHotStyle(
                 body, textColours.answer, textColours.answerOver, textColours.answerPressed, interactiveId);
-            typesetter->write(questionStyle, choice.first);
+            // 1-9 select the first nine responses; 0 selects the tenth.
+            // Keep the original text/IDs intact for scripts and history comparisons.
+            const std::string prefix = choiceIndex < 10
+                ? std::to_string((choiceIndex + 1) % 10) + ". " : std::string{};
+            typesetter->write(questionStyle, prefix + choice.first);
+            ++choiceIndex;
             mChoiceStyles.push_back(questionStyle);
         }
 
@@ -751,6 +757,44 @@ namespace MWGui
 
         MWBase::Environment::get().getDialogueManager()->keywordSelected(topicId, mCallback.get());
         updateTopics();
+    }
+
+    bool DialogueWindow::onChoiceKeyPress(MyGUI::KeyCode key, bool repeat)
+    {
+        size_t index;
+        switch (key.getValue())
+        {
+            case MyGUI::KeyCode::One: case MyGUI::KeyCode::Numpad1: index = 0; break;
+            case MyGUI::KeyCode::Two: case MyGUI::KeyCode::Numpad2: index = 1; break;
+            case MyGUI::KeyCode::Three: case MyGUI::KeyCode::Numpad3: index = 2; break;
+            case MyGUI::KeyCode::Four: case MyGUI::KeyCode::Numpad4: index = 3; break;
+            case MyGUI::KeyCode::Five: case MyGUI::KeyCode::Numpad5: index = 4; break;
+            case MyGUI::KeyCode::Six: case MyGUI::KeyCode::Numpad6: index = 5; break;
+            case MyGUI::KeyCode::Seven: case MyGUI::KeyCode::Numpad7: index = 6; break;
+            case MyGUI::KeyCode::Eight: case MyGUI::KeyCode::Numpad8: index = 7; break;
+            case MyGUI::KeyCode::Nine: case MyGUI::KeyCode::Numpad9: index = 8; break;
+            case MyGUI::KeyCode::Zero: case MyGUI::KeyCode::Numpad0: index = 9; break;
+            default: return false;
+        }
+
+        if (!isVisible() || mPtr.isEmpty() || mGoodbye || mChoices.empty())
+            return false;
+
+        // Swallow repeats and unavailable indices without triggering bindings or
+        // selecting another response when the previous answer opened a new choice.
+        if (repeat || index >= mChoices.size())
+            return true;
+
+        auto* manager = MWBase::Environment::get().getDialogueManager();
+        // Scripts may have changed the choices since the last frame was drawn.
+        // Never select a response the player has not yet seen.
+        if (manager->isGoodbye() || mChoices != manager->getChoices())
+            return true;
+
+        const int id = mChoices[index].second;
+        MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Menu Click"));
+        onChoiceActivated(id);
+        return true;
     }
 
     void DialogueWindow::onChoiceActivated(int id)

@@ -23,6 +23,7 @@ jobs:
           ./snap-tests
           python3 custom/ui-features/test-lua.py
           python3 custom/ui-features/test-paper-doll.py
+          python3 custom/ui-features/test-dialogue-keys.py
           python3 -c "import xml.etree.ElementTree as E; E.parse('files/data/mygui/openmw_settings_window.layout')"
       - uses: actions/upload-artifact@v6
         with:
@@ -38,7 +39,7 @@ jobs:
       - name: Test timing recorder
         shell: pwsh
         run: |
-          cl /nologo /std:c++20 /EHsc /I. custom/startup-tests/smoke.cpp /Fe:startup-screen-smoke.exe /link user32.lib gdi32.lib
+          cl /nologo /std:c++20 /EHsc /I. custom/startup-tests/smoke.cpp apps/openmw/startupscreen.cpp /DNOGDI /DNOMB /DNOMINMAX /DWIN32_LEAN_AND_MEAN /Fe:startup-screen-smoke.exe /link user32.lib gdi32.lib
           if ($LASTEXITCODE) { throw "Startup screen compile failed" }
           ./startup-screen-smoke.exe
           if ($LASTEXITCODE) { throw "Startup screen lifecycle test failed" }

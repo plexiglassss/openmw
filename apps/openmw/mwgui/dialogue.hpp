@@ -12,6 +12,7 @@
 #include "../mwdialogue/keywordsearch.hpp"
 
 #include <MyGUI_Delegate.h>
+#include <MyGUI_KeyCode.h>
 
 namespace Gui
 {
@@ -141,6 +142,9 @@ namespace MWGui
         DialogueWindow();
 
         void onTradeComplete();
+
+        // Number shortcuts select displayed response choices, not script choice IDs.
+        bool onChoiceKeyPress(MyGUI::KeyCode key, bool repeat);
 
         bool exit() override;
 

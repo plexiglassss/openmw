@@ -1,5 +1,6 @@
 set(OPENMW_SOURCES
     engine.cpp
+    startupscreen.cpp
     options.cpp
 )
 
