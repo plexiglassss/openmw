@@ -37,6 +37,10 @@ jobs:
       - name: Test timing recorder
         shell: pwsh
         run: |
+          cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/singleflight.cpp /Fe:singleflight-smoke.exe
+          if ($LASTEXITCODE) { throw "Model preparation test compile failed" }
+          ./singleflight-smoke.exe
+          if ($LASTEXITCODE) { throw "Model preparation test failed" }
           cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/reference-cache.cpp /Fe:reference-cache-smoke.exe
           if ($LASTEXITCODE) { throw "Reference cache test compile failed" }
           ./reference-cache-smoke.exe

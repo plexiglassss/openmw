@@ -1,4 +1,5 @@
 #include "scenemanager.hpp"
+#include <components/diagnostics/timing.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -1004,14 +1005,24 @@ namespace Resource
 
     osg::ref_ptr<const osg::Node> SceneManager::getTemplate(VFS::Path::NormalizedView path, bool compile)
     {
-        osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(path);
+        Diagnostics::Scope requestTiming("model", "template", "request");
+        osg::ref_ptr<osg::Object> obj;
+        {
+            Diagnostics::Scope timing("model", "template", "cacheLookup");
+            obj = mCache->getRefFromObjectCache(path);
+        }
         if (obj)
             return osg::ref_ptr<const osg::Node>(static_cast<osg::Node*>(obj.get()));
-        else
-        {
+        return mPendingTemplates.get(std::string(path.value()), [&]() -> osg::ref_ptr<const osg::Node> {
+            // Another producer may have published between our first lookup and
+            // joining the pending registry. Recheck before loading anything.
+            if (auto cached = mCache->getRefFromObjectCache(path))
+                return static_cast<osg::Node*>(cached.get());
+            Diagnostics::Scope prepareTiming("model", "template", "prepare");
             osg::ref_ptr<osg::Node> loaded;
             try
             {
+                Diagnostics::Scope timing("model", "template", "load");
                 loaded = load(path, mVFS, mImageManager, mNifFileManager, mBgsmFileManager);
             }
             catch (const std::exception& e)
@@ -1020,38 +1031,49 @@ namespace Resource
                 loaded = cloneErrorMarker();
             }
 
-            // set filtering settings
-            SetFilterSettingsVisitor setFilterSettingsVisitor(mMinFilter, mMagFilter, mMaxAnisotropy);
-            loaded->accept(setFilterSettingsVisitor);
-            SetFilterSettingsControllerVisitor setFilterSettingsControllerVisitor(
-                mMinFilter, mMagFilter, mMaxAnisotropy);
-            loaded->accept(setFilterSettingsControllerVisitor);
-
-            osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor());
-            loaded->accept(*shaderVisitor);
-
-            if (canOptimize(path.value()))
             {
-                SceneUtil::Optimizer optimizer;
-                optimizer.setSharedStateManager(mSharedStateManager, &mSharedStateMutex);
-                optimizer.setIsOperationPermissibleForObjectCallback(new CanOptimizeCallback);
-
-                static const unsigned int options
-                    = getOptimizationOptions() | SceneUtil::Optimizer::SHARE_DUPLICATE_STATE;
-
-                optimizer.optimize(loaded, options);
+                Diagnostics::Scope timing("model", "template", "filtering");
+                // set filtering settings
+                SetFilterSettingsVisitor setFilterSettingsVisitor(mMinFilter, mMagFilter, mMaxAnisotropy);
+                loaded->accept(setFilterSettingsVisitor);
+                SetFilterSettingsControllerVisitor setFilterSettingsControllerVisitor(
+                    mMinFilter, mMagFilter, mMaxAnisotropy);
+                loaded->accept(setFilterSettingsControllerVisitor);
             }
-            else
-                shareState(loaded);
+            {
+                Diagnostics::Scope timing("model", "template", "shaders");
+                osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor());
+                loaded->accept(*shaderVisitor);
+            }
+            {
+                Diagnostics::Scope timing("model", "template", "optimizeAndShare");
+                if (canOptimize(path.value()))
+                {
+                    SceneUtil::Optimizer optimizer;
+                    optimizer.setSharedStateManager(mSharedStateManager, &mSharedStateMutex);
+                    optimizer.setIsOperationPermissibleForObjectCallback(new CanOptimizeCallback);
 
-            if (compile && mIncrementalCompileOperation)
-                mIncrementalCompileOperation->add(loaded);
-            else
-                loaded->getBound();
+                    static const unsigned int options
+                        = getOptimizationOptions() | SceneUtil::Optimizer::SHARE_DUPLICATE_STATE;
 
+                    optimizer.optimize(loaded, options);
+                }
+                else
+                    shareState(loaded);
+            }
+            {
+                Diagnostics::Scope timing("model", "template", "compileOrBounds");
+                if (compile && mIncrementalCompileOperation)
+                    mIncrementalCompileOperation->add(loaded);
+                else
+                    loaded->getBound();
+            }
             mCache->addEntryToObjectCache(path.value(), loaded);
             return loaded;
-        }
+        }, [](const auto& future) {
+            Diagnostics::Scope timing("model", "template", "waitForPreparation");
+            return future.get();
+        });
     }
 
     osg::ref_ptr<osg::Node> SceneManager::getInstance(VFS::Path::NormalizedView path)

@@ -3,6 +3,7 @@
 #include <components/diagnostics/timing.hpp>
 
 #include <limits>
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -706,6 +707,8 @@ namespace MWRender
         };
         typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
         NodeMap nodes;
+        // Only retained while building this chunk; paths include the selected LOD.
+        std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
         const osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
 
         // Mask_UpdateVisitor is used in such cases in NIF loader:
@@ -784,7 +787,11 @@ namespace MWRender
 
             osg::ref_ptr<const osg::Node> cnode = [&] {
                 Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
-                return mSceneManager->getTemplate(model, false);
+                if (auto found = chunkTemplates.find(model); found != chunkTemplates.end())
+                    return found->second;
+                auto node = mSceneManager->getTemplate(model, false);
+                chunkTemplates.emplace(model, node);
+                return node;
             }();
 
             if (activeGrid)

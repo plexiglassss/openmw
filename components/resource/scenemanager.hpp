@@ -10,6 +10,7 @@
 #include <osg/ref_ptr>
 
 #include "resourcemanager.hpp"
+#include <components/misc/singleflight.hpp>
 
 #include <components/sceneutil/lightmanager.hpp>
 #include <filesystem>
@@ -228,6 +229,7 @@ namespace Resource
         osg::ref_ptr<osg::Node> loadErrorMarker();
         osg::ref_ptr<osg::Node> cloneErrorMarker();
 
+        Misc::SingleFlight<std::string, osg::ref_ptr<const osg::Node>> mPendingTemplates;
         mutable std::mutex mSharedStateMutex;
 
         std::unique_ptr<Shader::ShaderManager> mShaderManager;
