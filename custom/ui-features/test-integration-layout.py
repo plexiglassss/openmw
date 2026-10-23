@@ -20,7 +20,7 @@ local inner=v2(800,600)
 local function element(h)
  return {layout={props={size=v2(0,h),position=v2(0,0)},userData={}},update=function()end}
 end
-local self={element=element(0),paperDoll={props={}},paperDollToggle=element(24),paperDollVisible=true,
+local self={element=element(0),paperDoll={props={}},paperDollDivider={props={}},paperDollVisible=true,
  categoryFilter=element(80),infoBar=element(24),itemTable=element(0),infoBarDivider={props={}},categoryFilterDivider={props={}}}
 self.element.layout.userData.getInnerSize=function()return inner end
 self.categoryFilter.layout.userData.resizeImages=function(w)self.filterWidth=w end
@@ -29,13 +29,14 @@ self.itemTable.layout.userData.resize=function(size)self.itemTable.layout.props.
 checks='''
 self:updateSize()
 assert(self.categoryFilter.layout.props.position.x>0 and self.infoBar.layout.props.position.x>0)
-assert(self.paperDollToggle.layout.props.position.y==2)
+assert(self.paperDoll.props.position.y==0 and self.paperDollDivider.props.position.y==0)
+assert(self.paperDollDivider.props.size.y==inner.y)
 local first=self.paperDoll.props.size.y
 inner=v2(1100,850);self:updateSize();assert(self.paperDoll.props.size.y>first,'portrait must grow with window')
 assert(self.paperDoll.props.size.y==self.paperDoll.props.size.x*2)
 configPlayer.window.b_FullHeightPaperDoll=false;self:updateSize()
 assert(self.categoryFilter.layout.props.position.x==0 and self.infoBar.layout.props.position.x==0)
-assert(self.paperDollToggle.layout.props.position.y>2)
+assert(self.paperDoll.props.position.y==80 and self.paperDollDivider.props.position.y==80)
 self.paperDollVisible=false;self:updateSize();assert(self.paperDoll.props.visible==false)
 for _,size in ipairs({v2(200,60),v2(400,250),v2(1400,1000)})do
  inner=size;self.paperDollVisible=true
@@ -83,3 +84,5 @@ assert "text = l10n('UI_RecentBadge')" not in s
 assert "l10n('UI_RecentBadge') .." not in s
 assert s.count("icons/InventoryExtender/custom/recent.png")==2
 print('PASS: table/grid recent markers use the packaged image rather than NEW text')
+
+assert 'paperDollToggle' not in s

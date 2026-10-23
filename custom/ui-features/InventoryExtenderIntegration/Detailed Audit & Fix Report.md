@@ -1,3 +1,11 @@
+# Layout follow-up v1.2.1
+
+Replace the integration package only if already using the v1.2 engine. Removed
+the Character button and its 30-pixel reserved strip; top-aligned the portrait and
+added a thin gold separator with pointer events disabled. The separator follows
+both layout modes and window resizing. The layout regression now checks the top
+position and divider extent. Live visual verification is pending.
+
 # UI integration repair audit — 23 October 2026
 
 Action required: update both the cumulative engine and the v1.2 integration files.

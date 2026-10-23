@@ -1816,13 +1816,18 @@ function Inventory:create(windowType, ctx)
                 end),
             },
         }
-        self.paperDollToggle = baseTemplates.button('Character', function()
-            self.paperDollVisible = not self.paperDollVisible
-            self:updateSize()
-            self.element:update()
-        end, 'paperDollToggle')
+        self.paperDollDivider = {
+            type = ui.TYPE.Image,
+            props = {
+                resource = baseTemplates.createTexture('white'),
+                color = constants.Colors.GOLD,
+                alpha = 0.65,
+                ignorePointerEvents = true,
+                size = v2(1, 1),
+            },
+        }
         content:add(self.paperDoll)
-        content:add(self.paperDollToggle)
+        content:add(self.paperDollDivider)
     end
 
     self.updateSize = function(self)
@@ -1831,7 +1836,7 @@ function Inventory:create(windowType, ctx)
         local fullHeight = self.paperDoll and configPlayer.window.b_FullHeightPaperDoll ~= false
         local portraitWidth = 0
         if self.paperDoll then
-            portraitWidth = self.paperDollVisible and math.max(1, math.min(innerSize.x * 0.35, (innerSize.y - 30) * 0.5 + 8)) or 84
+            portraitWidth = self.paperDollVisible and math.max(1, math.min(innerSize.x * 0.35, innerSize.y * 0.5 + 8)) or 84
         end
         local menuX = fullHeight and portraitWidth or 0
         local menuWidth = math.max(1, innerSize.x - menuX)
@@ -1848,13 +1853,13 @@ function Inventory:create(windowType, ctx)
         if self.paperDoll then
             local portraitTop = fullHeight and 0 or categoryHeight
             local portraitHeight = fullHeight and innerSize.y or availableHeight
-            local height = math.max(1, math.min(portraitHeight - 30, (portraitWidth - 8) * 2))
-            self.paperDoll.props.position = v2((portraitWidth - height * 0.5) * 0.5, portraitTop + 30 + math.max(0, (portraitHeight - 30 - height) * 0.5))
+            local height = math.max(1, math.min(portraitHeight, (portraitWidth - 8) * 2))
+            self.paperDoll.props.position = v2((portraitWidth - height * 0.5) * 0.5, portraitTop)
             self.paperDoll.props.size = v2(height * 0.5, height)
             self.paperDoll.props.visible = self.paperDollVisible
-            self.paperDollToggle.layout.props.position = v2(0, portraitTop + 2)
-            self.paperDollToggle.layout.props.size = v2(math.max(1, portraitWidth - 4), 24)
-            self.paperDollToggle:update()
+            self.paperDollDivider.props.position = v2(portraitWidth - 4, portraitTop)
+            self.paperDollDivider.props.size = v2(1, math.max(1, portraitHeight))
+            self.paperDollDivider.props.visible = self.paperDollVisible
         end
         self.itemTable.layout.props.position = v2(portraitWidth, categoryHeight)
         self.itemTable.layout.userData.resize(v2(math.max(1, innerSize.x - portraitWidth), availableHeight))

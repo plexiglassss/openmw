@@ -1,7 +1,7 @@
-# Inventory Extender custom integration v1.2 — offline test build
+# Inventory Extender custom integration v1.2.1 — offline test build
 
-Action required: replace BOTH the custom OpenMW engine build and the previous
-custom Inventory Extender integration package. Keep the original Inventory
+Action required: replace the previous custom Inventory Extender integration
+package. This layout update uses the same engine as v1.2; no newer engine is needed. Keep the original Inventory
 Extender installed. No plugin change, new .omwscripts entry, save conversion or
 navmesh regeneration is required.
 
@@ -20,7 +20,14 @@ navmesh regeneration is required.
    settings. For equipment comparisons, choose Inventory Extender > Window options
    > Compare equipped item > Hold ALT or Always. Existing Never preferences remain.
 
-## Changes in v1.2
+## Changes in v1.2.1
+
+The Character button is removed. Its reserved top strip is gone, and the portrait
+starts at the top of its column. A thin gold vertical separator runs beside the
+portrait and resizes with it. Full-height mode and the alternative below-filter
+layout remain available. This is a cumulative replacement for v1.2.
+
+## Changes retained from v1.2
 
 - Newly acquired item records display a small gold sparkle image instead of NEW,
   in both table and grid views. Existing recent-item tracking and Clear NEW remain.
@@ -31,8 +38,7 @@ navmesh regeneration is required.
   the character's aspect ratio. The old 192-pixel width cap is removed.
 - Full-height character column is enabled by default under Inventory Extender >
   Window options. Filters and the information bar start to its right. Disable it
-  for the portrait below full-width filters. The Character button still hides or
-  shows the portrait. The column uses the available height; very narrow windows
+  for the portrait below full-width filters. The column uses the available height; very narrow windows
   preserve character proportions rather than stretching the image.
 - World tooltip contents recover their visibility after attachment to the native
   hidden tooltip host. The normal empty frame is no longer re-enabled over them.
