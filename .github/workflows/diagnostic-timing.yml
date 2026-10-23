@@ -21,6 +21,9 @@ jobs:
         run: |
           g++ -std=c++20 -I. custom/ui-features/snap-tests.cpp -o snap-tests
           ./snap-tests
+          python3 custom/performance-tests/test-preload.py
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. custom/performance-tests/compiler-locals.cpp components/compiler/locals.cpp -o compiler-locals-test
+          ./compiler-locals-test
           python3 custom/ui-features/test-lua.py
           python3 custom/ui-features/test-paper-doll.py
           python3 custom/ui-features/test-dialogue-keys.py
@@ -43,6 +46,12 @@ jobs:
           if ($LASTEXITCODE) { throw "Startup screen compile failed" }
           ./startup-screen-smoke.exe
           if ($LASTEXITCODE) { throw "Startup screen lifecycle test failed" }
+          python custom/performance-tests/test-preload.py
+          if ($LASTEXITCODE) { throw "Cell preload regression failed" }
+          cl /nologo /std:c++20 /EHsc /O2 /I. custom/performance-tests/compiler-locals.cpp components/compiler/locals.cpp /Fe:compiler-locals-test.exe
+          if ($LASTEXITCODE) { throw "Compiler locals regression compile failed" }
+          ./compiler-locals-test.exe
+          if ($LASTEXITCODE) { throw "Compiler locals regression failed" }
           cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/singleflight.cpp /Fe:singleflight-smoke.exe
           if ($LASTEXITCODE) { throw "Model preparation test compile failed" }
           ./singleflight-smoke.exe
