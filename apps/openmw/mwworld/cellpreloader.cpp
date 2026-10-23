@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <atomic>
 #include <limits>
+#include <map>
 #include <span>
 
 #include <osg/Stats>
@@ -108,6 +109,9 @@ namespace MWWorld
                 }
             }
 
+            // Job-local: paths and the VFS are stable for this preload snapshot.
+            // Preserve one collision instance per occurrence, but resolve each source path once.
+            std::map<VFS::Path::NormalizedView, VFS::Path::Normalized> resolvedMeshes;
             std::set<VFS::Path::Normalized> loadedMeshes;
             VFS::Path::Normalized mesh;
             VFS::Path::Normalized kfname;
@@ -119,10 +123,18 @@ namespace MWWorld
                 try
                 {
                     const VFS::Manager& vfs = *mSceneManager->getVFS();
-                    mesh = Misc::ResourceHelpers::correctMeshPath(path);
-                    mesh = Misc::ResourceHelpers::correctActorModelPath(mesh, &vfs);
+                    auto resolved = resolvedMeshes.find(path);
+                    if (resolved == resolvedMeshes.end())
+                    {
+                        auto corrected = Misc::ResourceHelpers::correctMeshPath(path);
+                        corrected = Misc::ResourceHelpers::correctActorModelPath(corrected, &vfs);
+                        if (!vfs.exists(corrected))
+                            corrected = VFS::Path::Normalized{};
+                        resolved = resolvedMeshes.emplace(path, std::move(corrected)).first;
+                    }
+                    mesh = resolved->second;
 
-                    if (!vfs.exists(mesh))
+                    if (mesh.empty())
                         continue;
 
                     if (loadedMeshes.contains(mesh))
