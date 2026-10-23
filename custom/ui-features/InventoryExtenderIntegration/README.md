@@ -1,3 +1,36 @@
+# Version 1.1 — world equipment comparison
+
+This cumulative package replaces version 1.0 and earlier custom integration files.
+Keep the original Inventory Extender installed; load this package's Data_Files
+AFTER it so these scripts win. Do not install both integration versions.
+Requires our custom OpenMW build with the world-tooltip bridge; this update
+itself changes Lua only, so an existing compatible custom build needs no rebuild.
+
+With Enhanced world tooltips enabled in the engine Interface settings, the
+Inventory Extender Compare equipped item setting now also applies to items
+under the crosshair in the world. Hold ALT compares immediately; releasing ALT
+restores the single tooltip. Always and Never are respected. The same equipped
+slot selection and tooltip providers are used as in Inventory Extender,
+including both ring slots. Unsupported items keep their ordinary tooltip.
+These are side-by-side item details, not newly calculated numeric deltas.
+Object Insight's additional supplement remains for the targeted item only.
+
+Target and ALT changes update immediately. Condition/enchantment and equipment
+changes refresh at most four times per second while a target remains selected.
+No extra raycast or per-frame inventory scan was added. A comparison-provider
+failure falls back to the single-item tooltip; if that also fails, the native
+engine tooltip remains available.
+
+Offline Lua syntax and regression tests passed. Live OpenMW visual testing is
+still required, particularly wide tooltips at your resolution/UI scale.
+Test: equip a weapon, look at another on a table, hold/release ALT without moving
+the crosshair. Repeat with armor and rings (two equipped), then an ordinary
+miscellaneous item. Check Always/Never, change targets, open/close inventory,
+and disable Enhanced world tooltips. Confirm panels fit, show correct equipped
+items and vanish without stale text. Check mod-supplied stats in both panes.
+
+---
+
 # Inventory Extender quality-of-life update — offline test build
 
 Replace your previous custom integration folder with this package. Keep the
