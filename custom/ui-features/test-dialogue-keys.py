@@ -33,7 +33,8 @@ struct Windows { int sounds = 0; void playSound(int) { ++sounds; } };
 namespace MWBase { struct Environment {
     Manager manager; Windows windows;
     static Environment& get() { static Environment e; return e; }
-    Manager* getDialogueManager() { return &manager; }
+    struct NotNull { Manager* p; Manager* operator->() const { return p; } };
+    NotNull getDialogueManager() { return {&manager}; }
     Windows* getWindowManager() { return &windows; }
 }; }
 struct DialogueWindow {

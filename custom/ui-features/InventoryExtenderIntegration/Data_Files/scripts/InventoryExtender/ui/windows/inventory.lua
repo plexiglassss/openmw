@@ -29,6 +29,8 @@ local constants = require('scripts.InventoryExtender.util.constants')
 local barterUtils = require('scripts.InventoryExtender.util.barter')
 local persistentCorpses = require('scripts.InventoryExtender.util.persistentCorpses')
 local Pickpocket = require('scripts.InventoryExtender.util.pickpocket')
+local protection = require('scripts.InventoryExtender.util.itemProtection')
+local recent = require('scripts.InventoryExtender.util.recentItems')
 
 local l10n = core.l10n('InventoryExtender')
 local windowOptionsSection = storage.playerSection('InventoryExtender')
@@ -422,7 +424,10 @@ function Inventory:create(windowType, ctx)
     end
 
     local function isFavoriteTransferBlocked(row)
-        return self.target == omwself and row and row.item ~= nil and not row.isBartered and isFavorited(row.item) and I.UI.getMode() ~= 'Interface'
+        if self.target == omwself and row and row.item and not row.isBartered and I.UI.getMode() ~= 'Interface' then
+            return protection.reason(ctx, row.item, omwself, nil)
+        end
+        return nil
     end
 
     local function toggleFavoriteRow(row, rowWidget)
@@ -563,7 +568,7 @@ function Inventory:create(windowType, ctx)
     local nameRenderer = function(row, width, height)
         local nonDraggedCount = getNonDraggedCount(row)
 
-        local text = helpers.getItemName(row.item) .. (nonDraggedCount > 1 and (' (%s)'):format(helpers.addSeparators(nonDraggedCount)) or '')
+        local text = ((self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item)) and (l10n('UI_RecentBadge') .. ' ') or '') .. helpers.getItemName(row.item) .. (nonDraggedCount > 1 and (' (%s)'):format(helpers.addSeparators(nonDraggedCount)) or '')
 
         local badgeState = getItemBadgeState(row)
         local enchanted = false
@@ -1331,8 +1336,9 @@ function Inventory:create(windowType, ctx)
             return
         end
 
-        if isFavoriteTransferBlocked(row) then
-            ui.showMessage(l10n('UI_Msg_FavoriteItem'))
+        local blockedReason = isFavoriteTransferBlocked(row)
+        if blockedReason then
+            ui.showMessage(l10n(blockedReason))
             return false
         end
 
@@ -1372,6 +1378,8 @@ function Inventory:create(windowType, ctx)
         end
 
         local function doAction(count)
+            local reason = isFavoriteTransferBlocked(row)
+            if reason then ui.showMessage(l10n(reason)); return false end
             local mode = I.UI.getMode()
             local pickpocket = ctx.pickpocket
             local isPickpocketTake = mode == 'Container' and self.type == 'Container' and pickpocket and pickpocket.active
@@ -1420,11 +1428,7 @@ function Inventory:create(windowType, ctx)
                     barterUtils.updateOffer(ctx)
                     omwself:sendEvent('IE_Update')
                 elseif mode == 'Interface' then
-                    if not isFavorited(row.item) then
-                        ctx.dragAndDrop:dropAtViewportPosition(row.item, count, v2(0.5, 0.5), true)
-                    else
-                        ui.showMessage(l10n('UI_Msg_FavoriteItem'))
-                    end
+                    ctx.dragAndDrop:dropAtViewportPosition(row.item, count, v2(0.5, 0.5), true)
                 end
             else
                 ctx.dragAndDrop:startDrag(
@@ -1585,6 +1589,11 @@ function Inventory:create(windowType, ctx)
 
             local badgeSize = math.max(10, math.floor(itemSize * 0.18))
             local badgeContent = ui.content {}
+            if self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item) then
+                badgeContent:add({ template = baseTemplates.textNormal, props = {
+                    text = l10n('UI_RecentBadge'), textColor = constants.Colors.GOLD, autoSize = true,
+                } })
+            end
 
             if badgeState.favorite then
                 badgeContent:add({
@@ -1638,6 +1647,7 @@ function Inventory:create(windowType, ctx)
                     }
                 })
             end
+            base.userData.recent = self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item)
             base.userData.count = count
             base.userData.favorite = badgeState.favorite
             base.userData.stolen = badgeState.stolen
@@ -2210,6 +2220,8 @@ function Inventory:create(windowType, ctx)
                         end
 
                         for _, entry in pairs(ctx.barterState.selling) do
+                            local reason = protection.reason(ctx, entry.item, omwself, self.target)
+                            if reason then ui.showMessage(l10n(reason)); return end
                             if ctx.stolenItems[entry.item.recordId] and ctx.stolenItems[entry.item.recordId][self.target.recordId] then
                                 I.UI.setMode(nil)
                                 ui.showMessage(string.format(constants.Strings.THATS_MINE, entry.item.type.record(entry.item).name))
@@ -2277,6 +2289,17 @@ function Inventory:create(windowType, ctx)
         self.infoBar.layout.userData.addInfoLayout({})
     end
 
+    if self.type == 'Inventory' then
+        self.infoBar.layout.userData.addInfoLayout(specialTemplates.interactive({
+            onClick = function()
+                if ctx.dragAndDrop.draggingObject then return end
+                recent.observe(omwself.type.inventory(omwself):getAll())
+                recent.clear()
+                self:updateData()
+            end,
+            parent = self.infoBar,
+        }, baseTemplates.button(l10n('UI_ClearRecent')), ctx))
+    end
     self.infoBar.layout.userData.updateAll()
 
     content:add(self.infoBar)
@@ -2580,7 +2603,9 @@ function Inventory:createData()
 
     -- Add primary inventory
     if self.type ~= 'Trade' then
-        for _, item in ipairs(self.target.type.inventory(self.target):getAll()) do
+        local items = self.target.type.inventory(self.target):getAll()
+        if self.target == omwself and not self.ctx.dragAndDrop.draggingObject then recent.observe(items) end
+        for _, item in ipairs(items) do
             table.insert(data, createRowData(item, false, false))
         end
     else
@@ -2648,6 +2673,11 @@ function Inventory:updateData()
         anyChanges = true
     end
     local currentItems = self.target.type.inventory(self.target):getAll()
+    if self.target == omwself and not self.ctx.dragAndDrop.draggingObject then recent.observe(currentItems) end
+    if self.trackedRecentRevision ~= recent.revision then
+        self.trackedRecentRevision = recent.revision
+        anyChanges = true
+    end
 
     if not self.itemTable then return end
 

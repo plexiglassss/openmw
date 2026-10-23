@@ -1,3 +1,69 @@
+# Inventory Extender quality-of-life update — offline test build
+
+Replace your previous custom integration folder with this package. Keep the
+original Inventory Extender installed and its .omwscripts entry enabled once.
+No new plugin, script-list entry, or save conversion is needed.
+
+Equipment comparison ALREADY EXISTS in your installed Inventory Extender:
+Settings > Scripts > Inventory Extender > Window options > Compare equipped item.
+Select Hold ALT (or Always). Existing saved Never preferences are preserved;
+new installations now default to Hold ALT. Hover an unequipped weapon, armor or
+clothing item to compare its tooltip with the equipped item(s) for those slots.
+This uses the existing tooltip providers, not a new damage/balance calculation.
+
+New settings under Inventory Extender > Tweaks (enabled by default):
+- Show recent-item marks: NEW in table and grid views. Clear NEW acknowledges
+  all current marks. Marks and count history are stored in the save, not in
+  permanent Lua storage. No inventory polling loop was added.
+- Protect favourite items: blocks outgoing sales, transfers and drops through
+  Inventory Extender. This extends existing protection to previously unguarded
+  drag paths and bulk transfers; disabling it permits these operations.
+- Protect equipped items: independent option covering the same actions. Unequip
+  first to move an item, or disable the option. Equipment use/unequip still works.
+
+The protection checks retain the original status while dragging, including when
+stack splitting changes identity or moving into the cursor unequips an item.
+Returning an item to your own inventory is allowed. Barter checks again when
+confirming an offer, so enabling protection mid-transaction cannot bypass it.
+Quest scripts, consumption, theft confiscation and other mods' independent UIs
+are outside these safeguards; this does not make items globally immovable.
+
+NEW is an inventory-count indication by record type, not a timestamped loot log.
+A net count increase since the previous IE refresh marks that item type; all
+copies of that record share the mark. Existing inventory starts unmarked.
+Splits/merges alone do not mark items. An acquisition offset by consumption or
+removal before the next refresh cannot be detected. Marks persist until cleared
+or all copies leave the inventory. Pending purchases are not marked as owned.
+
+Replace the entire previous integration folder, retaining the same data path.
+Its Data_Files directory must load after original IE and Object Insight Tooltip
+(if installed), as before. This package includes the earlier world-tooltip,
+paper-doll and barter fixes; use our matching custom engine for those features.
+
+## Validation
+Lua syntax, existing world-tooltip lifecycle tests, paper-doll tests, and new
+protection/recent-item regression tests passed offline. New tests exercise
+individual and bulk transfers, drops, own-inventory returns, toggles, changed
+cursor identity, drag unequipping, baseline counts, stack gains/splits/merges,
+clear, save/load and reacquisition. Live UI/rendering and complete modlist
+compatibility remain unverified.
+
+## Focused in-game checks
+1. Set Compare equipped item to Hold ALT. Hover a spare weapon, armor piece and
+   ring; compare the panes with the equipped items. Try Always and Never too.
+2. Pick up an item, open inventory: NEW should appear. Add to an existing stack;
+   check its mark. Press Clear NEW; close/reopen and confirm marks stay cleared.
+3. Acquire another item and save/reload: its mark should remain. Move an entire
+   marked record out of inventory, then acquire it again: it should be NEW.
+4. Favourite an item (default F). Try selling, direct transfer, dragging into a
+   container/companion and dropping in the world: all should be blocked while
+   protection is on. Return the dragged item to your own inventory successfully.
+5. Repeat with equipped gear, then unequip it and retry. Check paper-doll use
+   still works. Disable each protection option independently and retest.
+6. Stage an ordinary sale, then enable its applicable protection before Offer;
+   confirm the sale is refused, with no money/disposition change from that offer.
+7. Check both table and grid views, small/resized windows, barter and companions.
+
 # Inventory Extender: custom-engine integration (test build)
 
 Install the matching custom OpenMW engine AND these Lua files. No new plugin or

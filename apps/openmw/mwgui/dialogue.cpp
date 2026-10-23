@@ -785,7 +785,7 @@ namespace MWGui
         if (repeat || index >= mChoices.size())
             return true;
 
-        auto* manager = MWBase::Environment::get().getDialogueManager();
+        auto manager = MWBase::Environment::get().getDialogueManager();
         // Scripts may have changed the choices since the last frame was drawn.
         // Never select a response the player has not yet seen.
         if (manager->isGoodbye() || mChoices != manager->getChoices())
@@ -1065,3 +1065,4 @@ namespace MWGui
         return true;
     }
 }
+

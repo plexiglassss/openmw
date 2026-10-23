@@ -1,0 +1,287 @@
+ConfigTitle: Inventory Extender
+ConfigSummary: |-
+  A Lua replacement for the inventory window with a modernized list-based interface.
+  --- v%{version} ---
+
+RequiresReload: Some changes require a Lua reload to take effect.
+
+ConfigCategoryKeybinds: Keybinds
+KeybindUseItem: Use item
+KeybindUseItemDesc: |-
+  Instantly use the hovered inventory item.
+KeybindToggleFavorite: Toggle favorite
+KeybindToggleFavoriteDesc: |-
+  Toggle favorite status for the hovered inventory item.
+  
+  Favorited items cannot be sold, dropped, or transfered to other inventories, and are marked with a star icon in the inventory list.
+SwapUsePickup: Swap use/pick up
+SwapUsePickupDesc: |-
+  By default, the above keybind uses items, and left-click picks them up.
+  
+  Enable this option to swap those behaviors, so that left-click will use items and the keybind will pick them up.
+
+ConfigCategoryWindowOptions: Window Options
+EnableMod: Enable mod
+OpenInventorySeparately: Open separately from vanilla inventory
+OpenInventorySeparatelyDesc: |-
+  Do not replace the game's normal player inventory window.
+  When the vanilla inventory/interface opens, Inventory Extender opens as a separate window instead.
+  Requires a Lua reload or game restart after changing.
+ItemViewMode: Item view mode
+ItemViewModeDesc: |-
+  Choose between a detailed table view or a vanilla-style grid view.
+ItemViewMode_Table: Table
+ItemViewMode_Grid: Grid
+ShowViewModeButton: Show view mode button
+ShowViewModeButtonDesc: |-
+  Show a button in the top bar to toggle between table and grid view.
+WindowBackgroundOpacity: Window background opacity
+WindowBackgroundOpacityDesc: |-
+  Controls how opaque the Inventory Extender window background is.
+  Higher values make the inventory darker and easier to read.
+  Close and reopen the inventory after changing this setting.
+TableRowHeightMult: Table row height multiplier
+TableRowHeightMultDesc: |-
+  Adjust the height of rows in the table view, as a multiplier of text size.
+TableScrollStep: Table scroll step
+TableScrollStepDesc: |-
+  Adjust the scroll step of the table view, in number of rows.
+TextSizeOverride: Text size override
+TextSizeOverrideDesc: |-
+  Override the default text size used in the inventory window. 
+  Set to 0 to use the game's default size.
+IconPack: Icon pack
+IconPackDesc: |-
+  Choose which Inventory Extender icon pack to use.
+InventoryWindowPinned: Inventory pinned
+InventoryWindowDimensions: Inventory window
+InventoryContainerWindowDimensions: Inventory (container)
+InventoryBarterWindowDimensions: Inventory (barter)
+InventoryCompanionWindowDimensions: Inventory (companion)
+ContainerWindowDimensions: Container window
+BarterWindowDimensions: Barter window
+CompanionWindowDimensions: Companion window
+
+ConfigCategoryTweaks: Tweaks
+CondensedWeightValue: Condensed weight/value
+CondensedWeightValueDesc: |-
+  Condense weight and value information in item tooltips.
+InvertCategorySwitching: Invert category switching
+InvertCategorySwitchingDesc: |-
+  By default, when you switch categories, any other windows will switch to the same category unless you hold Shift.
+  Enable this option to invert that behavior, so that other windows will only switch categories if you hold Shift.
+CompactCategoryFilter: Compact category filter
+CompactCategoryFilterDesc: |-
+  Move category buttons into the top bar and show the active category in the window title instead of a separate header.
+VanillaCategoryIcons: Vanilla-style category icons
+VanillaCategoryIconsDesc: |-
+  Render category buttons with a vanilla-style plate and opacity-based highlighting.
+CategoryBarBorders: Category bar borders
+CategoryBarBordersDesc: |-
+  Show borders around the category bar.
+StolenIndicator: Show stolen indicator
+StolenIndicatorDesc: |-
+  Show an icon next to stolen items in the inventory.
+EnchantedIndicatorMode: Enchanted indicator mode
+EnchantedIndicatorModeDesc: |-
+  In table view, show enchanted items with the icon swirl, the name-row icon, or both.
+  Grid view always shows the swirl.
+EnchantedIndicatorMode_Swirl: Swirl
+EnchantedIndicatorMode_Icon: Name icon
+EnchantedIndicatorMode_Both: Both
+ArmsArmorCompareNameIndicator: Arms & Armor compare arrows
+ArmsArmorCompareNameIndicatorDesc: |-
+    Shows green up-arrows or red down-arrows next to weapon and armor names in table view when Arms & Armor Compare can tell the item is better or worse than the equipped item.
+FilledGemsAppearEnchanted: Filled gems appear enchanted
+FilledGemsAppearEnchantedDesc: |-
+  Show filled soul gems as enchanted items to distinguish them more easily.
+EnchantCapacityInTooltips: Enchant capacity in tooltips
+EnchantCapacityInTooltipsDesc: |-
+  Show the enchant capacity of items in their tooltips.
+EnchantCapacityInTooltips_Never: Never
+EnchantCapacityInTooltips_Always: Always
+EnchantCapacityInTooltips_UnenchantedOnly: Unenchanted only
+EnchantCapacityColumnMode: Enchant capacity column
+EnchantCapacityColumnModeDesc: |-
+  Controls whether the Ench column is shown for all enchantable equipment or only for unenchanted items.
+EnchantCapacityColumn_All: All enchantable items
+EnchantCapacityColumn_UnenchantedOnly: Unenchanted only
+RequirementsColumnMode: Requirements column
+RequirementsColumnModeDesc: |-
+  Controls whether the Req column shows all requirements or only requirements your character does not currently meet.
+RequirementsColumn_All: All requirements
+RequirementsColumn_UnmetOnly: Unmet only
+SoulGemCapacityInTooltips: Soul gem capacity in tooltips
+SoulGemCapacityInTooltipsDesc: |-
+  Show the capacity of empty soul gems in their tooltips.
+SoulGemCapacityInTooltips_Never: Never
+SoulGemCapacityInTooltips_Always: Always
+SoulGemCapacityInTooltips_EmptyOnly: Empty only
+SoulGemValueInTooltips: Soul gem value in tooltips
+SoulGemValueInTooltipsDesc: |-
+  Show the soul value of filled soul gems in their tooltips.
+HideConditionChargeLabels: Hide condition/charge labels
+HideConditionChargeLabelsDesc: |-
+  Hide the labels next to the "Condition" and "Charge" bars in item tooltips for a more centered look.
+
+ConfigCategoryModIntegration: Mod Integrations
+InterfaceReimagined: Interface Reimagined support
+InterfaceReimaginedDesc: |-
+  Adjust appearance to better fit the style of Interface Reimagined.
+TooltipsComplete: Tooltips Complete support
+TooltipsCompleteDesc: |-
+  If Tooltips Complete is installed, add its descriptions to item tooltips.
+
+ConfigCategoryMisc: Miscellaneous
+ShowControllerWarning: Show controller warning
+ShowControllerWarningDesc: |-
+  Show a warning message if controller menus are enabled, since the window replacer is not compatible with them.
+TooltipCompatibilityMode: HUD tooltip compatibility mode
+TooltipCompatibilityModeDesc: |-
+  Due to API limitations, mouse-over world tooltips require us to block the entire screen, which has the side effect of blocking tooltips for the HUD (active effects, selected spell, etc.)
+  If compatibility mode is ON, the screen will only be blocked if an item is being dragged. This preserves HUD tooltips when not dragging, but world tooltips will be vanilla.
+
+ConfigCategoryGameplay: Gameplay
+SoulGemValueRebalance: Soul gem value rebalance
+SoulGemValueRebalanceDesc: |-
+  Make the value of filled soul gems dependent only on soul magnitude.
+
+# Column
+Column_Name: Name
+Column_Type: Type
+Column_Damage: Dmg.
+Column_Quality: Qual.
+Column_Condition: Cond.
+Column_Slot: Slot
+Column_Class: Class
+Column_AR: AR
+Column_Value: Val.
+Column_Weight: Wgt.
+Column_Weight_Total: T. Wgt.
+Column_VW: V/W
+Column_EnchantCapacity: Ench
+Column_Requirements: Req
+
+# Category
+Category_Favorites: Favorites
+Category_All: All
+Category_Weapon: Weapons
+Category_Armor: Armor
+Category_Clothing: Clothing
+Category_Potion: Consumables
+Category_Ingredient: Ingredients
+Category_Scroll: Scrolls
+Category_Book: Books
+Category_Key: Keys
+Category_Tool: Tools
+Category_Misc: Misc.
+
+# Armor
+Type_Boots: Boots
+Type_Cuirass: Cuirass
+Type_Greaves: Greaves
+Type_Helmet: Helmet
+Type_LBracer: Bracer
+Type_LGauntlet: Gauntlet
+Type_LPauldron: Pauldron
+Type_RBracer: Bracer
+Type_RGauntlet: Gauntlet
+Type_RPauldron: Pauldron
+Type_Shield: Shield
+Class_Light: Lgt.
+Class_Medium: Med.
+Class_Heavy: Hvy.
+
+# Clothing
+Type_Amulet: Amulet
+Type_Belt: Belt
+Type_LGlove: Glove
+Type_Pants: Pants
+Type_RGlove: Glove
+Type_Ring: Ring
+Type_Robe: Robe
+Type_Shirt: Shirt
+Type_Shoes: Shoes
+Type_Skirt: Skirt
+
+# Weapon
+Type_Arrow: Arrow
+Type_AxeOneHand: Axe
+Type_AxeTwoHand: Axe
+Type_BluntOneHand: Blunt
+Type_BluntTwoClose: Blunt
+Type_BluntTwoWide: Blunt
+Type_Bolt: Bolt
+Type_LongBladeOneHand: L. Blade
+Type_LongBladeTwoHand: L. Blade
+Type_MarksmanBow: Bow
+Type_MarksmanCrossbow: Crossbow
+Type_MarksmanThrown: Thrown
+Type_ShortBladeOneHand: S. Blade
+Type_SpearTwoWide: Spear
+
+# Tools
+Type_Alembic: Alembic
+Type_Calcinator: Calcinator
+Type_MortarPestle: Mortar
+Type_Retort: Retort
+Type_Lockpick: Lockpick
+Type_Probe: Probe
+Type_RepairTool: Repair
+Type_Light: Light
+
+# Other
+Type_Consumable: Consumable
+Type_Ingredient: Ingredient
+Type_Scroll: Scroll
+Type_Book: Book
+Type_Key: Key
+Type_Misc: Misc.
+
+UI_SearchBarPlaceholder: Search...
+UI_ColumnSettingsTitle: Visible Columns
+UI_Barter_Spend: "Spend:"
+UI_Barter_Gain: "Gain:"
+UI_Barter_Max: Max
+UI_Tooltip_Equipped: <<<  Equipped  >>>
+UI_Tooltip_Magic_Item_Use_Cost: "Charge Cost: %{cost}"
+
+UI_Msg_ScriptedItem: This item cannot be picked up from the inventory.
+UI_Msg_FavoriteItem: Favorite items cannot be sold or transferred from your inventory.
+
+UI_Tooltip_ColumnSettings: Column settings
+UI_Tooltip_TableView: Switch to table view
+UI_Tooltip_GridView: Switch to grid view
+UI_Tooltip_UseButton: Or press {key} on item
+UI_Tooltip_UseButton_Swapped: Or click on item
+UI_Tooltip_TakeAllButton_Shift: Hold Shift to take only currently visible items.
+
+UI_EnchantCapacity: Enchant Capacity
+UI_SoulCapacity: Soul Capacity
+UI_SoulValue: Soul Value
+
+ConfigNumberSeparators: Show thousand separators
+ConfigNumberSeparators_None: None
+ConfigNumberSeparators_Comma: Comma
+ConfigNumberSeparators_Space: Space
+
+ConfigCompareItemsMode: Compare equipped item
+ConfigCompareItemsModeDesc: Will show tooltips of equipped items near current item tooltip.
+ConfigCompareItemsMode_Never: Never
+ConfigCompareItemsMode_ALT: Hold ALT
+ConfigCompareItemsMode_Always: Always
+
+ConfigSortingBarterReverseEquipped: When bartering, sort equipped items last
+ConfigSortingBarterReverseFavorite: When bartering, sort favorite items last
+
+ConfigTooltipShowItemUseCost: Show item use cost
+ConfigTooltipShowItemUseCostDesc: Show the charges cost per cast for magic items.
+RecentItems: Show recent-item marks
+RecentItemsDesc: Mark records whose inventory count increased since the previous inventory refresh. Clear NEW acknowledges all marks. Marks are stored in the save, not persistent Lua storage.
+ProtectFavorites: Protect favourite items
+ProtectFavoritesDesc: Prevent selling, dropping or transferring favourite items through Inventory Extender. Unfavourite an item or disable this option to move it.
+ProtectEquipped: Protect equipped items
+ProtectEquippedDesc: Prevent selling, dropping or transferring equipped items through Inventory Extender. Unequip first, or disable this option. Equipping and unequipping remain allowed.
+UI_Msg_EquippedProtected: This item is protected because it is equipped. Unequip it first, or disable equipped-item protection.
+UI_RecentBadge: NEW
+UI_ClearRecent: Clear NEW
