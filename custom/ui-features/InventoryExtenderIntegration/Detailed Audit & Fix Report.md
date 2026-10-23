@@ -1,3 +1,13 @@
+# v1.2.5 — cursor pickup and separate base restoration
+
+The previous empty-cursor paper-doll click called the use/unequip handler directly, so it removed equipment but never started an inventory drag. The new explicit pickupToCursor branch runs after existing mode/trade and provider checks, rejects bound/non-player items, then calls DragAndDrop:startDrag with the player inventory as source. It does not call stopDrag. The next doll click retains the existing held-item equip route.
+
+The base restoration and bridge are separate data directories. See the current README for authoritative installation instructions; historical installation wording below is superseded. No base plugin changes, new content entry or engine rebuild is required by this revision. The existing v1.2.4 bridge engine capabilities are required.
+
+Regression tests execute the shipped handler and verify cursor-start calls and later equip dispatch. Actual asynchronous engine execution, cursor drawing and item removal are not live-tested here.
+
+---
+
 # v1.2.4 — resize snapping and tooltip fixes
 
 Requires the new v1.2.4 engine commit for resize snapping and paper-doll hover. Copy this cumulative Data_Files integration over the previous version, retaining the original Inventory Extender installation. Do not stack multiple integration versions.

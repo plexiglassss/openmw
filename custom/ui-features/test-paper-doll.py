@@ -12,11 +12,11 @@ handler = source[start:end].replace('    local onRowUse = function(row, rowWidge
     '    local onRowUse = function() tradeCalls = tradeCalls + 1; return false end')
 setup = '''
 local mode, tradeCalls, uses, updates, sounds, vetoCalls
-local equipment, bound, veto
+local equipment, bound, veto, dragged, dragCalls
 local ctx, self, omwself, I, helpers, ambient, core
 local function reset(m)
     mode, tradeCalls, uses, updates, sounds, vetoCalls = m, 0, 0, 0, 0, 0
-    bound, veto, equipment = false, false, {}
+    bound, veto, equipment, dragged, dragCalls = false, false, {}, nil, 0
     omwself = {type = {}}
     omwself.type.hasEquipped = function(_, item)
         for _, v in pairs(equipment) do if v == item then return true end end
@@ -28,6 +28,11 @@ local function reset(m)
     ctx = {handlers = {onRowPickup = {{handler = function()
         vetoCalls = vetoCalls + 1; if veto then return false end
     end}}}, barterState = {selling = {}, buying = {}}}
+    ctx.dragAndDrop = {startDrag = function(_, item, source, count, pickpocket, activation)
+        assert(source == omwself and count == item.count and pickpocket == nil)
+        assert(activation.windowType == 'Inventory' and not activation.isBartered)
+        dragCalls = dragCalls + 1; dragged = item
+    end}
     self = {type = 'Inventory', target = omwself}
     I = {UI = {getMode = function() return mode end}}
     helpers = {isBoundItem = function() return bound end, getItemSound = function() return 'down' end}
@@ -76,6 +81,24 @@ assert(onRowPickup({item = item}, nil, 'Inventory', true, true) ~= false)
 assert(uses == 1 and tradeCalls == 0, 'cancelled sale')
 onRowPickup({item = item}, nil, 'Inventory', true)
 assert(tradeCalls == 1 and uses == 1, 'ordinary barter row unchanged')
+for _, m in ipairs({'Interface', 'Barter', 'Container', 'Companion'}) do
+    reset(m)
+    local item = {id='weapon', parentContainer=omwself, count=1}
+    equipment[1]=item
+    assert(onRowPickup({item=item}, nil, 'Inventory', true, true, true))
+    assert(dragged==item and dragCalls==1 and uses==0 and tradeCalls==0)
+    -- Simulate normal asynchronous pickup completing, followed by the second click.
+    equipment[1]=nil
+    assert(onRowPickup({item=dragged}, nil, 'Inventory', true, true) ~= false)
+    assert(uses==1 and dragCalls==1)
+    bound=true
+    assert(onRowPickup({item=item}, nil, 'Inventory', true, true, true)==false)
+    assert(dragCalls==1)
+    bound=false;veto=true
+    assert(onRowPickup({item=item}, nil, 'Inventory', true, true, true)==false)
+    assert(dragCalls==1)
+end
+print('PASS: cursor pickup and subsequent equip in four modes; bound/provider veto')
 print('PASS: paper-doll equip/unequip in four modes; bound items, provider veto, trade ownership/reservations, cancelled sale, ordinary barter routing')
 '''
 lua = c.CDLL('liblua5.4.so.0')
@@ -97,4 +120,4 @@ lua.lua_close(state)
 
 # Both paper-doll paths must opt into equipment handling, never a trade action.
 assert 'onRowPickup(createDraggedActivationRow(draggedItem), nil, activation.windowType, true, true)' in source
-assert "getCount = function() return item.count end }, nil, 'Inventory', true, true)" in source
+assert "getCount = function() return item.count end }, nil, 'Inventory', true, true, true)" in source

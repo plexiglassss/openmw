@@ -299,7 +299,7 @@ function Inventory:create(windowType, ctx)
         return false
     end
 
-    local function onRowPickup(row, rowWidget, windowType, allowOutsideInterface, paperDollAction)
+    local function onRowPickup(row, rowWidget, windowType, allowOutsideInterface, paperDollAction, pickupToCursor)
         if paperDollAction and I.UI.getMode() == 'Barter' then
             -- Equipment actions must not change an uncommitted trade. In particular,
             -- a buying row can be displayed in the player pane while still owned
@@ -328,6 +328,17 @@ function Inventory:create(windowType, ctx)
 
         if rowWidget and rowWidget.layout and rowWidget.layout.props then
             self.itemTable.layout.userData.getState().lastUsedRowPos = rowWidget.layout.props.position - v2(0, (ctx.focusedScrollable and ctx.focusedScrollable.layout.userData.getScrollPos() or 0))
+        end
+
+        if pickupToCursor then
+            if helpers.isBoundItem(row.item) or row.item.parentContainer ~= omwself then
+                return false
+            end
+            -- Use IE's normal asynchronous cursor pickup. It retains protection,
+            -- unequips through the usual move action, and attaches the resulting item.
+            ctx.dragAndDrop:startDrag(row.item, omwself, row.item.count, nil,
+                { windowType = 'Inventory', isBartered = false })
+            return true
         end
 
         if omwself.type.hasEquipped and omwself.type.hasEquipped(omwself, row.item) then
@@ -1841,9 +1852,9 @@ function Inventory:create(windowType, ctx)
                     elseif e.slot >= 0 then
                         local item = types.Actor.getEquipment(omwself, e.slot)
                         if item then
-                            -- Same use/unequip route and provider hooks as an inventory row.
+                            -- Pick up equipment onto the cursor; the next doll click equips it.
                             onRowPickup({ item = item, id = item.id, itemRecord = item.type.record(item),
-                                getCount = function() return item.count end }, nil, 'Inventory', true, true)
+                                getCount = function() return item.count end }, nil, 'Inventory', true, true, true)
                             self:refresh()
                         end
                     end
