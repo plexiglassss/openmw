@@ -710,7 +710,9 @@ namespace MWGui
             BookTypesetter::Style* questionStyle = typesetter->createHotStyle(
                 body, textColours.answer, textColours.answerOver, textColours.answerPressed, interactiveId);
             typesetter->lineBreak();
-            typesetter->write(questionStyle, goodbye);
+            const std::string prefix = mChoices.size() < 10
+                ? std::to_string((mChoices.size() + 1) % 10) + ". " : std::string{};
+            typesetter->write(questionStyle, prefix + goodbye);
         }
 
         std::shared_ptr<TypesetBook> book = typesetter->complete();
@@ -777,18 +779,32 @@ namespace MWGui
             default: return false;
         }
 
-        if (!isVisible() || mPtr.isEmpty() || mGoodbye || mChoices.empty())
+        if (!isVisible() || mPtr.isEmpty() || (!mGoodbye && mChoices.empty()))
             return false;
 
         // Swallow repeats and unavailable indices without triggering bindings or
         // selecting another response when the previous answer opened a new choice.
-        if (repeat || index >= mChoices.size())
+        if (repeat)
             return true;
 
         auto manager = MWBase::Environment::get().getDialogueManager();
         // Scripts may have changed the choices since the last frame was drawn.
         // Never select a response the player has not yet seen.
-        if (manager->isGoodbye() || mChoices != manager->getChoices())
+        if (mGoodbye != manager->isGoodbye() || mChoices != manager->getChoices())
+            return true;
+
+        if (mGoodbye)
+        {
+            // The explicit Goodbye line follows any displayed responses.
+            // Do not turn stale response shortcuts into an accidental dismissal.
+            if (index == mChoices.size())
+            {
+                MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Menu Click"));
+                onGoodbyeActivated();
+            }
+            return true;
+        }
+        if (index >= mChoices.size())
             return true;
 
         const int id = mChoices[index].second;

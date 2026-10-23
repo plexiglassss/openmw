@@ -41,7 +41,8 @@ struct DialogueWindow {
     struct Ptr { bool empty = false; bool isEmpty() const { return empty; } } mPtr;
     bool visible = true, mGoodbye = false;
     Choices mChoices;
-    int answer = -1, calls = 0;
+    int answer = -1, calls = 0, goodbyes = 0;
+    void onGoodbyeActivated() { ++goodbyes; }
     bool isVisible() const { return visible; }
     void onChoiceActivated(int id) { answer = id; ++calls; }
     bool onChoiceKeyPress(MyGUI::KeyCode, bool);
@@ -73,11 +74,25 @@ int main() {
     env.manager.goodbye = true;
     assert(d.onChoiceKeyPress(K::One, false) && d.calls == 20);
     env.manager.goodbye = false;
-    d.mGoodbye = true; assert(!d.onChoiceKeyPress(K::One, false)); d.mGoodbye = false;
+    d.mGoodbye = true; assert(d.onChoiceKeyPress(K::One, false) && d.goodbyes == 0); d.mGoodbye = false;
     d.visible = false; assert(!d.onChoiceKeyPress(K::One, false)); d.visible = true;
     d.mPtr.empty = true; assert(!d.onChoiceKeyPress(K::One, false)); d.mPtr.empty = false;
     assert(d.onChoiceKeyPress(K::One, false) && d.answer == 567 && d.calls == 21);
     d.mChoices.clear(); assert(!d.onChoiceKeyPress(K::One, false));
+    env.manager.choices.clear();
+    // Forced Goodbye with no scripted responses: 1 closes normally.
+    d.mGoodbye = true; env.manager.goodbye = true;
+    assert(d.onChoiceKeyPress(K::Two, false) && d.goodbyes == 0);
+    assert(d.onChoiceKeyPress(K::One, true) && d.goodbyes == 0);
+    assert(d.onChoiceKeyPress(K::One, false) && d.goodbyes == 1);
+    assert(d.onChoiceKeyPress(K::Numpad1, false) && d.goodbyes == 2);
+    env.manager.goodbye = false;
+    assert(d.onChoiceKeyPress(K::One, false) && d.goodbyes == 2);
+    env.manager.goodbye = true;
+    d.mChoices = {{"old response", 42}}; env.manager.choices = d.mChoices;
+    assert(d.onChoiceKeyPress(K::One, false) && d.goodbyes == 2);
+    assert(d.onChoiceKeyPress(K::Two, false) && d.goodbyes == 3);
+    assert(d.calls == 21); // Goodbye never invokes the script-answer path.
 }
 '''
 with tempfile.TemporaryDirectory() as directory:
