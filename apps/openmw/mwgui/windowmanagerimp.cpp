@@ -105,6 +105,7 @@
 #include "keyboardnavigation.hpp"
 #include "levelupdialog.hpp"
 #include "loadingscreen.hpp"
+#include "luapaperdoll.hpp"
 #include "mainmenu.hpp"
 #include "merchantrepair.hpp"
 #include "postprocessorhud.hpp"
@@ -245,6 +246,7 @@ namespace MWGui
         SpellView::registerComponents();
         Gui::registerAllWidgets();
         LuaUi::registerAllWidgets();
+        MyGUI::FactoryManager::getInstance().registerFactory<LuaPaperDoll>("Widget");
 
         MyGUI::FactoryManager::getInstance().registerFactory<MWGui::Controllers::ControllerFollowMouse>("Controller");
 
@@ -1171,6 +1173,17 @@ namespace MWGui
     {
         mMap->toggleFogOfWar();
         return mHud->toggleFogOfWar();
+    }
+
+    MWWorld::Ptr WindowManager::getWorldTooltipObject() const
+    {
+        return mToolTips && !isGuiMode() ? mToolTips->getFocusObject() : MWWorld::Ptr();
+    }
+
+    void WindowManager::setWorldTooltip(const MWWorld::Ptr& object, const std::shared_ptr<LuaUi::Element>& element)
+    {
+        if (mToolTips)
+            mToolTips->setLuaTooltip(object, element);
     }
 
     void WindowManager::setFocusObject(const MWWorld::Ptr& focus)

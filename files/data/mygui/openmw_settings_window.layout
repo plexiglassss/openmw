@@ -965,7 +965,7 @@
                         </Widget>
                     </Widget>
 
-                    <Widget name="ScriptBox" type="Widget" align="Stretch" name="ScriptBox">
+                    <Widget name="ScriptBox" type="Widget" align="Stretch">
                         <UserString key="HStretch" value="true"/>
                         <UserString key="VStretch" value="true"/>
 
@@ -1007,6 +1007,19 @@
                     </Widget>
                     <Widget type="AutoSizedTextBox" skin="SandText">
                         <Property key="Caption" value="#{OMWEngine:GmstOverridesL10n} "/>
+                    </Widget>
+                </Widget>
+            </Widget>
+            <Widget type="TabItem">
+                <Property key="Caption" value=" Interface "/>
+                <Widget type="HBox" position="4 12 340 28">
+                    <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                        <UserString key="SettingCategory" value="GUI"/>
+                        <UserString key="SettingName" value="window snapping"/>
+                        <UserString key="SettingType" value="CheckButton"/>
+                    </Widget>
+                    <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 280 16" align="Left Top">
+                        <Property key="Caption" value="Snap windows to nearby edges"/>
                     </Widget>
                 </Widget>
             </Widget>

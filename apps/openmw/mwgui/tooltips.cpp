@@ -1,4 +1,6 @@
 #include "tooltips.hpp"
+#include <components/lua_ui/adapter.hpp>
+#include <components/lua_ui/element.hpp>
 
 #include <format>
 #include <iomanip>
@@ -45,6 +47,13 @@ namespace MWGui
         , mFrameDuration(0.f)
     {
         getWidget(mDynamicToolTipBox, "DynamicToolTipBox");
+        mLuaTooltipBox = mMainWidget->createWidget<MyGUI::Widget>("HUD_Box", MyGUI::IntCoord(), MyGUI::Align::Default);
+        mLuaTooltipBox->setNeedMouseFocus(false);
+        mLuaTooltipBox->setNeedKeyFocus(false);
+        mLuaTooltipAdapter
+            = mLuaTooltipBox->createWidget<LuaUi::LuaAdapter>("", MyGUI::IntCoord(), MyGUI::Align::Default);
+        mLuaTooltipAdapter->setNeedMouseFocus(false);
+        mLuaTooltipAdapter->setNeedKeyFocus(false);
 
         mDynamicToolTipBox->setVisible(false);
 
@@ -56,6 +65,27 @@ namespace MWGui
         for (size_t i = 0; i < mMainWidget->getChildCount(); ++i)
         {
             mMainWidget->getChildAt(i)->setVisible(false);
+        }
+    }
+
+    ToolTips::~ToolTips()
+    {
+        mLuaTooltipAdapter->detach();
+    }
+
+    void ToolTips::setLuaTooltip(const MWWorld::Ptr& object, const std::shared_ptr<LuaUi::Element>& element)
+    {
+        mLuaTooltipAdapter->detach();
+        mLuaTooltipElement.reset();
+        mLuaTooltipObject = MWWorld::Ptr();
+        mLuaTooltipBox->setVisible(false);
+        if (!object.isEmpty() && element && element->mRoot && element->mState != LuaUi::Element::Destroy
+            && element->mState != LuaUi::Element::Destroyed)
+        {
+            mLuaTooltipObject = object;
+            mLuaTooltipElement = element;
+            mLuaTooltipAdapter->attach(element);
+            mLuaTooltipBox->setVisible(false);
         }
     }
 
@@ -337,6 +367,7 @@ namespace MWGui
 
     void ToolTips::clear()
     {
+        setLuaTooltip({}, nullptr);
         mFocusObject = MWWorld::Ptr();
 
         while (mDynamicToolTipBox->getChildCount())
@@ -365,6 +396,27 @@ namespace MWGui
         MyGUI::IntSize tooltipSize;
 
         const MWWorld::Class& object = mFocusObject.getClass();
+        if (object.hasToolTip(mFocusObject) && !mFullHelp && !MWBase::Environment::get().getWindowManager()->isGuiMode()
+            && mLuaTooltipElement && mLuaTooltipObject == mFocusObject && mLuaTooltipElement->mRoot
+            && mLuaTooltipElement->mState != LuaUi::Element::Destroy
+            && mLuaTooltipElement->mState != LuaUi::Element::Destroyed)
+        {
+            const auto size = mLuaTooltipAdapter->getSize();
+            if (size.width > 0 && size.height > 0)
+            {
+                const bool owned = (Settings::game().mShowOwned == 1 || Settings::game().mShowOwned == 3) && isOwned;
+                if (owned != mLuaTooltipOwned)
+                {
+                    mLuaTooltipBox->changeWidgetSkin(owned ? "HUD_Box_Owned" : "HUD_Box");
+                    mLuaTooltipOwned = owned;
+                }
+                mLuaTooltipBox->setSize(size.width + 8, size.height + 8);
+                mLuaTooltipAdapter->setPosition(4, 4);
+                mLuaTooltipBox->setVisible(true);
+                return mLuaTooltipBox->getSize();
+            }
+        }
+
         if (!object.hasToolTip(mFocusObject))
         {
             mDynamicToolTipBox->setVisible(false);

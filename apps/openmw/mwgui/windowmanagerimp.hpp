@@ -182,6 +182,8 @@ namespace MWGui
 
         /// \todo investigate, if we really need to expose every single lousy UI element to the outside world
         MWGui::InventoryWindow* getInventoryWindow() override;
+        MWWorld::Ptr getWorldTooltipObject() const override;
+        void setWorldTooltip(const MWWorld::Ptr&, const std::shared_ptr<LuaUi::Element>&) override;
         MWGui::CountDialog* getCountDialog() override;
         MWGui::ConfirmationDialog* getConfirmationDialog() override;
         MWGui::TradeWindow* getTradeWindow() override;

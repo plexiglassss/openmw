@@ -40,6 +40,7 @@ namespace LuaUi
             { "LuaTextEdit", "TextEdit" },
             { "LuaWindow", "Window" },
             { "LuaImage", "Image" },
+            { "LuaPaperDoll", "PaperDoll" },
             { "LuaFlex", "Flex" },
             { "LuaContainer", "Container" },
         };

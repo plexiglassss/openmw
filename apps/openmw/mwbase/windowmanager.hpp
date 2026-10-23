@@ -15,6 +15,11 @@
 
 #include <components/sdlutil/events.hpp>
 
+namespace LuaUi
+{
+    struct Element;
+}
+
 namespace ESM
 {
     class RefId;
@@ -156,6 +161,8 @@ namespace MWBase
 
         /// \todo investigate, if we really need to expose every single lousy UI element to the outside world
         virtual MWGui::InventoryWindow* getInventoryWindow() = 0;
+        virtual MWWorld::Ptr getWorldTooltipObject() const = 0;
+        virtual void setWorldTooltip(const MWWorld::Ptr&, const std::shared_ptr<LuaUi::Element>&) = 0;
         virtual MWGui::CountDialog* getCountDialog() = 0;
         virtual MWGui::ConfirmationDialog* getConfirmationDialog() = 0;
         virtual MWGui::TradeWindow* getTradeWindow() = 0;
@@ -250,17 +257,14 @@ namespace MWBase
         virtual void exitCurrentGuiMode() = 0;
 
         virtual void messageBox(std::string_view message,
-            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible)
-            = 0;
+            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) = 0;
         /// Puts message into a queue to show on the next update. Thread safe alternative for messageBox.
         virtual void scheduleMessageBox(std::string message,
-            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible)
-            = 0;
+            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) = 0;
         virtual void staticMessageBox(std::string_view message) = 0;
         virtual void removeStaticMessageBox() = 0;
         virtual void interactiveMessageBox(std::string_view message, const std::vector<std::string>& buttons = {},
-            bool block = false, int defaultFocus = -1)
-            = 0;
+            bool block = false, int defaultFocus = -1) = 0;
 
         /// returns the index of the pressed button or -1 if no button was pressed
         /// (->MessageBoxmanager->InteractiveMessageBox)

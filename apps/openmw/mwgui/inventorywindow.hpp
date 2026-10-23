@@ -53,6 +53,9 @@ namespace MWGui
         MWWorld::Ptr getAvatarSelectedItem(int x, int y);
 
         void rebuildAvatar();
+        MyGUI::ITexture* paperDollTexture() const;
+        MyGUI::FloatRect paperDollUV() const;
+        int paperDollSlot(int x, int y, int width, int height);
 
         SortFilterItemModel* getSortFilterModel();
         TradeItemModel* getTradeModel();

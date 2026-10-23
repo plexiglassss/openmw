@@ -132,6 +132,24 @@ namespace MWLua
                     [windowManager, obj = obj.as<LObject>()] { windowManager->setConsoleSelectedObject(obj.ptr()); });
             }
         };
+        if (!menu)
+        {
+            api["getWorldTooltipObject"] = [windowManager](sol::this_state state) -> sol::object {
+                const auto object = windowManager->getWorldTooltipObject();
+                if (object.isEmpty())
+                    return sol::nil;
+                return sol::make_object(state, LObject(object));
+            };
+            api["setWorldTooltip"] = [luaManager = context.mLuaManager, windowManager](sol::optional<LObject> object,
+                                         sol::optional<std::shared_ptr<LuaUi::Element>> element) {
+                luaManager->addAction(
+                    [windowManager, object, element] {
+                        windowManager->setWorldTooltip(
+                            object ? object->ptrOrEmpty() : MWWorld::Ptr(), element.value_or(nullptr));
+                    },
+                    "Set world tooltip");
+            };
+        }
         api["content"] = LuaUi::loadContentConstructor(context.mLua);
 
         api["create"]
@@ -151,7 +169,7 @@ namespace MWLua
 
                 MyGUI::ILayer* layerNode = nullptr;
                 for (LuaUi::WidgetExtension* ext = element->mRoot; ext != nullptr && layerNode == nullptr;
-                     ext = ext->getParent())
+                    ext = ext->getParent())
                     layerNode = ext->widget()->getLayer();
 
                 if (!layerNode)

@@ -938,6 +938,28 @@ namespace MWGui
         useItem(model.getItem(cycled).mBase);
     }
 
+    MyGUI::ITexture* InventoryWindow::paperDollTexture() const
+    {
+        return mPreviewTexture.get();
+    }
+
+    MyGUI::FloatRect InventoryWindow::paperDollUV() const
+    {
+        const auto size = getPreviewViewportSize();
+        return { 0.f, size.height / float(mPreview->getTextureHeight()),
+            size.width / float(mPreview->getTextureWidth()), 0.f };
+    }
+
+    int InventoryWindow::paperDollSlot(int x, int y, int width, int height)
+    {
+        if (mPtr.isEmpty() || width <= 0 || height <= 0)
+            return -1;
+        const auto size = getPreviewViewportSize();
+        return mPreview->getSlotSelected(
+            std::clamp(int(float(x) / width * (size.width - 1)), 0, std::max(0, size.width - 1)),
+            std::clamp(int((1.f - float(y) / height) * (size.height - 1)), 0, std::max(0, size.height - 1)));
+    }
+
     void InventoryWindow::rebuildAvatar()
     {
         mPreview->rebuild();

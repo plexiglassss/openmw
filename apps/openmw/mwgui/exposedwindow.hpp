@@ -14,10 +14,15 @@ namespace MWGui
         MYGUI_RTTI_DERIVED(Window)
 
     public:
+        Window();
+        ~Window() override;
         MyGUI::VectorWidgetPtr getSkinWidgetsByName(const std::string& name);
 
         MyGUI::Widget* getSkinWidget(const std::string& name);
         ///< Get a widget defined in the inner skin of this window.
+    private:
+        MyGUI::IntSize mLastSnapSize;
+        void snapMovedWindow(MyGUI::Window* window);
     };
 
 }

@@ -5,6 +5,13 @@
 #include "layout.hpp"
 
 #include "widgets.hpp"
+#include <memory>
+
+namespace LuaUi
+{
+    struct Element;
+    class LuaAdapter;
+}
 
 namespace ESM
 {
@@ -52,6 +59,9 @@ namespace MWGui
     {
     public:
         ToolTips();
+        ~ToolTips();
+        MWWorld::Ptr getFocusObject() const { return mFocusObject; }
+        void setLuaTooltip(const MWWorld::Ptr&, const std::shared_ptr<LuaUi::Element>&);
 
         void onFrame(float frameDuration);
         void update(float frameDuration);
@@ -105,6 +115,11 @@ namespace MWGui
 
     private:
         MyGUI::Widget* mDynamicToolTipBox;
+        MyGUI::Widget* mLuaTooltipBox = nullptr;
+        bool mLuaTooltipOwned = false;
+        LuaUi::LuaAdapter* mLuaTooltipAdapter = nullptr;
+        MWWorld::Ptr mLuaTooltipObject;
+        std::shared_ptr<LuaUi::Element> mLuaTooltipElement;
 
         MWWorld::Ptr mFocusObject;
 
