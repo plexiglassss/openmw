@@ -16,6 +16,14 @@ namespace Compiler
         std::vector<std::string> mLongs;
         std::vector<std::string> mFloats;
 
+        // Sorted declaration indices, populated only for larger variable collections.
+        // Store indices rather than views so copies and vector growth stay valid.
+        std::vector<int> mShortIndex;
+        std::vector<int> mLongIndex;
+        std::vector<int> mFloatIndex;
+
+        const std::vector<int>& getLookupIndex(char type) const;
+        std::vector<int>& getLookupIndex(char type);
         std::vector<std::string>& get(char type);
 
     public:
