@@ -1800,7 +1800,35 @@ function Inventory:create(windowType, ctx)
             type = paperDollType,
             props = { size = v2(180, 360) },
             events = {
+                paperDollHover = async:callback(function(e)
+                    local item = e.slot >= 0 and types.Actor.getEquipment(omwself, e.slot) or nil
+                    if ctx.dragAndDrop.draggingObject or ctx.modalElement then item = nil end
+                    if ctx.activeTooltip and ctx.activeTooltip.layout then
+                        auxUi.deepDestroy(ctx.activeTooltip)
+                        ctx.activeTooltip = nil
+                    end
+                    if not item then return end
+                    local ok, layout = pcall(specialTemplates.itemTooltip, item, true, ctx)
+                    if not ok or not layout then return end
+                    layout.props = layout.props or {}
+                    local screen = ui.layers[ui.layers.indexOf('Notification')].size
+                    local above = e.position.y > screen.y / 2
+                    layout.props.position = v2(e.position.x, e.position.y + (above and -32 or 32))
+                    layout.props.anchor = v2(e.position.x / screen.x, above and 1 or 0)
+                    ctx.activeTooltip = ui.create(layout)
+                    ctx.tooltipMouseMoveThisFrame = true
+                end),
+                focusLoss = async:callback(function()
+                    if ctx.activeTooltip and ctx.activeTooltip.layout then
+                        auxUi.deepDestroy(ctx.activeTooltip)
+                        ctx.activeTooltip = nil
+                    end
+                end),
                 paperDollClick = async:callback(function(e)
+                    if ctx.activeTooltip and ctx.activeTooltip.layout then
+                        auxUi.deepDestroy(ctx.activeTooltip)
+                        ctx.activeTooltip = nil
+                    end
                     local draggedItem = ctx.dragAndDrop.draggingObject
                     if draggedItem then
                         local activation = ctx.dragAndDrop.draggingActivationContext or {}

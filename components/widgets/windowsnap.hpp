@@ -39,5 +39,22 @@ namespace Gui
             { proposed.left, proposed.top, proposed.width, proposed.height }, targets, screen.width, screen.height, 12);
         return { result.left, result.top };
     }
+    inline MyGUI::IntCoord snapResizeWindow(MyGUI::Widget* moving, MyGUI::IntCoord proposed,
+        int edges, int minWidth, int minHeight)
+    {
+        if (!Settings::gui().mWindowSnapping) return proposed;
+        std::vector<SnapRect> targets;
+        for (auto* other : snapWindows)
+        {
+            if (other == moving || !other->getInheritedVisible()) continue;
+            const auto r = other->getAbsoluteCoord();
+            targets.push_back({r.left, r.top, r.width, r.height});
+        }
+        const auto screen = MyGUI::RenderManager::getInstance().getViewSize();
+        const auto r = snapResizeRect({proposed.left, proposed.top, proposed.width, proposed.height},
+            targets, screen.width, screen.height, 12, edges, minWidth, minHeight);
+        return {r.left, r.top, r.width, r.height};
+    }
+
 }
 #endif

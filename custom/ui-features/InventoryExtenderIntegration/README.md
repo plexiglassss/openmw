@@ -1,3 +1,18 @@
+# v1.2.4 — resize snapping and tooltip fixes
+
+Requires the new v1.2.4 engine commit for resize snapping and paper-doll hover. Copy this cumulative Data_Files integration over the previous version, retaining the original Inventory Extender installation. Do not stack multiple integration versions.
+
+- Inventory Extender and native windows snap their resized edges to nearby registered windows and screen edges, using the existing Window Snapping option. Opposite edges stay fixed; minimum sizes are respected.
+- Hovering equipment on the paper doll uses the native equipment hit test and Inventory Extender item-tooltip providers. Empty areas, dragging, leaving the portrait and clicking dismiss the tooltip.
+- World item tooltips remove IE's opaque outer box only. The engine supplies one frame and its normal ownership background, according to Show Owned settings. Internal progress-bar borders remain.
+- The full-height native divider and toolbar character toggle from v1.2.3 remain.
+
+Offline checks pass; Windows engine compilation and live rendering remain separate checks. Test each resize edge/corner with snapping enabled and disabled, hover equipped gear and empty portrait areas, unequip by clicking, then look at owned/unowned items and compare equipment. Confirm one outside border and the normal red ownership background.
+
+The screenshot shows Spanish text for light_com_candle_08_64 in both tooltip systems. No name translation was added by this integration. The exact winning plugin supplying that name has not been established; no item records are changed here.
+
+---
+
 # Inventory Extender custom integration v1.2.3 — offline test build
 
 Action required: replace the previous custom Inventory Extender integration

@@ -16,10 +16,21 @@ namespace MWGui
 
     void Window::snapMovedWindow(MyGUI::Window*)
     {
-        const auto size = getSize();
-        if (size == mLastSnapSize)
-            setPosition(Gui::snapWindow(this, getCoord()));
-        mLastSnapSize = size;
+        if (mSnapping) return;
+        mSnapping = true;
+        const auto r = getCoord();
+        const auto action = getActionScale();
+        if (action.width == 0 && action.height == 0)
+            setPosition(Gui::snapWindow(this, r));
+        else
+        {
+            int edges = 0;
+            if (action.width != 0) edges |= action.left != 0 ? 1 : 2;
+            if (action.height != 0) edges |= action.top != 0 ? 4 : 8;
+            const auto minimum = getMinSize();
+            setCoord(Gui::snapResizeWindow(this, r, edges, minimum.width, minimum.height));
+        }
+        mSnapping = false;
     }
 
     MyGUI::VectorWidgetPtr Window::getSkinWidgetsByName(const std::string& name)

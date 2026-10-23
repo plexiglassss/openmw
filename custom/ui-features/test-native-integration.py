@@ -86,3 +86,12 @@ with tempfile.TemporaryDirectory() as tmp:
  if os.name=='nt':cmd=['cl','/nologo','/std:c++20','/EHsc',str(p),'/Fe:'+str(out),'/Fo:'+str(Path(tmp)/'native-ui.obj')]
  else:cmd=['c++','-std=c++20','-Wall','-Wextra','-Werror',str(p),'-o',str(out)]
  subprocess.run(cmd,check=True);subprocess.run([str(out)],check=True)
+
+# The resize algorithm is shared by native windows and Inventory Extender.
+with tempfile.TemporaryDirectory() as tmp:
+ source=Path(__file__).with_name('test-resize-snap.cpp').resolve()
+ out=Path(tmp)/('resize.exe' if os.name=='nt' else 'resize')
+ if os.name=='nt': cmd=['cl','/nologo','/std:c++20','/EHsc','/I'+str(root.resolve()),str(source),'/Fe:'+str(out),'/Fo:'+str(Path(tmp)/'resize.obj')]
+ else: cmd=['c++','-std=c++20','-Wall','-Wextra','-Werror','-I'+str(root.resolve()),str(source),'-o',str(out)]
+ subprocess.run(cmd,check=True);subprocess.run([str(out)],check=True)
+ print('PASS: resize snapping edges, corners, fixed opposite edges, threshold, screen bounds and minimum sizes')

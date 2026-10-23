@@ -821,6 +821,14 @@ Templates.window = function(title, content, draggable, onDrag, pinned, ctx)
 
                     if userData.dragType == constants.DragType.Move and ui.snapWindow then
                         newPos = ui.snapWindow(window, newPos, newSize)
+                    elseif ui.snapWindowResize then
+                        local d, t = userData.dragType, constants.DragType
+                        local edges = 0
+                        if d == t.ResizeL or d == t.ResizeTL or d == t.ResizeBL then edges = edges + 1 end
+                        if d == t.ResizeR or d == t.ResizeTR or d == t.ResizeBR then edges = edges + 2 end
+                        if d == t.ResizeT or d == t.ResizeTL or d == t.ResizeTR then edges = edges + 4 end
+                        if d == t.ResizeB or d == t.ResizeBL or d == t.ResizeBR then edges = edges + 8 end
+                        if edges ~= 0 then newPos, newSize = ui.snapWindowResize(window, newPos, newSize, edges, v2(minWidth, minHeight)) end
                     end
 
                     layout.props.size = newSize

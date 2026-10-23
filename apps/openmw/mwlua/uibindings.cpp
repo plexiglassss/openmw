@@ -1,3 +1,4 @@
+#include <tuple>
 #include <components/widgets/windowsnap.hpp>
 #include "uibindings.hpp"
 
@@ -158,6 +159,13 @@ namespace MWLua
             const auto point = Gui::snapWindow(element->mRoot->widget(),
                 MyGUI::IntCoord(int(position.x()), int(position.y()), int(size.x()), int(size.y())));
             return osg::Vec2f(float(point.left), float(point.top));
+        };
+        api["snapWindowResize"] = [](const std::shared_ptr<LuaUi::Element>& element,
+            const osg::Vec2f& position, const osg::Vec2f& size, int edges, const osg::Vec2f& minimum) {
+            auto r = MyGUI::IntCoord(int(position.x()), int(position.y()), int(size.x()), int(size.y()));
+            if (element && element->mRoot)
+                r = Gui::snapResizeWindow(element->mRoot->widget(), r, edges, int(minimum.x()), int(minimum.y()));
+            return std::make_tuple(osg::Vec2f(float(r.left), float(r.top)), osg::Vec2f(float(r.width), float(r.height)));
         };
         api["content"] = LuaUi::loadContentConstructor(context.mLua);
 

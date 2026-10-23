@@ -1,3 +1,4 @@
+#include <osg/Vec2f>
 #include "luapaperdoll.hpp"
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -12,6 +13,7 @@ namespace MWGui
     {
         changeWidgetSkin("ImageBox");
         WidgetExtension::initialize();
+        eventMouseMove += MyGUI::newDelegate(this, &LuaPaperDoll::hovered);
         eventMouseButtonClick += MyGUI::newDelegate(this, &LuaPaperDoll::clicked);
         MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate(this, &LuaPaperDoll::frameStarted);
     }
@@ -41,6 +43,20 @@ namespace MWGui
             return;
         setRenderItemTexture(inventory->paperDollTexture());
         getSubWidgetMain()->_setUVSet(inventory->paperDollUV());
+    }
+
+    void LuaPaperDoll::hovered(MyGUI::Widget*, int left, int top)
+    {
+        auto* inventory = MWBase::Environment::get().getWindowManager()->getInventoryWindow();
+        if (!inventory) return;
+        const auto pos = MyGUI::IntPoint(left, top) - getAbsolutePosition();
+        const int slot = inventory->paperDollSlot(pos.left, pos.top, getWidth(), getHeight());
+        protectedCall([this, slot, left, top](LuaUtil::LuaView& view) {
+            auto event = view.newTable();
+            event["slot"] = slot;
+            event["position"] = osg::Vec2f(float(left), float(top));
+            triggerEvent("paperDollHover", event);
+        });
     }
 
     void LuaPaperDoll::clicked(MyGUI::Widget*)

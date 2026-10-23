@@ -1,3 +1,5 @@
+local solid = {}
+package.preload['scripts.InventoryExtender.ui.templates.base']=function()return {boxSolid=solid}end
 local calls, builds, destroys, time = {}, 0, 0, 0
 local focused, fail
 local suppressed
@@ -44,7 +46,7 @@ package.preload['scripts.InventoryExtender.ui.templates.magic'] = function()
         builds=builds+1
         assert(icon and ctx==expectedContext)
         if fail then error('provider failure') end
-        return {props={},item=obj}
+        return {template=solid,props={},item=obj}
     end}
 end
 package.path = 'custom/ui-features/InventoryExtenderIntegration/Data_Files/?.lua;'..package.path
@@ -52,6 +54,7 @@ local m=require('scripts.InventoryExtender.worldTooltip')
 local a={item=true,isValid=function()return true end}
 local b={item=true,isValid=function()return true end}
 focused=a;m.update(expectedContext,true);assert(builds==1 and calls[#calls][1]==a)
+assert(calls[#calls][2].layout.content[1].template==nil, 'opaque inner frame retained')
 assert(suppressed==a and calls[#calls][2].layout.content[2].statsFor==a)
 for i=1,120 do m.update(expectedContext,true) end
 assert(builds==1,'rebuilt unchanged tooltip every frame')

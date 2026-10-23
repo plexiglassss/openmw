@@ -16,6 +16,7 @@ namespace MWGui
         void updateProperties() override;
 
     private:
+        void hovered(MyGUI::Widget*, int, int);
         void clicked(MyGUI::Widget*);
         void frameStarted(float);
     };

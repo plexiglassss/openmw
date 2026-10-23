@@ -8,6 +8,20 @@ local omwself = require('openmw.self')
 local helpers = require('scripts.InventoryExtender.util.helpers')
 local constants = require('scripts.InventoryExtender.util.constants')
 local templates = require('scripts.InventoryExtender.ui.templates.magic')
+local baseTemplates = require('scripts.InventoryExtender.ui.templates.base')
+local function useNativeFrame(layout)
+    -- Remove only IE's outer solid tooltip boxes; preserve progress bars and provider content.
+    if type(layout) ~= 'table' then return end
+    if layout.template == baseTemplates.boxSolid then
+        layout.template = nil
+        layout.type = ui.TYPE.Flex
+        layout.props = layout.props or {}
+        layout.props.autoSize = true
+    end
+    if layout.content then
+        for i = 1, #layout.content do useNativeFrame(layout.content[i]) end
+    end
+end
 local current, element, nextRefresh = nil, nil, 0
 local comparing = false
 local M = {}
@@ -66,6 +80,7 @@ function M.update(ctx, enabled)
             layout = {type=ui.TYPE.Flex, content=ui.content({layout, extra})}
         end
     end
+    useNativeFrame(layout)
     layout.layer = '' -- engine attaches this element inside its normal tooltip
     layout.props = layout.props or {}
     element = ui.create(layout)
