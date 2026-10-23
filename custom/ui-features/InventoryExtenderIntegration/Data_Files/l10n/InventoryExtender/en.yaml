@@ -288,3 +288,6 @@ UI_ClearRecent: Clear NEW
 
 FullHeightPaperDoll: "Full-height character column"
 FullHeightPaperDollDesc: "Place the character in a full-height left column, with filters and the information bar to its right. Disable to place the character below the filters."
+
+UI_HidePaperDoll: "Hide character"
+UI_ShowPaperDoll: "Show character"

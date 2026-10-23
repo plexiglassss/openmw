@@ -38,6 +38,8 @@ configPlayer.window.b_FullHeightPaperDoll=false;self:updateSize()
 assert(self.categoryFilter.layout.props.position.x==0 and self.infoBar.layout.props.position.x==0)
 assert(self.paperDoll.props.position.y==80 and self.paperDollDivider.props.position.y==80)
 self.paperDollVisible=false;self:updateSize();assert(self.paperDoll.props.visible==false)
+assert(self.paperDollDivider.props.visible==false and self.itemTable.layout.props.position.x==0)
+assert(self.itemTable.layout.props.size.x==inner.x)
 for _,size in ipairs({v2(200,60),v2(400,250),v2(1400,1000)})do
  inner=size;self.paperDollVisible=true
  for _,full in ipairs({true,false})do

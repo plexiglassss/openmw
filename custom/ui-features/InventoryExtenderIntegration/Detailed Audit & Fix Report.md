@@ -1,3 +1,11 @@
+# Toolbar toggle follow-up v1.2.2
+
+Added the paper-doll visibility action as a character icon after Search and before
+the wrench. Only the player's Inventory gets this button. Hiding collapses the
+portrait column to zero and hides its separator; showing restores the layout.
+Compact filters account for the extra button width. The top-left text button is
+still removed. Replace only the integration when already on the v1.2 engine.
+
 # Layout follow-up v1.2.1
 
 Replace the integration package only if already using the v1.2 engine. Removed

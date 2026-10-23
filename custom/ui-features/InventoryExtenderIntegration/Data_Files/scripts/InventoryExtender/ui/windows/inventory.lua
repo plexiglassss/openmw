@@ -1718,6 +1718,12 @@ function Inventory:create(windowType, ctx)
 
             return disabledLookup
         end,
+        onTogglePaperDoll = self.type == 'Inventory' and paperDollType and function()
+            self.paperDollVisible = not self.paperDollVisible
+            self:updateSize()
+            self.element:update()
+        end or nil,
+        isPaperDollVisible = function() return self.paperDollVisible end,
         onOpenSettings = openColumnSettings,
         onToggleView = toggleItemViewMode,
         getViewMode = getItemViewMode,
@@ -1836,7 +1842,7 @@ function Inventory:create(windowType, ctx)
         local fullHeight = self.paperDoll and configPlayer.window.b_FullHeightPaperDoll ~= false
         local portraitWidth = 0
         if self.paperDoll then
-            portraitWidth = self.paperDollVisible and math.max(1, math.min(innerSize.x * 0.35, innerSize.y * 0.5 + 8)) or 84
+            portraitWidth = self.paperDollVisible and math.max(1, math.min(innerSize.x * 0.35, innerSize.y * 0.5 + 8)) or 0
         end
         local menuX = fullHeight and portraitWidth or 0
         local menuWidth = math.max(1, innerSize.x - menuX)

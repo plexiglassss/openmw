@@ -1,4 +1,4 @@
-# Inventory Extender custom integration v1.2.1 — offline test build
+# Inventory Extender custom integration v1.2.2 — offline test build
 
 Action required: replace the previous custom Inventory Extender integration
 package. This layout update uses the same engine as v1.2; no newer engine is needed. Keep the original Inventory
@@ -20,12 +20,17 @@ navmesh regeneration is required.
    settings. For equipment comparisons, choose Inventory Extender > Window options
    > Compare equipped item > Hold ALT or Always. Existing Never preferences remain.
 
-## Changes in v1.2.1
+## Changes in v1.2.2
 
-The Character button is removed. Its reserved top strip is gone, and the portrait
-starts at the top of its column. A thin gold vertical separator runs beside the
-portrait and resizes with it. Full-height mode and the alternative below-filter
-layout remain available. This is a cumulative replacement for v1.2.
+A character silhouette button sits immediately after the search field and before
+the wrench. Click it to hide/show the paper doll. Its tooltip changes between
+Hide character and Show character. Hiding also removes the separator and gives
+the inventory the freed width. The button remains accessible while hidden.
+
+The former Character text/button and reserved portrait header strip remain gone.
+The portrait starts at the top, with a thin gold vertical separator. Both layout
+modes are retained. This is a cumulative replacement for v1.2/v1.2.1; it needs no
+engine update beyond the v1.2 engine.
 
 ## Changes retained from v1.2
 
