@@ -15,6 +15,20 @@ Preserve your custom lua51.dll and the separately updated FG version.dll/INI
 when copying a new engine distribution (the engine archive supplies its own
 standard lua51.dll). Back up the previous engine for rollback.
 
+## World-tooltip option
+Settings > Interface > Enhanced world tooltips (mods) independently enables or
+disables the world-item tooltip integration. Enabled by default; saved in
+settings.cfg as [GUI] enhanced world tooltips. Off restores native world tooltips
+and stops the IE bridge from building replacements. Re-enable without restarting.
+It does not change inventory tooltips or disable the integrated paper doll.
+Without a supplying mod, native tooltips remain in use even when this is enabled.
+Object Insight's own separate display resumes its original behaviour when the
+bridge is disabled; control that display through Object Insight's own settings.
+
+Test while looking at an item: toggle off/on, check ordinary world tooltips return,
+check inventory details and paper doll remain available, then restart to confirm
+persistence. This new option has not yet been validated in a live game.
+
 ## What changes
 - Looking at a carriable item in gameplay uses IE's item-tooltip layout and its
   registered modifiers in OpenMW's normal world-tooltip position. Original

@@ -396,7 +396,7 @@ namespace MWGui
         MyGUI::IntSize tooltipSize;
 
         const MWWorld::Class& object = mFocusObject.getClass();
-        if (object.hasToolTip(mFocusObject) && !mFullHelp && !MWBase::Environment::get().getWindowManager()->isGuiMode()
+        if (Settings::gui().mEnhancedWorldTooltips && object.hasToolTip(mFocusObject) && !mFullHelp && !MWBase::Environment::get().getWindowManager()->isGuiMode()
             && mLuaTooltipElement && mLuaTooltipObject == mFocusObject && mLuaTooltipElement->mRoot
             && mLuaTooltipElement->mState != LuaUi::Element::Destroy
             && mLuaTooltipElement->mState != LuaUi::Element::Destroyed)

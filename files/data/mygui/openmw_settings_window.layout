@@ -1012,6 +1012,16 @@
             </Widget>
             <Widget type="TabItem">
                 <Property key="Caption" value=" Interface "/>
+                <Widget type="HBox" position="4 48 370 28">
+                    <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
+                        <UserString key="SettingCategory" value="GUI"/>
+                        <UserString key="SettingName" value="enhanced world tooltips"/>
+                        <UserString key="SettingType" value="CheckButton"/>
+                    </Widget>
+                    <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 320 16" align="Left Top">
+                        <Property key="Caption" value="Enhanced world tooltips (mods)"/>
+                    </Widget>
+                </Widget>
                 <Widget type="HBox" position="4 12 340 28">
                     <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
                         <UserString key="SettingCategory" value="GUI"/>

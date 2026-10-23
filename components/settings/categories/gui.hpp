@@ -22,6 +22,7 @@ namespace Settings
         SettingValue<int> mFontSize{ mIndex, "GUI", "font size", makeClampSanitizerInt(12, 18) };
         SettingValue<float> mMenuTransparency{ mIndex, "GUI", "menu transparency", makeClampSanitizerFloat(0, 1) };
         SettingValue<float> mTooltipDelay{ mIndex, "GUI", "tooltip delay", makeMaxSanitizerFloat(0) };
+        SettingValue<bool> mEnhancedWorldTooltips{ mIndex, "GUI", "enhanced world tooltips" };
         SettingValue<bool> mWindowSnapping{ mIndex, "GUI", "window snapping" };
         SettingValue<bool> mStretchMenuBackground{ mIndex, "GUI", "stretch menu background" };
         SettingValue<bool> mControllerMenus{ mIndex, "GUI", "controller menus" };

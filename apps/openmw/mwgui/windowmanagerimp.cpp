@@ -1177,7 +1177,8 @@ namespace MWGui
 
     MWWorld::Ptr WindowManager::getWorldTooltipObject() const
     {
-        return mToolTips && !isGuiMode() ? mToolTips->getFocusObject() : MWWorld::Ptr();
+        return Settings::gui().mEnhancedWorldTooltips && mToolTips && !isGuiMode()
+            ? mToolTips->getFocusObject() : MWWorld::Ptr();
     }
 
     void WindowManager::setWorldTooltip(const MWWorld::Ptr& object, const std::shared_ptr<LuaUi::Element>& element)
