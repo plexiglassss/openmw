@@ -971,7 +971,7 @@ namespace fg
 
     void ShutdownIfActive()
     {
-        if (!S.active.load())
+        if (!S.active.load() && !S.presenterThread.joinable())
             return;
         Log("fg: game context/window teardown, shutting down frame generation");
         teardownOnGameThread();

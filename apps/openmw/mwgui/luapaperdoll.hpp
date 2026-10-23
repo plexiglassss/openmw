@@ -17,7 +17,7 @@ namespace MWGui
 
     private:
         void hovered(MyGUI::Widget*, int, int);
-        void clicked(MyGUI::Widget*);
+        void clicked(MyGUI::Widget*, int, int, MyGUI::MouseButton);
         void frameStarted(float);
     };
 }

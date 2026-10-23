@@ -120,6 +120,8 @@ namespace MWGui
 
         void operator()(osg::RenderInfo& renderInfo) const override
         {
+            if (!mOneshot)
+                return;
             const osg::Viewport* viewPort = renderInfo.getCurrentCamera()->getViewport();
             int w = static_cast<int>(viewPort->width());
             int h = static_cast<int>(viewPort->height());

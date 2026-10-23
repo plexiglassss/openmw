@@ -265,6 +265,9 @@ namespace plat::win
         g_swapHdc = hdc;
     }
 
+    HGLRC gameContext() { return g_gameCtx; }
+    HDC gameDC() { return g_gameHdc; }
+
     HWND gameHwnd()
     {
         return g_hwnd;

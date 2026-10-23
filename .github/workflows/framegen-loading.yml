@@ -1,8 +1,9 @@
-name: Frame generation loading continuity
+name: Frame generation loading and shutdown
 on:
   workflow_dispatch:
   push:
-    branches: [framegen-loading-continuity-24b9e917]
+    branches: [framegen-loading-continuity-24b9e917, diagnostic-timing-2829ae6d]
+    paths: ['custom/frame-generation/**', '.github/workflows/framegen-loading.yml']
 permissions:
   contents: read
 jobs:
@@ -41,11 +42,12 @@ jobs:
           Copy-Item custom/frame-generation/PATCH_NOTES.txt fg-package/
           Copy-Item custom/frame-generation/LICENSE fg-package/
           Copy-Item custom/frame-generation/LOADING-CONTINUITY-AUDIT.md fg-package/
+          Copy-Item custom/frame-generation/SHUTDOWN-REPAIR.md fg-package/
           Copy-Item custom/frame-generation/* fg-package/source/ -Recurse
           "Commit ${{ github.sha }}`nRun ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`n" | Set-Content fg-package/BUILD-ID.txt
           Get-FileHash fg-package/version.dll -Algorithm SHA256 | Format-List | Out-File fg-package/SHA256.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: OpenMW-Frame-Generation-Loading-Continuity-${{ github.sha }}
+          name: OpenMW-Frame-Generation-Loading-Shutdown-${{ github.sha }}
           path: fg-package/
           if-no-files-found: error

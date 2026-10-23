@@ -22,7 +22,7 @@ local function useNativeFrame(layout)
         for i = 1, #layout.content do useNativeFrame(layout.content[i]) end
     end
 end
-local current, element, nextRefresh = nil, nil, 0
+local current, currentItem, element, nextRefresh = nil, nil, nil, 0
 local comparing = false
 local M = {}
 local function wantsComparison()
@@ -43,11 +43,13 @@ function M.reset()
     if interfaces.ObjectInsightTooltip then interfaces.ObjectInsightTooltip.setNativeTooltipObject(nil) end
     if ui.setWorldTooltip then ui.setWorldTooltip(nil, nil) end
     if element and element.layout then element:destroy() end
-    current, element, nextRefresh = nil, nil, 0
+    current, currentItem, element, nextRefresh = nil, nil, nil, 0
 end
 function M.update(ctx, enabled)
     if not ui.getWorldTooltipObject then return end
-    local object = enabled and ui.getWorldTooltipObject() or nil
+    local target = enabled and ui.getWorldTooltipObject() or nil
+    local object = target
+    if target and ui.getWorldTooltipItem then object = ui.getWorldTooltipItem() end
     if not object or not object:isValid() or not types.Item.objectIsInstance(object) then
         if current or element then M.reset() end
         return
@@ -55,11 +57,11 @@ function M.update(ctx, enabled)
     local now = core.getRealTime()
     local modeOK, compare = pcall(wantsComparison)
     compare = modeOK and compare or false
-    if object == current and compare == comparing and now < nextRefresh then return end
+    if target == current and object == currentItem and compare == comparing and now < nextRefresh then return end
     -- Short refresh covers changing enchant/condition values and modifier state;
     -- targeting and ALT changes refresh immediately, without an extra rendering ray.
     M.reset()
-    current, nextRefresh = object, now + 0.25
+    current, currentItem, nextRefresh = target, object, now + 0.25
     comparing = compare
     local ok, layout
     if compare then
@@ -84,7 +86,7 @@ function M.update(ctx, enabled)
     layout.layer = '' -- engine attaches this element inside its normal tooltip
     layout.props = layout.props or {}
     element = ui.create(layout)
-    ui.setWorldTooltip(object, element)
-    if insight then insight.setNativeTooltipObject(object) end
+    ui.setWorldTooltip(target, element)
+    if insight then insight.setNativeTooltipObject(target) end
 end
 return M

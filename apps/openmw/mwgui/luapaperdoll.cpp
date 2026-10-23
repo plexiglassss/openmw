@@ -14,7 +14,7 @@ namespace MWGui
         changeWidgetSkin("ImageBox");
         WidgetExtension::initialize();
         eventMouseMove += MyGUI::newDelegate(this, &LuaPaperDoll::hovered);
-        eventMouseButtonClick += MyGUI::newDelegate(this, &LuaPaperDoll::clicked);
+        eventMouseButtonPressed += MyGUI::newDelegate(this, &LuaPaperDoll::clicked);
         MyGUI::Gui::getInstance().eventFrameStart += MyGUI::newDelegate(this, &LuaPaperDoll::frameStarted);
     }
 
@@ -59,9 +59,10 @@ namespace MWGui
         });
     }
 
-    void LuaPaperDoll::clicked(MyGUI::Widget*)
+    void LuaPaperDoll::clicked(MyGUI::Widget*, int left, int top, MyGUI::MouseButton button)
     {
-        const auto pos = MyGUI::InputManager::getInstance().getMousePosition() - getAbsolutePosition();
+        if (button != MyGUI::MouseButton::Left) return;
+        const auto pos = MyGUI::IntPoint(left, top) - getAbsolutePosition();
         auto* inventory = MWBase::Environment::get().getWindowManager()->getInventoryWindow();
         if (!inventory)
             return;

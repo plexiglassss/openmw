@@ -1,3 +1,10 @@
+#include "../mwbase/world.hpp"
+#include "../mwrender/animation.hpp"
+#include "../mwworld/class.hpp"
+#include "../mwworld/containerstore.hpp"
+#include "../mwworld/worldmodel.hpp"
+#include <components/esm3/loadcont.hpp>
+#include <components/esm3/loadingr.hpp>
 #include <tuple>
 #include <components/widgets/windowsnap.hpp>
 #include "uibindings.hpp"
@@ -141,6 +148,29 @@ namespace MWLua
                 if (object.isEmpty())
                     return sol::nil;
                 return sol::make_object(state, LObject(object));
+            };
+            api["getWorldTooltipItem"] = [windowManager](sol::this_state state) -> sol::object {
+                const auto target = windowManager->getWorldTooltipObject();
+                if (target.isEmpty()) return sol::nil;
+                // Resolve only genuine graphic-herbalism plants, never arbitrary containers.
+                if (target.getType() != ESM::REC_CONT || !Settings::game().mGraphicHerbalism)
+                    return sol::make_object(state, LObject(target));
+                auto* world = MWBase::Environment::get().getWorld();
+                const auto* animation = world->getAnimation(target);
+                if (!animation || !animation->canBeHarvested())
+                    return sol::make_object(state, LObject(target));
+                auto& store = target.getClass().getContainerStore(target);
+                MWWorld::Ptr ingredient;
+                for (auto it = store.begin(); it != store.end(); ++it)
+                {
+                    if (it->getCellRef().getCount() <= 0) continue;
+                    if (it->getType() != ESM::REC_INGR || !ingredient.isEmpty())
+                        return sol::make_object(state, LObject(target));
+                    ingredient = *it;
+                }
+                if (ingredient.isEmpty()) return sol::make_object(state, LObject(target));
+                MWBase::Environment::get().getWorldModel()->registerPtr(ingredient);
+                return sol::make_object(state, LObject(ingredient));
             };
             api["setWorldTooltip"] = [luaManager = context.mLuaManager, windowManager](sol::optional<LObject> object,
                                          sol::optional<std::shared_ptr<LuaUi::Element>> element) {

@@ -24,6 +24,7 @@ jobs:
           python3 custom/performance-tests/test-preload.py
           g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. custom/performance-tests/compiler-locals.cpp components/compiler/locals.cpp -o compiler-locals-test
           ./compiler-locals-test
+          python3 custom/ui-features/test-lifecycle-repairs.py
           python3 custom/ui-features/test-lua.py
           python3 custom/ui-features/test-paper-doll.py
           python3 custom/ui-features/test-integration-layout.py

@@ -1,3 +1,4 @@
+#include "platform.hpp"
 #include "hooks.hpp"
 
 #include "fg/framegen.hpp"
@@ -22,6 +23,26 @@ BOOL(WINAPI* real_ClipCursor)(const RECT*) = nullptr;
 
 namespace
 {
+    BOOL (WINAPI* real_wglDeleteContext)(HGLRC) = nullptr;
+    BOOL WINAPI hookWglDeleteContext(HGLRC context)
+    {
+        if (context && context == plat::win::gameContext())
+        {
+            const HGLRC previous = wglGetCurrentContext();
+            const HDC previousDC = wglGetCurrentDC();
+            if (previous == context || wglMakeCurrent(plat::win::gameDC(), context))
+            {
+                fg::ShutdownIfActive();
+                // Do not leave the context being deleted current on this thread.
+                wglMakeCurrent(previous == context ? nullptr : previousDC,
+                    previous == context ? nullptr : previous);
+            }
+            else
+                Log("fg: could not acquire game context for shutdown (err %lu)", GetLastError());
+        }
+        return real_wglDeleteContext(context);
+    }
+
     // Reentry guard: gdi32!SwapBuffers and opengl32!wglSwapBuffers can call
     // into each other inside the driver stack; only the outermost hook runs FG.
     thread_local int t_inSwap = 0;
@@ -150,6 +171,7 @@ bool Hooks_Install()
     bool ok = true;
     ok &= createHook(L"gdi32.dll", "SwapBuffers", (void*)hookSwapBuffers, &real_SwapBuffers);
     ok &= createHook(L"opengl32.dll", "wglSwapBuffers", (void*)hookWglSwapBuffers, &real_wglSwapBuffers);
+    ok &= createHook(L"opengl32.dll", "wglDeleteContext", (void*)hookWglDeleteContext, &real_wglDeleteContext);
     ok &= createHook(L"opengl32.dll", "wglGetProcAddress", (void*)hookWglGetProcAddress, &real_wglGetProcAddress);
     ok &= createHook(L"opengl32.dll", "glGetIntegerv", (void*)hookGlGetIntegerv, &real_glGetIntegerv);
     ok &= createHook(L"opengl32.dll", "glDrawBuffer", (void*)hookGlDrawBuffer, &real_glDrawBuffer);

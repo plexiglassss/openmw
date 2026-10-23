@@ -59,6 +59,8 @@ namespace plat::win
 {
     // Records the HDC the current SwapBuffers call targets (before OnSwapShared).
     void setSwapTarget(HDC hdc);
+    HGLRC gameContext();
+    HDC gameDC();
     HWND gameHwnd(); // for the overlay's message hook / ImGui backend
 }
 #endif

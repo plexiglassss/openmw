@@ -332,6 +332,7 @@ function Inventory:create(windowType, ctx)
 
         if pickupToCursor then
             if helpers.isBoundItem(row.item) or row.item.parentContainer ~= omwself then
+                print('[InventoryExtender Bridge 1.2.6] Cursor pickup rejected: bound=' .. tostring(helpers.isBoundItem(row.item)) .. ' playerOwned=' .. tostring(row.item.parentContainer == omwself))
                 return false
             end
             -- Use IE's normal asynchronous cursor pickup. It retains protection,
@@ -1811,6 +1812,9 @@ function Inventory:create(windowType, ctx)
             type = paperDollType,
             props = { size = v2(180, 360) },
             events = {
+                mousePress = async:callback(function() return false end),
+                mouseRelease = async:callback(function() return false end),
+                mouseClick = async:callback(function() return false end),
                 paperDollHover = async:callback(function(e)
                     local item = e.slot >= 0 and types.Actor.getEquipment(omwself, e.slot) or nil
                     if ctx.dragAndDrop.draggingObject or ctx.modalElement then item = nil end
@@ -1836,6 +1840,7 @@ function Inventory:create(windowType, ctx)
                     end
                 end),
                 paperDollClick = async:callback(function(e)
+                    print('[InventoryExtender Bridge 1.2.6] Paper-doll press: slot=' .. tostring(e.slot) .. ' mode=' .. tostring(I.UI.getMode()))
                     if ctx.activeTooltip and ctx.activeTooltip.layout then
                         auxUi.deepDestroy(ctx.activeTooltip)
                         ctx.activeTooltip = nil

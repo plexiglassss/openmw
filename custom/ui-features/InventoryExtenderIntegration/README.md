@@ -1,32 +1,26 @@
-# Inventory Extender — OpenMW Bridge v1.2.5
+# OpenMW Bridge v1.2.6 — UI and lifecycle repair test build
 
-ACTION: Keep this bridge in its own data folder AFTER the restored Inventory Extender base. Restart OpenMW completely. Use engine d204c155208371a3955e8e01e9929ad445c38410 or a later cumulative build. No new engine compilation is required for v1.2.5.
+ACTION: Replace the separate OpenMW Bridge folder with this version, install the matching new engine, and install the new Frame Generation version.dll from its separate build. Fully close OpenMW first. Keep your Restored Base folder and provider mods; keep InventoryExtender.omwscripts enabled once. The bridge Data_Files directory must remain after the base. Do not copy it into the base.
 
-## Separate installation
+## Changes
 
-The restoration ZIP contains two independent mod folders:
+- Paper-doll action now uses left-button press coordinates, rather than a later release/current-pointer lookup. Portrait pointer events are consumed locally so they cannot initiate a parent window drag. Cursor pickup/equip logic remains. This is a candidate fix: the supplied log has no click trace establishing which stage failed. A short Bridge 1.2.6 press line now reports the equipment slot and UI mode on each click; rejected bound/ownership checks are reported too.
+- Item tooltip headers stretch to the detail width, center the icon/name and use the existing MWUI horizontal separator between icon and name. Provider-added content is retained.
+- The world tooltip can display the ingredient inside a native graphic-herbalism plant with one ingredient stack, while retaining the plant as the target for ownership/activation. Empty plants, ordinary containers and mixed/multiple contents retain native tooltips. Script-only activators without native harvest support are not guessed from their name.
+- Icon-pack enumeration now deduplicates names case-insensitively and uses a strict comparator. It excludes the bridge's custom image directory from selectable themes. This fixes the settings-script startup error recorded in the supplied log.
+- The matching engine captures a loading background once per loading episode. The prior callback set its one-shot flag but did not check it, allowing repeated capture of historical framebuffer images with frame generation.
+- The matching Windows FG DLL hooks destruction of its own game GL context and stops/joins its presenter before destruction, outside DllMain. It temporarily acquires/restores the appropriate context when needed. The previous Windows hooks never called the available shutdown routine. An acquisition failure is logged rather than deleting GPU resources under the wrong context.
 
-1. Inventory Extender - Restored Base/Data_Files
-2. Inventory Extender - OpenMW Bridge/Data_Files
+## Evidence and limits
 
-Add both Data_Files folders to OpenMW's data directory list, in that order. The bridge must have higher file priority. Do not copy bridge scripts into the base directory. Disable the old contaminated base data entry and earlier bridge/integration data entries; keep their files as a backup outside the active data list. The restored base already includes the October Focus Fix, so its old separate data entry is unnecessary.
+The supplied openmw(20261023-214700).zip contains engine revision d204c15520. Inventory Extender's menu settings failed at iconPack.lua:41 with invalid order function for sorting. The log reaches Quitting peacefully, roughly 18 seconds after settings/storage saving starts; the user reports the process survives the closed window. The log contains no Frame Generation DLL identifier, so the exact installed DLL version is not established.
 
-Keep InventoryExtender.omwscripts enabled once. There is no additional bridge .omwscripts or ESP to enable. Keep your other tooltip-provider mods and their scripts enabled as before; this package does not reinstall Arms and Armor Compare, Heft, requirements mods or Object Insight Tooltip. Existing provider ordering remains unchanged.
+Offline checks cover Lua syntax and inventory/provider/protection regressions, plant-target separation, icon-pack enumeration, one-shot loading capture and WGL shutdown ownership/context restoration. Windows builds compile the complete engine and DLL separately. No live OpenMW/NVIDIA test was performed. Do not treat a source-level candidate as an in-game pass.
 
-## Cursor behaviour
+## Focused test
 
-Click equipped gear on the paper doll with an empty cursor: the ordinary IE pickup action unequips it and attaches the item icon to the cursor. Click the paper doll again to equip that held item. It uses the same asynchronous move and returned-object handling as inventory pickup, including protection tracking. An equipped stack is picked up as a stack. Bound items and provider-rejected actions remain blocked; pending purchases/sales cannot be changed by the paper doll.
-
-All earlier bridge features remain: paper-doll toggle and full-height divider, resize/drag snapping, enhanced world tooltips and ownership frame, equipment comparisons, recent-item icons and item protection.
-
-## Base provenance
-
-The newest full uploaded Inventory Extender found was Inventory Extender (OpenMW)(3).zip (10 September 2026). Its 74 files exactly match the Inventory Extender folder in Inventory_Extender_v46_Stale_Tooltip_Fix_Aligned.zip. The upstream CHANGELOG still says 1.1.0; v46 is our custom revision, not an upstream version.
-
-The restored base contains those 74 files, with only ui/templates/itemTable.lua replaced by the verified Inventory_Extender_Focus_Fix_v1.0.zip correction from 14 October. The Focus Fix's archived original matches the uploaded file exactly. Bridge modifications are stored only in the separate bridge folder.
-
-## Validation and in-game check
-
-Offline: actual cursor/equipment handler checks pass for Interface, Container, Companion and Barter modes; provider veto and bound restrictions pass; existing trade, tooltip, protection, Lua syntax and layout regressions pass. ZIP entries are byte-compared and CRC checked. Live OpenMW testing remains pending.
-
-In game: click equipped armour or a weapon, confirm the portrait updates and the icon stays on the cursor, then click the doll again and confirm it equips and the cursor clears. Also return it to the inventory grid, try a bound item, and repeat while a container or barter window is open. Confirm pending trade reservations and protection remain respected.
+1. Open Inventory Extender settings: no icon-pack sorting error should appear.
+2. Click equipped gear on the doll, then click the doll again. Expect cursor pickup then equip. If it still does nothing, send the new log; the Bridge 1.2.6 press trace identifies the next stage without guessing.
+3. Inspect several short/long item tooltips and an owned item: centered header, standard separator, one outer frame and ownership background.
+4. Inspect unharvested hypha facia on a tree, then harvest it. Confirm ingredient details before harvest and no stale ingredient details afterward.
+5. Walk the same cell boundaries with frame generation, then quit. Confirm no back-and-forth loading background and that openmw.exe disappears. If it survives, include openmw_fg.log alongside openmw.log; only the latter was supplied this time.

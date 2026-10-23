@@ -96,3 +96,14 @@ focused={item=false,isValid=function()return true end};update();assert(suppresse
 focused=a;update();m.update(expectedContext,false);assert(suppressed==nil)
 focused={item=true,isValid=function()return false end};update();assert(suppressed==nil)
 print('PASS: world comparison modes, immediate ALT changes, slot selection, two rings, unsupported/empty/equipped cases, provider fallback, no per-frame equipment scan')
+
+-- A harvestable plant retains the container as the native tooltip/ownership target.
+local plant={item=false,isValid=function()return true end}
+ui.getWorldTooltipItem=function()return a end
+focused=plant;mode='Never';m.reset();m.update(expectedContext,true)
+assert(calls[#calls][1]==plant and calls[#calls][2].layout.content[1].item==a)
+assert(suppressed==plant)
+ui.getWorldTooltipItem=function()return plant end
+m.update(expectedContext,true);assert(calls[#calls][1]==nil)
+ui.getWorldTooltipItem=nil
+print('PASS: harvested ingredient details retain native plant target and ownership; ordinary containers fall back')
