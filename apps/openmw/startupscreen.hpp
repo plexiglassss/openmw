@@ -5,7 +5,12 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#pragma push_macro("NOGDI")
+#undef NOGDI
 #include <windows.h>
+// windows.h may already have been included with NOGDI by another header.
+#include <wingdi.h>
+#pragma pop_macro("NOGDI")
 #undef near
 #undef far
 #include <atomic>

@@ -85,3 +85,26 @@ as a new persistent mod setting. Very long mod descriptions retain IE's layout.
 For rollback, remove this data-directory entry (or restore backed-up scripts),
 then restore the previous engine. Keep the separate FG fix and your custom
 lua51.dll. No save conversion is required.
+
+## Paper-doll barter correction (2026-10-23)
+Paper-doll clicks and drops now request equipment actions explicitly, bypassing
+Inventory Extender's ordinary barter-row routing. Click visible equipment to
+unequip it into your inventory; drop an available player item onto the doll to
+use/equip it. No need to target a particular body slot when dropping.
+During barter, merchant-owned items, uncommitted purchases, and stacks with any
+pending sale are rejected without ending the drag or changing the transaction.
+Complete or cancel the trade first. Bound equipment cannot be removed through
+this interaction, and existing equipment-provider veto hooks remain active.
+Ordinary inventory-row trading is unchanged. Container/companion behavior still
+uses the existing IE item-use route, including its source/pickpocket context.
+
+Offline regression tests execute the shipped equipment handler in all four UI
+modes with mocked services; they cover equip/unequip, provider veto, bound items,
+merchant ownership, pending transactions, cancelled sales and ordinary barter
+routing. The old handler fails this regression. This is not live-game validation.
+
+In game: open barter with an equippable item you own; equip via the doll, then
+click it to unequip. Confirm merchant gold and the offer list do not change.
+Queue an item for sale and try the doll; cancel the sale and retry. Try an
+unpaid purchase on the doll and confirm it cannot be used before completing the
+trade. Check regular buy/sell, bound equipment, containers and companions too.

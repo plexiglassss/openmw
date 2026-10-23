@@ -297,8 +297,19 @@ function Inventory:create(windowType, ctx)
         return false
     end
 
-    local function onRowPickup(row, rowWidget, windowType, allowOutsideInterface)
-        if I.UI.getMode() == 'Barter' then
+    local function onRowPickup(row, rowWidget, windowType, allowOutsideInterface, paperDollAction)
+        if paperDollAction and I.UI.getMode() == 'Barter' then
+            -- Equipment actions must not change an uncommitted trade. In particular,
+            -- a buying row can be displayed in the player pane while still owned
+            -- by the merchant. Reject pending sales too, including partial stacks.
+            local selling = ctx.barterState.selling[row.item.id]
+            local buying = ctx.barterState.buying[row.item.id]
+            if row.isBartered or row.item.parentContainer ~= omwself
+                or (selling and selling.count > 0) or (buying and buying.count > 0) then
+                return false
+            end
+        end
+        if not paperDollAction and I.UI.getMode() == 'Barter' then
             return onRowUse(row, rowWidget, true, true)
         end
 
@@ -318,6 +329,9 @@ function Inventory:create(windowType, ctx)
         end
 
         if omwself.type.hasEquipped and omwself.type.hasEquipped(omwself, row.item) then
+            if paperDollAction and helpers.isBoundItem(row.item) then
+                return false
+            end
             local equipment = omwself.type.getEquipment(omwself)
             for slot, equippedItem in pairs(equipment) do
                 if equippedItem == row.item then
@@ -1766,7 +1780,7 @@ function Inventory:create(windowType, ctx)
                     local draggedItem = ctx.dragAndDrop.draggingObject
                     if draggedItem then
                         local activation = ctx.dragAndDrop.draggingActivationContext or {}
-                        local result = onRowPickup(createDraggedActivationRow(draggedItem), nil, activation.windowType, true)
+                        local result = onRowPickup(createDraggedActivationRow(draggedItem), nil, activation.windowType, true, true)
                         if result ~= false then
                             ctx.dragAndDrop:stopDrag()
                             self.infoBar.layout.userData.updateAll()
@@ -1777,7 +1791,7 @@ function Inventory:create(windowType, ctx)
                         if item then
                             -- Same use/unequip route and provider hooks as an inventory row.
                             onRowPickup({ item = item, id = item.id, itemRecord = item.type.record(item),
-                                getCount = function() return item.count end }, nil, 'Inventory', true)
+                                getCount = function() return item.count end }, nil, 'Inventory', true, true)
                             self:refresh()
                         end
                     end

@@ -1,3 +1,11 @@
+#ifdef _WIN32
+// Reproduce the engine's reduced Windows headers, including prior inclusion.
+#define NOGDI
+#define NOMB
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 #include <apps/openmw/startupscreen.hpp>
 #include <chrono>
 #include <cassert>
