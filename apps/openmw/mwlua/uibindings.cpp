@@ -155,7 +155,7 @@ namespace MWLua
                 // Resolve only genuine graphic-herbalism plants, never arbitrary containers.
                 if (target.getType() != ESM::REC_CONT || !Settings::game().mGraphicHerbalism)
                     return sol::make_object(state, LObject(target));
-                auto* world = MWBase::Environment::get().getWorld();
+                const auto world = MWBase::Environment::get().getWorld();
                 const auto* animation = world->getAnimation(target);
                 if (!animation || !animation->canBeHarvested())
                     return sol::make_object(state, LObject(target));
