@@ -220,6 +220,13 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
     try
     {
         const auto start = std::chrono::steady_clock::now();
+        auto savePhaseStart = start;
+        const auto savePhase = [&](const char* name) {
+            const auto now = std::chrono::steady_clock::now();
+            Log(Debug::Info) << "Save write phase: " << name << " = "
+                             << std::chrono::duration<double, std::milli>(now - savePhaseStart).count() << " ms";
+            savePhaseStart = now;
+        };
 
         MWBase::Environment::get().getWindowManager()->asyncPrepareSaveMap();
 
@@ -260,7 +267,9 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         profile.mMaximumHealth = stats.getHealth().getModified();
 
         Log(Debug::Info) << "Making a screenshot for saved game '" << description << "'";
+        savePhase("profile and map preparation kickoff");
         writeScreenshot(profile.mScreenshot);
+        savePhase("screenshot");
 
         if (!slot)
             slot = character->createSlot(profile);
@@ -309,6 +318,7 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
 
         Loading::ScopedLoad load(&listener);
 
+        savePhase("slot, animations, record counts and writer setup");
         writer.startRecord(ESM::REC_SAVE);
         slot->mProfile.save(writer);
         writer.endRecord(ESM::REC_SAVE);
@@ -317,12 +327,17 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         MWBase::Environment::get().getDialogueManager()->write(writer, listener);
         // LuaManager::write should be called before World::write because world also saves
         // local scripts that depend on LuaManager.
+        savePhase("header, journal and dialogue");
         MWBase::Environment::get().getLuaManager()->write(writer, listener);
+        savePhase("Lua state");
         MWBase::Environment::get().getWorld()->write(writer, listener);
+        savePhase("world and cells");
         MWBase::Environment::get().getScriptManager()->getGlobalScripts().write(writer, listener);
         MWBase::Environment::get().getMechanicsManager()->write(writer, listener);
         MWBase::Environment::get().getInputManager()->write(writer, listener);
+        savePhase("scripts, mechanics and input");
         MWBase::Environment::get().getWindowManager()->write(writer, listener);
+        savePhase("map and UI");
 
         // Ensure we have written the number of records that was estimated
         if (static_cast<size_t>(writer.getRecordCount()) != recordCount + 1) // 1 extra for TES3 record
@@ -335,13 +350,16 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
             throw std::runtime_error(
                 "Write operation failed (memory stream): " + std::generic_category().message(errno));
 
+        savePhase("finish serialization");
         // All good, write to file
         std::ofstream filestream(slot->mPath, std::ios::binary);
         filestream << stream.rdbuf();
+        filestream.flush();
 
         if (filestream.fail())
             throw std::runtime_error("Write operation failed (file stream): " + std::generic_category().message(errno));
 
+        savePhase("file write and stream flush");
         Settings::saves().mCharacter.set(Files::pathToUnicodeString(slot->mPath.parent_path().filename()));
         mLastSavegame = slot->mPath;
 
@@ -621,6 +639,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
             }
         }
         phase("restore save records including progress display");
+        MWBase::Environment::get().getWorldModel()->reportSaveLoadTimings();
         Log(Debug::Info) << "Save load progress display: " << progressMs << " ms";
         for (const auto& [name, time] : recordTimes)
             Log(Debug::Info) << "Save load records: " << name << " count=" << time.first << " ms=" << time.second;

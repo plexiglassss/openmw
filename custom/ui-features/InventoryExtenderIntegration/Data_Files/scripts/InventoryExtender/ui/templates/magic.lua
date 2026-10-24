@@ -510,6 +510,23 @@ local function tooltipItemIcon(icon, enchanted)
     }
 end
 
+-- Providers append sections with fixed-width dividers. Use the same native
+-- line template and stretch every divider within its own tooltip column.
+local function normalizeTooltipDividers(layout)
+    if layout.layout then layout = layout.layout end
+    if layout.template == I.MWUI.templates.horizontalLine then
+        layout.props = layout.props or {}
+        layout.props.size = v2(0, 2)
+        layout.props.position = v2(0, 0)
+        layout.props.relativeSize = nil
+        layout.external = layout.external or {}
+        layout.external.stretch = 1
+    end
+    if layout.content then
+        for _, child in ipairs(layout.content) do normalizeTooltipDividers(child) end
+    end
+end
+
 Templates.itemTooltip = function(item, showIcon, ctx)
     local function mergeExtraProps(props, extraProps)
         -- Some call paths / older patches can pass a number here instead of a
@@ -1007,6 +1024,9 @@ Templates.itemTooltip = function(item, showIcon, ctx)
         end
     end
 
+    normalizeTooltipDividers(layout)
+    layout.userData = layout.userData or {}
+    layout.userData.recentItem = item
     return layout
 end
 
@@ -1049,6 +1069,7 @@ Templates.compareItemsTooltip = function(item, other, showIcon, ctx)
     return {
         layer = 'Notification',
         name = item.id,
+        userData = { recentItem = item },
         template = {
             type = ui.TYPE.Container,
             content = ui.content {}

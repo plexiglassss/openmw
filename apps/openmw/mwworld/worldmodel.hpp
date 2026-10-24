@@ -108,6 +108,7 @@ namespace MWWorld
         void write(ESM::ESMWriter& writer, Loading::Listener& progress) const;
 
         bool readRecord(ESM::ESMReader& reader, uint32_t type);
+        void reportSaveLoadTimings() const;
 
     private:
         struct GetCellStoreCallback;
@@ -132,6 +133,16 @@ namespace MWWorld
         mutable std::unordered_set<CellStore*> mDirtyLookupCells;
         std::unordered_map<ESM::RefId, std::vector<CellStore*>> mRefIdLookupCells;
         std::unordered_map<CellStore*, std::vector<ESM::RefId>> mIndexedCellIds;
+
+        struct SaveLoadTimings
+        {
+            std::size_t cells = 0;
+            std::size_t metadataOnly = 0;
+            double resolveMs = 0;
+            double stateMs = 0;
+            double baseMs = 0;
+            double referencesMs = 0;
+        } mSaveLoadTimings;
 
         void updateCellLookupIndex();
 

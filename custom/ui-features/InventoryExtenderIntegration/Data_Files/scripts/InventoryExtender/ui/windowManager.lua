@@ -13,6 +13,7 @@ local v2 = util.vector2
 local constants = require('scripts.InventoryExtender.util.constants')
 local configPlayer = require('scripts.InventoryExtender.config.player')
 local Pickpocket = require('scripts.InventoryExtender.util.pickpocket')
+local recent = require('scripts.InventoryExtender.util.recentItems')
 
 local DragAndDrop = require('scripts.InventoryExtender.ui.dragAndDrop')
 local InventoryWindow = require('scripts.InventoryExtender.ui.windows.inventory')
@@ -438,9 +439,10 @@ function WindowManager:onMouseWheel(v, h)
 end
 
 function WindowManager:onFrame()
-    if not configPlayer.window.b_EnableMod then return end
+    if not configPlayer.window.b_EnableMod then recent.updateHover(nil, 0); return end
 
     if self.ctx.resettingModeProcessed then
+        recent.updateHover(nil, 0)
         self.ctx.resettingModeProcessed = false
         self.ctx.resettingMode = false
         return
@@ -486,6 +488,23 @@ function WindowManager:onFrame()
             auxUi.deepDestroy(self.ctx.activeTooltip)
         end
         self.ctx.activeTooltip = nil
+    end
+
+    local hoveredItem
+    local tip = self.ctx.activeTooltip and self.ctx.activeTooltip.layout
+    if validInventoryModes[I.UI.getMode() or ''] and configPlayer.tweaks.b_RecentItems ~= false
+        and not self.ctx.modalElement and not self.ctx.dragAndDrop.draggingObject
+        and tip and tip.props and tip.props.visible ~= false and tip.userData then
+        local item = tip.userData.recentItem
+        if item and item:isValid() then
+            local parent = item.parentContainer
+            if parent and parent.id == omwself.id then hoveredItem = item end
+        end
+    end
+    if recent.updateHover(hoveredItem, dt) then
+        -- Existing table/grid renderers invalidate their recent badge metadata.
+        -- Refresh visible labels once; do not rescan inventory each frame.
+        self:refresh()
     end
 
     for _, window in pairs(self.windows) do

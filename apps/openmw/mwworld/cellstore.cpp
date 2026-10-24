@@ -1,6 +1,8 @@
 #include "cellstore.hpp"
 #include "magiceffects.hpp"
 
+#include <components/misc/transientrefindex.hpp>
+
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -216,9 +218,12 @@ namespace
         fixRestockingImpl(base, state);
     }
 
+    using SavedRefKey = std::pair<ESM::RefNum, ESM::RefId>;
+    using SavedRefIndex = Misc::TransientRefIndex<SavedRefKey, MWWorld::LiveCellRefBase>;
+
     template <typename T>
     void readReferenceCollection(ESM::ESMReader& reader, MWWorld::CellRefList<T>& collection, const ESM::CellRef& cref,
-        const MWWorld::ESMStore& esmStore, MWWorld::CellStore* cellstore)
+        const MWWorld::ESMStore& esmStore, MWWorld::CellStore* cellstore, SavedRefIndex& referenceIndex)
     {
         using StateType = typename RecordToState<T>::StateType;
         StateType state;
@@ -270,29 +275,34 @@ namespace
 
         if (state.mRef.mRefNum.hasContentFile())
         {
-            for (typename MWWorld::CellRefList<T>::List::iterator iter(collection.mList.begin());
-                 iter != collection.mList.end(); ++iter)
-                if (iter->mRef.getRefNum() == state.mRef.mRefNum && iter->mRef.getRefId() == state.mRef.mRefID)
+            const auto keyOf = [](const auto& ref) {
+                return SavedRefKey(ref.mRef.getRefNum(), ref.mRef.getRefId());
+            };
+            // One index per record type, owned by this readReferences call.
+            // Both reference identity and base ID must match, as in the old scan.
+            auto* iter = static_cast<MWWorld::LiveCellRef<T>*>(referenceIndex.find(
+                collection.mList, SavedRefKey(state.mRef.mRefNum, state.mRef.mRefID), keyOf));
+            if (iter != nullptr)
+            {
+                // overwrite existing reference
+                float oldscale = iter->mRef.getScale();
+                iter->load(state);
+                const ESM::Position& oldpos = iter->mRef.getPosition();
+                const ESM::Position& newpos = iter->mData.getPosition();
+                const MWWorld::Ptr ptr(&*iter, cellstore);
+                if ((oldscale != iter->mRef.getScale() || oldpos.asVec3() != newpos.asVec3()
+                        || oldpos.rot[0] != newpos.rot[0] || oldpos.rot[1] != newpos.rot[1]
+                        || oldpos.rot[2] != newpos.rot[2])
+                    && !ptr.getClass().isActor())
+                    MWBase::Environment::get().getWorld()->moveObject(ptr, newpos.asVec3());
+                if (!iter->mData.isEnabled())
                 {
-                    // overwrite existing reference
-                    float oldscale = iter->mRef.getScale();
-                    iter->load(state);
-                    const ESM::Position& oldpos = iter->mRef.getPosition();
-                    const ESM::Position& newpos = iter->mData.getPosition();
-                    const MWWorld::Ptr ptr(&*iter, cellstore);
-                    if ((oldscale != iter->mRef.getScale() || oldpos.asVec3() != newpos.asVec3()
-                            || oldpos.rot[0] != newpos.rot[0] || oldpos.rot[1] != newpos.rot[1]
-                            || oldpos.rot[2] != newpos.rot[2])
-                        && !ptr.getClass().isActor())
-                        MWBase::Environment::get().getWorld()->moveObject(ptr, newpos.asVec3());
-                    if (!iter->mData.isEnabled())
-                    {
-                        iter->mData.enable();
-                        MWBase::Environment::get().getWorld()->disable(ptr);
-                    }
-                    MWBase::Environment::get().getWorldModel()->registerPtr(ptr);
-                    return;
+                    iter->mData.enable();
+                    MWBase::Environment::get().getWorld()->disable(ptr);
                 }
+                MWBase::Environment::get().getWorldModel()->registerPtr(ptr);
+                return;
+            }
 
             // Note: we preserve RefNum when picking up or dropping an item. This includes non-carriable lights 'picked
             // up' through Lua. So if this RefNum is not found in this cell in content files, it doesn't mean that the
@@ -315,6 +325,7 @@ namespace
 
         MWWorld::LiveCellRefBase* base = &collection.mList.back();
         MWBase::Environment::get().getWorldModel()->registerPtr(MWWorld::Ptr(base, cellstore));
+        referenceIndex.inserted(SavedRefKey(base->mRef.getRefNum(), base->mRef.getRefId()), base);
     }
 
     // this function allows us to link a CellRefList<T> to the associated recNameInt, and apply a function
@@ -1106,6 +1117,7 @@ namespace MWWorld
     void CellStore::readReferences(ESM::ESMReader& reader, GetCellStoreCallback* callback)
     {
         mHasState = true;
+        std::map<int, SavedRefIndex> referenceIndexes;
 
         while (reader.isNextSub("OBJE"))
         {
@@ -1133,11 +1145,12 @@ namespace MWWorld
             {
                 bool foundCorrespondingStore = false;
                 Misc::tupleForEach(
-                    this->mCellStoreImp->mRefLists, [&reader, this, &cref, &foundCorrespondingStore, type](auto&& x) {
+                    this->mCellStoreImp->mRefLists,
+                    [&reader, this, &cref, &foundCorrespondingStore, type, &referenceIndexes](auto&& x) {
                         recNameSwitcher(x, static_cast<ESM::RecNameInts>(type),
-                            [&reader, this, &cref, &foundCorrespondingStore](auto& store) {
+                            [&reader, this, &cref, &foundCorrespondingStore, type, &referenceIndexes](auto& store) {
                                 foundCorrespondingStore = true;
-                                readReferenceCollection(reader, store, cref, mStore, this);
+                                readReferenceCollection(reader, store, cref, mStore, this, referenceIndexes[type]);
                             });
                     });
 

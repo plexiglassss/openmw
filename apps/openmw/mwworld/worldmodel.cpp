@@ -1,6 +1,7 @@
 #include "worldmodel.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cassert>
 #include <cstdlib>
 #include <iterator>
@@ -189,6 +190,7 @@ MWWorld::CellStore& MWWorld::WorldModel::insertCellStore(const ESM4::Cell& cell)
 
 void MWWorld::WorldModel::clear()
 {
+    mSaveLoadTimings = {};
     mDirtyLookupCells.clear();
     mUnindexedLookupCells.clear();
     mRefIdLookupCells.clear();
@@ -702,6 +704,8 @@ bool MWWorld::WorldModel::readRecord(ESM::ESMReader& reader, uint32_t type)
 {
     if (type == ESM::REC_CSTA)
     {
+        using Clock = std::chrono::steady_clock;
+        const auto started = Clock::now();
         ESM::CellState state;
         state.mId = reader.getCellId();
 
@@ -716,19 +720,38 @@ bool MWWorld::WorldModel::readRecord(ESM::ESMReader& reader, uint32_t type)
             return true;
         }
 
+        const auto resolved = Clock::now();
         state.load(reader);
         cellStore->loadState(state);
 
         if (state.mHasFogOfWar)
             cellStore->readFog(reader);
 
+        const auto stateRead = Clock::now();
+        if (!reader.hasMoreSubs())
+            ++mSaveLoadTimings.metadataOnly;
         if (cellStore->getState() != CellStore::State_Loaded)
             cellStore->load();
 
+        const auto baseLoaded = Clock::now();
         cellStore->readReferences(reader, &callback);
+        const auto referencesRead = Clock::now();
+        ++mSaveLoadTimings.cells;
+        mSaveLoadTimings.resolveMs += std::chrono::duration<double, std::milli>(resolved - started).count();
+        mSaveLoadTimings.stateMs += std::chrono::duration<double, std::milli>(stateRead - resolved).count();
+        mSaveLoadTimings.baseMs += std::chrono::duration<double, std::milli>(baseLoaded - stateRead).count();
+        mSaveLoadTimings.referencesMs += std::chrono::duration<double, std::milli>(referencesRead - baseLoaded).count();
 
         return true;
     }
 
     return false;
+}
+
+void MWWorld::WorldModel::reportSaveLoadTimings() const
+{
+    const auto& t = mSaveLoadTimings;
+    Log(Debug::Info) << "Save load CSTA detail: cells=" << t.cells << " metadataOnly=" << t.metadataOnly
+                     << " resolveIncludingInteriorBaseMs=" << t.resolveMs << " stateAndFogMs=" << t.stateMs
+                     << " exteriorBaseMs=" << t.baseMs << " savedReferencesMs=" << t.referencesMs;
 }
