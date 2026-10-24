@@ -281,6 +281,10 @@ namespace MWWorld
             return;
         }
 
+        // A disabled cache cannot admit new jobs (or choose an oldest entry).
+        if (mMaxCacheSize == 0)
+            return;
+
         while (mPreloadCells.size() >= mMaxCacheSize)
         {
             // throw out oldest cell to make room
@@ -499,3 +503,4 @@ namespace MWWorld
         stats.setAttribute(frameNumber, "CellPreloader Expired", static_cast<double>(mExpired));
     }
 }
+
