@@ -220,9 +220,9 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrAndCache(const ESM::RefId& name, CellSto
 
 void MWWorld::WorldModel::writeCell(ESM::ESMWriter& writer, CellStore& cell) const
 {
-    if (cell.getState() != CellStore::State_Loaded)
-        cell.load();
-
+    // Metadata can change without instantiating any references (for example water
+    // levels or restored fog). Unloaded/preloaded cells have no live reference
+    // changes to serialize. Loading them here would undo lazy save restoration.
     ESM::CellState cellState;
 
     cell.saveState(cellState);
@@ -711,7 +711,9 @@ bool MWWorld::WorldModel::readRecord(ESM::ESMReader& reader, uint32_t type)
 
         GetCellStoreCallback callback(*this);
 
-        CellStore* const cellStore = callback.getCellStore(state.mId);
+        // Resolve the record without loading plugin references. The callback used
+        // below for moved references retains its original loading semantics.
+        CellStore* const cellStore = findCell(state.mId, false);
 
         if (cellStore == nullptr)
         {
@@ -728,13 +730,15 @@ bool MWWorld::WorldModel::readRecord(ESM::ESMReader& reader, uint32_t type)
             cellStore->readFog(reader);
 
         const auto stateRead = Clock::now();
-        if (!reader.hasMoreSubs())
+        const bool hasReferences = reader.hasMoreSubs();
+        if (!hasReferences)
             ++mSaveLoadTimings.metadataOnly;
-        if (cellStore->getState() != CellStore::State_Loaded)
+        if (hasReferences && cellStore->getState() != CellStore::State_Loaded)
             cellStore->load();
 
         const auto baseLoaded = Clock::now();
-        cellStore->readReferences(reader, &callback);
+        if (hasReferences)
+            cellStore->readReferences(reader, &callback);
         const auto referencesRead = Clock::now();
         ++mSaveLoadTimings.cells;
         mSaveLoadTimings.resolveMs += std::chrono::duration<double, std::milli>(resolved - started).count();
