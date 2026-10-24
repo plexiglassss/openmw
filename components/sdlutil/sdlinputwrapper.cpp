@@ -1,5 +1,7 @@
 #include "sdlinputwrapper.hpp"
 
+#include <SDL_hints.h>
+
 #include <components/debug/debuglog.hpp>
 #include <components/settings/values.hpp>
 
