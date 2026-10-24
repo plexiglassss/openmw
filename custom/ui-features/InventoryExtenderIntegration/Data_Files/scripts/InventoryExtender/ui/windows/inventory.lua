@@ -299,6 +299,12 @@ function Inventory:create(windowType, ctx)
         return false
     end
 
+    local function isPlayerInventoryItem(item)
+        local parent = item.parentContainer
+        -- parent is an LObject; openmw.self is a distinct Lua wrapper.
+        return parent ~= nil and parent.id == omwself.id
+    end
+
     local function onRowPickup(row, rowWidget, windowType, allowOutsideInterface, paperDollAction, pickupToCursor)
         if paperDollAction and I.UI.getMode() == 'Barter' then
             -- Equipment actions must not change an uncommitted trade. In particular,
@@ -306,7 +312,7 @@ function Inventory:create(windowType, ctx)
             -- by the merchant. Reject pending sales too, including partial stacks.
             local selling = ctx.barterState.selling[row.item.id]
             local buying = ctx.barterState.buying[row.item.id]
-            if row.isBartered or row.item.parentContainer ~= omwself
+            if row.isBartered or not isPlayerInventoryItem(row.item)
                 or (selling and selling.count > 0) or (buying and buying.count > 0) then
                 return false
             end
@@ -331,8 +337,8 @@ function Inventory:create(windowType, ctx)
         end
 
         if pickupToCursor then
-            if helpers.isBoundItem(row.item) or row.item.parentContainer ~= omwself then
-                print('[InventoryExtender Bridge 1.2.6] Cursor pickup rejected: bound=' .. tostring(helpers.isBoundItem(row.item)) .. ' playerOwned=' .. tostring(row.item.parentContainer == omwself))
+            if helpers.isBoundItem(row.item) or not isPlayerInventoryItem(row.item) then
+                print('[InventoryExtender Bridge 1.2.7] Cursor pickup rejected: bound=' .. tostring(helpers.isBoundItem(row.item)) .. ' playerOwned=' .. tostring(isPlayerInventoryItem(row.item)))
                 return false
             end
             -- Use IE's normal asynchronous cursor pickup. It retains protection,
@@ -1840,7 +1846,7 @@ function Inventory:create(windowType, ctx)
                     end
                 end),
                 paperDollClick = async:callback(function(e)
-                    print('[InventoryExtender Bridge 1.2.6] Paper-doll press: slot=' .. tostring(e.slot) .. ' mode=' .. tostring(I.UI.getMode()))
+                    print('[InventoryExtender Bridge 1.2.7] Paper-doll press: slot=' .. tostring(e.slot) .. ' mode=' .. tostring(I.UI.getMode()))
                     if ctx.activeTooltip and ctx.activeTooltip.layout then
                         auxUi.deepDestroy(ctx.activeTooltip)
                         ctx.activeTooltip = nil

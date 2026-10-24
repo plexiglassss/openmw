@@ -1,3 +1,4 @@
+#include <components/debug/debuglog.hpp>
 #include "../mwbase/world.hpp"
 #include "../mwrender/animation.hpp"
 #include "../mwworld/class.hpp"
@@ -149,27 +150,39 @@ namespace MWLua
                     return sol::nil;
                 return sol::make_object(state, LObject(object));
             };
-            api["getWorldTooltipItem"] = [windowManager](sol::this_state state) -> sol::object {
+            api["getWorldTooltipItem"] = [windowManager, lastTarget = ESM::RefId()](sol::this_state state) mutable -> sol::object {
                 const auto target = windowManager->getWorldTooltipObject();
                 if (target.isEmpty()) return sol::nil;
-                // Resolve only genuine graphic-herbalism plants, never arbitrary containers.
-                if (target.getType() != ESM::REC_CONT || !Settings::game().mGraphicHerbalism)
+                const bool trace = lastTarget != target.getCellRef().getRefId();
+                lastTarget = target.getCellRef().getRefId();
+                const auto fallback = [&](const char* reason) -> sol::object {
+                    if (trace)
+                        Log(Debug::Info) << "Enhanced plant tooltip: " << lastTarget.toDebugString() << ": " << reason;
                     return sol::make_object(state, LObject(target));
-                const auto world = MWBase::Environment::get().getWorld();
-                const auto* animation = world->getAnimation(target);
-                if (!animation || !animation->canBeHarvested())
-                    return sol::make_object(state, LObject(target));
+                };
+                if (target.getType() != ESM::REC_CONT)
+                    return fallback("target is not a container; use normal item handling");
+                // Organic containers include plants without native harvest animations.
+                // Do not depend on the selected mesh or graphical-herbalism setting.
+                const auto* record = target.get<ESM::Container>()->mBase;
+                if (!(record->mFlags & ESM::Container::Organic))
+                    return fallback("non-organic container");
+                if (target.getCellRef().isLocked() || !target.getCellRef().getTrap().empty())
+                    return fallback("locked or trapped; preserve native information");
                 auto& store = target.getClass().getContainerStore(target);
                 MWWorld::Ptr ingredient;
                 for (auto it = store.begin(); it != store.end(); ++it)
                 {
                     if (it->getCellRef().getCount() <= 0) continue;
                     if (it->getType() != ESM::REC_INGR || !ingredient.isEmpty())
-                        return sol::make_object(state, LObject(target));
+                        return fallback("contents are not a single ingredient stack");
                     ingredient = *it;
                 }
-                if (ingredient.isEmpty()) return sol::make_object(state, LObject(target));
+                if (ingredient.isEmpty()) return fallback("no direct ingredient stack; empty or unresolved leveled contents");
                 MWBase::Environment::get().getWorldModel()->registerPtr(ingredient);
+                if (trace)
+                    Log(Debug::Info) << "Enhanced plant tooltip: " << lastTarget.toDebugString()
+                        << " -> " << ingredient.getCellRef().getRefId().toDebugString();
                 return sol::make_object(state, LObject(ingredient));
             };
             api["setWorldTooltip"] = [luaManager = context.mLuaManager, windowManager](sol::optional<LObject> object,

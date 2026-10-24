@@ -409,37 +409,64 @@ OMW::Engine::Engine(Files::ConfigurationManager& configurationManager)
 
 OMW::Engine::~Engine()
 {
+    auto shutdownStageStart = std::chrono::steady_clock::now();
+    const auto reportShutdownStage = [&shutdownStageStart](const char* stage) {
+        const auto now = std::chrono::steady_clock::now();
+        Log(Debug::Info) << "Shutdown: " << stage << " took "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(now - shutdownStageStart).count() << " ms";
+        shutdownStageStart = now;
+    };
     if (mScreenCaptureOperation != nullptr)
     {
         mScreenCaptureOperation->stop();
         mScreenCaptureOperation = nullptr;
     }
     mScreenCaptureHandler = nullptr;
+    reportShutdownStage("mScreenCaptureHandler");
 
     mMechanicsManager = nullptr;
+    reportShutdownStage("mMechanicsManager");
     mDialogueManager = nullptr;
+    reportShutdownStage("mDialogueManager");
     mJournal = nullptr;
+    reportShutdownStage("mJournal");
     mWindowManager = nullptr;
+    reportShutdownStage("mWindowManager");
     mScriptManager = nullptr;
+    reportShutdownStage("mScriptManager");
     mWorld = nullptr;
+    reportShutdownStage("mWorld");
     mStereoManager = nullptr;
+    reportShutdownStage("mStereoManager");
     mSoundManager = nullptr;
+    reportShutdownStage("mSoundManager");
     mInputManager = nullptr;
+    reportShutdownStage("mInputManager");
     mStateManager = nullptr;
+    reportShutdownStage("mStateManager");
     mLuaWorker = nullptr;
+    reportShutdownStage("mLuaWorker");
     mLuaManager = nullptr;
+    reportShutdownStage("mLuaManager");
     mL10nManager = nullptr;
+    reportShutdownStage("mL10nManager");
 
     mScriptContext = nullptr;
+    reportShutdownStage("mScriptContext");
 
     mUnrefQueue = nullptr;
+    reportShutdownStage("mUnrefQueue");
     mWorkQueue = nullptr;
+    reportShutdownStage("mWorkQueue");
 
     mViewer = nullptr;
+    reportShutdownStage("mViewer");
 
     mResourceSystem.reset();
+    reportShutdownStage("resource system");
 
     mEncoder = nullptr;
+    reportShutdownStage("mEncoder");
 
     if (mWindow)
     {
@@ -448,6 +475,7 @@ OMW::Engine::~Engine()
     }
 
     SDL_Quit();
+    reportShutdownStage("window and SDL");
 
     Log(Debug::Info) << "Quitting peacefully.";
 }
@@ -1093,12 +1121,19 @@ void OMW::Engine::go()
         frameRateLimiter.limit();
     }
 
+    // No more game frames will be submitted. Hide the window before lengthy
+    // teardown so asynchronous presenters cannot expose historical frames.
+    if (mWindow)
+        SDL_HideWindow(mWindow);
+    Log(Debug::Info) << "Shutdown: game window hidden, joining Lua worker";
     mLuaWorker->join();
+    Log(Debug::Info) << "Shutdown: saving settings and Lua storage";
 
     // Save user settings
     Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
     Settings::ShaderManager::get().save();
     mLuaManager->savePermanentStorage(mCfgMgr.getUserConfigPath());
+    Log(Debug::Info) << "Shutdown: permanent storage saved";
 }
 
 void OMW::Engine::setCompileAll(bool all)

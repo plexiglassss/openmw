@@ -17,7 +17,7 @@ local ctx, self, omwself, I, helpers, ambient, core
 local function reset(m)
     mode, tradeCalls, uses, updates, sounds, vetoCalls = m, 0, 0, 0, 0, 0
     bound, veto, equipment, dragged, dragCalls = false, false, {}, nil, 0
-    omwself = {type = {}}
+    omwself = {id = 'player', type = {}}
     omwself.type.hasEquipped = function(_, item)
         for _, v in pairs(equipment) do if v == item then return true end end
         return false
@@ -39,7 +39,7 @@ local function reset(m)
     ambient = {playSound = function() sounds = sounds + 1 end}
     core = {sendGlobalEvent = function(name, args)
         assert(name == 'IE_UseItem' and args.actor == omwself)
-        assert(args.source == omwself)
+        assert(args.source.id == omwself.id)
         uses = uses + 1
     end}
 end
@@ -66,7 +66,7 @@ for _, kind in ipairs({'merchant', 'bartered', 'selling', 'buying'}) do
     reset('Barter')
     local item = {id = 'weapon', parentContainer = omwself}
     local row = {item = item}
-    if kind == 'merchant' then item.parentContainer = {} end
+    if kind == 'merchant' then item.parentContainer = {id = 'merchant'} end
     if kind == 'bartered' then row.isBartered = true end
     if kind == 'selling' then ctx.barterState.selling[item.id] = {count = 1} end
     if kind == 'buying' then ctx.barterState.buying[item.id] = {count = 1} end
@@ -83,7 +83,8 @@ onRowPickup({item = item}, nil, 'Inventory', true)
 assert(tradeCalls == 1 and uses == 1, 'ordinary barter row unchanged')
 for _, m in ipairs({'Interface', 'Barter', 'Container', 'Companion'}) do
     reset(m)
-    local item = {id='weapon', parentContainer=omwself, count=1}
+    local item = {id='weapon', parentContainer={id=omwself.id}, count=1}
+    assert(item.parentContainer ~= omwself, 'distinct wrappers must be tested')
     equipment[1]=item
     assert(onRowPickup({item=item}, nil, 'Inventory', true, true, true))
     assert(dragged==item and dragCalls==1 and uses==0 and tradeCalls==0)
