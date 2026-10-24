@@ -106,3 +106,37 @@ recent.observe({stack,weapon});assert(recent.isRecent(weapon))
 recent.observe({stack});assert(not recent.isRecent(weapon))
 recent.observe({stack,weapon});assert(recent.isRecent(weapon))
 print('PASS: protection toggles, transfer/drop/bulk routes, own-inventory return, split cursor identity, unequipped cursor protection; recent baseline, gains, splits, merges, clear, save/load and reacquisition')
+
+-- Execute the shipped renderer: ItemTable replaces cells when userData changes.
+do
+    local f=assert(io.open(root..'scripts/InventoryExtender/ui/windows/inventory.lua'))
+    local source=f:read('*a');f:close()
+    local start=assert(source:find('    local nameRenderer = function',1,true))
+    local finish=assert(source:find('    local function getEnchantCapacityInfo',start,true))
+    local content=function(t)return setmetatable(t,{__index={add=table.insert}})end
+    local owner={}
+    local env=setmetatable({
+        self={target=owner},omwself=owner,ctx={overrides={equipped={}}},recent=recent,
+        configPlayer={tweaks={}},getNonDraggedCount=function(row)return row.item.count end,
+        helpers={getItemName=function()return 'Potion'end,addSeparators=tostring},
+        getItemBadgeState=function()return {}end,getItemDisplayNameColor=function()end,
+        getArmsArmorCompareIndicator=function()end,
+        baseTemplates={textNormal={},intervalH=function()return {}end,createTexture=function(p)return p end},
+        specialTemplates={LINE_HEIGHT=16},ui={content=content,TYPE={Image='Image',Flex='Flex'},ALIGNMENT={Center=0}},
+        v2=function(x,y)return{x=x,y=y}end,
+    },{__index=_G})
+    local render=assert(load(source:sub(start,finish-1)..'\nreturn nameRenderer','shipped nameRenderer','t',env))()
+    local row={item={recordId='potion',count=1},showAsEnchanted=function()return false end}
+    recent.load(nil);recent.observe({});recent.observe({row.item})
+    local before=render(row,160,30)
+    recent.clear()
+    local after=render(row,160,30)
+    assert(before.userData.recent==true and after.userData.recent==false,'cached label did not detect cleared marker')
+    assert(#before.content==3 and #after.content==1,'marker image remained after clearing')
+    recent.observe({row.item});assert(not recent.isRecent(row.item),'refresh re-marked unchanged inventory')
+    row.item.count=2;recent.observe({row.item})
+    assert(render(row,160,30).userData.recent==true,'subsequent acquisition not marked')
+    env.configPlayer.tweaks.b_RecentItems=false
+    assert(render(row,160,30).userData.recent==false,'disabled badges kept cached state')
+    print('PASS: real name renderer invalidates cached badge on clear, acquisition and setting changes')
+end

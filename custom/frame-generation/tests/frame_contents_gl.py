@@ -26,7 +26,10 @@ assert egl('eglChooseConfig', U, [P, P, P, I, P])(display, attrs, C.byref(config
 ca = (I * 7)(0x3098, 4, 0x30FB, 3, 0x30FD, 1, 0x3038)
 context = egl('eglCreateContext', P, [P, P, P, P])(display, config, None, ca)
 assert context
-assert egl('eglMakeCurrent', U, [P, P, P, P])(display, None, None, context)
+pa = (I*5)(0x3057,7,0x3056,5,0x3038)
+surface = egl('eglCreatePbufferSurface',P,[P,P,P])(display,config,pa)
+assert surface
+assert egl('eglMakeCurrent', U, [P, P, P, P])(display, surface, surface, context)
 
 def gl(name, result, *args):
     return C.CFUNCTYPE(result, *args)(getproc(name.encode()))
@@ -57,12 +60,21 @@ with tempfile.TemporaryDirectory() as d:
     p = pathlib.Path(d)
     (p/'bridge.cpp').write_text('''#include "src/fg/frame_contents.hpp"
 decltype(glCopyImageSubData_) glCopyImageSubData_ = nullptr;
-extern "C" void init(void* fn) { glCopyImageSubData_ = reinterpret_cast<decltype(glCopyImageSubData_)>(fn); }
+decltype(glBindFramebuffer_) glBindFramebuffer_ = nullptr;
+decltype(glBlitFramebuffer_) glBlitFramebuffer_ = nullptr;
+extern "C" void init(void* copy, void* bind, void* blit) {
+    glCopyImageSubData_ = reinterpret_cast<decltype(glCopyImageSubData_)>(copy);
+    glBindFramebuffer_ = reinterpret_cast<decltype(glBindFramebuffer_)>(bind);
+    glBlitFramebuffer_ = reinterpret_cast<decltype(glBlitFramebuffer_)>(blit);
+}
+extern "C" void seed(unsigned src, unsigned buffer, unsigned dst, int w, int h) {
+    fg::SeedFrameContents(src,buffer,dst,w,h);
+}
 extern "C" void preserve(unsigned src, unsigned dst, int w, int h) { fg::PreserveFrameContents(src,dst,w,h); }
 ''')
-    subprocess.run(['g++', '-std=c++20', '-shared', '-fPIC', '-I'+str(root), '-I'+sys.argv[1], str(p/'bridge.cpp'), '-o', str(p/'bridge.so')], check=True)
-    bridge = C.CDLL(str(p/'bridge.so')); bridge.init.argtypes = [P]
-    bridge.init(getproc(b'glCopyImageSubData'))
+    subprocess.run(['g++', '-std=c++20', '-shared', '-fPIC', '-I'+str(root), '-I'+sys.argv[1], str(p/'bridge.cpp'), '-l:libGL.so.1', '-o', str(p/'bridge.so')], check=True)
+    bridge = C.CDLL(str(p/'bridge.so')); bridge.init.argtypes = [P,P,P]
+    bridge.init(getproc(b'glCopyImageSubData'),getproc(b'glBindFramebuffer'),getproc(b'glBlitFramebuffer'))
     bridge.preserve.argtypes = [U,U,I,I]
     # Prior slots contain different viewpoints. Loading reads BEFORE redraw.
     for i,t in enumerate(textures): fill(t, 20+i*30)
@@ -105,6 +117,52 @@ extern "C" void preserve(unsigned src, unsigned dst, int w, int h) { fg::Preserv
     assert error()==0
     print('PASS: retained loading backgrounds, partial GUI draws, mailbox slot patterns, full-render resume, GL state and errors.')
 
+    # First redirected frame: copy a real rendered image before a partial draw.
+    bridge.seed.argtypes = [U,U,U,I,I]
+    fb = (U*3)(); gl('glGenFramebuffers',None,I,P)(3,fb)
+    bind = gl('glBindFramebuffer',None,U,U)
+    attach = gl('glFramebufferTexture2D',None,U,U,U,U,I)
+    enable = gl('glEnable',None,U); disable = gl('glDisable',None,U)
+    colorMask = gl('glColorMask',None,C.c_ubyte,C.c_ubyte,C.c_ubyte,C.c_ubyte)
+    FBO, READ, DRAW, COLOR = 0x8D40, 0x8CA8, 0x8CA9, 0x8CE0
+    bind(FBO,fb[0]);attach(FBO,COLOR,T,textures[0],0)
+    bind(FBO,fb[1]);attach(FBO,COLOR,T,textures[1],0)
+    rb=U();gl('glGenRenderbuffers',None,I,P)(1,C.byref(rb))
+    gl('glBindRenderbuffer',None,U,U)(0x8D41,rb)
+    gl('glRenderbufferStorageMultisample',None,U,I,U,I,I)(0x8D41,4,0x8058,W,H)
+    bind(FBO,fb[2]);gl('glFramebufferRenderbuffer',None,U,U,U,U)(FBO,COLOR,0x8D41,rb)
+    disable(0x0C11);colorMask(1,1,1,1)
+    gl('glClearColor',None,C.c_float,C.c_float,C.c_float,C.c_float)(0.25,0.5,0.75,1)
+    gl('glClear',None,U)(0x4000)
+    fill(textures[0],83)
+    for source in (fb[0],fb[2]):
+        fill(textures[1],0)
+        bind(READ,fb[1]);bind(DRAW,fb[0])
+        enable(0x0C11);enable(0x8DB9);colorMask(0,0,0,0)
+        before=state()
+        bridge.seed(source,COLOR,fb[1],W,H)
+        assert state()==before and gl('glIsEnabled',C.c_ubyte,U)(0x8DB9)
+        pixels=read(textures[1])
+        if source==fb[0]: assert pixels==read(textures[0])
+        else:
+            for offset in range(0,len(pixels),4):
+                assert all(abs(x-y)<=1 for x,y in zip(pixels[offset:offset+4],(64,128,191,255)))
+        assert error()==0
+    print('PASS: first-frame seeding, full image despite scissor/masks, MSAA resolve, restored GL state.')
+    # Exercise an actual EGL default framebuffer as well as FBO/MSAA sources.
+    bind(FBO,0);disable(0x0C11);disable(0x8DB9);colorMask(1,1,1,1)
+    double=I();query(0x0C32,C.byref(double))
+    buffer=0x0405 if double.value else 0x0404  # BACK / FRONT
+    gl('glDrawBuffer',None,U)(buffer)
+    gl('glClearColor',None,C.c_float,C.c_float,C.c_float,C.c_float)(1,0,0,1)
+    gl('glClear',None,U)(0x4000)
+    bridge.seed(0,buffer,fb[1],W,H)
+    pixels=read(textures[1])
+    assert pixels==bytes([255,0,0,255])*(W*H)
+    assert error()==0
+    print('PASS: native default framebuffer seeds first redirected texture.')
+
+
 # Verify the integration orders the destination wait before copy and attachment.
 s=(root/'src/fg/framegen.cpp').read_text()
 start=s.index('const int completedIdx = S.gameCur;')
@@ -113,3 +171,9 @@ b=s.index('fg::PreserveFrameContents(',a)
 c=s.index('attachGameTexture(S.gameCur)',b)
 assert start<a<b<c
 print('PASS: integration preserves destination GPU fence -> copy -> attachment ordering.')
+
+arm=s.index('if (!S.redirect.load())')
+a=s.index('fg::SeedFrameContents(0, GL_BACK',arm)
+b=s.index('S.redirect = true',a)
+assert arm<a<b
+print('PASS: native back buffer seeded before redirection is enabled.')

@@ -49,7 +49,6 @@ function M.update(ctx, enabled)
     if not ui.getWorldTooltipObject then return end
     local target = enabled and ui.getWorldTooltipObject() or nil
     local object = target
-    if target and ui.getWorldTooltipItem then object = ui.getWorldTooltipItem() end
     if not object or not object:isValid() or not types.Item.objectIsInstance(object) then
         if current or element then M.reset() end
         return

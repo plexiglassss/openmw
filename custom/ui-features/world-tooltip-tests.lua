@@ -97,13 +97,11 @@ focused=a;update();m.update(expectedContext,false);assert(suppressed==nil)
 focused={item=true,isValid=function()return false end};update();assert(suppressed==nil)
 print('PASS: world comparison modes, immediate ALT changes, slot selection, two rings, unsupported/empty/equipped cases, provider fallback, no per-frame equipment scan')
 
--- A harvestable plant retains the container as the native tooltip/ownership target.
+-- Even an older engine exposing the removed resolver must not scan plants.
 local plant={item=false,isValid=function()return true end}
-ui.getWorldTooltipItem=function()return a end
+ui.getWorldTooltipItem=function()error('removed plant resolver called')end
 focused=plant;mode='Never';m.reset();m.update(expectedContext,true)
-assert(calls[#calls][1]==plant and calls[#calls][2].layout.content[1].item==a)
-assert(suppressed==plant)
-ui.getWorldTooltipItem=function()return plant end
-m.update(expectedContext,true);assert(calls[#calls][1]==nil)
-ui.getWorldTooltipItem=nil
-print('PASS: harvested ingredient details retain native plant target and ownership; ordinary containers fall back')
+assert(calls[#calls][1]==nil and suppressed==nil)
+focused=a;m.update(expectedContext,true)
+assert(calls[#calls][1]==a and calls[#calls][2].layout.content[1].item==a)
+print('PASS: unharvested plants use native tooltip without resolution; loose ingredients remain enhanced')

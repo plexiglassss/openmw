@@ -1,21 +1,24 @@
-# OpenMW Bridge v1.2.7 — equipment identity and plant eligibility
+# OpenMW Bridge v1.2.8 — recent markers and plant rollback
 
-ACTION: Replace the separate OpenMW Bridge folder and update the cumulative engine to the matching build. Keep the restored Inventory Extender base and the successful Frame Generation DLL from commit 1756e384. No new FG DLL is required. Keep bridge Data_Files after the base; do not merge it into the base.
+Replace the separate OpenMW Bridge folder with this version. Keep the restored Inventory Extender base unchanged and keep the bridge Data_Files after it in data order. Update the cumulative engine to the matching build to remove the engine-side plant resolver. No new game or save conversion is needed.
 
-## What changed
+The Frame Generation startup repair is a separate DLL update. Close OpenMW, replace version.dll next to openmw.exe with the matching Frame Generation build, and keep openmw_fg.ini and your existing lua51.dll. The bridge does not install either DLL.
 
-- The supplied 24 October log confirms that paper-doll clicks reach equipment slot 16 but the ownership guard rejects them. Compare parent/player object IDs, not equality between the local object wrapper and openmw.self. Bound-item, provider-veto and pending-trade guards remain. Cursor pickup and subsequent equip still use IE's normal handling.
-- The plant tooltip no longer requires native graphical herbalism or a harvestable mesh animation. Organic containers with one directly present ingredient stack qualify. Non-organic, empty, mixed-content, locked and trapped containers fall back to the original tooltip. This intentionally also supports organic ingredient containers that are not plants; it does not alter activation or harvest behavior. Unresolved leveled-list-only contents and script-only activators are not guessed or rolled on hover.
-- Plant selection writes a short diagnostic when the focused record changes, showing the resolved ingredient or fallback reason. Ingredient effects still pass through the base Inventory Extender alchemy-skill filtering.
-- The engine hides its window as the game loop ends, before saving and destruction. This prevents a stale frame from becoming visible during lengthy shutdown. It does not forcibly kill the process or skip saves.
-- Shutdown now logs completed storage saving and elapsed time for each major destruction stage. The supplied log shows about 18.5 seconds before Quitting peacefully but cannot attribute the delay. Actual cleanup speed is not claimed fixed yet.
+## Changes
 
-## Validation and limits
+- Clear new now invalidates cached table labels when their marker changes. It was clearing the stored flags, but the label's cache-comparison data omitted the marker. Grid labels already included it. The control now explicitly uses the mod's button border assets and a visible background, including when Interface Reimagined normally suppresses those borders.
+- New markers have no timer. They are saved with the game and remain until cleared or until none of that item record remains in the observed inventory. They mark increased totals per record ID, not individual copies. Splitting/merging stacks does not count as acquisition. A later acquisition can mark the item again.
+- Removed the unharvested-plant resolver, container scanning and hover diagnostic logging. Plants retain native tooltips. Loose/harvested ingredients and equipment keep enhanced tooltips, including the existing Alchemy skill filtering.
+- Preserves previous paper-doll, comparison, ownership, window-snapping, protection and cumulative engine work.
 
-The new regression uses separate player wrappers with identical IDs, unlike the earlier mock that reused one table and missed this defect. Cursor pickup/equip, bound-item/provider rejection and trade reservations pass locally. Full Windows compilation is checked separately by Actions. Neither the UI nor shutdown behavior has been tested live by the author. Loading continuity is user-confirmed fixed and unchanged.
+## Validation
 
-## Focused check
+Lua syntax and the existing tooltip/protection/paper-doll/layout regressions pass locally. The new regression executes the shipped item-name renderer: it fails with the old cache metadata and passes with this change. No live OpenMW UI pass is claimed. Full Windows engine compilation is a separate Actions result.
 
-1. Click equipped gear on the doll: it should attach to the cursor; click again to equip. Check a bound item remains protected.
-2. Look at unharvested hypha facia, draggle-tail and gold kanet. Compare displayed effects with the harvested ingredient at the same Alchemy skill.
-3. Quit. The window should disappear immediately when cleanup begins; check how long openmw.exe remains. Send openmw.log if it remains slow: Shutdown lines now identify the expensive stage. If the window reappears, include openmw_fg.log too.
+## Focused in-game check
+
+1. Acquire an item, see its marker in table view, then click the bordered Clear new button. The marker should disappear immediately. Close/reopen inventory and save/reload: it should remain cleared. Acquire more of that type: it should reappear. Repeat in grid view.
+2. Look at an unharvested plant: expect the original tooltip. Harvest it or inspect a loose ingredient: expect enhanced details with skill-gated effects.
+3. With the separate new FG DLL, check startup wallpaper, the previously fixed cell transitions, F12, save/load, resize and Alt+Tab. The startup repair is an offline-tested candidate, not yet confirmed on your Windows/GPU combination.
+4. Load your usual save and send openmw.log. New Save load phase/records lines separate record restoration, progress display, player setup, initial cell and Lua startup. This is investigation, not a claimed loading speedup.
+5. For Win+G, compare a restart with version.dll renamed/removed against a restart with it installed. The End hotkey disables interpolation but retains the presentation hook. New SDL input mode log lines record keyboard/mouse grabs without logging key presses. Win+G is not claimed fixed.

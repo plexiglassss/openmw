@@ -1,3 +1,19 @@
+24 October startup handoff repair (offline test build)
+---------------------------------------------------
+Seed the first redirected texture from the native back buffer before activating
+the redirect. Previously the initial ring texture was uninitialised; loading
+could read it before drawing. The per-frame preservation and shutdown repairs
+remain. This adds one GPU framebuffer blit per initialisation/resize, not a new
+per-frame copy. MSAA is resolved by the blit; bindings, read selection, scissor
+and sRGB state are restored. Tests cover native EGL default framebuffer, FBO,
+MSAA source, masked/scissored state, and prior loading continuity. Live Windows
+startup remains to be confirmed. This does not claim to repair Xbox Game Bar.
+
+Keep your INI. The End toggle leaves the hook/presenter loaded; fully remove or
+rename version.dll with OpenMW closed for a native-presentation comparison.
+
+Earlier release information follows:
+
 OpenMW Frame Generation 0.2.0 - diagnostics, passive overlay positioning, and OpenMW fixes
 
 Changes

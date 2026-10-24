@@ -367,6 +367,16 @@ namespace SDLUtil
         if (relative && !success)
             mWrapPointer = true;
 
+#if defined(_WIN32) && SDL_VERSION_ATLEAST(2, 0, 16)
+        // Log only on relative-mode transitions, never for individual key events.
+        const char* keyboardHint = SDL_GetHint(SDL_HINT_GRAB_KEYBOARD);
+        Log(Debug::Info) << "SDL input mode: keyboardGrab=" << int(SDL_GetWindowKeyboardGrab(mSDLWindow))
+                         << " mouseGrab=" << int(SDL_GetWindowMouseGrab(mSDLWindow))
+                         << " relative=" << int(SDL_GetRelativeMouseMode())
+                         << " fullscreen=" << (SDL_GetWindowFlags(mSDLWindow) & SDL_WINDOW_FULLSCREEN_DESKTOP)
+                         << " grabKeyboardHint=" << (keyboardHint ? keyboardHint : "unset");
+#endif
+
         // now remove all mouse events using the old setting from the queue
         SDL_PumpEvents();
         SDL_FlushEvent(SDL_MOUSEMOTION);

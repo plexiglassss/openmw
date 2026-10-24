@@ -899,6 +899,7 @@ namespace fg
             // lands in our offscreen target.
             S.gameCur = 0;
             attachGameTexture(0);
+            fg::SeedFrameContents(0, GL_BACK, S.gameFbo, S.width, S.height);
             S.redirect = true;
             Log("fg: framebuffer redirect ACTIVE");
             return false;

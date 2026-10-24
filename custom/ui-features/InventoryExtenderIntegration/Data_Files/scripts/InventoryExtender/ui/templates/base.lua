@@ -424,7 +424,7 @@ Templates.buttonBorders = function(borderSize)
     return template
 end
 
-Templates.buttonBox = function()
+Templates.buttonBox = function(forceBorder)
     local template = {
         type = ui.TYPE.Container,
         content = ui.content {},
@@ -433,7 +433,7 @@ Templates.buttonBox = function()
         local horizontal = (k == 'top' or k == 'bottom')
         local direction = horizontal and v2(1, 0) or v2(0, 1)
         template.content:add {
-            template = buttonBorderPieces[k] and not intRe and buttonBorderPieces[k] or nil,
+            template = buttonBorderPieces[k] and (forceBorder or not intRe) and buttonBorderPieces[k] or nil,
             props = {
                 position = (direction + v) * buttonBorderSize,
                 relativePosition = v,
@@ -444,7 +444,7 @@ Templates.buttonBox = function()
     end
     for k, v in pairs(borderCornerParts) do
         template.content:add {
-            template = buttonBorderPieces[k] and not intRe and buttonBorderPieces[k] or nil,
+            template = buttonBorderPieces[k] and (forceBorder or not intRe) and buttonBorderPieces[k] or nil,
             props = {
                 position = v * buttonBorderSize,
                 relativePosition = v,
@@ -462,8 +462,8 @@ Templates.buttonBox = function()
     return template
 end
 
-Templates.buttonBoxBgr = function(bgrAlpha)
-    local template = auxUi.deepLayoutCopy(Templates.buttonBox())
+Templates.buttonBoxBgr = function(bgrAlpha, forceBorder)
+    local template = auxUi.deepLayoutCopy(Templates.buttonBox(forceBorder))
     template.content:insert(1, {
         type = ui.TYPE.Image,
         props = {
@@ -477,10 +477,10 @@ Templates.buttonBoxBgr = function(bgrAlpha)
     return template
 end
 
-Templates.button = function(text, onClick, name, bgrAlpha)
+Templates.button = function(text, onClick, name, bgrAlpha, forceBorder)
     local base = {
         name = name,
-        template = Templates.buttonBoxBgr(bgrAlpha),
+        template = Templates.buttonBoxBgr(bgrAlpha, forceBorder),
         props = {},
         content = ui.content {
             {

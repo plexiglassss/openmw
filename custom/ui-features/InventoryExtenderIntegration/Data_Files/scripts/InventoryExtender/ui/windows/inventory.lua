@@ -338,7 +338,7 @@ function Inventory:create(windowType, ctx)
 
         if pickupToCursor then
             if helpers.isBoundItem(row.item) or not isPlayerInventoryItem(row.item) then
-                print('[InventoryExtender Bridge 1.2.7] Cursor pickup rejected: bound=' .. tostring(helpers.isBoundItem(row.item)) .. ' playerOwned=' .. tostring(isPlayerInventoryItem(row.item)))
+                print('[InventoryExtender Bridge 1.2.8] Cursor pickup rejected: bound=' .. tostring(helpers.isBoundItem(row.item)) .. ' playerOwned=' .. tostring(isPlayerInventoryItem(row.item)))
                 return false
             end
             -- Use IE's normal asynchronous cursor pickup. It retains protection,
@@ -682,6 +682,7 @@ function Inventory:create(windowType, ctx)
             content = content,
             userData = {
                 text = text,
+                recent = self.target == omwself and not row.isBartered and configPlayer.tweaks.b_RecentItems ~= false and recent.isRecent(row.item),
                 favorite = badgeState.favorite,
                 stolen = badgeState.stolen,
                 enchanted = enchanted,
@@ -1846,7 +1847,7 @@ function Inventory:create(windowType, ctx)
                     end
                 end),
                 paperDollClick = async:callback(function(e)
-                    print('[InventoryExtender Bridge 1.2.7] Paper-doll press: slot=' .. tostring(e.slot) .. ' mode=' .. tostring(I.UI.getMode()))
+                    print('[InventoryExtender Bridge 1.2.8] Paper-doll press: slot=' .. tostring(e.slot) .. ' mode=' .. tostring(I.UI.getMode()))
                     if ctx.activeTooltip and ctx.activeTooltip.layout then
                         auxUi.deepDestroy(ctx.activeTooltip)
                         ctx.activeTooltip = nil
@@ -2372,9 +2373,11 @@ function Inventory:create(windowType, ctx)
                 recent.observe(omwself.type.inventory(omwself):getAll())
                 recent.clear()
                 self:updateData()
+                return true
             end,
+            name = 'clearRecentButton',
             parent = self.infoBar,
-        }, baseTemplates.button(l10n('UI_ClearRecent')), ctx))
+        }, baseTemplates.button(l10n('UI_ClearRecent'), nil, 'clearRecentButton', 0.8, true), ctx))
     end
     self.infoBar.layout.userData.updateAll()
 
