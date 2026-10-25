@@ -1,0 +1,6 @@
+{
+  "source_provider": "GitHub connector at exact parent SHA",
+  "new_header": "stdlib only; included directly by engine source",
+  "mod_or_asset_winner_changes": [],
+  "installed_winner_audit": "not performed or claimed"
+}

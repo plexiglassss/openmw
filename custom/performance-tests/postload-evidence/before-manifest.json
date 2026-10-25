@@ -1,0 +1,16 @@
+{
+  "repository": "plexiglassss/openmw",
+  "commit": "9b5235c11f13f2c99495b08c1aa64bb27804eb8d",
+  "files": {
+    "apps/openmw/engine.cpp": "f647ea019045c3f6ed6fd1745ddfb60e8e2bb81a61e0c4a28c9081b99cf72214",
+    "apps/openmw/mwstate/statemanagerimp.cpp": "bf61dfbda5e0287b9ebd49b66c2a41dc90a7d05c7aae7520ba36dd5f0955723b",
+    "apps/openmw/mwworld/cellstore.cpp": "033bd2097c965398d080c011bb050f8b26a1f03345589b2ee2e28eb78eceedfe",
+    "apps/openmw/mwlua/worker.cpp": "38549165a18b504bad800788535632a5e46304748a26a17159ca4e901f4802c5",
+    ".github/workflows/diagnostic-timing.yml": "0727abf374a5b611f27cb91461ee87376c516ea04d94735aad07d3be10fc3284"
+  },
+  "new_files": [
+    "components/diagnostics/postload.hpp",
+    "custom/performance-tests/postload.cpp",
+    "custom/performance-tests/test-postload-integration.py"
+  ]
+}

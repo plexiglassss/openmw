@@ -1,3 +1,4 @@
+#include <components/diagnostics/postload.hpp>
 #include <components/diagnostics/timing.hpp>
 #include "worker.hpp"
 
@@ -101,6 +102,7 @@ namespace MWLua
     {
         Diagnostics::setFrame(frameNumber);
         Diagnostics::Scope timing("phase", "LuaWorker", "update");
+        Diagnostics::PostLoad::Scope postLoadPhase(Diagnostics::PostLoad::Phase::LuaExecution);
         const osg::Timer* const timer = osg::Timer::instance();
         OMW::ScopedProfile<OMW::UserStatsType::Lua> profile(frameStart, frameNumber, *timer, stats);
 

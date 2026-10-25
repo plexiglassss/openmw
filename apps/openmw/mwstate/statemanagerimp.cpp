@@ -1,3 +1,4 @@
+#include <components/diagnostics/postload.hpp>
 #include "statemanagerimp.hpp"
 
 #include <filesystem>
@@ -55,6 +56,9 @@
 
 void MWState::StateManager::cleanup(bool force)
 {
+    if (Diagnostics::PostLoad::capture().active())
+        Log(Debug::Info) << "Post-load capture cancelled by game cleanup";
+    Diagnostics::PostLoad::capture().cancel();
     if (mState != State_NoGame || force)
     {
         MWBase::Environment::get().getSoundManager()->clear();
@@ -716,6 +720,9 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         phase("summoned creature cleanup");
         Log(Debug::Info) << "Save load total: "
                          << std::chrono::duration<double, std::milli>(LoadClock::now() - loadStart).count() << " ms";
+        Diagnostics::PostLoad::capture().arm();
+        Log(Debug::Info) << "Post-load capture armed: 10 seconds, at least 5 frame observations, at most 10000;"
+                            " first 5 frames plus slow frames, at most 40 detail lines total; inclusive phase timings";
     }
     catch (const SaveVersionTooNewError& e)
     {

@@ -1,3 +1,4 @@
+#include <components/diagnostics/postload.hpp>
 #include "cellstore.hpp"
 #include "magiceffects.hpp"
 
@@ -789,6 +790,7 @@ namespace MWWorld
     {
         if (mState != State_Loaded)
         {
+            Diagnostics::PostLoad::CellLoadScope postLoadCell;
             Diagnostics::MWScriptNativeScope timing("cell.load");
             if (mState == State_Preloaded)
                 mIds.clear();

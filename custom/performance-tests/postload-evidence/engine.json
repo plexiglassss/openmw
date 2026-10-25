@@ -1,0 +1,9 @@
+{
+  "repository": "plexiglassss/openmw",
+  "branch": "diagnostic-timing-2829ae6d",
+  "parent": "9b5235c11f13f2c99495b08c1aa64bb27804eb8d",
+  "candidate_manifest": "candidate-manifest.json",
+  "local_engine_build": "not performed; full dependency tree unavailable",
+  "Windows_CI": "pending new commit build",
+  "live_OpenMW": "not performed"
+}

@@ -1,0 +1,58 @@
+{
+  "configuration": {
+    "path": "custom/performance-tests/postload-evidence/configuration.json",
+    "sha256": "df82572818d092cf323df694143f2a419f51b92f1ae023593ee2a92ee16bfb67"
+  },
+  "engine": {
+    "path": "custom/performance-tests/postload-evidence/engine.json",
+    "sha256": "94c83e0a2586fbc26383e2bcbe49c314d111ce053abe4e6fba973e57b2a323cc"
+  },
+  "before_manifest": {
+    "path": "custom/performance-tests/postload-evidence/before-manifest.json",
+    "sha256": "83fb0cd5b7eb7832c2d7c3988f6336390d091af8e7f95d366dd21eae1b1deeb3"
+  },
+  "candidate_manifest": {
+    "path": "custom/performance-tests/postload-evidence/candidate-manifest.json",
+    "sha256": "1f1762d7985843c908d5907624e0ab192e06ddaab10ca81b41cb5a5d2c44d387"
+  },
+  "providers": {
+    "path": "custom/performance-tests/postload-evidence/providers.json",
+    "sha256": "557052881100de61a83c730bee650a8cbf6365db6fce34d6a027fa9eed5965b9"
+  },
+  "tools": {
+    "path": "custom/performance-tests/postload-evidence/tools.json",
+    "sha256": "cc46d4697f374fc4c70383773e74dda67db184a73171dba4caa29afca2d0fde3"
+  },
+  "components/diagnostics/postload.hpp": {
+    "path": "components/diagnostics/postload.hpp",
+    "sha256": "9db4acd453f49a0343c698c516fe5711d102db6f2f4baf3098e1a91d4c4e0b29"
+  },
+  "apps/openmw/engine.cpp": {
+    "path": "apps/openmw/engine.cpp",
+    "sha256": "e53705f379c797b35e7f58caa3dbbf73571388005f5a8b358286d360d9425262"
+  },
+  "apps/openmw/mwstate/statemanagerimp.cpp": {
+    "path": "apps/openmw/mwstate/statemanagerimp.cpp",
+    "sha256": "db4a34c0ef9d1100f3c0425e1a58b16f1250b80cf8d442ea8375c235f34824a3"
+  },
+  "apps/openmw/mwworld/cellstore.cpp": {
+    "path": "apps/openmw/mwworld/cellstore.cpp",
+    "sha256": "d5e0d1475a983145c7168257a1b27109b44473708610c7d2e93b75048e6ce144"
+  },
+  "apps/openmw/mwlua/worker.cpp": {
+    "path": "apps/openmw/mwlua/worker.cpp",
+    "sha256": "bcb513b3d8bdf368a43acabfa54a2a0f2190e3acbd7d9a1cc78b0176e0b22ed0"
+  },
+  ".github/workflows/diagnostic-timing.yml": {
+    "path": ".github/workflows/diagnostic-timing.yml",
+    "sha256": "6fd6ee53d813c55ed417b32ac32a81723867ac5b0e026c407548e2688ef76009"
+  },
+  "custom/performance-tests/postload.cpp": {
+    "path": "custom/performance-tests/postload.cpp",
+    "sha256": "b8db77c14da69bd76893ae862d8153d49846416e6142b44b6b636f49a939f5d5"
+  },
+  "custom/performance-tests/test-postload-integration.py": {
+    "path": "custom/performance-tests/test-postload-integration.py",
+    "sha256": "7d5b054799be249ec9ecca4aab659120d61ef9fecefe7aaba6115a96e71ab718"
+  }
+}

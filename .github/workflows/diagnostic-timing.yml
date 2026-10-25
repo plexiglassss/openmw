@@ -21,6 +21,9 @@ jobs:
         run: |
           g++ -std=c++20 -I. custom/ui-features/snap-tests.cpp -o snap-tests
           ./snap-tests
+          g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -I. custom/performance-tests/postload.cpp -o postload-test
+          ./postload-test
+          python3 custom/performance-tests/test-postload-integration.py
           python3 custom/performance-tests/test-save-metadata.py
           python3 custom/performance-tests/test-transition-preload.py
           python3 custom/performance-tests/test-preload.py
@@ -77,6 +80,12 @@ jobs:
           if ($LASTEXITCODE) { throw "Save reference index test compile failed" }
           ./save-reference-index-test.exe
           if ($LASTEXITCODE) { throw "Save reference index test failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/postload.cpp /Fe:postload-test.exe
+          if ($LASTEXITCODE) { throw "Post-load test compile failed" }
+          ./postload-test.exe
+          if ($LASTEXITCODE) { throw "Post-load recorder regression failed" }
+          python custom/performance-tests/test-postload-integration.py
+          if ($LASTEXITCODE) { throw "Post-load integration regression failed" }
           cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/smoke.cpp /Fe:timing-smoke.exe
           if ($LASTEXITCODE) { throw "Compile failed" }
           $env:OPENMW_TIMING_FILE = "$PWD/timing-test.csv"
@@ -105,4 +114,5 @@ jobs:
       package: false
       release: false
       diagnostic-fast: ${{ github.event_name != 'workflow_dispatch' || !inputs.full_build }}
+
 

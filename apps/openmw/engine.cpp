@@ -1,4 +1,6 @@
 #include <components/diagnostics/timing.hpp>
+#include <components/diagnostics/postload.hpp>
+#include <sstream>
 #include "engine.hpp"
 #include "startupscreen.hpp"
 
@@ -90,6 +92,49 @@
 
 namespace
 {
+    void reportPostLoadFrame(Diagnostics::PostLoad::Stamp stamp, bool completed)
+    {
+        using namespace Diagnostics::PostLoad;
+        if (!capture().active())
+            return;
+        const auto report = capture().finishFrame(stamp, completed);
+        if (!report)
+            return;
+        const auto metricsText = [](const Metrics& metrics) {
+            std::ostringstream text;
+            for (std::size_t i = 0; i < phaseCount; ++i)
+            {
+                if (metrics.phaseMs[i] > 0 || metrics.cellLoads[i] > 0)
+                    text << ' ' << phaseNames[i] << "Ms=" << metrics.phaseMs[i]
+                         << "/cellCalls=" << metrics.cellLoads[i] << "/outerCellMs=" << metrics.outerCellMs[i];
+            }
+            return text.str();
+        };
+        if (report->details)
+            Log(Debug::Info) << "Post-load frame: sample=" << report->epoch << " frame=" << report->frames
+                             << " partial=" << report->partial << " completed=" << report->completed
+                             << " frameMs=" << report->frameMs << " sinceLoadEndMs=" << report->elapsedMs
+                             << metricsText(report->frame);
+        if (report->firstCompleted)
+            Log(Debug::Info) << "Post-load first completed engine frame: sinceLoadEndMs=" << report->elapsedMs
+                             << " partial=" << report->partial
+                             << " (not a GPU presentation or input-responsiveness measurement)";
+        if (report->finished)
+            Log(Debug::Info) << "Post-load summary: sample=" << report->epoch << " frames=" << report->frames
+                             << " completed=" << report->completedFrames << " elapsedMs=" << report->elapsedMs
+                             << " reason=" << (report->frameLimit ? "frame-limit" : "time-window")
+                             << " (phases inclusive; Lua execution can overlap rendering; luaFinish includes"
+                                " execution when no Lua worker thread is configured)"
+                             << metricsText(report->total);
+    }
+
+    struct PostLoadFrameReport
+    {
+        Diagnostics::PostLoad::Stamp mStart = Diagnostics::PostLoad::capture().begin();
+        bool mCompleted = false;
+        ~PostLoadFrameReport() { reportPostLoadFrame(mStart, mCompleted); }
+    };
+
     void checkSDLError(int ret)
     {
         if (ret != 0)
@@ -192,6 +237,8 @@ void OMW::Engine::executeLocalScripts()
 
 bool OMW::Engine::frame(unsigned frameNumber, float frametime)
 {
+    PostLoadFrameReport postLoadFrame;
+    using Diagnostics::PostLoad::Phase;
     Diagnostics::setFrame(frameNumber);
     const osg::Timer_t frameStart = mViewer->getStartTick();
     const osg::Timer* const timer = osg::Timer::instance();
@@ -204,11 +251,15 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // Stop the background GC started at the previous frame's end.
         // Input handling can run Lua (the menu key does), so the state
         // must not be collected from this point on.
-        mLuaWorker->finishGc();
+        {
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::GcWait);
+            mLuaWorker->finishGc();
+        }
 
         // update input
         {
             ScopedProfile<UserStatsType::Input> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::Input);
             mInputManager->update(frametime, false);
         }
 
@@ -218,6 +269,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // https://github.com/MyGUI/mygui/issues/21)
         {
             ScopedProfile<UserStatsType::Sound> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::Sound);
 
             if (!mWindowManager->isWindowVisible())
             {
@@ -234,6 +286,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
 
         {
             ScopedProfile<UserStatsType::LuaSyncUpdate> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::LuaSync);
             // Should be called after input manager update and before any change to the game world.
             // It applies to the game world queued changes from the previous frame.
             mLuaManager->synchronizedUpdate();
@@ -242,6 +295,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // update game state
         {
             ScopedProfile<UserStatsType::State> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::State);
             mStateManager->update(frametime);
         }
 
@@ -249,6 +303,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
 
         {
             ScopedProfile<UserStatsType::Script> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::MWScript);
 
             if (mStateManager->getState() != MWBase::StateManager::State_NoGame)
             {
@@ -278,6 +333,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // update mechanics
         {
             ScopedProfile<UserStatsType::Mechanics> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::Mechanics);
 
             if (mStateManager->getState() != MWBase::StateManager::State_NoGame)
             {
@@ -295,6 +351,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // update physics
         {
             ScopedProfile<UserStatsType::Physics> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::Physics);
 
             if (mStateManager->getState() != MWBase::StateManager::State_NoGame)
             {
@@ -305,6 +362,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // update world
         {
             ScopedProfile<UserStatsType::World> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::World);
 
             if (mStateManager->getState() != MWBase::StateManager::State_NoGame)
             {
@@ -315,6 +373,7 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         // update GUI
         {
             ScopedProfile<UserStatsType::Gui> profile(frameStart, frameNumber, *timer, *stats);
+            Diagnostics::PostLoad::Scope postLoadPhase(Phase::Gui);
             mWindowManager->update(frametime);
         }
     }
@@ -323,51 +382,71 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         Log(Debug::Error) << "Error in frame: " << e.what();
     }
 
-    const bool reportResource = stats->collectStats("resource");
-
-    if (reportResource)
-        stats->setAttribute(frameNumber, "UnrefQueue", static_cast<double>(mUnrefQueue->getSize()));
-
-    mUnrefQueue->flush(*mWorkQueue);
-
-    if (reportResource)
     {
-        stats->setAttribute(frameNumber, "FrameNumber", frameNumber);
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::Maintenance);
+        const bool reportResource = stats->collectStats("resource");
 
-        mResourceSystem->reportStats(frameNumber, stats);
+        if (reportResource)
+            stats->setAttribute(frameNumber, "UnrefQueue", static_cast<double>(mUnrefQueue->getSize()));
 
-        stats->setAttribute(frameNumber, "WorkQueue", static_cast<double>(mWorkQueue->getNumItems()));
-        stats->setAttribute(frameNumber, "WorkThread", static_cast<double>(mWorkQueue->getNumActiveThreads()));
+        mUnrefQueue->flush(*mWorkQueue);
 
-        mMechanicsManager->reportStats(frameNumber, *stats);
-        mWorld->reportStats(frameNumber, *stats);
-        mLuaManager->reportStats(frameNumber, *stats);
+        if (reportResource)
+        {
+            stats->setAttribute(frameNumber, "FrameNumber", frameNumber);
 
-        stats->setAttribute(frameNumber, "StringRefId Count", static_cast<double>(ESM::StringRefId::totalCount()));
+            mResourceSystem->reportStats(frameNumber, stats);
+
+            stats->setAttribute(frameNumber, "WorkQueue", static_cast<double>(mWorkQueue->getNumItems()));
+            stats->setAttribute(frameNumber, "WorkThread", static_cast<double>(mWorkQueue->getNumActiveThreads()));
+
+            mMechanicsManager->reportStats(frameNumber, *stats);
+            mWorld->reportStats(frameNumber, *stats);
+            mLuaManager->reportStats(frameNumber, *stats);
+
+            stats->setAttribute(frameNumber, "StringRefId Count", static_cast<double>(ESM::StringRefId::totalCount()));
+        }
+
+        mStereoManager->updateSettings(Settings::camera().mNearClip, Settings::camera().mViewingDistance);
     }
 
-    mStereoManager->updateSettings(Settings::camera().mNearClip, Settings::camera().mViewingDistance);
-
-    mViewer->eventTraversal();
-    mViewer->updateTraversal();
+    {
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::SceneGraph);
+        mViewer->eventTraversal();
+        mViewer->updateTraversal();
+    }
 
     // update focus object for GUI
     {
         ScopedProfile<UserStatsType::Focus> profile(frameStart, frameNumber, *timer, *stats);
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::Focus);
         mWorld->updateFocusObject();
     }
 
     // if there is a separate Lua thread, it starts the update now
-    mLuaWorker->allowUpdate(frameStart, frameNumber, *stats);
+    {
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::LuaStart);
+        mLuaWorker->allowUpdate(frameStart, frameNumber, *stats);
+    }
 
-    mViewer->renderingTraversals();
+    {
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::Render);
+        mViewer->renderingTraversals();
+    }
 
-    mLuaWorker->finishUpdate(frameStart, frameNumber, *stats);
+    {
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::LuaFinish);
+        mLuaWorker->finishUpdate(frameStart, frameNumber, *stats);
+    }
 
     // The Lua state is unused until the next frame starts: the worker collects
     // garbage through the frame tail and the framerate-limiter sleep.
-    mLuaWorker->gc();
+    {
+        Diagnostics::PostLoad::Scope postLoadPhase(Phase::GcStart);
+        mLuaWorker->gc();
+    }
 
+    postLoadFrame.mCompleted = true;
     return true;
 }
 
