@@ -1,6 +1,7 @@
 #include "cellpreloader.hpp"
 
 #include <components/diagnostics/timing.hpp>
+#include <components/diagnostics/loading.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -204,18 +205,44 @@ namespace MWWorld
         void doWork() override
         {
             Diagnostics::Scope workTiming("terrain", "worker", "terrainJob");
-            for (unsigned int i = 0; i < mTerrainViews.size() && i < mPreloadPositions.size() && !mAbort; ++i)
             {
-                mTerrainViews[i]->reset();
-                mWorld->preload(mTerrainViews[i], mPreloadPositions[i].mPosition, mPreloadPositions[i].mCellBounds,
-                    mAbort, mLoadingReporter);
-            }
+                Diagnostics::Loading::JobRun jobRun(mTiming, mAbort);
+                for (unsigned int i = 0; i < mTerrainViews.size() && i < mPreloadPositions.size() && !mAbort; ++i)
+                {
+                    {
+                        Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ViewReset);
+                        mTerrainViews[i]->reset();
+                    }
+                    mWorld->preload(mTerrainViews[i], mPreloadPositions[i].mPosition, mPreloadPositions[i].mCellBounds,
+                        mAbort, mLoadingReporter);
+                }
+            } // Publish the worker snapshot before notifying the waiting main thread.
             mLoadingReporter.complete();
         }
 
         void abort() override { mAbort = true; }
 
-        void wait(Loading::Listener& listener) const { mLoadingReporter.wait(listener); }
+        void markEnqueued() { mTiming.enqueued(); }
+
+        void wait(Loading::Listener& listener, Loading::Reporter::WaitStats& stats) const
+        {
+            mLoadingReporter.waitWithStats(listener, stats);
+        }
+
+        void reportTimings(const Loading::Reporter::WaitStats& wait, bool waitRequested) const
+        {
+            const auto job = mTiming.snapshot();
+            Log(Debug::Info) << "Terrain preload detail: job=" << job.id << " enqueued=" << job.enqueueRecorded
+                             << " started=" << job.started << " finished=" << job.finished
+                             << " abortRequested=" << job.abortRequested << " exception=" << job.exception
+                             << " enqueueToStartMs=" << job.enqueueToStartMs << " workMs=" << job.workMs
+                             << " waitRequested=" << waitRequested << " mainWaitMs=" << wait.elapsedMs
+                             << " initialLockMs=" << wait.initialLockMs << " listenerMs=" << wait.listenerMs
+                             << " conditionMs=" << wait.conditionMs << " progressUpdates=" << wait.progressUpdates
+                             << " conditionWaits=" << wait.conditionWaits
+                             << " (worker stages inclusive; worker and main wait overlap; condition includes relock)"
+                             << job.metrics;
+        }
 
     private:
         std::atomic<bool> mAbort;
@@ -223,6 +250,7 @@ namespace MWWorld
         Terrain::World* mWorld;
         std::vector<PositionCellGrid> mPreloadPositions;
         Loading::Reporter mLoadingReporter;
+        Diagnostics::Loading::Job mTiming;
     };
 
     /// Worker thread item: update the resource system's cache, effectively deleting unused entries.
@@ -399,8 +427,14 @@ namespace MWWorld
 
     void CellPreloader::syncTerrainLoad(Loading::Listener& listener)
     {
-        if (mTerrainPreloadItem != nullptr && !mTerrainPreloadItem->isDone())
-            mTerrainPreloadItem->wait(listener);
+        if (mTerrainPreloadItem != nullptr)
+        {
+            Loading::Reporter::WaitStats wait;
+            const bool waitRequested = !mTerrainPreloadItem->isDone();
+            if (waitRequested)
+                mTerrainPreloadItem->wait(listener, wait);
+            mTerrainPreloadItem->reportTimings(wait, waitRequested);
+        }
     }
 
     void CellPreloader::abortTerrainPreloadExcept(const PositionCellGrid* exceptPos)
@@ -450,6 +484,7 @@ namespace MWWorld
             if (!positions.empty())
             {
                 mTerrainPreloadItem = new TerrainPreloadItem(mTerrainViews, mTerrain, positions);
+                mTerrainPreloadItem->markEnqueued();
                 mWorkQueue->addWorkItem(mTerrainPreloadItem);
             }
         }

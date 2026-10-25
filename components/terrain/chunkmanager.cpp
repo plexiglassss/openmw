@@ -1,3 +1,4 @@
+#include <components/diagnostics/loading.hpp>
 #include "chunkmanager.hpp"
 
 #include <components/diagnostics/timing.hpp>
@@ -65,6 +66,7 @@ namespace Terrain
     osg::ref_ptr<osg::Node> ChunkManager::getChunk(float size, const osg::Vec2f& center, unsigned char lod,
         unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
+        Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::TerrainChunks);
         Diagnostics::Scope chunkTiming("terrain", "ground", "getChunk");
         // Override lod with the vertexLodMod adjusted value.
         // TODO: maybe we can refactor this code by moving all vertexLodMod code into this class.

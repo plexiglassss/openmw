@@ -21,6 +21,10 @@ jobs:
         run: |
           g++ -std=c++20 -I. custom/ui-features/snap-tests.cpp -o snap-tests
           ./snap-tests
+          g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -I. custom/performance-tests/loading.cpp -o loading-test
+          ./loading-test
+          g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -Wno-unused-parameter -I. custom/performance-tests/loading-reporter.cpp components/loadinglistener/reporter.cpp -o loading-reporter-test
+          ./loading-reporter-test
           g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -I. custom/performance-tests/postload.cpp -o postload-test
           ./postload-test
           python3 custom/performance-tests/test-postload-integration.py
@@ -80,6 +84,14 @@ jobs:
           if ($LASTEXITCODE) { throw "Save reference index test compile failed" }
           ./save-reference-index-test.exe
           if ($LASTEXITCODE) { throw "Save reference index test failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/loading.cpp /Fe:loading-test.exe
+          if ($LASTEXITCODE) { throw "Loading diagnostics compile failed" }
+          ./loading-test.exe
+          if ($LASTEXITCODE) { throw "Loading diagnostics regression failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /wd4100 /I. custom/performance-tests/loading-reporter.cpp components/loadinglistener/reporter.cpp /Fe:loading-reporter-test.exe
+          if ($LASTEXITCODE) { throw "Loading Reporter compile failed" }
+          ./loading-reporter-test.exe
+          if ($LASTEXITCODE) { throw "Loading Reporter regression failed" }
           cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/postload.cpp /Fe:postload-test.exe
           if ($LASTEXITCODE) { throw "Post-load test compile failed" }
           ./postload-test.exe

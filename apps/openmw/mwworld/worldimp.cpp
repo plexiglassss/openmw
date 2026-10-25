@@ -1,3 +1,4 @@
+#include <components/diagnostics/loading.hpp>
 #include "worldimp.hpp"
 
 #include <components/diagnostics/mwscript.hpp>
@@ -2239,24 +2240,31 @@ namespace MWWorld
 
     void World::setupPlayer()
     {
-        const ESM::NPC* player = mStore.get<ESM::NPC>().find(ESM::RefId::stringRefId("Player"));
-        if (!mPlayer)
-            mPlayer = std::make_unique<MWWorld::Player>(player);
-        else
+        Ptr ptr;
         {
-            // Remove the old CharacterController
-            MWBase::Environment::get().getMechanicsManager()->remove(getPlayerPtr(), true);
-            mNavigator->removeAgent(getPathfindingAgentBounds(getPlayerConstPtr()));
-            mPhysics->remove(getPlayerPtr());
-            mRendering->removePlayer(getPlayerPtr());
-            MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(getPlayerPtr());
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerBaseSetup);
+            const ESM::NPC* player = mStore.get<ESM::NPC>().find(ESM::RefId::stringRefId("Player"));
+            if (!mPlayer)
+                mPlayer = std::make_unique<MWWorld::Player>(player);
+            else
+            {
+                // Remove the old CharacterController
+                MWBase::Environment::get().getMechanicsManager()->remove(getPlayerPtr(), true);
+                mNavigator->removeAgent(getPathfindingAgentBounds(getPlayerConstPtr()));
+                mPhysics->remove(getPlayerPtr());
+                mRendering->removePlayer(getPlayerPtr());
+                MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(getPlayerPtr());
 
-            mPlayer->set(player);
+                mPlayer->set(player);
+            }
+
+            ptr = mPlayer->getPlayer();
+            mRendering->setupPlayer(ptr);
         }
-
-        Ptr ptr = mPlayer->getPlayer();
-        mRendering->setupPlayer(ptr);
-        MWBase::Environment::get().getLuaManager()->setupPlayer(ptr);
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerLuaSetup);
+            MWBase::Environment::get().getLuaManager()->setupPlayer(ptr);
+        }
     }
 
     void World::renderPlayer()

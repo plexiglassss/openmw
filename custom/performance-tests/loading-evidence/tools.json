@@ -1,0 +1,7 @@
+{
+  "g++": "g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "python": "Python 3.12.14",
+  "test_standard": "C++20",
+  "runtime_tests": "Standalone production recorder and Reporter only",
+  "engine_build": "Windows GitHub Actions, pending new commit"
+}

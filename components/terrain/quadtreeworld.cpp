@@ -1,3 +1,4 @@
+#include <components/diagnostics/loading.hpp>
 #include "quadtreeworld.hpp"
 
 #include <components/diagnostics/timing.hpp>
@@ -567,23 +568,38 @@ namespace Terrain
         std::atomic<bool>& abort, Loading::Reporter& reporter)
     {
         Diagnostics::Scope preloadTiming("terrain", "worker", "preloadView");
-        ensureQuadTreeBuilt();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::QuadTree);
+            ensureQuadTreeBuilt();
+        }
         const float cellWorldSize = mStorage->getCellWorldSize(mWorldspace);
 
         ViewData* vd = static_cast<ViewData*>(view);
-        vd->setViewPoint(viewPoint);
-        vd->setActiveGrid(grid);
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ViewSelection);
+            vd->setViewPoint(viewPoint);
+            vd->setActiveGrid(grid);
 
-        DefaultLodCallback lodCallback(mLodFactor, mMinSize, mViewDistance, grid, static_cast<int>(cellWorldSize));
-        mRootNode->traverseNodes(vd, viewPoint, &lodCallback);
+            DefaultLodCallback lodCallback(mLodFactor, mMinSize, mViewDistance, grid, static_cast<int>(cellWorldSize));
+            mRootNode->traverseNodes(vd, viewPoint, &lodCallback);
+        }
 
-        reporter.addTotal(vd->getNumEntries());
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);
+            reporter.addTotal(vd->getNumEntries());
+        }
 
         for (unsigned int i = 0, n = vd->getNumEntries(); i < n && !abort; ++i)
         {
             ViewDataEntry& entry = vd->getEntry(i);
-            loadRenderingNode(entry, vd, cellWorldSize, grid, true);
-            reporter.addProgress(1);
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
+                loadRenderingNode(entry, vd, cellWorldSize, grid, true);
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);
+                reporter.addProgress(1);
+            }
         }
     }
 

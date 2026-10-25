@@ -1,0 +1,37 @@
+{
+  "kind": "substantive_review",
+  "producer": "/root",
+  "method": "Inspect actual released verification command and returned release integrity result",
+  "scope": "Governing release integrity only",
+  "findings": "{\n  \"gate\": \"release_integrity\",\n  \"result\": \"PASS\",\n  \"errors\": [],\n  \"advisories\": [],\n  \"placement\": null,\n  \"official_overrides\": null,\n  \"dialogue_discovery\": null,\n  \"limitation\": \"Source-derived spatial, official-master and dialogue-discovery coverage plus preserved evidence checks; no whole-engine or gameplay execution. Typed human review is checked for consistency, not authenticated. Load-order advisory notices do not change this strict result.\"\n}",
+  "outcome": "PASS",
+  "bindings": {
+    "configuration": "ded8baa412289cd2d1f6a1233884a7964fe488f18f87e30c381ba1a456998266",
+    "engine": "502e4d0d5d21b88c65458e700bffd7d444ae50cd90b6e2ff9abf9430522b4074",
+    "before_manifest": "167dd49d4cf6f0e627d6ba0c6b82ecf85ff45934620000455b6aa813703b6736",
+    "candidate_manifest": "220c1022c8ffcebedf21fe96d740efe56a6e89301855bea2aa92920ee6a003ee",
+    "providers": "ca03b39682e19f731718d4e2df828d6020741a7c9dfd8cb5aa0caf0af8f8d8e8",
+    "tools": "7c67dc6da3f7d938b2e960e3578f441fb33e01a1df51126786faebfa238b9850",
+    ".github/workflows/diagnostic-timing.yml": "341b578361e3799f25800cc994ead52200f2f713f2edd132096e14b0dc77d96d",
+    "apps/openmw/mwrender/groundcover.cpp": "f25a8ebc77927b158cb31acf203456193be940e34ff32556b57d1d4c2b4d87a3",
+    "apps/openmw/mwrender/objectpaging.cpp": "1f70018ebdd7286a75761345bd8002029903cd68a5dcf9ec0e0efc77b9128081",
+    "apps/openmw/mwstate/statemanagerimp.cpp": "a26f1d8ebae1052405c6564564ca037cdec999b6ba69f0240919d94b5405346c",
+    "apps/openmw/mwworld/cellpreloader.cpp": "045b6a2781d132eb3405ce8355357fdafb12e9a4afd4486ebfaac2c0cfdbb9d2",
+    "apps/openmw/mwworld/worldimp.cpp": "5a64b504fd6701a33384bb604ebded3b7993351f09a95abe95fcc4f9dbf4dbba",
+    "components/diagnostics/loading.hpp": "11daa2d93639f628595b21fe7b2fed753a49202e4deabb228c8c1f9604d824d9",
+    "components/loadinglistener/loadinglistener.hpp": "e6426f7c07907bdbd784ef643b5bf5c9ab1bbbcb42d3941d077be5f9c5ec58ee",
+    "components/loadinglistener/reporter.cpp": "06509c823bd6d22027bab8c66bbcae1c1afc16b096d38d14570ce4978ef20bf9",
+    "components/loadinglistener/reporter.hpp": "09b8c568f218a7ea40cd1e93bd5bb3ca97d501b7e0867c954832ac41e4ed5ea1",
+    "components/terrain/chunkmanager.cpp": "946add8e0974b9ba9004f11bf3623812475c4696f16f9fe88a2e8c5d6d4ad8f4",
+    "components/terrain/quadtreeworld.cpp": "da3059392f5caf7ecddfd356822d7c4516e998a66d248e9d2b3191c0403ce3d7",
+    "custom/performance-tests/LOADING_DETAIL_DIAGNOSTICS.md": "6eed4ceabc026de068bf8c585e27d1225090f8f78dd4628ac730c1bb05d37996",
+    "custom/performance-tests/loading-reporter.cpp": "0f5e49e65fbce44931d0eb4f8473ffb5bdb9722cb1a6b7d858605140da222e9c",
+    "custom/performance-tests/loading.cpp": "27d7df7ab5f23f4e6dbede96b2a0c6943fd62af7d6a486c0e6c1e82cc6f29792"
+  },
+  "artifacts": [
+    {
+      "path": "custom/performance-tests/loading-evidence/plan-validation.json",
+      "sha256": "38bc6fc68dddfe4068052c672b9eb9b3bb69d8d5f8a0225c5eac916352a5e70f"
+    }
+  ]
+}

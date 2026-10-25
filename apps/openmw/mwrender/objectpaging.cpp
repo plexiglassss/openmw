@@ -1,3 +1,4 @@
+#include <components/diagnostics/loading.hpp>
 #include "objectpaging.hpp"
 
 #include <components/diagnostics/timing.hpp>
@@ -131,6 +132,7 @@ namespace MWRender
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
         unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
+        Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::ObjectChunks);
         Diagnostics::Scope chunkTiming("terrain", "objects", "getChunk");
         if (activeGrid && !mActiveGrid)
             return nullptr;

@@ -1,3 +1,4 @@
+#include <components/diagnostics/loading.hpp>
 #include "groundcover.hpp"
 
 #include <span>
@@ -327,6 +328,7 @@ namespace MWRender
     osg::ref_ptr<osg::Node> Groundcover::getChunk(float size, const osg::Vec2f& center, unsigned char lod,
         unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
     {
+        Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::GroundcoverChunks);
         if (lod > getMaxLodLevel())
             return nullptr;
         GroundcoverChunkId id = std::make_tuple(center, size);

@@ -1,3 +1,4 @@
+#include <components/diagnostics/loading.hpp>
 #include <components/diagnostics/postload.hpp>
 #include "statemanagerimp.hpp"
 
@@ -661,14 +662,36 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         phase("world saveLoaded");
         actorIdConverter.apply();
         phase("legacy actor IDs");
-        MWBase::Environment::get().getWorld()->setupPlayer();
-        MWBase::Environment::get().getWorld()->renderPlayer();
-        MWBase::Environment::get().getWindowManager()->updatePlayer();
-        MWBase::Environment::get().getMechanicsManager()->playerLoaded();
-        MWBase::Environment::get().getWorld()->toggleVanityMode(false);
-
-        if (firstPersonCam != MWBase::Environment::get().getWorld()->isFirstPerson())
-            MWBase::Environment::get().getWorld()->togglePOV();
+        const auto playerStart = LoadClock::now();
+        Diagnostics::Loading::Metrics playerMetrics;
+        {
+            Diagnostics::Loading::Session playerSession(playerMetrics);
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerWorldSetup);
+                MWBase::Environment::get().getWorld()->setupPlayer();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerRender);
+                MWBase::Environment::get().getWorld()->renderPlayer();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerUi);
+                MWBase::Environment::get().getWindowManager()->updatePlayer();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerMechanics);
+                MWBase::Environment::get().getMechanicsManager()->playerLoaded();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerCamera);
+                MWBase::Environment::get().getWorld()->toggleVanityMode(false);
+                if (firstPersonCam != MWBase::Environment::get().getWorld()->isFirstPerson())
+                    MWBase::Environment::get().getWorld()->togglePOV();
+            }
+        }
+        Log(Debug::Info) << "Save load player detail: totalMs="
+                         << std::chrono::duration<double, std::milli>(LoadClock::now() - playerStart).count()
+                         << " (stages inclusive)" << playerMetrics;
 
         phase("player setup, render and mechanics");
         MWWorld::ConstPtr ptr = MWMechanics::getPlayer();

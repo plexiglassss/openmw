@@ -1,0 +1,16 @@
+{
+  "kind": "captured_command",
+  "argv": [
+    "python",
+    "plan134/OpenMW_Mod_Change_Plan_2.0.0/validate_audit.py",
+    "--verify-release",
+    "plan134/OpenMW_Mod_Change_Plan_2.0.0",
+    "--current",
+    "plan134/CURRENT.json"
+  ],
+  "exit_code": 0,
+  "stdout": "{\n  \"gate\": \"release_integrity\",\n  \"result\": \"PASS\",\n  \"errors\": [],\n  \"advisories\": [],\n  \"placement\": null,\n  \"official_overrides\": null,\n  \"dialogue_discovery\": null,\n  \"limitation\": \"Source-derived spatial, official-master and dialogue-discovery coverage plus preserved evidence checks; no whole-engine or gameplay execution. Typed human review is checked for consistency, not authenticated. Load-order advisory notices do not change this strict result.\"\n}\n",
+  "stderr": "",
+  "current_sha256": "8b04989b0ec84184674794c7359900af1f44075dbb76b29d33bf61a7c99dbade",
+  "checked_at_utc": "2026-10-25T08:26:18.284886+00:00"
+}

@@ -1,0 +1,67 @@
+{
+  "files": {
+    ".github/workflows/diagnostic-timing.yml": {
+      "sha256": "341b578361e3799f25800cc994ead52200f2f713f2edd132096e14b0dc77d96d",
+      "bytes": 7515
+    },
+    "apps/openmw/mwrender/groundcover.cpp": {
+      "sha256": "f25a8ebc77927b158cb31acf203456193be940e34ff32556b57d1d4c2b4d87a3",
+      "bytes": 21664
+    },
+    "apps/openmw/mwrender/objectpaging.cpp": {
+      "sha256": "1f70018ebdd7286a75761345bd8002029903cd68a5dcf9ec0e0efc77b9128081",
+      "bytes": 48918
+    },
+    "apps/openmw/mwstate/statemanagerimp.cpp": {
+      "sha256": "a26f1d8ebae1052405c6564564ca037cdec999b6ba69f0240919d94b5405346c",
+      "bytes": 37062
+    },
+    "apps/openmw/mwworld/cellpreloader.cpp": {
+      "sha256": "045b6a2781d132eb3405ce8355357fdafb12e9a4afd4486ebfaac2c0cfdbb9d2",
+      "bytes": 20368
+    },
+    "apps/openmw/mwworld/worldimp.cpp": {
+      "sha256": "5a64b504fd6701a33384bb604ebded3b7993351f09a95abe95fcc4f9dbf4dbba",
+      "bytes": 140333
+    },
+    "components/diagnostics/loading.hpp": {
+      "sha256": "11daa2d93639f628595b21fe7b2fed753a49202e4deabb228c8c1f9604d824d9",
+      "bytes": 5356
+    },
+    "components/loadinglistener/loadinglistener.hpp": {
+      "sha256": "e6426f7c07907bdbd784ef643b5bf5c9ab1bbbcb42d3941d077be5f9c5ec58ee",
+      "bytes": 2118
+    },
+    "components/loadinglistener/reporter.cpp": {
+      "sha256": "06509c823bd6d22027bab8c66bbcae1c1afc16b096d38d14570ce4978ef20bf9",
+      "bytes": 1923
+    },
+    "components/loadinglistener/reporter.hpp": {
+      "sha256": "09b8c568f218a7ea40cd1e93bd5bb3ca97d501b7e0867c954832ac41e4ed5ea1",
+      "bytes": 1045
+    },
+    "components/terrain/chunkmanager.cpp": {
+      "sha256": "946add8e0974b9ba9004f11bf3623812475c4696f16f9fe88a2e8c5d6d4ad8f4",
+      "bytes": 14552
+    },
+    "components/terrain/quadtreeworld.cpp": {
+      "sha256": "da3059392f5caf7ecddfd356822d7c4516e998a66d248e9d2b3191c0403ce3d7",
+      "bytes": 25985
+    },
+    "custom/performance-tests/LOADING_DETAIL_DIAGNOSTICS.md": {
+      "sha256": "6eed4ceabc026de068bf8c585e27d1225090f8f78dd4628ac730c1bb05d37996",
+      "bytes": 7752
+    },
+    "custom/performance-tests/loading-reporter.cpp": {
+      "sha256": "0f5e49e65fbce44931d0eb4f8473ffb5bdb9722cb1a6b7d858605140da222e9c",
+      "bytes": 4801
+    },
+    "custom/performance-tests/loading.cpp": {
+      "sha256": "27d7df7ab5f23f4e6dbede96b2a0c6943fd62af7d6a486c0e6c1e82cc6f29792",
+      "bytes": 5979
+    }
+  },
+  "unchanged_test_dependency": [
+    "components/loadinglistener/loadinglistener.hpp"
+  ]
+}
