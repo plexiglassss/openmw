@@ -814,6 +814,22 @@ namespace MWWorld
         }
     }
 
+    bool CellStore::mayHaveReferenceOfType(uint32_t type) const
+    {
+        if (mState == State_Loaded || !mMovedHere.empty() || !mMovedToAnotherCell.empty())
+            return true;
+        // insert<T> can populate a cell before full loading. Inspect raw lists,
+        // including inaccessible refs, without rebuilding/filtering merged refs.
+        if (std::apply([](const auto&... list) { return (!list.mList.empty() || ...); }, mCellStoreImp->mRefLists))
+            return true;
+        return ESM::visit([&](const auto& cell) {
+            if constexpr (std::is_same_v<std::remove_cvref_t<decltype(cell)>, ESM::Cell>)
+                return mStore.cellMayContainType(cell, type);
+            else
+                return true;
+        }, mCellVariant);
+    }
+
     void CellStore::listRefs(const ESM::Cell& cell)
     {
         if (cell.mContextList.empty())

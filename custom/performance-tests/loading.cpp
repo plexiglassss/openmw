@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <sstream>
+#include <set>
 #include <stdexcept>
 #include <thread>
 
@@ -21,6 +22,20 @@ namespace
 
     void scopes()
     {
+        // Exercise every exported stage, including the expanded cold-object
+        // breakdown. Names and counters must remain paired and distinct.
+        std::set<std::string_view> names;
+        Metrics stages;
+        {
+            Session session(stages);
+            for (std::size_t i = 0; i < stageCount; ++i)
+            {
+                require(!stageNames[i].empty() && names.insert(stageNames[i]).second, "stage name mapping");
+                Timer timer(static_cast<Stage>(i));
+            }
+        }
+        for (std::size_t i = 0; i < stageCount; ++i)
+            require(stages.calls[i] == 1 && stages.depth[i] == 0 && stages.elapsedMs[i] >= 0, "stage accounting");
         require(currentMetrics == nullptr, "initial TLS state");
         { Timer inactive(Stage::ObjectChunks); }
         require(currentMetrics == nullptr, "inactive timer altered session");

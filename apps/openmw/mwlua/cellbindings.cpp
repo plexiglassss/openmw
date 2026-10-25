@@ -147,6 +147,16 @@ namespace MWLua
         if constexpr (std::is_same_v<CellT, GCell>)
         { // only for global scripts
             cellT["getAll"] = [ids = getPackageToTypeTable(view)](const CellT& cell, sol::optional<sol::table> type) {
+                // Only the two ordinary record types below use the proven-empty
+                // shortcut initially. Keep Player, untyped and invalid queries
+                // on their established path, including their error behavior.
+                if (type.has_value() && ids[*type] != sol::nil)
+                {
+                    const uint32_t typeId = ids[*type];
+                    if ((typeId == ESM::REC_DOOR || typeId == ESM::REC_NPC_)
+                        && !cell.mStore->mayHaveReferenceOfType(typeId))
+                        return GObjectList{ std::make_shared<std::vector<ObjectId>>() };
+                }
                 if (cell.mStore->getState() != MWWorld::CellStore::State_Loaded)
                     cell.mStore->load();
                 ObjectIdList res = std::make_shared<std::vector<ObjectId>>();

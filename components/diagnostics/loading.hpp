@@ -23,13 +23,19 @@ namespace Diagnostics::Loading
     {
         PlayerWorldSetup, PlayerBaseSetup, PlayerLuaSetup, PlayerRender, PlayerUi, PlayerMechanics, PlayerCamera,
         ViewReset, QuadTree, ViewSelection, RenderNodes, ProgressReporting, TerrainChunks, ObjectChunks,
-        GroundcoverChunks, Count
+        GroundcoverChunks, ObjectReferences, ObjectReferenceRead, ObjectSelection, ObjectTemplates,
+        ObjectAnalysis, ObjectInstances, ObjectMerge, ObjectCompile, ObjectFinish,
+        TemplateRequest, TemplateCache, TemplatePrepare, TemplateLoad, TemplateFiltering,
+        TemplateShaders, TemplateOptimize, TemplateCompile, TemplatePublish, TemplateWait, Count
     };
     inline constexpr std::size_t stageCount = static_cast<std::size_t>(Stage::Count);
     inline constexpr std::array<std::string_view, stageCount> stageNames = {
         "playerWorldSetup", "playerBaseSetup", "playerLuaSetup", "playerRender", "playerUi", "playerMechanics",
         "playerCamera", "viewReset", "quadTree", "viewSelection", "renderNodes", "progressReporting",
-        "terrainChunks", "objectChunks", "groundcoverChunks"
+        "terrainChunks", "objectChunks", "groundcoverChunks", "objectReferences", "objectReferenceRead",
+        "objectSelection", "objectTemplates", "objectAnalysis", "objectInstances", "objectMerge", "objectCompile",
+        "objectFinish", "templateRequest", "templateCache", "templatePrepare", "templateLoad", "templateFiltering",
+        "templateShaders", "templateOptimize", "templateCompile", "templatePublish", "templateWait"
     };
 
     struct Metrics

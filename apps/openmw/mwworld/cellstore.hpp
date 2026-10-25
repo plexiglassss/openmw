@@ -201,6 +201,9 @@ namespace MWWorld
         void load();
         ///< Load references from content file.
 
+        bool mayHaveReferenceOfType(uint32_t type) const;
+        ///< Conservative negative-only query; does not create live references.
+
         void preload();
         ///< Build ID list from content file.
 

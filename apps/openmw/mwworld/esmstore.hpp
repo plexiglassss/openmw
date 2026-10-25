@@ -13,6 +13,7 @@
 #include <components/esm/refid.hpp>
 #include <components/esm3/loadgmst.hpp>
 #include <components/misc/tuplemeta.hpp>
+#include <components/misc/celltypeindex.hpp>
 
 #include "store.hpp"
 
@@ -172,6 +173,7 @@ namespace MWWorld
         };
 
         std::unordered_map<ESM::RefId, RefInfo> mRefInfo;
+        Misc::CellTypeIndex<const ESM::Cell*> mCellTypeCandidates;
 
         std::vector<StoreBase*> mStores;
         std::vector<DynamicStore*> mDynamicStores;
@@ -211,6 +213,9 @@ namespace MWWorld
         int find(const ESM::RefId& id) const;
 
         int findStatic(const ESM::RefId& id) const;
+
+        // False only for a fully indexed ESM3 cell with no candidate of this type.
+        bool cellMayContainType(const ESM::Cell& cell, uint32_t type) const;
 
         ESMStore();
         ~ESMStore();

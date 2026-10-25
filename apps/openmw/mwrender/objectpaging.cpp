@@ -646,6 +646,7 @@ namespace MWRender
         if (mWorldspace == ESM::Cell::sDefaultWorldspaceId)
         {
             Diagnostics::Scope refsTiming("terrain", "objects", "collectReferences");
+            Diagnostics::Loading::Timer refsLoading(Diagnostics::Loading::Stage::ObjectReferences);
             if (size <= 1.f)
             {
                 // Every subcell chunk reads the same full cell before filtering
@@ -659,6 +660,7 @@ namespace MWRender
                 {
                     const auto raw = mReferenceCache->cells.get({ startCell.x(), startCell.y() }, [&] {
                         Diagnostics::Scope readTiming("terrain", "objects", "readCellReferences");
+                        Diagnostics::Loading::Timer readLoading(Diagnostics::Loading::Stage::ObjectReferenceRead);
                         bool complete = true;
                         auto result = collectESM3References(1.f, startCell, store, &complete);
                         if (!complete)
@@ -677,6 +679,7 @@ namespace MWRender
         }
         else
         {
+            Diagnostics::Loading::Timer refsLoading(Diagnostics::Loading::Stage::ObjectReferences);
             refs = collectESM4References(size, startCell, mWorldspace);
         }
 
@@ -730,6 +733,8 @@ namespace MWRender
         const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         for (const auto& [refNum, ref] : refs)
         {
+            // Inclusive of template requests and node analysis below.
+            Diagnostics::Loading::Timer selectionLoading(Diagnostics::Loading::Stage::ObjectSelection);
             if (size < 1.f)
             {
                 const osg::Vec3f cellPos = ref.mPosition / static_cast<float>(cellSize);
@@ -789,6 +794,7 @@ namespace MWRender
 
             osg::ref_ptr<const osg::Node> cnode = [&] {
                 Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
+                Diagnostics::Loading::Timer modelLoading(Diagnostics::Loading::Stage::ObjectTemplates);
                 if (auto found = chunkTemplates.find(model); found != chunkTemplates.end())
                     return found->second;
                 auto node = mSceneManager->getTemplate(model, false);
@@ -825,6 +831,7 @@ namespace MWRender
             const auto emplaced = nodes.emplace(std::move(cnode), InstanceList());
             if (emplaced.second)
             {
+                Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
                 analyzeVisitor.mDistances = lodDistances / ref.mScale;
                 const osg::Node* const nodePtr = emplaced.first->first.get();
                 // const-trickery required because there is no const version of NodeVisitor
@@ -846,6 +853,7 @@ namespace MWRender
         CopyOp copyop(activeGrid, copyMask);
         for (const auto& pair : nodes)
         {
+            Diagnostics::Loading::Timer instancesLoading(Diagnostics::Loading::Stage::ObjectInstances);
             const osg::Node* cnode = pair.first;
 
             const AnalyzeVisitor::Result& analyzeResult = pair.second.mAnalyzeResult;
@@ -959,6 +967,7 @@ namespace MWRender
 
             {
                 Diagnostics::Scope mergeTiming("terrain", "objects", "mergeGeometry");
+                Diagnostics::Loading::Timer mergeLoading(Diagnostics::Loading::Stage::ObjectMerge);
                 optimizer.optimize(mergeGroup, options);
             }
 
@@ -979,11 +988,13 @@ namespace MWRender
         osgUtil::IncrementalCompileOperation* const ico = mSceneManager->getIncrementalCompileOperation();
         if (!stateToCompile.empty() && ico)
         {
+            Diagnostics::Loading::Timer compileLoading(Diagnostics::Loading::Stage::ObjectCompile);
             auto compileSet = new osgUtil::IncrementalCompileOperation::CompileSet(group);
             compileSet->buildCompileMap(ico->getContextSet(), stateToCompile);
             ico->add(compileSet, false);
         }
 
+        Diagnostics::Loading::Timer finishLoading(Diagnostics::Loading::Stage::ObjectFinish);
         group->getBound();
         group->setNodeMask(Mask_Static);
         osg::UserDataContainer* udc = group->getOrCreateUserDataContainer();

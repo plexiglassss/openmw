@@ -1,5 +1,6 @@
 #include "scenemanager.hpp"
 #include <components/diagnostics/timing.hpp>
+#include <components/diagnostics/loading.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -1006,9 +1007,11 @@ namespace Resource
     osg::ref_ptr<const osg::Node> SceneManager::getTemplate(VFS::Path::NormalizedView path, bool compile)
     {
         Diagnostics::Scope requestTiming("model", "template", "request");
+        Diagnostics::Loading::Timer requestLoading(Diagnostics::Loading::Stage::TemplateRequest);
         osg::ref_ptr<osg::Object> obj;
         {
             Diagnostics::Scope timing("model", "template", "cacheLookup");
+            Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateCache);
             obj = mCache->getRefFromObjectCache(path);
         }
         if (obj)
@@ -1019,10 +1022,12 @@ namespace Resource
             if (auto cached = mCache->getRefFromObjectCache(path))
                 return static_cast<osg::Node*>(cached.get());
             Diagnostics::Scope prepareTiming("model", "template", "prepare");
+            Diagnostics::Loading::Timer prepareLoading(Diagnostics::Loading::Stage::TemplatePrepare);
             osg::ref_ptr<osg::Node> loaded;
             try
             {
                 Diagnostics::Scope timing("model", "template", "load");
+                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateLoad);
                 loaded = load(path, mVFS, mImageManager, mNifFileManager, mBgsmFileManager);
             }
             catch (const std::exception& e)
@@ -1033,6 +1038,7 @@ namespace Resource
 
             {
                 Diagnostics::Scope timing("model", "template", "filtering");
+                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateFiltering);
                 // set filtering settings
                 SetFilterSettingsVisitor setFilterSettingsVisitor(mMinFilter, mMagFilter, mMaxAnisotropy);
                 loaded->accept(setFilterSettingsVisitor);
@@ -1042,11 +1048,13 @@ namespace Resource
             }
             {
                 Diagnostics::Scope timing("model", "template", "shaders");
+                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateShaders);
                 osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor());
                 loaded->accept(*shaderVisitor);
             }
             {
                 Diagnostics::Scope timing("model", "template", "optimizeAndShare");
+                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateOptimize);
                 if (canOptimize(path.value()))
                 {
                     SceneUtil::Optimizer optimizer;
@@ -1063,15 +1071,20 @@ namespace Resource
             }
             {
                 Diagnostics::Scope timing("model", "template", "compileOrBounds");
+                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateCompile);
                 if (compile && mIncrementalCompileOperation)
                     mIncrementalCompileOperation->add(loaded);
                 else
                     loaded->getBound();
             }
-            mCache->addEntryToObjectCache(path.value(), loaded);
+            {
+                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplatePublish);
+                mCache->addEntryToObjectCache(path.value(), loaded);
+            }
             return loaded;
         }, [](const auto& future) {
             Diagnostics::Scope timing("model", "template", "waitForPreparation");
+            Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateWait);
             return future.get();
         });
     }

@@ -329,6 +329,7 @@ namespace MWWorld
         for (const auto& store : mDynamicStores)
             store->clearDynamic();
         mStoreImp->mIds = mStoreImp->mStaticIds;
+        mCellTypeCandidates.resetTypeCompatibility();
 
         movePlayerRecord();
     }
@@ -485,6 +486,7 @@ namespace MWWorld
 
     void ESMStore::setIdType(const ESM::RefId& id, ESM::RecNameInts type)
     {
+        mCellTypeCandidates.observeTypeChange(findStatic(id), type);
         mStoreImp->mIds[id] = type;
     }
 
@@ -548,6 +550,11 @@ namespace MWWorld
                     mStoreImp->mIds[record] = recordType;
             }
         }
+        // Saved dynamic records are inserted before this rebuild. Compare the
+        // final winners, not intermediate definitions in the store traversal.
+        mCellTypeCandidates.resetTypeCompatibility();
+        for (const auto& [id, type] : mStoreImp->mIds)
+            mCellTypeCandidates.observeTypeChange(findStatic(id), type);
     }
 
     void ESMStore::validateRecords(ESM::ReadersCache& readers)
@@ -571,6 +578,15 @@ namespace MWWorld
         const std::size_t exteriorCellCount = cells.getExtSize();
         for (std::size_t i = 0; i < cellCount; ++i)
             readRefs(*cells.at(i), i, refs, refIDs, keyIDs, readers);
+        // Reuse the existing complete scan; do not reopen every CELL for a
+        // typed Lua query. Keep all alive candidates before winner/deletion
+        // reduction, including leased refs, so the index is conservative.
+        Misc::CellTypeIndex<const ESM::Cell*> typeCandidates;
+        for (std::size_t i = 0; i < cellCount; ++i)
+            typeCandidates.addCell(cells.at(i));
+        for (const Ref& value : refs)
+            if (value.mRefID != deletedRefID)
+                typeCandidates.addCandidate(cells.at(value.mCellIndex), find(refIDs[value.mRefID]));
         const auto lessByRefNum = [](const Ref& l, const Ref& r) { return l.mRefNum < r.mRefNum; };
         std::stable_sort(refs.begin(), refs.end(), lessByRefNum);
         const auto equalByRefNum = [](const Ref& l, const Ref& r) { return l.mRefNum == r.mRefNum; };
@@ -603,6 +619,13 @@ namespace MWWorld
             if (it != store.end())
                 it->second.mData.mFlags |= ESM::Miscellaneous::Key;
         }
+        typeCandidates.complete();
+        mCellTypeCandidates = std::move(typeCandidates);
+    }
+
+    bool ESMStore::cellMayContainType(const ESM::Cell& cell, uint32_t type) const
+    {
+        return mCellTypeCandidates.mayContain(&cell, type);
     }
 
     int ESMStore::getRefCount(const ESM::RefId& id) const
@@ -848,7 +871,7 @@ namespace MWWorld
         record.mId = id;
 
         ESM::NPC* ptr = npcs.insert(record);
-        mStoreImp->mIds[ptr->mId] = ESM::REC_NPC_;
+        setIdType(ptr->mId, ESM::REC_NPC_);
         return ptr;
     }
 

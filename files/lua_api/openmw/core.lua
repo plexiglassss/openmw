@@ -347,6 +347,9 @@
 
 ---
 -- Get all objects of given type from the cell; Only available from global scripts.
+-- A typed query may return an empty list without fully loading the cell when
+-- the engine can prove that the requested type is absent. In that case
+-- `hasBeenLoaded` remains false; no live reference or saved cell state is created.
 -- @function [parent=#Cell] getAll
 -- @param self
 -- @param type (optional) object type (see @{openmw.types#types})
