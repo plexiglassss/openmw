@@ -88,6 +88,7 @@ namespace MWWorld
     class ESMStore;
     class WorldModel;
     struct CellStoreImp;
+    struct CellRefLoadContext;
 
     using CellStoreTuple = std::tuple<CellRefList<ESM::Activator>, CellRefList<ESM::Potion>,
         CellRefList<ESM::Apparatus>, CellRefList<ESM::Armor>, CellRefList<ESM::Book>, CellRefList<ESM::Clothing>,
@@ -434,14 +435,14 @@ namespace MWWorld
         void listRefs(const ESM4::Cell& cell);
         void listRefs();
 
-        void loadRefs(const ESM::Cell& cell, std::map<ESM::RefNum, ESM::RefId>& refNumToID);
-        void loadRefs(const ESM4::Cell& cell, std::map<ESM::RefNum, ESM::RefId>& refNumToID);
+        void loadRefs(const ESM::Cell& cell, CellRefLoadContext& context);
+        void loadRefs(const ESM4::Cell& cell, CellRefLoadContext& context);
 
         void loadRefs();
 
         void loadRef(const ESM4::Reference& ref);
         void loadRef(const ESM4::ActorCharacter& ref);
-        void loadRef(ESM::CellRef& ref, bool deleted, std::map<ESM::RefNum, ESM::RefId>& refNumToID);
+        void loadRef(ESM::CellRef& ref, bool deleted, CellRefLoadContext& context);
         ///< Make case-adjustments to \a ref and insert it into the respective container.
         ///
         /// Invalid \a ref objects are silently dropped.

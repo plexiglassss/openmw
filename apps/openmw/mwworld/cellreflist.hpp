@@ -3,6 +3,8 @@
 
 #include <list>
 
+#include <components/misc/transientrefindex.hpp>
+
 #include "livecellref.hpp"
 
 namespace MWWorld
@@ -26,7 +28,11 @@ namespace MWWorld
         /// and the build will fail with an ugly three-way cyclic header dependence
         /// so we need to pass the instantiation of the method to the linker, when
         /// all methods are known.
-        void load(ESM::CellRef& ref, bool deleted, const MWWorld::ESMStore& esmStore);
+        using LoadIndex = Misc::TransientRefIndex<ESM::RefNum, LiveCellRefBase>;
+        // Optional index is owned by one CellStore::loadRefs operation, never
+        // retained across runtime mutations or subsequent loads.
+        void load(ESM::CellRef& ref, bool deleted, const MWWorld::ESMStore& esmStore,
+            LoadIndex* referenceIndex = nullptr);
 
         void load(const ESM4::Reference& ref, const MWWorld::ESMStore& esmStore);
         void load(const ESM4::ActorCharacter& ref, const MWWorld::ESMStore& esmStore);

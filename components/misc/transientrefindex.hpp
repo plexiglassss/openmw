@@ -6,7 +6,7 @@
 
 namespace Misc
 {
-    // A save-load-local index over stable list nodes. Small workloads avoid index
+    // A load-local index over stable list nodes. Small workloads avoid index
     // allocation; repeated searches in large lists build once. First match wins.
     template <class Key, class Value>
     class TransientRefIndex
@@ -30,8 +30,12 @@ namespace Misc
             }
             if (!mIndexed)
             {
+                // Build transactionally: a caller may catch an allocation/key
+                // exception, erase list nodes, and retry with this index.
+                decltype(mEntries) entries;
                 for (auto& value : list)
-                    mEntries.try_emplace(getKey(value), std::addressof(value));
+                    entries.try_emplace(getKey(value), std::addressof(value));
+                mEntries.swap(entries);
                 mIndexed = true;
             }
             const auto found = mEntries.find(key);
@@ -41,7 +45,29 @@ namespace Misc
         void inserted(const Key& key, Value* value)
         {
             if (mIndexed)
-                mEntries.try_emplace(key, value);
+            {
+                try
+                {
+                    mEntries.try_emplace(key, value);
+                }
+                catch (...)
+                {
+                    // The list append already succeeded. Forget the index so a
+                    // caught exception cannot hide that node on the next lookup.
+                    mEntries.clear();
+                    mIndexed = false;
+                    mSearches = 0;
+                    throw;
+                }
+            }
+        }
+
+        // Call when all list nodes for this key are about to be erased. Other
+        // std::list node addresses and first-match precedence stay unchanged.
+        void removed(const Key& key)
+        {
+            if (mIndexed)
+                mEntries.erase(key);
         }
     };
 }

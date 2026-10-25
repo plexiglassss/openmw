@@ -5,6 +5,7 @@
 #include <components/misc/transientrefindex.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <fstream>
 
@@ -415,24 +416,50 @@ namespace MWWorld
         }
     };
 
+    // These indexes exist only while a cell's content references are loaded.
+    // Saved-state restoration and runtime insert/move/delete use their existing
+    // paths; no pointers are retained in an index after loadRefs returns.
+    struct CellRefLoadContext
+    {
+        std::map<ESM::RefNum, ESM::RefId> mRefNumToID;
+        std::array<Misc::TransientRefIndex<ESM::RefNum, LiveCellRefBase>,
+            std::tuple_size_v<CellStoreTuple>> mIndexes;
+
+        template <class Record>
+        auto& indexFor(const CellRefList<Record>&)
+        {
+            return mIndexes[Misc::TupleTypeIndex<CellRefList<Record>, CellStoreTuple>::value];
+        }
+    };
+
     template <typename X>
-    void CellRefList<X>::load(ESM::CellRef& ref, bool deleted, const MWWorld::ESMStore& esmStore)
+    void CellRefList<X>::load(ESM::CellRef& ref, bool deleted, const MWWorld::ESMStore& esmStore,
+        LoadIndex* referenceIndex)
     {
         const MWWorld::Store<X>& store = esmStore.get<X>();
 
         if (const X* ptr = store.search(ref.mRefID))
         {
-            typename std::list<LiveRef>::iterator iter = std::find(mList.begin(), mList.end(), ref.mRefNum);
+            LiveRef* existing = nullptr;
+            if (referenceIndex)
+                existing = static_cast<LiveRef*>(referenceIndex->find(mList, ref.mRefNum,
+                    [](const auto& value) { return value.mRef.getRefNum(); }));
+            else if (const auto iter = std::find(mList.begin(), mList.end(), ref.mRefNum); iter != mList.end())
+                existing = std::addressof(*iter);
 
             LiveRef liveCellRef(ref, ptr);
 
             if (deleted)
                 liveCellRef.mData.setDeletedByContentFile(true);
 
-            if (iter != mList.end())
-                *iter = std::move(liveCellRef);
+            if (existing)
+                *existing = std::move(liveCellRef);
             else
+            {
                 mList.push_back(std::move(liveCellRef));
+                if (referenceIndex)
+                    referenceIndex->inserted(ref.mRefNum, std::addressof(mList.back()));
+            }
         }
         else
         {
@@ -914,7 +941,7 @@ namespace MWWorld
         std::sort(mIds.begin(), mIds.end());
     }
 
-    void CellStore::loadRefs(const ESM::Cell& cell, std::map<ESM::RefNum, ESM::RefId>& refNumToID)
+    void CellStore::loadRefs(const ESM::Cell& cell, CellRefLoadContext& context)
     {
         if (cell.mContextList.empty())
             return; // this is a dynamically generated cell -> skipping.
@@ -948,7 +975,7 @@ namespace MWWorld
                         continue;
                     }
 
-                    loadRef(ref, deleted, refNumToID);
+                    loadRef(ref, deleted, context);
                 }
             }
             catch (std::exception& e)
@@ -963,11 +990,11 @@ namespace MWWorld
             ESM::CellRef& ref = const_cast<ESM::CellRef&>(leasedRef.first);
             bool deleted = leasedRef.second;
 
-            loadRef(ref, deleted, refNumToID);
+            loadRef(ref, deleted, context);
         }
     }
 
-    void CellStore::loadRefs(const ESM4::Cell& cell, std::map<ESM::RefNum, ESM::RefId>& refNumToID)
+    void CellStore::loadRefs(const ESM4::Cell& cell, CellRefLoadContext&)
     {
         visitCell4References(cell, mStore, mReaders, [&](const ESM4::Reference& ref) { loadRef(ref); });
         visitCell4ActorReferences(cell, mStore, mReaders, [&](const ESM4::ActorCharacter& ref) { loadRef(ref); });
@@ -975,9 +1002,9 @@ namespace MWWorld
 
     void CellStore::loadRefs()
     {
-        std::map<ESM::RefNum, ESM::RefId> refNumToID; // used to detect refID modifications
+        CellRefLoadContext context;
 
-        ESM::visit([&](auto&& cell) { loadRefs(cell, refNumToID); }, mCellVariant);
+        ESM::visit([&](auto&& cell) { loadRefs(cell, context); }, mCellVariant);
 
         requestMergedRefsUpdate();
     }
@@ -1033,10 +1060,11 @@ namespace MWWorld
         });
     }
 
-    void CellStore::loadRef(ESM::CellRef& ref, bool deleted, std::map<ESM::RefNum, ESM::RefId>& refNumToID)
+    void CellStore::loadRef(ESM::CellRef& ref, bool deleted, CellRefLoadContext& context)
     {
         const MWWorld::ESMStore& store = mStore;
 
+        auto& refNumToID = context.mRefNumToID;
         auto it = refNumToID.find(ref.mRefNum);
         if (it != refNumToID.end())
         {
@@ -1046,8 +1074,11 @@ namespace MWWorld
                 ESM::RecNameInts foundType = static_cast<ESM::RecNameInts>(store.find(it->second));
                 if (foundType != 0)
                 {
-                    Misc::tupleForEach(this->mCellStoreImp->mRefLists, [&ref, foundType](auto& x) {
-                        recNameSwitcher(x, foundType, [&ref](auto& storeIn) { storeIn.remove(ref.mRefNum); });
+                    Misc::tupleForEach(this->mCellStoreImp->mRefLists, [&ref, foundType, &context](auto& x) {
+                        recNameSwitcher(x, foundType, [&ref, &context](auto& storeIn) {
+                            context.indexFor(storeIn).removed(ref.mRefNum);
+                            storeIn.remove(ref.mRefNum);
+                        });
                     });
                 }
             }
@@ -1058,10 +1089,10 @@ namespace MWWorld
         if (foundType != 0)
         {
             Misc::tupleForEach(
-                this->mCellStoreImp->mRefLists, [&ref, &deleted, &store, foundType, &handledType](auto& x) {
-                    recNameSwitcher(x, foundType, [&ref, &deleted, &store, &handledType](auto& storeIn) {
+                this->mCellStoreImp->mRefLists, [&ref, &deleted, &store, foundType, &handledType, &context](auto& x) {
+                    recNameSwitcher(x, foundType, [&ref, &deleted, &store, &handledType, &context](auto& storeIn) {
                         handledType = true;
-                        storeIn.load(ref, deleted, store);
+                        storeIn.load(ref, deleted, store, &context.indexFor(storeIn));
                     });
                 });
         }

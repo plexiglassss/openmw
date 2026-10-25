@@ -1,0 +1,278 @@
+#include <components/esm3/refnum.hpp>
+#include <components/misc/transientrefindex.hpp>
+#include <components/misc/tuplehelpers.hpp>
+#include <components/misc/tuplemeta.hpp>
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <iostream>
+#include <list>
+#include <map>
+#include <memory>
+#include <random>
+#include <stdexcept>
+#include <tuple>
+#include <vector>
+
+void require(bool value, const char* message)
+{
+    if (!value) throw std::runtime_error(message);
+}
+namespace Debug { enum Level { Warning, Error }; }
+struct Log
+{
+    explicit Log(Debug::Level) {}
+    template<class T> Log& operator<<(const T&) { return *this; }
+};
+namespace ESM
+{
+    using RefId = int;
+    enum RecNameInts : std::uint32_t { REC_A = 1, REC_B = 2 };
+    struct CellRef
+    {
+        RefNum mRefNum;
+        RefId mRefID = 0;
+        int payload = 0;
+        RefNum getRefNum() const { return mRefNum; }
+    };
+}
+namespace MWWorld
+{
+    struct A { static constexpr int sRecordId = ESM::REC_A; };
+    struct B { static constexpr int sRecordId = ESM::REC_B; };
+    template<class T> struct Store
+    {
+        T record;
+        const T* search(ESM::RefId id) const
+        {
+            if (id == 42) return nullptr; // type known but its base record missing
+            return (id >= 1 && id <= 3 && T::sRecordId == ESM::REC_A)
+                || (id == 4 && T::sRecordId == ESM::REC_B) ? &record : nullptr;
+        }
+    };
+    struct ESMStore
+    {
+        Store<A> a;
+        Store<B> b;
+        template<class T> const Store<T>& get() const
+        {
+            if constexpr (std::is_same_v<T,A>) return a;
+            else return b;
+        }
+        int find(int id) const
+        {
+            if ((id >= 1 && id <= 3) || id == 42) return ESM::REC_A;
+            if (id == 4) return ESM::REC_B;
+            if (id == 77) return 77; // known unsupported type
+            return 0;
+        }
+    };
+    struct RefData
+    {
+        bool deleted = false;
+        void setDeletedByContentFile(bool value) { deleted = value; }
+    };
+    struct LiveCellRefBase { ESM::CellRef mRef; RefData mData; };
+    template<class T> struct LiveCellRef : LiveCellRefBase
+    {
+        LiveCellRef(ESM::CellRef ref, const T*) { mRef = ref; }
+        bool operator==(ESM::RefNum num) const { return mRef.mRefNum == num; }
+    };
+    template<class T> struct CellRefList
+    {
+        using LiveRef = LiveCellRef<T>;
+        using LoadIndex = Misc::TransientRefIndex<ESM::RefNum,LiveCellRefBase>;
+        std::list<LiveRef> mList;
+        void load(ESM::CellRef&, bool, const ESMStore&, LoadIndex* = nullptr);
+        void remove(ESM::RefNum num)
+        {
+            mList.remove_if([&](const auto& value) { return value.mRef.mRefNum == num; });
+        }
+    };
+    using CellStoreTuple = std::tuple<CellRefList<A>,CellRefList<B>>;
+    struct CellStoreImp { CellStoreTuple mRefLists; };
+    struct CellRefLoadContext;
+    struct CellStore
+    {
+        const ESMStore& mStore;
+        std::unique_ptr<CellStoreImp> mCellStoreImp = std::make_unique<CellStoreImp>();
+        void loadRef(ESM::CellRef&,bool,CellRefLoadContext&);
+    };
+// @CONTEXT@
+// @LOAD@
+// @DISPATCH@
+// @LOADREF@
+}
+
+struct Expected
+{
+    ESM::CellRef ref;
+    bool deleted = false;
+};
+struct Oracle
+{
+    const MWWorld::ESMStore& store;
+    std::map<int,std::vector<Expected>> lists;
+    std::map<ESM::RefNum,int> previous;
+    void apply(const ESM::CellRef& ref, bool deleted)
+    {
+        if (auto it=previous.find(ref.mRefNum); it!=previous.end() && it->second!=ref.mRefID)
+        {
+            auto& list=lists[store.find(it->second)];
+            std::erase_if(list,[&](const auto& item) { return item.ref.mRefNum==ref.mRefNum; });
+        }
+        const int type=store.find(ref.mRefID);
+        if (type!=1 && type!=2) return;
+        if (ref.mRefID!=42)
+        {
+            auto& list=lists[type];
+            auto it=std::find_if(list.begin(),list.end(),[&](const auto& item) { return item.ref.mRefNum==ref.mRefNum; });
+            if (it==list.end()) list.push_back({ref,deleted});
+            else *it={ref,deleted};
+        }
+        previous[ref.mRefNum]=ref.mRefID;
+    }
+};
+template<class T>
+void compare(const MWWorld::CellRefList<T>& actual, const std::vector<Expected>& expected)
+{
+    require(actual.mList.size()==expected.size(),"list size differs from independent vector oracle");
+    auto a=actual.mList.begin();
+    for (const auto& b:expected)
+    {
+        require(a->mRef.mRefNum==b.ref.mRefNum && a->mRef.mRefID==b.ref.mRefID
+            && a->mRef.payload==b.ref.payload && a->mData.deleted==b.deleted,"identity/order/payload/deletion differs");
+        ++a;
+    }
+}
+void differential()
+{
+    MWWorld::ESMStore store;
+    MWWorld::CellStore actual{store};
+    MWWorld::CellRefLoadContext context;
+    Oracle expected{store,{}, {}};
+    const auto apply=[&](ESM::CellRef ref,bool deleted=false) {
+        actual.loadRef(ref,deleted,context); expected.apply(ref,deleted);
+        compare(std::get<0>(actual.mCellStoreImp->mRefLists),expected.lists[1]);
+        compare(std::get<1>(actual.mCellStoreImp->mRefLists),expected.lists[2]);
+        require(context.mRefNumToID==expected.previous,"base-ID history changed");
+    };
+    for (std::uint32_t i=0;i<160;++i) apply({{i,1},1,static_cast<int>(i)});
+    auto& list=std::get<0>(actual.mCellStoreImp->mRefLists).mList;
+    auto* stable=std::addressof(*std::next(list.begin(),80));
+    apply({{80,1},1,900},true); require(stable->mData.deleted,"deletion flag lost");
+    apply({{80,1},1,901});
+    require(std::addressof(*std::next(list.begin(),80))==stable && !stable->mData.deleted,"replacement changed address or revival");
+    apply({{20,1},2,200}); // same type, new base: remove and append, not in-place
+    require(list.back().mRef.mRefNum==ESM::RefNum{20,1},"same-type base change did not append");
+    apply({{20,1},4,201}); // cross type
+    apply({{20,1},42,202}); // known type, missing base: old ref removed, ID tracked
+    apply({{20,1},0,203}); // missing type: no ID update
+    apply({{20,1},77,204}); // unsupported type: no ID update
+    apply({{20,1},1,205});
+    apply({{20,2},1,206}); // same index, different content file
+    apply({{20,-1},1,207});
+    apply({{20,1},1,208},true); // leased override uses same merge entry point
+    apply({{20,1},1,209});
+    std::mt19937 random(140);
+    const std::array<int,8> ids={0,1,2,3,4,42,77,1};
+    for (int i=0;i<6000;++i)
+        apply({{static_cast<std::uint32_t>(random()%220),static_cast<int>(random()%3)-1},ids[random()%ids.size()],i},(random()%7)==0);
+    // An aborted/restarted cell load gets a fresh context over the existing list.
+    MWWorld::CellRefLoadContext retry;
+    ESM::CellRef ref{{20,1},1,12345};
+    actual.loadRef(ref,false,retry);
+    expected.previous.clear(); expected.apply(ref,false);
+    compare(std::get<0>(actual.mCellStoreImp->mRefLists),expected.lists[1]);
+    std::cout << "production merge: overrides, order, stable addresses, deletion/revival, missing/unsupported bases and compound RefNum passed\n";
+}
+void duplicates()
+{
+    MWWorld::ESMStore store;
+    MWWorld::CellStore cell{store};
+    MWWorld::CellRefLoadContext context;
+    auto& typed=std::get<0>(cell.mCellStoreImp->mRefLists);
+    for (std::uint32_t i=0;i<100;++i) typed.mList.emplace_back(ESM::CellRef{{i,1},1,0},&store.a.record);
+    typed.mList.emplace_back(ESM::CellRef{{10,1},1,44},&store.a.record);
+    auto* first=std::addressof(*std::next(typed.mList.begin(),10));
+    for (int i=0;i<12;++i) { ESM::CellRef r{{10,1},1,i};cell.loadRef(r,false,context); }
+    require(first->mRef.payload==11 && typed.mList.back().mRef.payload==44,"first duplicate match changed");
+    ESM::CellRef changed{{10,1},2,88};cell.loadRef(changed,false,context);
+    require(typed.mList.size()==100 && typed.mList.back().mRef.payload==88,"remove-all followed by append failed");
+    cell.loadRef(changed,false,context);
+    require(typed.mList.size()==100,"stale index created duplicate after base-ID change");
+    // A different cell/context cannot reuse the previous cell's pointers.
+    MWWorld::CellStore other{store};MWWorld::CellRefLoadContext otherContext;
+    other.loadRef(changed,false,otherContext);
+    require(std::get<0>(other.mCellStoreImp->mRefLists).mList.size()==1,"index escaped cell load lifetime");
+    std::cout << "preexisting duplicate first-match, remove-all and per-cell lifetime passed\n";
+}
+struct ThrowKey
+{
+    int value;
+    static inline int budget=-1;
+    bool operator==(const ThrowKey& other) const { return value==other.value; }
+    bool operator<(const ThrowKey& other) const
+    {
+        if (budget==0) throw std::runtime_error("injected index comparison failure");
+        if (budget>0) --budget;
+        return value<other.value;
+    }
+};
+void exceptions()
+{
+    struct Item { ThrowKey key; };
+    std::list<Item> list;
+    for (int i=0;i<100;++i) list.push_back({{i}});
+    Misc::TransientRefIndex<ThrowKey,Item> index;
+    const auto key=[](const Item& item) { return item.key; };
+    for (int i=0;i<8;++i) index.find(list,{99},key);
+    ThrowKey::budget=12;bool threw=false;
+    try { index.find(list,{99},key); } catch (const std::runtime_error&) { threw=true; }
+    require(threw,"index construction injection did not execute");
+    ThrowKey::budget=-1;index.removed({0});list.pop_front();
+    require(index.find(list,{0},key)==nullptr,"failed build retained erased pointer");
+    require(index.find(list,{99},key)==std::addressof(list.back()),"retry lost live reference");
+    list.push_back({{100}});
+    ThrowKey::budget=0;threw=false;
+    try { index.inserted({100},std::addressof(list.back())); } catch (const std::runtime_error&) { threw=true; }
+    require(threw,"index insertion injection did not execute");
+    ThrowKey::budget=-1;
+    require(index.find(list,{100},key)==std::addressof(list.back()),"append/index failure hid appended node");
+    std::cout << "transactional build and append/index exception recovery passed\n";
+}
+void benchmark()
+{
+    using Clock=std::chrono::steady_clock;
+    MWWorld::ESMStore store;
+    for (std::uint32_t size: {32u,256u,2048u,8192u})
+    {
+        std::array<double,2> times{};
+        for (int mode=0;mode<2;++mode)
+        {
+            MWWorld::CellRefList<MWWorld::A> list;
+            MWWorld::CellRefList<MWWorld::A>::LoadIndex index;
+            auto start=Clock::now();
+            for (std::uint32_t i=0;i<size;++i)
+            {
+                ESM::CellRef ref{{i,1},1,static_cast<int>(i)};
+                list.load(ref,false,store,mode?&index:nullptr);
+            }
+            // Overrides exercise lookup on the populated list as well as insertion.
+            for (std::uint32_t i=0;i<size;++i)
+            {
+                ESM::CellRef ref{{i,1},1,999};list.load(ref,false,store,mode?&index:nullptr);
+            }
+            times[mode]=std::chrono::duration<double,std::milli>(Clock::now()-start).count();
+            require(list.mList.size()==size,"benchmark changed reference count");
+            std::uint32_t i=0;
+            for(const auto& ref:list.mList) require(ref.mRef.mRefNum==ESM::RefNum{i++,1} && ref.mRef.payload==999,"benchmark result mismatch");
+        }
+        std::cout << "fixture benchmark refs=" << size << " linearMs=" << times[0] << " indexedMs=" << times[1]
+                  << " (mock records; not predicted game-load savings)\n";
+    }
+}
+int main()
+{
+    differential();duplicates();exceptions();benchmark();
+}

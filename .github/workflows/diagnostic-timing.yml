@@ -30,6 +30,7 @@ jobs:
           g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -I. custom/performance-tests/postload.cpp -o postload-test
           ./postload-test
           python3 custom/performance-tests/test-postload-integration.py
+          python3 custom/performance-tests/test-content-reference-index.py
           python3 custom/performance-tests/test-save-metadata.py
           python3 custom/performance-tests/test-transition-preload.py
           python3 custom/performance-tests/test-preload.py
@@ -104,6 +105,8 @@ jobs:
           if ($LASTEXITCODE) { throw "Post-load recorder regression failed" }
           python custom/performance-tests/test-postload-integration.py
           if ($LASTEXITCODE) { throw "Post-load integration regression failed" }
+          python custom/performance-tests/test-content-reference-index.py
+          if ($LASTEXITCODE) { throw "Content reference index regression failed" }
           cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/smoke.cpp /Fe:timing-smoke.exe
           if ($LASTEXITCODE) { throw "Compile failed" }
           $env:OPENMW_TIMING_FILE = "$PWD/timing-test.csv"
