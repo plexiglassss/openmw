@@ -1,5 +1,6 @@
 #include <components/diagnostics/timing.hpp>
 #include <components/diagnostics/postload.hpp>
+#include <components/diagnostics/postloadmonitor.hpp>
 #include <sstream>
 #include "engine.hpp"
 #include "startupscreen.hpp"
@@ -92,6 +93,35 @@
 
 namespace
 {
+    std::string postLoadLoopTotals(const std::array<double, Diagnostics::PostLoad::loopPhaseCount>& totals)
+    {
+        std::ostringstream text;
+        for (std::size_t i = 0; i < totals.size(); ++i)
+            text << ' ' << Diagnostics::PostLoad::loopPhaseNames[i] << "TotalMs=" << totals[i];
+        return text.str();
+    }
+
+    void reportPostLoadHeartbeat(const Diagnostics::PostLoad::Snapshot& report)
+    {
+        using namespace Diagnostics::PostLoad;
+        const auto activityName = [](const Activity& activity) -> std::string_view {
+            if (!activity.id)
+                return "between-scopes";
+            return activity.loop ? loopPhaseNames[activity.index] : phaseNames[activity.index];
+        };
+        Log(Debug::Info) << "Post-load heartbeat: sample=" << report.epoch
+                         << " sinceLoadEndMs=" << report.elapsedMs << " frames=" << report.frames
+                         << " completed=" << report.completedFrames << " lastFrameAgoMs=" << report.lastFrameAgoMs
+                         << " mainScope=" << activityName(report.main) << " mainScopeMs=" << report.mainMs
+                         << " luaScope=" << activityName(report.lua) << " luaScopeMs=" << report.luaMs
+                         << " windowKnown=" << report.window.known << " visible=" << report.window.visible
+                         << " focused=" << report.window.focused << " minimized=" << report.window.minimized
+                         << " paused=" << report.window.paused << " windowStateAgeMs=" << report.windowStateAgeMs
+                         << " windowExpired=" << report.windowExpired << postLoadLoopTotals(report.loopTotalMs)
+                         << " (outstanding engine scopes, not CPU usage or visible responsiveness; window state"
+                            " was observed on the main thread; a copied snapshot may precede cancellation)";
+    }
+
     void reportPostLoadFrame(Diagnostics::PostLoad::Stamp stamp, bool completed)
     {
         using namespace Diagnostics::PostLoad;
@@ -122,10 +152,10 @@ namespace
         if (report->finished)
             Log(Debug::Info) << "Post-load summary: sample=" << report->epoch << " frames=" << report->frames
                              << " completed=" << report->completedFrames << " elapsedMs=" << report->elapsedMs
-                             << " reason=" << (report->frameLimit ? "frame-limit" : "time-window")
+                             << " reason=time-window"
                              << " (phases inclusive; Lua execution can overlap rendering; luaFinish includes"
                                 " execution when no Lua worker thread is configured)"
-                             << metricsText(report->total);
+                             << metricsText(report->total) << postLoadLoopTotals(report->loopTotalMs);
     }
 
     struct PostLoadFrameReport
@@ -271,7 +301,15 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
             ScopedProfile<UserStatsType::Sound> profile(frameStart, frameNumber, *timer, *stats);
             Diagnostics::PostLoad::Scope postLoadPhase(Phase::Sound);
 
-            if (!mWindowManager->isWindowVisible())
+            const bool visible = mWindowManager->isWindowVisible();
+            if (Diagnostics::PostLoad::capture().active())
+            {
+                const auto flags = SDL_GetWindowFlags(mWindow);
+                Diagnostics::PostLoad::capture().observeWindow({ true, visible,
+                    (flags & SDL_WINDOW_INPUT_FOCUS) != 0, (flags & SDL_WINDOW_MINIMIZED) != 0,
+                    mWorld->getTimeManager()->isPaused() });
+            }
+            if (!visible)
             {
                 mSoundManager->pausePlayback();
                 return false;
@@ -1159,6 +1197,9 @@ void OMW::Engine::go()
     MWWorld::DateTimeManager& timeManager = *mWorld->getTimeManager();
     Misc::FrameRateLimiter frameRateLimiter = Misc::makeFrameRateLimiter(mEnvironment.getFrameRateLimit());
     const std::chrono::steady_clock::duration maxSimulationInterval(std::chrono::milliseconds(200));
+    Diagnostics::PostLoad::Monitor postLoadMonitor(Diagnostics::PostLoad::capture(), reportPostLoadHeartbeat);
+    if (postLoadMonitor.failed())
+        Log(Debug::Warning) << "Post-load diagnostic monitor unavailable; completed-frame timings remain enabled";
     while (!mViewer->done() && !mStateManager->hasQuitRequest())
     {
         const double dt = std::chrono::duration_cast<std::chrono::duration<double>>(
@@ -1166,44 +1207,56 @@ void OMW::Engine::go()
                               .count()
             * timeManager.getSimulationTimeScale();
 
-        mViewer->advance(timeManager.getRenderingSimulationTime());
+        {
+            Diagnostics::PostLoad::LoopScope postLoadWait(Diagnostics::PostLoad::LoopPhase::Advance);
+            mViewer->advance(timeManager.getRenderingSimulationTime());
+        }
 
         const unsigned frameNumber = mViewer->getFrameStamp()->getFrameNumber();
 
         if (!frame(frameNumber, static_cast<float>(dt)))
         {
+            Diagnostics::PostLoad::LoopScope postLoadWait(Diagnostics::PostLoad::LoopPhase::HiddenSleep);
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             continue;
         }
-        timeManager.updateIsPaused();
-        if (!timeManager.isPaused())
         {
-            timeManager.setSimulationTime(timeManager.getSimulationTime() + dt);
-            timeManager.setRenderingSimulationTime(timeManager.getRenderingSimulationTime() + dt);
-        }
-
-        if (stats)
-        {
-            // The delay is required because rendering happens in parallel to the main thread and stats from there is
-            // available with delay.
-            constexpr unsigned statsReportDelay = 3;
-            if (frameNumber >= statsReportDelay)
+            Diagnostics::PostLoad::LoopScope postLoadWait(Diagnostics::PostLoad::LoopPhase::Bookkeeping);
+            timeManager.updateIsPaused();
+            if (!timeManager.isPaused())
             {
-                // Viewer frame number can be different from frameNumber because of loading screens which render new
-                // frames inside a simulation frame.
-                const unsigned currentFrameNumber = mViewer->getFrameStamp()->getFrameNumber();
-                for (unsigned i = frameNumber; i <= currentFrameNumber; ++i)
-                    reportStats(i - statsReportDelay, *mViewer, stats);
+                timeManager.setSimulationTime(timeManager.getSimulationTime() + dt);
+                timeManager.setRenderingSimulationTime(timeManager.getRenderingSimulationTime() + dt);
+            }
+
+            if (stats)
+            {
+                // The delay is required because rendering happens in parallel to the main thread and stats from there is
+                // available with delay.
+                constexpr unsigned statsReportDelay = 3;
+                if (frameNumber >= statsReportDelay)
+                {
+                    // Viewer frame number can be different from frameNumber because of loading screens which render new
+                    // frames inside a simulation frame.
+                    const unsigned currentFrameNumber = mViewer->getFrameStamp()->getFrameNumber();
+                    for (unsigned i = frameNumber; i <= currentFrameNumber; ++i)
+                        reportStats(i - statsReportDelay, *mViewer, stats);
+                }
             }
         }
 
-        frameRateLimiter.limit();
+        {
+            Diagnostics::PostLoad::LoopScope postLoadWait(Diagnostics::PostLoad::LoopPhase::Limiter);
+            frameRateLimiter.limit();
+        }
     }
-
     // No more game frames will be submitted. Hide the window before lengthy
     // teardown so asynchronous presenters cannot expose historical frames.
     if (mWindow)
         SDL_HideWindow(mWindow);
+    postLoadMonitor.stop();
+    if (postLoadMonitor.failed())
+        Log(Debug::Warning) << "Post-load diagnostic monitor stopped or unavailable; heartbeat coverage is incomplete";
     Log(Debug::Info) << "Shutdown: game window hidden, joining Lua worker";
     mLuaWorker->join();
     Log(Debug::Info) << "Shutdown: saving settings and Lua storage";

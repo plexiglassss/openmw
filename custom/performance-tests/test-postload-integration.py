@@ -23,7 +23,15 @@ assert cell_load.index('if (mState != State_Loaded)') < cell_load.index('PostLoa
 update = worker[worker.index('void Worker::update('):worker.index('void Worker::run(')]
 assert update.index('Phase::LuaExecution') < update.index('mManager.update()')
 
-helper = engine[engine.index('    void reportPostLoadFrame('):engine.index('    void checkSDLError(')]
+loop = engine[engine.index('    // Start the main rendering loop'):]
+assert loop.index('LoopPhase::Advance') < loop.index('mViewer->advance(')
+assert loop.index('LoopPhase::HiddenSleep') < loop.index('std::this_thread::sleep_for(')
+assert loop.index('LoopPhase::Bookkeeping') < loop.index('timeManager.updateIsPaused()')
+assert loop.index('LoopPhase::Limiter') < loop.index('frameRateLimiter.limit()')
+assert loop.index('SDL_HideWindow(mWindow)') < loop.index('postLoadMonitor.stop()') < loop.index('mLuaWorker->join()')
+assert 'observeWindow({ true, visible,' in engine
+
+helper = engine[engine.index('    std::string postLoadLoopTotals('):engine.index('    void checkSDLError(')]
 fixture = r'''
 #include <components/diagnostics/postload.hpp>
 #include <sstream>
@@ -60,12 +68,29 @@ int main() {
     require(messages[0].find("/cellCalls=1/outerCellMs=") != std::string::npos);
     require(messages[1].find("not a GPU presentation or input-responsiveness") != std::string::npos);
     for (int i = 0; i < 4; ++i) { PostLoadFrameReport frame; frame.mCompleted = true; }
+    require(capture().active());
+    require(messages.size() == 6);
+    capture().arm(Clock::now() - std::chrono::seconds(181));
+    { PostLoadFrameReport frame; { Scope phase(Phase::World); CellLoadScope cell; } frame.mCompleted = true; }
     require(!capture().active());
-    require(messages.size() == 7);
+    require(messages.size() == 9);
     require(messages.back().find("Post-load summary:") != std::string::npos);
-    require(messages.back().find("frames=5 completed=5") != std::string::npos);
+    require(messages.back().find("frames=1 completed=1") != std::string::npos);
     require(messages.back().find("Lua execution can overlap rendering") != std::string::npos);
     require(messages.back().find("/cellCalls=1/outerCellMs=") != std::string::npos);
+    require(messages.back().find("frameLimiterTotalMs=") != std::string::npos);
+    Snapshot stalled;
+    stalled.epoch = 3;
+    stalled.frames = 5;
+    stalled.main = { 1, false, static_cast<std::size_t>(Phase::Render), Clock::now() };
+    stalled.mainMs = 91000;
+    stalled.window = { true, true, false, false, false };
+    stalled.windowStateAgeMs = 90000;
+    reportPostLoadHeartbeat(stalled);
+    require(messages.back().find("mainScope=render mainScopeMs=91000") != std::string::npos);
+    require(messages.back().find("windowKnown=1 visible=1 focused=0") != std::string::npos);
+    require(messages.back().find("windowStateAgeMs=90000") != std::string::npos);
+    require(messages.back().find("not CPU usage or visible responsiveness") != std::string::npos);
     std::cout << "Post-load engine log integration passed\n";
 }
 '''
