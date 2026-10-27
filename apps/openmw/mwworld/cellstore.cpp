@@ -697,6 +697,23 @@ namespace MWWorld
         return mHasState;
     }
 
+    bool CellStore::hasUnloadedLiveReferences() const
+    {
+        // readRecord() leaves a cell unloaded if its CSTA contains only
+        // metadata/fog, even though loadState() sets mHasState. Such cells
+        // cannot introduce new RefIds and must not defeat indexed lookups.
+        if (mState != State_Unloaded || !mHasState)
+            return false;
+
+        // Live references inserted into an unloaded cell are stored here.
+        // Moved references normally load their destination first, but keep
+        // this conservative check for atypical state transitions.
+        if (!mMovedHere.empty())
+            return true;
+        return std::apply(
+            [](const auto&... refs) { return (!refs.mList.empty() || ...); }, mCellStoreImp->mRefLists);
+    }
+
     bool CellStore::hasId(const ESM::RefId& id) const
     {
         if (mState == State_Unloaded)
