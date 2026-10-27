@@ -36,8 +36,22 @@ namespace Misc
             }
         };
         {
-            std::vector<std::jthread> threads;
+            // std::jthread is unavailable in older Apple libc++ builds.
+            // Join on every exit path, including failed thread construction.
+            // This is equivalent to jthread's lifetime management here: the
+            // workers do not use stop tokens.
+            std::vector<std::thread> threads;
             threads.reserve(workers - 1);
+            struct JoinOnExit
+            {
+                std::vector<std::thread>& mThreads;
+                ~JoinOnExit()
+                {
+                    for (std::thread& thread : mThreads)
+                        if (thread.joinable())
+                            thread.join();
+                }
+            } join{ threads };
             for (std::size_t i = 1; i < workers; ++i)
                 threads.emplace_back(work);
             work();

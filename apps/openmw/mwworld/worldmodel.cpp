@@ -42,6 +42,18 @@ namespace MWWorld
             return enabled;
         }
 
+        // Retain an independent A/B switch for the inactive-cell candidate filter.
+        // Unlike OPENMW_WORLD_CELL_INDEX=0, disabling this switch keeps the
+        // existing live-cell index enabled so only this optimization is compared.
+        bool useIndexedInactiveCellCandidates()
+        {
+            static const bool enabled = [] {
+                const char* value = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+                return value == nullptr || std::string_view(value) != "0";
+            }();
+            return enabled;
+        }
+
         template <class T>
         CellStore& emplaceCellStore(ESM::RefId id, const T& cell, ESMStore& store, ESM::ReadersCache& readers,
             std::unordered_map<ESM::RefId, CellStore>& cells)
@@ -531,16 +543,51 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
         }
         else
         {
-            // Unknown cells can preload during lookup. Snapshot their union
-            // with known candidates in the original search order.
+            // Preserve the original search order: exterior cells before interiors,
+            // then the existing loaded/preloaded cell ordering within each group.
+            // Unlike the old union of *all* unindexed cells, only consider an
+            // unloaded ESM3 cell when the content's already-built RefId->cell
+            // index says it contains the requested ID. This prevents global
+            // script lookups from preloading tens of thousands of unrelated cells.
             std::vector<CellStore*> candidates;
-            candidates.reserve(
-                mUnindexedLookupCells.size() + (found == mRefIdLookupCells.end() ? 0 : found->second.size()));
             if (found != mRefIdLookupCells.end())
-                std::set_union(found->second.begin(), found->second.end(), mUnindexedLookupCells.begin(),
-                    mUnindexedLookupCells.end(), std::back_inserter(candidates), CellLookupOrder{});
+                candidates.insert(candidates.end(), found->second.begin(), found->second.end());
+
+            if (useIndexedInactiveCellCandidates())
+            {
+                Diagnostics::MWScriptNativeScope selectionTiming("world.cellCandidates.select");
+
+                // The static index includes ESM3 content-file placements, including
+                // leased references. Do not insert new CellStores here: cells that
+                // were never visited retain the existing getRefCells fallback below.
+                for (const ESM::Cell* contentCell : mStore.getRefCells(name))
+                {
+                    auto it = mCells.find(contentCell->mId);
+                    if (it != mCells.end() && mUnindexedLookupCells.contains(&it->second))
+                        candidates.push_back(&it->second);
+                }
+
+                // A metadata-only CSTA sets hasState() even though it cannot
+                // introduce a reference; using hasState() here admitted over
+                // 25,000 unrelated saved cells in the user's large modlist.
+                // Keep unloaded cells that actually own live runtime refs.
+                // ESM4 lacks the ESM3 content index and remains conservative.
+                // Loaded/preloaded cells awaiting indexing remain searchable.
+                for (CellStore* cell : mUnindexedLookupCells)
+                    if (cell->getState() != CellStore::State_Unloaded
+                        || cell->getCell()->isEsm4() || cell->hasUnloadedLiveReferences())
+                        candidates.push_back(cell);
+            }
             else
-                candidates.assign(mUnindexedLookupCells.begin(), mUnindexedLookupCells.end());
+            {
+                // A/B comparison: original exhaustive unindexed-cell search.
+                candidates.insert(candidates.end(), mUnindexedLookupCells.begin(), mUnindexedLookupCells.end());
+            }
+
+            // Sorting and uniquing recreates the original set-union order while
+            // allowing the filtered candidates to be collected from three sources.
+            std::sort(candidates.begin(), candidates.end(), CellLookupOrder{});
+            candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
             for (CellStore* cell : candidates)
             {
                 Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");

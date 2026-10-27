@@ -7,6 +7,7 @@
 #include "apps/openmw/mwworld/esmstore.hpp"
 #include "apps/openmw/mwworld/worldmodel.hpp"
 
+#include <components/esm3/cellstate.hpp>
 #include <components/esm3/esmreader.hpp>
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/formatversion.hpp>
@@ -20,6 +21,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -433,7 +435,15 @@ namespace MWWorld
             CellStore& b = cell("b", false);
             b.preload();
             EXPECT_TRUE(find("missing").isEmpty());
-            EXPECT_EQ(a.getState(), CellStore::State_Preloaded);
+
+            // With indexed candidates enabled, a negative lookup must leave an
+            // unrelated unloaded cell untouched. The opt-out and original
+            // traversal deliberately retain the prior eager-preload behavior.
+            const char* worldIndex = std::getenv("OPENMW_WORLD_CELL_INDEX");
+            const char* candidateIndex = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+            const bool lazyCandidates = (worldIndex == nullptr || std::string_view(worldIndex) != "0")
+                && (candidateIndex == nullptr || std::string_view(candidateIndex) != "0");
+            EXPECT_EQ(a.getState(), lazyCandidates ? CellStore::State_Unloaded : CellStore::State_Preloaded);
             EXPECT_EQ(b.getState(), CellStore::State_Preloaded);
             a.load();
             b.load();
@@ -441,6 +451,41 @@ namespace MWWorld
             const Ptr second = add(b, "second");
             EXPECT_EQ(find("first"), first);
             EXPECT_EQ(find("second"), second);
+        }
+
+        TEST_F(WorldCellLookupTest, metadataOnlySavedCellsAreNotPreloadedOnMiss)
+        {
+            // A real modded save can contain tens of thousands of CSTA entries
+            // without OBJE/MVRF references. loadState() sets hasState(), but
+            // none of these cells contain runtime additions.
+            std::vector<CellStore*> saved;
+            for (unsigned i = 0; i != 64; ++i)
+            {
+                CellStore& room = cell("metadata " + std::to_string(i), false);
+                ESM::CellState state{};
+                state.mId = room.getCell()->getId();
+                state.mIsInterior = true;
+                room.loadState(state);
+                EXPECT_TRUE(room.hasState());
+                EXPECT_FALSE(room.hasUnloadedLiveReferences());
+                saved.push_back(&room);
+            }
+
+            EXPECT_TRUE(find("definitely absent").isEmpty());
+
+            const char* worldIndex = std::getenv("OPENMW_WORLD_CELL_INDEX");
+            const char* candidateIndex = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+            const bool lazyCandidates = (worldIndex == nullptr || std::string_view(worldIndex) != "0")
+                && (candidateIndex == nullptr || std::string_view(candidateIndex) != "0");
+            for (CellStore* room : saved)
+                EXPECT_EQ(room->getState(), lazyCandidates ? CellStore::State_Unloaded : CellStore::State_Preloaded);
+
+            // An unloaded cell holding a runtime-created reference is not
+            // metadata-only and must remain an eligible search candidate.
+            CellStore& runtime = cell("runtime additions", false);
+            EXPECT_FALSE(runtime.hasUnloadedLiveReferences());
+            add(runtime, "created reference");
+            EXPECT_TRUE(runtime.hasUnloadedLiveReferences());
         }
 
         TEST_F(WorldCellLookupTest, draftCellDoesNotJoinNormalSearch)
