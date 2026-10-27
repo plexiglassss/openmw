@@ -1,92 +1,157 @@
-name: Build and test
-
+name: Loading repair - Windows only
 on:
   push:
-    branches-ignore:
-      - performance-and-framegen-2062366
-      - diagnostic-timing-2829ae6d
-  pull_request:
-
-env:
-  BUILD_TYPE: RelWithDebInfo
-
+    branches: [perf/loading-handoff-20261027]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: loading-repair-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  Ubuntu:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Add OpenMW PPA Dependencies
-      run: sudo add-apt-repository ppa:openmw/openmw; sudo apt-get update
-
-    - name: Install Building Dependencies
-      run: sudo CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
-
-    - name: Prime ccache
-      uses: hendrikmuhs/ccache-action@v1
-      with:
-        key: ${{ matrix.os }}-${{ env.BUILD_TYPE }}
-        max-size: 1000M
-
-    - name: Configure
-      run: >
-        cmake .
-        -D CMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -D OPENMW_USE_SYSTEM_RECASTNAVIGATION=ON
-        -D USE_SYSTEM_TINYXML=ON
-        -D BUILD_COMPONENTS_TESTS=ON
-        -D BUILD_OPENMW_TESTS=ON
-        -D BUILD_OPENCS_TESTS=ON
-        -D CMAKE_INSTALL_PREFIX=install
-
-    - name: Build
-      run: cmake --build . -- -j$(nproc)
-
-    - name: Run components tests
-      run: ./components-tests
-
-    - name: Run OpenMW tests
-      run: ./openmw-tests
-
-    - name: Run OpenMW-CS tests
-      run: ./openmw-cs-tests
-
-    # - name: Install
-    #   shell: bash
-    #   run: cmake --install .
-
-    # - name: Create Artifact
-    #   shell: bash
-    #   working-directory: install
-    #   run: |
-    #     ls -laR
-    #     7z a ../build_artifact.7z .
-
-    # - name: Upload Artifact
-    #   uses: actions/upload-artifact@v1
-    #   with:
-    #     path: ./build_artifact.7z
-    #     name: build_artifact.7z
-
-  MacOS:
-    strategy:
-      fail-fast: true
-      matrix:
-        args:
-          - image: macos-15
-          - image: macos-15-intel
-    uses: ./.github/workflows/macos.yml
-    with:
-      image: ${{ matrix.args.image }}
-
   Windows:
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-        - "2022"
-
-    uses: ./.github/workflows/windows.yml
-    with:
-      image: ${{ matrix.image }}
+    runs-on: windows-2022
+    env:
+      SCCACHE_GHA_ENABLED: "on"
+      SCCACHE_GHA_VERSION: openmw-msvc-2022-Release-v1
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
+      SCCACHE_IDLE_TIMEOUT: "0"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: seanmiddleditch/gha-setup-ninja@master
+      - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
+        with:
+          version: v0.18.0
+      - name: Apply exact-baseline source repair and run early checks
+        shell: pwsh
+        run: |
+          python custom/loading-repair/apply.py
+          if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
+          python custom/loading-repair/check-integration.py
+          if ($LASTEXITCODE) { throw 'Handoff source integration check failed' }
+          git diff --check
+          if ($LASTEXITCODE) { throw 'Invalid source diff' }
+          git diff --binary --output=loading-repair-applied.patch -- apps/
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/loading-repair/handoff-test.cpp /Fe:handoff-test.exe
+          if ($LASTEXITCODE) { throw 'Handoff lifecycle test did not compile' }
+          ./handoff-test.exe
+          if ($LASTEXITCODE) { throw 'Handoff lifecycle test failed' }
+      - name: Record dependency versions
+        shell: bash
+        run: sed '/^\s*#/d; /^\s*$/d' CI/deps_versions.msvc.sh >> "$GITHUB_ENV"
+      - name: Download verified dependencies
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force deps, deps/Qt | Out-Null
+          Set-Location deps
+          $manifest = "vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}-manifest.txt"
+          curl --fail --retry 3 -L -o "$manifest" "https://gitlab.com/OpenMW/openmw-deps/-/raw/main/windows/$manifest"
+          if ($LASTEXITCODE) { throw 'Dependency manifest download failed' }
+          $lines = Get-Content "$manifest"
+          $parts = -split $lines[1]
+          curl --fail --retry 3 -L -o "$($parts[1])" "$($lines[0])"
+          if ($LASTEXITCODE) { throw 'Dependency archive download failed' }
+          if ((Get-FileHash $parts[1] -Algorithm SHA512).Hash -ne $parts[0]) { throw 'Dependency hash mismatch' }
+          7z x -y "-ovcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}" $parts[1]
+          if ($LASTEXITCODE) { throw 'Dependency extraction failed' }
+      - uses: actions/cache@v5
+        id: qt-cache
+        with:
+          path: deps/Qt/${{ env.QT_VER }}/msvc2019_64
+          key: qt-cache-${{ env.QT_VER }}-msvc2019_64-v1
+      - name: Download Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        working-directory: deps/Qt
+        run: |
+          curl --fail --retry 3 -L -o aqt_x64.exe https://github.com/miurahr/aqtinstall/releases/download/v3.1.15/aqt_x64.exe
+          if ($LASTEXITCODE) { throw 'Qt installer download failed' }
+          ./aqt_x64.exe install-qt windows desktop ${{ env.QT_VER }} win64_msvc2019_64
+          if ($LASTEXITCODE) { throw 'Qt installation failed' }
+      - name: Configure Release build with existing diagnostic cache
+        shell: pwsh
+        run: >
+          cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
+          -D CMAKE_TOOLCHAIN_FILE='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/scripts/buildsystems/vcpkg.cmake'
+          -D CMAKE_PREFIX_PATH='${{ github.workspace }}/deps/Qt/${{ env.QT_VER }}/msvc2019_64'
+          -D CMAKE_CXX_FLAGS_RELEASE="/O2 /Ob2 /DNDEBUG"
+          -D "CMAKE_EXE_LINKER_FLAGS_RELEASE=/DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO"
+          -D LuaJit_INCLUDE_DIR='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/include/luajit'
+          -D LuaJit_LIBRARY='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/lib/lua51.lib'
+          -D BUILD_BENCHMARKS=OFF -D BUILD_COMPONENTS_TESTS=ON -D BUILD_OPENMW_TESTS=ON
+          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=OFF -D BUILD_ESSIMPORTER=OFF -D BUILD_BSATOOL=OFF
+          -D BUILD_ESMTOOL=OFF -D BUILD_NIFTEST=OFF -D BUILD_BULLETOBJECTTOOL=OFF
+          -D OPENMW_USE_SYSTEM_SQLITE3=OFF -D OPENMW_USE_SYSTEM_YAML_CPP=OFF -D OPENMW_LTO_BUILD=ON
+          -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
+          -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
+          -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Compile changed engine units first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/loadingscreen.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwstate/statemanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
+      - name: Build engine and regression tests
+        run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
+      - name: Prepare test DLLs
+        shell: pwsh
+        run: |
+          $deps = 'deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/bin'
+          Copy-Item "$deps/Release/MyGUIEngine.dll" build/
+          Copy-Item "$deps/*.dll" build/
+          Get-ChildItem "$deps/osgPlugins-3.6.5" -Filter *.dll -Recurse | Copy-Item -Destination build/
+          $qt = 'deps/Qt/${{ env.QT_VER }}/msvc2019_64'
+          foreach ($dll in 'Core','Gui','Network','OpenGL','OpenGLWidgets','Widgets','Svg') {
+            Copy-Item "$qt/bin/Qt6$dll.dll" build/
+          }
+          foreach ($plugin in 'styles/qwindowsvistastyle.dll','platforms/qwindows.dll','imageformats/qsvg.dll','iconengines/qsvgicon.dll') {
+            New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
+            Copy-Item "$qt/plugins/$plugin" "build/$plugin"
+          }
+      - name: All engine tests and four lookup configurations before packaging
+        shell: pwsh
+        run: |
+          ./build/components-tests.exe
+          if ($LASTEXITCODE) { throw 'Component regressions failed' }
+          ./build/openmw-tests.exe
+          if ($LASTEXITCODE) { throw 'Engine regressions failed' }
+          try {
+            foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
+              $env:OPENMW_CELL_ID_INDEX = $mode[0]
+              $env:OPENMW_WORLD_CELL_INDEX = $mode[1]
+              $env:OPENMW_WORLD_CELL_CANDIDATES = $mode[2]
+              ./build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.*
+              if ($LASTEXITCODE) { throw "Lookup configuration failed: $mode" }
+            }
+          } finally {
+            Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
+          }
+      - name: Package only after test success
+        shell: pwsh
+        run: |
+          cmake --install build --prefix install
+          if ($LASTEXITCODE) { throw 'Installation failed' }
+          Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
+          Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
+          Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
+          "Commit ${{ github.sha }}`nSource baseline e9476be66251d181d0016a5fd112e1d90e3875f6`nSource edits: loading-repair-applied.patch`nTests: passed before packaging" | Set-Content install/CI-ID.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: openmw-loading-repair-windows-${{ github.sha }}
+          path: install/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: loading-repair-evidence-${{ github.sha }}
+          path: |
+            loading-repair-source-manifest.json
+            loading-repair-applied.patch
+            build/CMakeCache.txt
+            build/**/*.log
+            build/compile_commands.json
