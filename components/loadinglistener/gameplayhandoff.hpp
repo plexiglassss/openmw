@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstddef>
 #include <cstdlib>
 #include <functional>
 #include <string_view>
@@ -134,8 +135,17 @@ namespace Loading
     inline bool gameplayHandoffEnabled()
     {
         static const bool enabled = [] {
+#ifdef _MSC_VER
+            char* value = nullptr;
+            std::size_t length = 0;
+            const auto error = ::_dupenv_s(&value, &length, "OPENMW_POSTLOAD_HANDOFF");
+            const bool result = error != 0 || value == nullptr || std::string_view(value) != "0";
+            std::free(value);
+            return result;
+#else
             const char* value = std::getenv("OPENMW_POSTLOAD_HANDOFF");
             return value == nullptr || std::string_view(value) != "0";
+#endif
         }();
         return enabled;
     }
