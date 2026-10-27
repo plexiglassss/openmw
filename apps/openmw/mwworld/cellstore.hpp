@@ -169,6 +169,11 @@ namespace MWWorld
         bool hasState() const;
         ///< Does this cell have state that needs to be stored in a saved game file?
 
+        // A metadata-only save can set hasState() on an unloaded cell without
+        // introducing any references. This checks only runtime-owned references;
+        // content-file placements are covered by ESMStore::getRefCells.
+        bool hasUnloadedLiveReferences() const;
+
         bool hasId(const ESM::RefId& id) const;
         ///< May return true for deleted IDs when in preload state. Will return false, if cell is
         /// unloaded.
