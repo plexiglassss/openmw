@@ -7,6 +7,7 @@
 #include "apps/openmw/mwworld/esmstore.hpp"
 #include "apps/openmw/mwworld/worldmodel.hpp"
 
+#include <components/esm3/cellstate.hpp>
 #include <components/esm3/esmreader.hpp>
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/formatversion.hpp>
