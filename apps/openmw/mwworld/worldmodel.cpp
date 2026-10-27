@@ -567,14 +567,15 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
                         candidates.push_back(&it->second);
                 }
 
-                // Metadata-only saves, moved or dynamically inserted references
-                // may not appear in the static index. Search those conservatively.
-                // ESM4 references also lack the ESM3 RefId->cell index; keep their
-                // existing exhaustive unindexed-cell behavior. A non-unloaded
-                // cell waiting for indexing must always be considered.
+                // A metadata-only CSTA sets hasState() even though it cannot
+                // introduce a reference; using hasState() here admitted over
+                // 25,000 unrelated saved cells in the user's large modlist.
+                // Keep unloaded cells that actually own live runtime refs.
+                // ESM4 lacks the ESM3 content index and remains conservative.
+                // Loaded/preloaded cells awaiting indexing remain searchable.
                 for (CellStore* cell : mUnindexedLookupCells)
-                    if (cell->getState() != CellStore::State_Unloaded || cell->hasState()
-                        || cell->getCell()->isEsm4())
+                    if (cell->getState() != CellStore::State_Unloaded
+                        || cell->getCell()->isEsm4() || cell->hasUnloadedLiveReferences())
                         candidates.push_back(cell);
             }
             else
