@@ -20,6 +20,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -433,7 +434,15 @@ namespace MWWorld
             CellStore& b = cell("b", false);
             b.preload();
             EXPECT_TRUE(find("missing").isEmpty());
-            EXPECT_EQ(a.getState(), CellStore::State_Preloaded);
+
+            // With indexed candidates enabled, a negative lookup must leave an
+            // unrelated unloaded cell untouched. The opt-out and original
+            // traversal deliberately retain the prior eager-preload behavior.
+            const char* worldIndex = std::getenv("OPENMW_WORLD_CELL_INDEX");
+            const char* candidateIndex = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+            const bool lazyCandidates = (worldIndex == nullptr || std::string_view(worldIndex) != "0")
+                && (candidateIndex == nullptr || std::string_view(candidateIndex) != "0");
+            EXPECT_EQ(a.getState(), lazyCandidates ? CellStore::State_Unloaded : CellStore::State_Preloaded);
             EXPECT_EQ(b.getState(), CellStore::State_Preloaded);
             a.load();
             b.load();
