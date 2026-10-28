@@ -1,4 +1,4 @@
-name: Loading repair - Windows only
+name: OpenMW - initializing stage reverted (Windows)
 on:
   push:
     branches: [perf/loading-handoff-20261027]
@@ -24,20 +24,16 @@ jobs:
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
         with:
           version: v0.18.0
-      - name: Apply exact-baseline source repair and run early checks
+      - name: Apply lookup-only repair and verify waiting-stage rollback
         shell: pwsh
         run: |
           python custom/loading-repair/apply.py
           if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
           python custom/loading-repair/check-integration.py
-          if ($LASTEXITCODE) { throw 'Handoff source integration check failed' }
+          if ($LASTEXITCODE) { throw 'Waiting-stage rollback/source validation failed' }
           git diff --check
           if ($LASTEXITCODE) { throw 'Invalid source diff' }
           git diff --binary --output=loading-repair-applied.patch -- apps/
-          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/loading-repair/handoff-test.cpp /Fe:handoff-test.exe
-          if ($LASTEXITCODE) { throw 'Handoff lifecycle test did not compile' }
-          ./handoff-test.exe
-          if ($LASTEXITCODE) { throw 'Handoff lifecycle test failed' }
       - name: Record dependency versions
         shell: bash
         run: sed '/^\s*#/d; /^\s*$/d' CI/deps_versions.msvc.sh >> "$GITHUB_ENV"
@@ -87,14 +83,9 @@ jobs:
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
-      - name: Compile changed engine units first
+      - name: Compile lookup change first
         shell: pwsh
-        run: >
-          cmake --build build --target
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/loadingscreen.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwstate/statemanagerimp.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
+        run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
       - name: Build engine and regression tests
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
       - name: Prepare test DLLs
@@ -142,13 +133,13 @@ jobs:
           "Commit ${{ github.sha }}`nSource baseline e9476be66251d181d0016a5fd112e1d90e3875f6`nSource edits: loading-repair-applied.patch`nTests: passed before packaging" | Set-Content install/CI-ID.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-loading-repair-windows-${{ github.sha }}
+          name: openmw-no-initializing-stage-windows-${{ github.sha }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: loading-repair-evidence-${{ github.sha }}
+          name: initializing-stage-revert-evidence-${{ github.sha }}
           path: |
             loading-repair-source-manifest.json
             loading-repair-applied.patch
