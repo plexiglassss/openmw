@@ -1,13 +1,13 @@
-name: OpenMW - initializing stage reverted (Windows)
+name: OpenMW - journal typography (Windows)
 on:
   push:
-    branches: [perf/loading-handoff-20261027]
+    branches: [feature/journal-typography-20261101]
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: loading-repair-${{ github.ref }}
+  group: journal-typography-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   Windows:
@@ -19,6 +19,13 @@ jobs:
       SCCACHE_IDLE_TIMEOUT: "0"
     steps:
       - uses: actions/checkout@v6
+      - name: Verify feature scope and accepted baseline
+        shell: pwsh
+        run: |
+          git fetch --no-tags --depth=1 origin 00af1d5c63313c61a46c6c8782ce45b3e05f023a
+          if ($LASTEXITCODE) { throw 'Cannot recover accepted source baseline' }
+          python custom/journal-typography/verify-source.py
+          if ($LASTEXITCODE) { throw 'Journal source scope or resources failed verification' }
       - uses: ilammy/msvc-dev-cmd@v1
       - uses: seanmiddleditch/gha-setup-ninja@master
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
@@ -86,6 +93,14 @@ jobs:
       - name: Compile lookup change first
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
+      - name: Compile journal implementation first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/bookpage.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalbooks.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/test_journaltypography.cpp.obj
       - name: Build engine and regression tests
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
       - name: Prepare test DLLs
@@ -106,9 +121,9 @@ jobs:
       - name: All engine tests and four lookup configurations before packaging
         shell: pwsh
         run: |
-          ./build/components-tests.exe
+          ./build/components-tests.exe --gtest_output=xml:components-tests.xml
           if ($LASTEXITCODE) { throw 'Component regressions failed' }
-          ./build/openmw-tests.exe
+          ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
           try {
             foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
@@ -130,17 +145,25 @@ jobs:
           Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
           Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
           Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
-          "Commit ${{ github.sha }}`nSource baseline e9476be66251d181d0016a5fd112e1d90e3875f6`nSource edits: loading-repair-applied.patch`nTests: passed before packaging" | Set-Content install/CI-ID.txt
+          Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
+          Copy-Item journal-typography-source-manifest.json,components-tests.xml,openmw-tests.xml install/
+          "Commit ${{ github.sha }}`nAccepted engine baseline 00af1d5c63313c61a46c6c8782ce45b3e05f023a`nBuild-time lookup edits: loading-repair-applied.patch`nJournal source: journal-typography-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
+          python custom/journal-typography/package-manifest.py install
+          if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-no-initializing-stage-windows-${{ github.sha }}
+          name: openmw-journal-typography-windows-${{ github.sha }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: initializing-stage-revert-evidence-${{ github.sha }}
+          name: journal-typography-evidence-${{ github.sha }}
           path: |
+            journal-typography-source-manifest.json
+            components-tests.xml
+            openmw-tests.xml
+            install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json
             loading-repair-applied.patch
             build/CMakeCache.txt

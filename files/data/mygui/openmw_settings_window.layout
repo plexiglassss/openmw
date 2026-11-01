@@ -1032,6 +1032,29 @@
                         <Property key="Caption" value="Snap windows to nearby edges"/>
                     </Widget>
                 </Widget>
+                <Widget type="TextBox" skin="SandText" position="4 96 350 24" align="Left Top">
+                    <Property key="Caption" value="#{OMWEngine:JournalTypography}"/>
+                </Widget>
+                <Widget type="TextBox" skin="SandText" position="4 132 154 24" align="Left Top">
+                    <Property key="Caption" value="#{OMWEngine:JournalFontSize}"/>
+                </Widget>
+                <Widget type="ComboBox" skin="MW_ComboBox" position="164 128 202 28" align="Left Top" name="JournalFontSize">
+                    <Property key="ComboDropMode" value="true"/>
+                </Widget>
+                <Widget type="TextBox" skin="SandText" position="4 168 154 24" align="Left Top">
+                    <Property key="Caption" value="#{OMWEngine:JournalTextAlignment}"/>
+                </Widget>
+                <Widget type="ComboBox" skin="MW_ComboBox" position="164 164 202 28" align="Left Top" name="JournalTextAlignment">
+                    <Property key="ComboDropMode" value="true"/>
+                    <Property key="AddItem" value="#{OMWEngine:JournalAlignLeft}"/>
+                    <Property key="AddItem" value="#{OMWEngine:JournalAlignCentre}"/>
+                    <Property key="AddItem" value="#{OMWEngine:JournalAlignRight}"/>
+                    <Property key="AddItem" value="#{OMWEngine:JournalAlignJustified}"/>
+                </Widget>
+                <Widget type="TextBox" skin="SandText" position="4 212 362 100" align="Left Top">
+                    <Property key="Caption" value="#{OMWEngine:JournalTypographyHint}"/>
+                    <Property key="WordWrap" value="true"/>
+                </Widget>
             </Widget>
         </Widget>
         <Widget type="AutoSizedButton" skin="MW_Button" position="320 420 56 24" align="Right Bottom" name="OkButton">

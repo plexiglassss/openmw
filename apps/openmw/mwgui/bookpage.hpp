@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <components/settings/values.hpp>
@@ -20,6 +21,21 @@ namespace MWGui
     {
         using Content = std::vector<uint8_t>;
         typedef intptr_t InteractiveId;
+
+        /// Read-only layout information in document coordinates. Text views remain
+        /// valid for the lifetime of this book. Querying this information does not
+        /// change rendering or allocate anything during normal page display.
+        struct TextRun
+        {
+            std::string_view mText;
+            int mLeft, mTop, mRight, mBottom;
+            InteractiveId mInteractiveId;
+        };
+
+        virtual std::vector<TextRun> getTextRuns() const = 0;
+
+        /// Exact link hit test in the same document coordinates as TextRun.
+        virtual InteractiveId getLinkAt(int left, int top) const = 0;
 
         /// Returns the number of pages in the document.
         virtual size_t pageCount() const = 0;
@@ -47,7 +63,8 @@ namespace MWGui
         {
             AlignLeft = -1,
             AlignCenter = 0,
-            AlignRight = +1
+            AlignRight = +1,
+            AlignJustify = +2
         };
 
         /// Styles are used to control the character level formatting
@@ -57,7 +74,9 @@ namespace MWGui
         struct Style;
 
         /// A factory function for creating the default implementation of a book typesetter
-        static std::shared_ptr<BookTypesetter> create(int pageWidth, int pageHeight);
+        /// A zero font size follows the GUI font size. The effective size is
+        /// captured by the document so rendering and pagination stay consistent.
+        static std::shared_ptr<BookTypesetter> create(int pageWidth, int pageHeight, int fontSize = 0);
 
         /// Create a simple text style consisting of a font and a text color.
         virtual Style* createStyle(const std::string& fontName, const MyGUI::Colour& colour, bool useBookFont = true)
@@ -84,6 +103,10 @@ namespace MWGui
 
         /// Changes the alignment for the current section of text.
         virtual void setSectionAlignment(Alignment sectionAlignment) = 0;
+
+        /// Change the current and subsequent lines without changing earlier lines
+        /// in the section, for example a left-aligned date above justified prose.
+        virtual void setLineAlignment(Alignment lineAlignment) = 0;
 
         // Layout a block of text with the specified style into the document.
         virtual void write(Style* style, std::string_view text) = 0;

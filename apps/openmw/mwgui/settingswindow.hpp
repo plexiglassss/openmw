@@ -65,6 +65,9 @@ namespace MWGui
         MyGUI::ComboBox* mSecondaryLanguage;
         MyGUI::Button* mGmstOverridesL10n;
 
+        MyGUI::ComboBox* mJournalFontSize;
+        MyGUI::ComboBox* mJournalTextAlignment;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
@@ -106,6 +109,10 @@ namespace MWGui
         void onSecondaryLanguageChanged(MyGUI::ComboBox* sender, size_t pos) { onLanguageChanged(1, sender, pos); }
         void onLanguageChanged(size_t langPriority, MyGUI::ComboBox* sender, size_t pos);
         void onGmstOverridesL10nChanged(MyGUI::Widget* sender);
+
+        void onJournalFontSizeChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onJournalTextAlignmentChanged(MyGUI::ComboBox* sender, size_t pos);
+        void updateJournalSettings();
 
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);

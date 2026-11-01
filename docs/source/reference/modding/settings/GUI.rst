@@ -24,6 +24,36 @@ GUI Settings
    trueType fonts do not have this issue.
 
 .. omw-setting::
+   :title: journal font size
+   :type: int
+   :range: 0, 10 to 24
+   :default: 0
+   :location: :bdg-success:`Launcher > Settings > Interface` :bdg-success:`In Game > Options > Interface`
+
+   Sets the logical glyph size for journal entries and quest/topic text, including
+   their date and title lines. Zero follows the regular ``font size`` setting.
+   This does not resize dialogue, inventory, books, scrolls, journal buttons or the
+   alphabetical topic index. GUI scaling still scales the journal window normally.
+   Close and reopen the journal to apply an in-game change; a restart is unnecessary.
+   Values outside the listed range are rejected. Custom bitmap fonts may become less sharp when resized.
+
+.. omw-setting::
+   :title: journal text alignment
+   :type: int
+   :range: 0, 1, 2, 3
+   :default: 0
+   :location: :bdg-success:`Launcher > Settings > Interface` :bdg-success:`In Game > Options > Interface`
+
+   Controls the horizontal alignment of journal, quest and topic paragraphs:
+   zero is left, one is centred, two is right, and three is justified.
+   Justification distributes additional space between words on automatically
+   wrapped lines. The last line of a paragraph and explicitly broken lines stay
+   left aligned, and non-breaking spaces stay inside their words.
+   Dates, standalone titles and the alphabetical index retain their original alignment.
+   Inline speaker attributions stay with their quoted paragraph.
+   Close and reopen the journal to apply a change. Values outside zero through three are rejected.
+
+.. omw-setting::
    :title: menu transparency
    :type: float32
    :range: 0.0 (transparent) to 1.0 (opaque)

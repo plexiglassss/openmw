@@ -1389,6 +1389,53 @@
         </layout>
        </item>
        <item>
+        <widget class="QGroupBox" name="journalTypographyGroup">
+         <property name="title">
+          <string>Journal Text</string>
+         </property>
+         <layout class="QGridLayout" name="journalTypographyLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="journalFontSizeLabel">
+            <property name="text">
+             <string>Font Size</string>
+            </property>
+            <property name="buddy">
+             <cstring>journalFontSizeComboBox</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="journalFontSizeComboBox">
+            <property name="toolTip">
+             <string>Size of journal entries, quest text and topic text only. Books, dialogue, other interface text and the alphabetical index keep their own size.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="journalTextAlignmentLabel">
+            <property name="text">
+             <string>Alignment</string>
+            </property>
+            <property name="buddy">
+             <cstring>journalTextAlignmentComboBox</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="journalTextAlignmentComboBox">
+            <property name="toolTip">
+             <string>Alignment of journal prose. Justified text expands spaces on wrapped lines; the last line of each paragraph stays left aligned. Headings keep their original alignment.</string>
+            </property>
+            <item><property name="text"><string>Left</string></property></item>
+            <item><property name="text"><string>Centred</string></property></item>
+            <item><property name="text"><string>Right</string></property></item>
+            <item><property name="text"><string>Justified</string></property></item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>

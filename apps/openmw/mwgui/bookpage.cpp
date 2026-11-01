@@ -1,5 +1,6 @@
 #include "bookpage.hpp"
 
+#include <limits>
 #include <optional>
 
 #include "MyGUI_FactoryManager.h"
@@ -14,12 +15,12 @@
 
 namespace
 {
-    std::optional<MyGUI::GlyphInfo> getGlyphInfo(MyGUI::IFont* font, MyGUI::Char ch)
+    std::optional<MyGUI::GlyphInfo> getGlyphInfo(MyGUI::IFont* font, MyGUI::Char ch, int fontSize)
     {
         const MyGUI::GlyphInfo* gi = font->getGlyphInfo(ch);
         if (!gi)
             return {};
-        const float scale = font->getDefaultHeight() / static_cast<float>(Settings::gui().mFontSize);
+        const float scale = font->getDefaultHeight() / static_cast<float>(fontSize);
         MyGUI::GlyphInfo info = *gi;
         info.bearingX /= scale;
         info.bearingY /= scale;
@@ -152,12 +153,15 @@ namespace MWGui
             Range mRange;
             int mLeft, mRight;
             int mPrintableChars;
+            bool mWhitespace = false;
         };
 
         struct Line
         {
             std::vector<Run> mRuns;
             MyGUI::IntRect mRect;
+            BookTypesetter::Alignment mAlignment = BookTypesetter::AlignLeft;
+            bool mWrapped = false;
         };
 
         struct Section
@@ -177,6 +181,27 @@ namespace MWGui
         std::list<Content> mContents;
         std::list<StyleImpl> mStyles;
         MyGUI::IntRect mRect;
+        int mFontSize = 0;
+
+        std::vector<TextRun> getTextRuns() const override
+        {
+            std::vector<TextRun> result;
+            visitRuns(0, std::numeric_limits<int>::max(),
+                [&result](const Section& section, const Line& line, const Run& run) {
+                const int left = section.mRect.left + line.mRect.left;
+                result.push_back({ std::string_view(reinterpret_cast<const char*>(run.mRange.first),
+                                       run.mRange.second - run.mRange.first),
+                    left + run.mLeft, line.mRect.top, left + run.mRight, line.mRect.bottom,
+                    run.mStyle->mInteractiveId });
+            });
+            return result;
+        }
+
+        InteractiveId getLinkAt(int left, int top) const override
+        {
+            const StyleImpl* style = hitTest(left, top);
+            return style ? style->mInteractiveId : 0;
+        }
 
         void setColour(size_t section, size_t line, size_t run, const MyGUI::Colour& colour) const override
         {
@@ -329,14 +354,13 @@ namespace MWGui
         Line* mLine;
         Run* mRun;
 
-        std::vector<Alignment> mSectionAlignment;
         std::vector<PartialText> mPartialWhitespace;
         std::vector<PartialText> mPartialWord;
 
         TypesetBookImpl::Content const* mCurrentContent;
         Alignment mCurrentAlignment;
 
-        Typesetter(int width, int height)
+        Typesetter(int width, int height, int fontSize)
             : mPageWidth(width)
             , mPageHeight(height)
             , mSection(nullptr)
@@ -346,6 +370,7 @@ namespace MWGui
             , mCurrentAlignment(AlignLeft)
         {
             mBook = std::make_shared<TypesetBookImpl>();
+            mBook->mFontSize = fontSize > 0 ? fontSize : static_cast<int>(Settings::gui().mFontSize);
         }
 
         virtual ~Typesetter() = default;
@@ -468,8 +493,100 @@ namespace MWGui
             add_partial_text();
 
             if (mSection != nullptr)
-                mSectionAlignment.back() = sectionAlignment;
+                for (Line& line : mSection->mLines)
+                    line.mAlignment = sectionAlignment;
             mCurrentAlignment = sectionAlignment;
+        }
+
+        void setLineAlignment(Alignment lineAlignment) override
+        {
+            add_partial_text();
+
+            if (mLine != nullptr)
+                mLine->mAlignment = lineAlignment;
+            mCurrentAlignment = lineAlignment;
+        }
+
+        void justifyLine(Line& line)
+        {
+            // Split only justified lines. Each word keeps its original style and
+            // link identity, and drawing and hit testing use the same positions.
+            // Other documents retain their original compact runs unchanged.
+            std::vector<Run> runs;
+            for (const Run& run : line.mRuns)
+            {
+                Utf8Stream stream(run.mRange);
+                int left = run.mLeft;
+                while (!stream.eof())
+                {
+                    const Utf8Stream::Point begin = stream.current();
+                    const bool whitespace = ucsBreakingSpace(stream.peek());
+                    int right = left;
+                    do
+                    {
+                        const std::optional<MyGUI::GlyphInfo> info
+                            = getGlyphInfo(run.mStyle->mFont, stream.consume(), mBook->mFontSize);
+                        if (info)
+                            right += static_cast<int>(info->advance + info->bearingX);
+                    } while (!stream.eof() && ucsBreakingSpace(stream.peek()) == whitespace);
+
+                    const Utf8Stream::Point end = stream.current();
+                    runs.push_back({ run.mStyle, { begin, end }, left, right,
+                        whitespace ? 0 : static_cast<int>(end - begin), whitespace });
+                    left = right;
+                }
+            }
+
+            // A break opportunity with no visible width (for example U+200B)
+            // must not turn into a large visible gap. Non-breaking spaces remain
+            // within words and are neither expanded nor used as break points.
+            std::vector<std::size_t> gaps;
+            bool hasWord = false;
+            std::size_t lastWord = 0;
+            for (std::size_t i = 0; i < runs.size();)
+            {
+                if (!runs[i].mWhitespace)
+                {
+                    hasWord = true;
+                    lastWord = i++;
+                    continue;
+                }
+
+                const int left = runs[i].mLeft;
+                std::size_t end = i + 1;
+                while (end < runs.size() && runs[end].mWhitespace)
+                    ++end;
+                if (hasWord && end < runs.size() && runs[end - 1].mRight > left)
+                    gaps.push_back(end - 1);
+                i = end;
+            }
+
+            if (!hasWord || gaps.empty())
+                return;
+
+            const int excess = mPageWidth - runs[lastWord].mRight;
+            if (excess <= 0)
+                return;
+
+            // Distribute integer pixels exactly; short lines and overlong words
+            // are never compressed. Drop trailing whitespace at the right edge.
+            runs.resize(lastWord + 1);
+            const int perGap = excess / static_cast<int>(gaps.size());
+            const int remainder = excess % static_cast<int>(gaps.size());
+            int offset = 0;
+            std::size_t gap = 0;
+            for (std::size_t i = 0; i < runs.size(); ++i)
+            {
+                runs[i].mLeft += offset;
+                if (gap < gaps.size() && i == gaps[gap])
+                {
+                    offset += perGap + (static_cast<int>(gap) < remainder ? 1 : 0);
+                    ++gap;
+                }
+                runs[i].mRight += offset;
+            }
+            line.mRuns = std::move(runs);
+            line.mRect.right = mPageWidth;
         }
 
         std::shared_ptr<TypesetBook> complete() override
@@ -479,19 +596,21 @@ namespace MWGui
 
             add_partial_text();
 
-            std::vector<Alignment>::iterator sa = mSectionAlignment.begin();
-            for (Sections::iterator i = mBook->mSections.begin(); i != mBook->mSections.end(); ++i, ++sa)
+            for (Sections::iterator i = mBook->mSections.begin(); i != mBook->mSections.end(); ++i)
             {
                 // apply alignment to individual lines...
                 for (Line& line : i->mLines)
                 {
+                    if (line.mAlignment == AlignJustify && line.mWrapped)
+                        justifyLine(line);
                     int width = line.mRect.width();
                     int excess = mPageWidth - width;
 
-                    switch (*sa)
+                    switch (line.mAlignment)
                     {
                         default:
                         case AlignLeft:
+                        case AlignJustify:
                             line.mRect.left = 0;
                             break;
                         case AlignCenter:
@@ -503,6 +622,8 @@ namespace MWGui
                     }
 
                     line.mRect.right = line.mRect.left + width;
+                    i->mRect.right = std::max(i->mRect.right, width);
+                    mBook->mRect.right = std::max(mBook->mRect.right, width);
                 }
 
                 if (curPageStop == curPageStart)
@@ -539,7 +660,8 @@ namespace MWGui
                 {
                     // The section won't completely fit on the current page. Finish the current page and start a new
                     // one.
-                    mBook->mPages.emplace_back(curPageStart, curPageStop);
+                    if (curPageStart != curPageStop)
+                        mBook->mPages.emplace_back(curPageStart, curPageStop);
 
                     curPageStart = i->mRect.top;
                     curPageStop = i->mRect.bottom;
@@ -598,7 +720,8 @@ namespace MWGui
 
                 while (!stream.eof() && !ucsLineBreak(stream.peek()) && ucsBreakingSpace(stream.peek()))
                 {
-                    std::optional<MyGUI::GlyphInfo> info = getGlyphInfo(style->mFont, stream.peek());
+                    std::optional<MyGUI::GlyphInfo> info
+                        = getGlyphInfo(style->mFont, stream.peek(), mBook->mFontSize);
                     if (info)
                         spaceWidth += static_cast<int>(info->advance + info->bearingX);
                     stream.consume();
@@ -608,7 +731,8 @@ namespace MWGui
 
                 while (!stream.eof() && !ucsLineBreak(stream.peek()) && !ucsBreakingSpace(stream.peek()))
                 {
-                    std::optional<MyGUI::GlyphInfo> info = getGlyphInfo(style->mFont, stream.peek());
+                    std::optional<MyGUI::GlyphInfo> info
+                        = getGlyphInfo(style->mFont, stream.peek(), mBook->mFontSize);
                     if (info)
                         wordWidth += static_cast<int>(info->advance + info->bearingX);
                     stream.consume();
@@ -631,7 +755,7 @@ namespace MWGui
             if (mPartialWhitespace.empty() && mPartialWord.empty())
                 return;
 
-            const int fontHeight = Settings::gui().mFontSize;
+            const int fontHeight = mBook->mFontSize;
             int spaceWidth = 0;
             int wordWidth = 0;
 
@@ -644,6 +768,10 @@ namespace MWGui
 
             if (left + spaceWidth + wordWidth > mPageWidth)
             {
+                // Explicit breaks and the last line of a paragraph are never
+                // justified. Only a following word that wraps sets this flag.
+                if (mLine && !mPartialWord.empty())
+                    mLine->mWrapped = true;
                 mLine = nullptr;
                 mRun = nullptr;
                 left = 0;
@@ -682,7 +810,6 @@ namespace MWGui
                 mBook->mSections.push_back(Section());
                 mSection = &mBook->mSections.back();
                 mSection->mRect = MyGUI::IntRect(0, mBook->mRect.bottom, 0, mBook->mRect.bottom);
-                mSectionAlignment.push_back(mCurrentAlignment);
             }
 
             if (mLine == nullptr)
@@ -690,6 +817,7 @@ namespace MWGui
                 mSection->mLines.push_back(Line());
                 mLine = &mSection->mLines.back();
                 mLine->mRect = MyGUI::IntRect(0, mSection->mRect.bottom, 0, mBook->mRect.bottom);
+                mLine->mAlignment = mCurrentAlignment;
             }
 
             if (mBook->mRect.right < right)
@@ -733,9 +861,9 @@ namespace MWGui
         }
     };
 
-    std::shared_ptr<BookTypesetter> BookTypesetter::create(int pageWidth, int pageHeight)
+    std::shared_ptr<BookTypesetter> BookTypesetter::create(int pageWidth, int pageHeight, int fontSize)
     {
-        return std::make_shared<TypesetBookImpl::Typesetter>(pageWidth, pageHeight);
+        return std::make_shared<TypesetBookImpl::Typesetter>(pageWidth, pageHeight, fontSize);
     }
 
     namespace
@@ -825,17 +953,19 @@ namespace MWGui
             float mZ;
             uint32_t mC;
             MyGUI::IFont* mFont;
+            int mFontSize;
             MyGUI::FloatPoint mOrigin;
             MyGUI::FloatPoint mCursor;
             MyGUI::Vertex* mVertices;
             RenderXform mRenderXform;
             MyGUI::VertexColourType mVertexColourType;
 
-            explicit GlyphStream(MyGUI::IFont* font, float left, float top, float z, MyGUI::Vertex* vertices,
-                RenderXform const& renderXform)
+            explicit GlyphStream(MyGUI::IFont* font, int fontSize, float left, float top, float z,
+                MyGUI::Vertex* vertices, RenderXform const& renderXform)
                 : mZ(z)
                 , mC(0)
                 , mFont(font)
+                , mFontSize(fontSize)
                 , mOrigin(left, top)
                 , mVertices(vertices)
                 , mRenderXform(renderXform)
@@ -859,7 +989,7 @@ namespace MWGui
 
             void emitGlyph(MyGUI::Char ch)
             {
-                std::optional<MyGUI::GlyphInfo> info = getGlyphInfo(mFont, ch);
+                std::optional<MyGUI::GlyphInfo> info = getGlyphInfo(mFont, ch, mFontSize);
 
                 if (!info)
                     return;
@@ -881,7 +1011,7 @@ namespace MWGui
 
             void emitSpace(MyGUI::Char ch)
             {
-                std::optional<MyGUI::GlyphInfo> info = getGlyphInfo(mFont, ch);
+                std::optional<MyGUI::GlyphInfo> info = getGlyphInfo(mFont, ch, mFontSize);
 
                 if (info)
                     mCursor.left += static_cast<int>(info->bearingX + info->advance);
@@ -1306,7 +1436,7 @@ namespace MWGui
 
             float z = SceneUtil::AutoDepth::isReversed() ? 1.f : -1.f;
 
-            GlyphStream glyphStream(textFormat.mFont, static_cast<float>(mCoord.left),
+            GlyphStream glyphStream(textFormat.mFont, mBook->mFontSize, static_cast<float>(mCoord.left),
                 static_cast<float>(mCoord.top - mViewTop), z /*mNode->getNodeDepth()*/, vertices, renderXform);
 
             const int visitTop = std::max(mViewTop, mViewTop + static_cast<int>(renderXform.clipTop));

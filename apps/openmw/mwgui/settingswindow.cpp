@@ -295,6 +295,8 @@ namespace MWGui
         getWidget(mPrimaryLanguage, "PrimaryLanguage");
         getWidget(mSecondaryLanguage, "SecondaryLanguage");
         getWidget(mGmstOverridesL10n, "GmstOverridesL10nButton");
+        getWidget(mJournalFontSize, "JournalFontSize");
+        getWidget(mJournalTextAlignment, "JournalTextAlignment");
         getWidget(mWindowModeHint, "WindowModeHint");
         getWidget(mClusteredLightingButton, "ClusteredLightingButton");
         getWidget(mLightsResetButton, "LightsResetButton");
@@ -372,6 +374,16 @@ namespace MWGui
             += MyGUI::newDelegate(this, &SettingsWindow::onSecondaryLanguageChanged);
         mGmstOverridesL10n->eventMouseButtonClick
             += MyGUI::newDelegate(this, &SettingsWindow::onGmstOverridesL10nChanged);
+
+        mJournalFontSize->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:JournalFontSizeAutomatic}"), 0);
+        for (int size = 10; size <= 24; ++size)
+            mJournalFontSize->addItem(MyGUI::utility::toString(size), size);
+        mJournalFontSize->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalFontSizeChanged);
+        mJournalTextAlignment->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalTextAlignmentChanged);
+        updateJournalSettings();
 
         computeMinimumWindowSize();
 
@@ -747,6 +759,32 @@ namespace MWGui
                 break;
         }
 
+        apply();
+    }
+
+    void SettingsWindow::updateJournalSettings()
+    {
+        const int size = Settings::gui().mJournalFontSize;
+        mJournalFontSize->setIndexSelected(size == 0 ? 0 : static_cast<size_t>(size - 9));
+        mJournalTextAlignment->setIndexSelected(Settings::gui().mJournalTextAlignment);
+    }
+
+    void SettingsWindow::onJournalFontSizeChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE)
+            return;
+        if (const int* size = sender->getItemDataAt<int>(pos))
+        {
+            Settings::gui().mJournalFontSize.set(*size);
+            apply();
+        }
+    }
+
+    void SettingsWindow::onJournalTextAlignmentChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE || pos > 3)
+            return;
+        Settings::gui().mJournalTextAlignment.set(static_cast<int>(pos));
         apply();
     }
 
@@ -1130,6 +1168,7 @@ namespace MWGui
         updateLightSettings();
         updateWindowModeSettings();
         updateVSyncModeSettings();
+        updateJournalSettings();
         resetScrollbars();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);

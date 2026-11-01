@@ -1,6 +1,7 @@
 #include "components/misc/strings/conversion.hpp"
 #include "components/settings/parser.hpp"
 #include "components/settings/values.hpp"
+#include "components/testing/util.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -149,6 +150,71 @@ namespace Settings
             Values values(index);
             values.mCamera.mFieldOfView.set(values.mCamera.mFieldOfView.get());
             EXPECT_THAT(Manager::mChangedSettings, ElementsAre());
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyDefaultsPreserveExistingAppearance)
+        {
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyRoundTripsWithoutChangingGlobalFontOrScale)
+        {
+            const auto path = TestingOpenMW::outputFilePath("journal-typography-settings.cfg");
+            int globalFontSize = 0;
+            float globalScale = 0;
+            {
+                Index index;
+                Values values(index);
+                globalFontSize = values.mGUI.mFontSize.get();
+                globalScale = values.mGUI.mScalingFactor.get();
+                values.mGUI.mJournalFontSize.set(12);
+                values.mGUI.mJournalTextAlignment.set(3);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 12);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 3);
+            EXPECT_EQ(values.mGUI.mFontSize.get(), globalFontSize);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), globalScale);
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyAcceptsEveryOfferedChoice)
+        {
+            Index index;
+            Values values(index);
+            for (int size = 10; size <= 24; ++size)
+            {
+                values.mGUI.mJournalFontSize.set(size);
+                EXPECT_EQ(values.mGUI.mJournalFontSize.get(), size);
+            }
+            values.mGUI.mJournalFontSize.set(0);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            for (int alignment = 0; alignment < 4; ++alignment)
+            {
+                values.mGUI.mJournalTextAlignment.set(alignment);
+                EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), alignment);
+            }
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyRejectsUnsupportedValues)
+        {
+            Index index;
+            Values values(index);
+            for (int size : { -1, 1, 9, 25, 1000 })
+                EXPECT_THROW(values.mGUI.mJournalFontSize.set(size), std::runtime_error);
+            for (int alignment : { -1, 4, 1000 })
+                EXPECT_THROW(values.mGUI.mJournalTextAlignment.set(alignment), std::runtime_error);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
         }
     }
 }

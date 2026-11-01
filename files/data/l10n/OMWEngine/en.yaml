@@ -258,3 +258,15 @@ JournalShowAll: "Show All"
 LoadingSelectCharacter: "Change Character"
 RechargeSelect: "Recharge"
 RepairTool: "Tool"
+
+# Journal typography
+
+JournalTypography: "Journal text"
+JournalFontSize: "Font size"
+JournalFontSizeAutomatic: "Use interface size"
+JournalTextAlignment: "Alignment"
+JournalAlignLeft: "Left"
+JournalAlignCentre: "Centred"
+JournalAlignRight: "Right"
+JournalAlignJustified: "Justified"
+JournalTypographyHint: "Applies when you close and reopen the journal. Changes journal entries, quest text and topic text. Other interface text and books keep their own size."

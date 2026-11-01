@@ -10,6 +10,27 @@
 
 namespace
 {
+    int getJournalFontSize()
+    {
+        const int size = Settings::gui().mJournalFontSize;
+        return size > 0 ? size : static_cast<int>(Settings::gui().mFontSize);
+    }
+
+    MWGui::BookTypesetter::Alignment getJournalTextAlignment()
+    {
+        switch (Settings::gui().mJournalTextAlignment)
+        {
+            case 1:
+                return MWGui::BookTypesetter::AlignCenter;
+            case 2:
+                return MWGui::BookTypesetter::AlignRight;
+            case 3:
+                return MWGui::BookTypesetter::AlignJustify;
+            default:
+                return MWGui::BookTypesetter::AlignLeft;
+        }
+    }
+
     struct AddContent
     {
         std::shared_ptr<MWGui::BookTypesetter> mTypesetter;
@@ -78,10 +99,12 @@ namespace
         {
             if (mAddHeader)
             {
+                mTypesetter->setLineAlignment(MWGui::BookTypesetter::AlignLeft);
                 mTypesetter->write(mHeaderStyle, entry.timestamp());
                 mTypesetter->lineBreak();
             }
 
+            mTypesetter->setLineAlignment(getJournalTextAlignment());
             AddEntry::operator()(entry);
 
             mTypesetter->sectionBreak(30);
@@ -104,6 +127,7 @@ namespace
 
         void operator()(MWGui::JournalViewModel::TopicEntry const& entry)
         {
+            mTypesetter->setLineAlignment(getJournalTextAlignment());
             mTypesetter->write(mBodyStyle, entry.source());
             mTypesetter->write(mBodyStyle, 0, 3); // begin
 
@@ -171,6 +195,7 @@ namespace MWGui
 
         typesetter->write(header, "You have no journal entries!");
         typesetter->lineBreak();
+        typesetter->setLineAlignment(getJournalTextAlignment());
         typesetter->write(body, "You should have gone though the starting quest and got an initial quest.");
 
         return typesetter->complete();
@@ -314,7 +339,7 @@ namespace MWGui
     std::shared_ptr<BookTypesetter> JournalBooks::createTypesetter()
     {
         // TODO: determine page size from layout...
-        return BookTypesetter::create(240, 320);
+        return BookTypesetter::create(240, 320, getJournalFontSize());
     }
 
 }
