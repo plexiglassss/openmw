@@ -46,7 +46,7 @@ journal text alignment = 3
 
 Font size `0` follows the regular interface font size. Alignment values are
 `0` left, `1` centred, `2` right, and `3` justified. Other values are rejected.
-The defaults are `0` and `0`, preserving the old appearance until changed.
+The defaults are `0` and `0`, preserving the old font size and alignment until changed.
 
 ## Exact behavior
 
@@ -54,6 +54,12 @@ Font size changes journal entries, quest text and topic text, including their
 date and title lines. It does not change dialogue, books, scrolls, inventory,
 HUD text, journal buttons or the alphabetical topic index. Existing GUI scaling
 still scales the whole journal window as before.
+
+Journal reading pages reserve **two logical pixels** at the right edge of their
+240-pixel widget. The text is laid out across 238 pixels so small glyph overhangs
+have room before the clipping boundary. The left edge, page height and font size
+are unchanged. A few lines or page breaks may reflow; the alphabetical index and
+ordinary books retain their existing widths.
 
 Alignment changes prose paragraphs. Dates and standalone topic/quest titles
 retain their original alignment. Inline speaker attributions stay with their
@@ -93,10 +99,11 @@ Use an existing save with several journal entries and known clickable topic
 links. No quest console command is needed.
 
 1. With **Use interface size / Left**, inspect the journal, inventory, dialogue
-   and a book. The old journal appearance should be retained.
+   and a book. The previous font size and left alignment should be retained.
 2. Select **14 / Justified**, close Options and close/reopen the journal. Long
    paragraphs should have even side margins; final lines should remain natural.
-   Dates and titles should stay at their original alignment.
+   Dates and titles should stay at their original alignment. Check that the last
+   letters on the right retain their complete strokes, with only a tiny inset.
 3. Turn forward/back through entries, open a quest and a topic, and click a link
    near the right edge of a justified line. The correct topic should open.
 4. Try **12**, then **24**. Entries should reflow without missing text or an empty
@@ -116,5 +123,5 @@ with the font size, alignment, UI scale, active font mod and a screenshot.
 
 Close the game and launcher, restore the old executable shortcut/folder, and
 launch the previous complete engine build. These controls do not alter quest
-records or save-game content. To restore this build's original journal layout,
-select **Use interface size / Left**.
+records or save-game content. To restore the original font size and alignment,
+select **Use interface size / Left**; the small right-side clearance remains.

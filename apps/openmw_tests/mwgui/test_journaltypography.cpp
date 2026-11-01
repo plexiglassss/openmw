@@ -39,6 +39,8 @@ namespace MWGui
             MyGUI::ITexture* getTextureFont() const override { return nullptr; }
             int getDefaultHeight() const override { return mHeight; }
 
+            void setRightOverhang(float pixels) { mLetter.width = mLetter.advance + pixels; }
+
         private:
             int mHeight;
             MyGUI::GlyphInfo mLetter;
@@ -147,10 +149,43 @@ namespace MWGui
             EXPECT_EQ(runs.front().mLeft, 0);
             const auto lines = lineExtents(*book);
             EXPECT_TRUE(std::any_of(std::next(lines.begin()), lines.end(), [](const auto& line) {
-                return line.second == std::make_pair(0, 240);
+                return line.second == std::make_pair(0, 238);
             }));
             const auto ordinary = typeset("abc", BookTypesetter::AlignLeft, 100, 100, 0);
             EXPECT_EQ(ordinary->getSize(), std::make_pair(24u, 16u));
+        }
+
+        TEST_F(JournalTypographyTest, JournalRightInsetContainsSmallGlyphOverhangWithoutChangingOtherDocuments)
+        {
+            Settings::gui().mJournalFontSize.set(16);
+            mBookFont.setRightOverhang(2.f);
+            for (int alignment : { 2, 3 }) // Right and Justified journal settings.
+            {
+                Settings::gui().mJournalTextAlignment.set(alignment);
+                JournalBooks journal(nullptr, ToUTF8::WINDOWS_1252);
+                const auto book = journal.createEmptyJournalBook();
+                const auto runs = book->getTextRuns();
+                ASSERT_FALSE(runs.empty());
+                EXPECT_EQ(runs.front().mLeft, 0); // The heading's left origin is unchanged.
+                bool reachesReadingEdge = false;
+                for (const auto& run : runs)
+                {
+                    if (run.mText.find_last_not_of(' ') == std::string_view::npos)
+                        continue;
+                    // At size 16 this font has zero bearing and ink two pixels
+                    // wider than its advance. Check containment without a GPU.
+                    EXPECT_LE(run.mRight + 2, 240);
+                    reachesReadingEdge = reachesReadingEdge || run.mRight == 238;
+                }
+                EXPECT_TRUE(reachesReadingEdge);
+                if (alignment == 3)
+                    EXPECT_EQ(lineExtents(*book).at(16).first, 0);
+            }
+
+            auto ordinary = BookTypesetter::create(240, 320, 16);
+            ordinary->setSectionAlignment(BookTypesetter::AlignRight);
+            ordinary->write(ordinary->createStyle({}, MyGUI::Colour::Black), "abc");
+            EXPECT_EQ(lineExtents(*ordinary->complete()).at(0), std::make_pair(216, 240));
         }
 
         TEST_F(JournalTypographyTest, FontAtlasResolutionDoesNotChangeDocumentMetrics)

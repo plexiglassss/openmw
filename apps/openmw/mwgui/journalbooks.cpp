@@ -339,7 +339,9 @@ namespace MWGui
     std::shared_ptr<BookTypesetter> JournalBooks::createTypesetter()
     {
         // TODO: determine page size from layout...
-        return BookTypesetter::create(240, 320, getJournalFontSize());
+        // Leave two pixels inside the 240-pixel widget for glyph ink that extends
+        // slightly past its advance, especially at the end of justified lines.
+        return BookTypesetter::create(238, 320, getJournalFontSize());
     }
 
 }
