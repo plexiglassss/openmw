@@ -17,6 +17,10 @@ namespace
 {
     std::optional<MyGUI::GlyphInfo> getGlyphInfo(MyGUI::IFont* font, MyGUI::Char ch, int fontSize)
     {
+        // RenderRun ignores carriage returns. Do not measure the font's fallback
+        // glyph for them, or CRLF text wraps and aligns differently from LF text.
+        if (ch == '\r')
+            return {};
         const MyGUI::GlyphInfo* gi = font->getGlyphInfo(ch);
         if (!gi)
             return {};
@@ -701,6 +705,14 @@ namespace MWGui
         {
             while (!stream.eof())
             {
+                // Keep CRLF paragraph breaks identical to LF without changing
+                // content bytes or the hyperlink spans that refer to them.
+                if (ucsCarriageReturn(stream.peek()))
+                {
+                    stream.consume();
+                    continue;
+                }
+
                 if (ucsLineBreak(stream.peek()))
                 {
                     add_partial_text();

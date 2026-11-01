@@ -229,6 +229,43 @@ namespace MWGui
             EXPECT_EQ(lines.at(16), std::make_pair(0, 52));
         }
 
+        TEST_F(JournalTypographyTest, CrlfAndLfHaveIdenticalAlignmentAndPageCount)
+        {
+            for (const auto alignment : { BookTypesetter::AlignLeft, BookTypesetter::AlignCenter,
+                     BookTypesetter::AlignRight, BookTypesetter::AlignJustify })
+            {
+                const auto lf = typeset("aaa bbb\nccc ddd", alignment, 60, 32);
+                const auto crlf = typeset("aaa bbb\r\nccc ddd", alignment, 60, 32);
+                EXPECT_EQ(lineExtents(*crlf), lineExtents(*lf));
+                EXPECT_EQ(crlf->getSize(), lf->getSize());
+                EXPECT_EQ(crlf->pageCount(), lf->pageCount());
+            }
+        }
+
+        TEST_F(JournalTypographyTest, InvisibleCarriageReturnCannotWrapAnExactlyFittingLine)
+        {
+            // The font deliberately supplies nonzero fallback metrics for CR,
+            // as a real font can when its configured glyph ranges omit U+000D.
+            const auto lf = typeset("aaa bbb\nccc ddd", BookTypesetter::AlignJustify, 52, 32);
+            const auto crlf = typeset("aaa bbb\r\nccc ddd", BookTypesetter::AlignJustify, 52, 32);
+            EXPECT_EQ(lineExtents(*crlf), lineExtents(*lf));
+            EXPECT_EQ(crlf->getSize(), std::make_pair(52u, 32u));
+            EXPECT_EQ(crlf->pageCount(), 1u);
+        }
+
+        TEST_F(JournalTypographyTest, ConsecutiveCrlfBreaksKeepTheExistingLfParagraphSpacing)
+        {
+            for (const auto alignment : { BookTypesetter::AlignLeft, BookTypesetter::AlignCenter,
+                     BookTypesetter::AlignRight, BookTypesetter::AlignJustify })
+            {
+                const auto lf = typeset("aaa bbb\n\nccc ddd", alignment, 60, 32);
+                const auto crlf = typeset("aaa bbb\r\n\r\nccc ddd", alignment, 60, 32);
+                EXPECT_EQ(lineExtents(*crlf), lineExtents(*lf));
+                EXPECT_EQ(crlf->getSize(), lf->getSize());
+                EXPECT_EQ(crlf->pageCount(), 1u);
+            }
+        }
+
         TEST_F(JournalTypographyTest, ExplicitLineBreakAlsoEndsParagraphWithoutStretching)
         {
             auto typesetter = BookTypesetter::create(60, 320, 16);

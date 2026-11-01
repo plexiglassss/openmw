@@ -66,6 +66,10 @@ your font or provide new font artwork.
 The pagination fix also avoids an empty opening page when a first entry is
 too tall to fit on one page.
 
+Carriage returns in Windows-style CRLF text no longer contribute the font's
+invisible fallback-glyph width. Measurement now matches rendering, including
+consecutive paragraph breaks, without changing content or hyperlink offsets.
+
 ## Validation included in the build
 
 Packaging occurs only after the Windows compiler, all component tests, all
