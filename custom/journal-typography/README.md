@@ -24,6 +24,10 @@ configuration into the new engine folder before launching.
 Open **Launcher → Settings → Interface → Journal Text**, or in game open
 **Options → Interface → Journal text**.
 
+If a UI mod supplies an older settings layout, the engine adds a separate
+**Journal text** tab to Options. Both controls still work there; the UI mod's
+files are not edited. The launcher controls are always available.
+
 - **Font size:** Use interface size (default), or an integer from **10 to 24**.
   Try **14** first, or **12** for more compact text.
 - **Alignment:** **Left**, **Centred**, **Right**, or **Justified**.

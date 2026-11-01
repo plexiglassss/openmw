@@ -10,6 +10,8 @@
 #include <MyGUI_ScrollBar.h>
 #include <MyGUI_ScrollView.h>
 #include <MyGUI_TabControl.h>
+#include <MyGUI_TabItem.h>
+#include <MyGUI_TextBox.h>
 #include <MyGUI_UString.h>
 #include <MyGUI_Window.h>
 
@@ -295,8 +297,6 @@ namespace MWGui
         getWidget(mPrimaryLanguage, "PrimaryLanguage");
         getWidget(mSecondaryLanguage, "SecondaryLanguage");
         getWidget(mGmstOverridesL10n, "GmstOverridesL10nButton");
-        getWidget(mJournalFontSize, "JournalFontSize");
-        getWidget(mJournalTextAlignment, "JournalTextAlignment");
         getWidget(mWindowModeHint, "WindowModeHint");
         getWidget(mClusteredLightingButton, "ClusteredLightingButton");
         getWidget(mLightsResetButton, "LightsResetButton");
@@ -375,6 +375,7 @@ namespace MWGui
         mGmstOverridesL10n->eventMouseButtonClick
             += MyGUI::newDelegate(this, &SettingsWindow::onGmstOverridesL10nChanged);
 
+        initialiseJournalControls();
         mJournalFontSize->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:JournalFontSizeAutomatic}"), 0);
         for (int size = 10; size <= 24; ++size)
@@ -760,6 +761,57 @@ namespace MWGui
         }
 
         apply();
+    }
+
+    void SettingsWindow::initialiseJournalControls()
+    {
+        const auto findComboBox = [this](std::string_view name) {
+            std::string fullName = mPrefix;
+            fullName += name;
+            MyGUI::Widget* widget = mMainWidget->findWidget(fullName);
+            return widget ? widget->castType<MyGUI::ComboBox>(false) : nullptr;
+        };
+        mJournalFontSize = findComboBox("JournalFontSize");
+        mJournalTextAlignment = findComboBox("JournalTextAlignment");
+        if (mJournalFontSize && mJournalTextAlignment)
+            return;
+
+        // Interface mods can override an older settings layout. Add a native tab
+        // instead of requiring new widget names in the mod's unchanged file.
+        if (mJournalFontSize)
+            mJournalFontSize->setVisible(false);
+        if (mJournalTextAlignment)
+            mJournalTextAlignment->setVisible(false);
+
+        const auto translated = [](std::string_view text) {
+            return MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(text));
+        };
+        MyGUI::TabItem* tab = mSettingsTab->addItem(translated("#{OMWEngine:JournalTypography}"));
+        const auto addLabel = [tab](const MyGUI::IntCoord& coord, std::string_view caption) {
+            auto* label = tab->createWidget<MyGUI::TextBox>("SandText", coord, MyGUI::Align::Default);
+            label->setCaptionWithReplacing(caption);
+            return label;
+        };
+        addLabel({ 4, 16, 154, 24 }, "#{OMWEngine:JournalFontSize}");
+        addLabel({ 4, 52, 154, 24 }, "#{OMWEngine:JournalTextAlignment}");
+        // The hint is deliberately wrapped within the same content width as the
+        // bundled Interface tab, independent of the replacement's decoration.
+        auto* hint = tab->createWidget<MyGUI::EditBox>(
+            "SandText", { 4, 100, 362, 100 }, MyGUI::Align::Default);
+        hint->setEditStatic(true);
+        hint->setEditMultiLine(true);
+        hint->setEditWordWrap(true);
+        hint->setTextAlign(MyGUI::Align::Left | MyGUI::Align::Top);
+        hint->setCaptionWithReplacing("#{OMWEngine:JournalTypographyHint}");
+        mJournalFontSize = tab->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 164, 12, 202, 28 },
+            MyGUI::Align::Default, mPrefix + "JournalFontSizeFallback");
+        mJournalTextAlignment = tab->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 164, 48, 202, 28 },
+            MyGUI::Align::Default, mPrefix + "JournalTextAlignmentFallback");
+        mJournalFontSize->setComboModeDrop(true);
+        mJournalTextAlignment->setComboModeDrop(true);
+        for (std::string_view name : { "#{OMWEngine:JournalAlignLeft}", "#{OMWEngine:JournalAlignCentre}",
+                 "#{OMWEngine:JournalAlignRight}", "#{OMWEngine:JournalAlignJustified}" })
+            mJournalTextAlignment->addItem(translated(name));
     }
 
     void SettingsWindow::updateJournalSettings()

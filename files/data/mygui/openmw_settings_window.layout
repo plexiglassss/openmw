@@ -1051,9 +1051,12 @@
                     <Property key="AddItem" value="#{OMWEngine:JournalAlignRight}"/>
                     <Property key="AddItem" value="#{OMWEngine:JournalAlignJustified}"/>
                 </Widget>
-                <Widget type="TextBox" skin="SandText" position="4 212 362 100" align="Left Top">
+                <Widget type="EditBox" skin="SandText" position="4 212 362 100" align="Left Top">
                     <Property key="Caption" value="#{OMWEngine:JournalTypographyHint}"/>
+                    <Property key="TextAlign" value="Left Top"/>
+                    <Property key="MultiLine" value="true"/>
                     <Property key="WordWrap" value="true"/>
+                    <Property key="Static" value="true"/>
                 </Widget>
             </Widget>
         </Widget>

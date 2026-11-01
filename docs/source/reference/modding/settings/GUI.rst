@@ -35,6 +35,8 @@ GUI Settings
    This does not resize dialogue, inventory, books, scrolls, journal buttons or the
    alphabetical topic index. GUI scaling still scales the journal window normally.
    Close and reopen the journal to apply an in-game change; a restart is unnecessary.
+   If a UI mod overrides an older settings layout, a separate Journal text tab
+   provides the controls in game without requiring edits to that mod.
    Values outside the listed range are rejected. Custom bitmap fonts may become less sharp when resized.
 
 .. omw-setting::
