@@ -740,9 +740,11 @@ namespace MWGui
                 }
 
                 Utf8Stream::Point origin = stream.current();
+                bool hasWordCharacter = false;
 
                 while (!stream.eof() && !ucsLineBreak(stream.peek()) && !ucsBreakingSpace(stream.peek()))
                 {
+                    hasWordCharacter = hasWordCharacter || !ucsCarriageReturn(stream.peek());
                     std::optional<MyGUI::GlyphInfo> info
                         = getGlyphInfo(style->mFont, stream.peek(), mBook->mFontSize);
                     if (info)
@@ -757,7 +759,7 @@ namespace MWGui
 
                 if (lead != origin)
                     mPartialWhitespace.emplace_back(style, lead, origin, spaceWidth);
-                if (origin != extent)
+                if (hasWordCharacter)
                     mPartialWord.emplace_back(style, origin, extent, wordWidth);
             }
         }

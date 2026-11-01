@@ -266,6 +266,33 @@ namespace MWGui
             }
         }
 
+        TEST_F(JournalTypographyTest, TrailingSpacesBeforeCrlfDoNotJustifyTheLastParagraphLine)
+        {
+            const auto lf = typeset("aaa bbb    \nccc ddd", BookTypesetter::AlignJustify, 60, 32);
+            const auto crlf = typeset("aaa bbb    \r\nccc ddd", BookTypesetter::AlignJustify, 60, 32);
+            const auto lines = lineExtents(*crlf);
+            EXPECT_EQ(lines, lineExtents(*lf));
+            ASSERT_EQ(lines.size(), 2u);
+            EXPECT_EQ(lines.at(0), std::make_pair(0, 52));
+            EXPECT_EQ(lines.at(16), std::make_pair(0, 52));
+            EXPECT_EQ(crlf->getSize(), lf->getSize());
+            EXPECT_EQ(crlf->pageCount(), 1u);
+        }
+
+        TEST_F(JournalTypographyTest, SpaceOnlyCrlfLinesKeepTheExistingLfSpacingAndPagination)
+        {
+            for (const auto alignment : { BookTypesetter::AlignLeft, BookTypesetter::AlignCenter,
+                     BookTypesetter::AlignRight, BookTypesetter::AlignJustify })
+            {
+                const auto lf = typeset("aaa bbb\n    \nccc ddd", alignment, 60, 32);
+                const auto crlf = typeset("aaa bbb\r\n    \r\nccc ddd", alignment, 60, 32);
+                EXPECT_EQ(lineExtents(*crlf), lineExtents(*lf));
+                EXPECT_EQ(crlf->getSize(), lf->getSize());
+                EXPECT_EQ(crlf->pageCount(), lf->pageCount());
+                EXPECT_EQ(crlf->pageCount(), 2u);
+            }
+        }
+
         TEST_F(JournalTypographyTest, ExplicitLineBreakAlsoEndsParagraphWithoutStretching)
         {
             auto typesetter = BookTypesetter::create(60, 320, 16);
