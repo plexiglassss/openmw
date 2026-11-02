@@ -158,6 +158,8 @@ namespace Settings
             Values values(index);
             EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
             EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 100);
         }
 
         TEST_F(SettingsValuesTest, journalTypographyRoundTripsWithoutChangingGlobalFontOrScale)
@@ -172,6 +174,8 @@ namespace Settings
                 globalScale = values.mGUI.mScalingFactor.get();
                 values.mGUI.mJournalFontSize.set(12);
                 values.mGUI.mJournalTextAlignment.set(3);
+                values.mGUI.mJournalPageNumberFontSize.set(14);
+                values.mGUI.mJournalButtonScale.set(75);
                 SettingsFileParser parser;
                 parser.saveSettingsFile(path, Manager::mUserSettings);
             }
@@ -183,6 +187,8 @@ namespace Settings
             Values values(index);
             EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 12);
             EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 3);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 14);
+            EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 75);
             EXPECT_EQ(values.mGUI.mFontSize.get(), globalFontSize);
             EXPECT_EQ(values.mGUI.mScalingFactor.get(), globalScale);
         }
@@ -195,9 +201,18 @@ namespace Settings
             {
                 values.mGUI.mJournalFontSize.set(size);
                 EXPECT_EQ(values.mGUI.mJournalFontSize.get(), size);
+                values.mGUI.mJournalPageNumberFontSize.set(size);
+                EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), size);
             }
             values.mGUI.mJournalFontSize.set(0);
             EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            values.mGUI.mJournalPageNumberFontSize.set(0);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
+            for (int percent = 50; percent <= 100; ++percent)
+            {
+                values.mGUI.mJournalButtonScale.set(percent);
+                EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), percent);
+            }
             for (int alignment = 0; alignment < 4; ++alignment)
             {
                 values.mGUI.mJournalTextAlignment.set(alignment);
@@ -210,11 +225,43 @@ namespace Settings
             Index index;
             Values values(index);
             for (int size : { -1, 1, 9, 25, 1000 })
+            {
                 EXPECT_THROW(values.mGUI.mJournalFontSize.set(size), std::runtime_error);
+                EXPECT_THROW(values.mGUI.mJournalPageNumberFontSize.set(size), std::runtime_error);
+            }
             for (int alignment : { -1, 4, 1000 })
                 EXPECT_THROW(values.mGUI.mJournalTextAlignment.set(alignment), std::runtime_error);
             EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
             EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyClampsButtonScaleWithoutChangingTextSettings)
+        {
+            Index index;
+            Values values(index);
+            const int globalFontSize = values.mGUI.mFontSize.get();
+            const float globalScale = values.mGUI.mScalingFactor.get();
+            values.mGUI.mJournalFontSize.set(12);
+            values.mGUI.mJournalTextAlignment.set(3);
+            values.mGUI.mJournalPageNumberFontSize.set(14);
+
+            for (int percent : { -1000, 0, 49 })
+            {
+                values.mGUI.mJournalButtonScale.set(percent);
+                EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 50);
+            }
+            for (int percent : { 101, 1000 })
+            {
+                values.mGUI.mJournalButtonScale.set(percent);
+                EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 100);
+            }
+
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 12);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 3);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 14);
+            EXPECT_EQ(values.mGUI.mFontSize.get(), globalFontSize);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), globalScale);
         }
     }
 }

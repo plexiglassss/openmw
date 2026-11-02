@@ -1,5 +1,7 @@
 #include "apps/openmw/mwgui/bookpage.hpp"
 #include "apps/openmw/mwgui/journalbooks.hpp"
+#include "apps/openmw/mwgui/journaltypography.hpp"
+#include "apps/openmw/mwgui/textcolours.hpp"
 
 #include <components/settings/values.hpp>
 
@@ -9,8 +11,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -58,6 +62,8 @@ namespace MWGui
             const int mOldFontSize = Settings::gui().mFontSize.get();
             const int mOldJournalFontSize = Settings::gui().mJournalFontSize.get();
             const int mOldJournalAlignment = Settings::gui().mJournalTextAlignment.get();
+            const int mOldPageNumberFontSize = Settings::gui().mJournalPageNumberFontSize.get();
+            const int mOldButtonScale = Settings::gui().mJournalButtonScale.get();
             const Settings::CategorySettingVector mOldChangedSettings = Settings::Manager::mChangedSettings;
 
             void SetUp() override
@@ -74,6 +80,8 @@ namespace MWGui
                 Settings::gui().mFontSize.set(mOldFontSize);
                 Settings::gui().mJournalFontSize.set(mOldJournalFontSize);
                 Settings::gui().mJournalTextAlignment.set(mOldJournalAlignment);
+                Settings::gui().mJournalPageNumberFontSize.set(mOldPageNumberFontSize);
+                Settings::gui().mJournalButtonScale.set(mOldButtonScale);
                 Settings::Manager::mChangedSettings = mOldChangedSettings;
                 // These resources are fixture members, rather than heap-owned resources.
                 mResources.removeResource(&mHighResolutionFont);
@@ -108,6 +116,42 @@ namespace MWGui
                 typesetter->setSectionAlignment(alignment);
                 typesetter->write(style(typesetter), text);
                 return typesetter->complete();
+            }
+
+            static void expectCompleteIndex(const TypesetBook& book, int fontSize, int columns,
+                const std::set<TypesetBook::InteractiveId>& expectedLetters)
+            {
+                std::set<TypesetBook::InteractiveId> actualLetters;
+                std::map<TypesetBook::InteractiveId, std::set<int>> letterLines;
+                for (const auto& run : book.getTextRuns())
+                {
+                    EXPECT_EQ(run.mBottom - run.mTop, fontSize);
+                    EXPECT_GE(run.mLeft, 0);
+                    EXPECT_LE(run.mRight, columns == 3 ? 67 : 92);
+                    EXPECT_NE(run.mInteractiveId, 0);
+                    actualLetters.insert(run.mInteractiveId);
+                    letterLines[run.mInteractiveId].insert(run.mTop);
+                    if (run.mRight > run.mLeft)
+                        EXPECT_EQ(book.getLinkAt((run.mLeft + run.mRight) / 2, (run.mTop + run.mBottom) / 2),
+                            run.mInteractiveId);
+                    EXPECT_EQ(book.getLinkAt(-1, (run.mTop + run.mBottom) / 2), 0);
+                }
+                EXPECT_EQ(actualLetters, expectedLetters);
+                EXPECT_EQ(book.pageCount(), static_cast<std::size_t>(columns));
+
+                const int rows = (static_cast<int>(expectedLetters.size()) + columns - 1) / columns;
+                int index = 0;
+                for (const auto letter : expectedLetters)
+                {
+                    ASSERT_EQ(letterLines[letter].size(), 1u);
+                    const int top = *letterLines[letter].begin();
+                    // Each displayed column is a page in the typeset document.
+                    // Every letter must occupy one visible row, including the last.
+                    EXPECT_EQ(top, index * fontSize);
+                    const int columnTop = (index / rows) * rows * fontSize;
+                    EXPECT_LE(top - columnTop + fontSize, 260);
+                    ++index;
+                }
             }
         };
 
@@ -186,6 +230,186 @@ namespace MWGui
             ordinary->setSectionAlignment(BookTypesetter::AlignRight);
             ordinary->write(ordinary->createStyle({}, MyGUI::Colour::Black), "abc");
             EXPECT_EQ(lineExtents(*ordinary->complete()).at(0), std::make_pair(216, 240));
+        }
+
+        TEST_F(JournalTypographyTest, LatinIndexUsesJournalSizeAndKeepsEveryLetterAccessible)
+        {
+            std::set<TypesetBook::InteractiveId> letters;
+            for (char letter = 'A'; letter <= 'Z'; ++letter)
+                letters.insert(letter);
+            Settings::gui().mFontSize.set(18);
+            const TextColours colours;
+            for (int size = 0; size <= 24; ++size)
+            {
+                if (size > 0 && size < 10)
+                    continue;
+                SCOPED_TRACE(size);
+                const int columns = size <= 20 ? 2 : 3;
+                Settings::gui().mJournalFontSize.set(size);
+                JournalBooks journal(nullptr, ToUTF8::WINDOWS_1252);
+                const auto book = journal.createTopicIndexBook(colours);
+                EXPECT_EQ(journal.mIndexPagesCount, columns);
+                expectCompleteIndex(*book, size == 0 ? 18 : size, columns, letters);
+            }
+        }
+
+        TEST_F(JournalTypographyTest, CyrillicIndexUsesJournalSizeAndKeepsEveryEligibleLetterAccessible)
+        {
+            std::set<TypesetBook::InteractiveId> letters;
+            for (int letter = 0x0410; letter <= 0x042f; ++letter)
+                if (letter != 0x042a && letter != 0x042c) // Hard and soft signs cannot start a topic.
+                    letters.insert(letter);
+            Settings::gui().mFontSize.set(18);
+            const TextColours colours;
+            for (int size = 0; size <= 24; ++size)
+            {
+                if (size > 0 && size < 10)
+                    continue;
+                SCOPED_TRACE(size);
+                const int columns = size != 0 && size < 18 ? 2 : 3;
+                Settings::gui().mJournalFontSize.set(size);
+                JournalBooks journal(nullptr, ToUTF8::WINDOWS_1251);
+                const auto book = journal.createTopicIndexBook(colours);
+                EXPECT_EQ(journal.mIndexPagesCount, columns);
+                expectCompleteIndex(*book, size == 0 ? 18 : size, columns, letters);
+            }
+        }
+
+        TEST_F(JournalTypographyTest, IndexSizeAndAlignmentStayIndependentOfPageNumbersAndButtons)
+        {
+            Settings::gui().mJournalFontSize.set(12);
+            Settings::gui().mJournalTextAlignment.set(0);
+            Settings::gui().mJournalPageNumberFontSize.set(0);
+            Settings::gui().mJournalButtonScale.set(100);
+            const TextColours colours;
+            JournalBooks journal(nullptr, ToUTF8::WINDOWS_1252);
+            const auto original = journal.createTopicIndexBook(colours);
+
+            Settings::gui().mJournalTextAlignment.set(3);
+            Settings::gui().mJournalPageNumberFontSize.set(24);
+            Settings::gui().mJournalButtonScale.set(50);
+            const auto changedControls = journal.createTopicIndexBook(colours);
+            EXPECT_EQ(lineExtents(*changedControls), lineExtents(*original));
+            EXPECT_EQ(changedControls->pageCount(), original->pageCount());
+            EXPECT_EQ(Settings::gui().mFontSize.get(), 16);
+            const auto ordinary = typeset("abc", BookTypesetter::AlignLeft, 100, 100, 0);
+            EXPECT_EQ(ordinary->getSize(), std::make_pair(24u, 16u));
+        }
+
+        TEST_F(JournalTypographyTest, IndexNavigationCoversWholeColumnsAndClampsTheShortLastColumn)
+        {
+            for (const auto [count, rows] : { std::make_pair(26u, 13u), std::make_pair(26u, 9u),
+                     std::make_pair(30u, 15u), std::make_pair(30u, 10u) })
+            {
+                SCOPED_TRACE(::testing::Message() << "count=" << count << ", rows=" << rows);
+                for (std::size_t start = 0; start < count; start += rows)
+                {
+                    std::set<std::size_t> visited;
+                    std::size_t selected = start;
+                    const std::size_t columnSize = std::min<std::size_t>(rows, count - start);
+                    for (std::size_t step = 0; step < columnSize; ++step)
+                    {
+                        EXPECT_GE(selected, start);
+                        EXPECT_LT(selected, start + columnSize);
+                        visited.insert(selected);
+                        const auto next = moveJournalIndexSelection(selected, 1, count, rows);
+                        EXPECT_EQ(moveJournalIndexSelection(next, -1, count, rows), selected);
+                        selected = next;
+                    }
+                    EXPECT_EQ(visited.size(), columnSize);
+                    EXPECT_EQ(selected, start);
+                }
+                for (std::size_t selected = 0; selected < count; ++selected)
+                {
+                    EXPECT_LT(moveJournalIndexSelection(selected, static_cast<int>(rows), count, rows), count);
+                    EXPECT_LT(moveJournalIndexSelection(selected, -static_cast<int>(rows), count, rows), count);
+                }
+            }
+            EXPECT_EQ(moveJournalIndexSelection(17, 9, 26, 9), 25u); // R -> Z: final column has no ninth row.
+            EXPECT_EQ(moveJournalIndexSelection(25, 1, 26, 9), 18u); // Z -> S within the last column.
+            EXPECT_EQ(moveJournalIndexSelection(18, -1, 26, 9), 25u);
+            EXPECT_EQ(moveJournalIndexSelection(25, 9, 26, 9), 7u); // Z -> H on the first column.
+            EXPECT_EQ(moveJournalIndexSelection(0, -9, 26, 9), 18u); // A -> S on the last column.
+            for (std::size_t index = 0; index < 26; ++index)
+                EXPECT_EQ(getJournalIndexCharacter(index, false), 'A' + index);
+            EXPECT_EQ(getJournalIndexCharacter(25, true), 0x0429u);
+            EXPECT_EQ(getJournalIndexCharacter(26, true), 0x042bu);
+            EXPECT_EQ(getJournalIndexCharacter(27, true), 0x042du);
+            EXPECT_EQ(getJournalIndexCharacter(29, true), 0x042fu);
+        }
+
+        TEST_F(JournalTypographyTest, ButtonScalingRetainsTheOriginalCentreAndCanRestoreItsSize)
+        {
+            // Include the cropped English Next button's odd 57-pixel width.
+            for (const auto original : { MyGUI::IntCoord(40, 350, 64, 32), MyGUI::IntCoord(300, 350, 57, 32),
+                     MyGUI::IntCoord(83, 15, 72, 32) })
+            {
+                for (int percent : { 50, 73, 100 })
+                {
+                    const auto scaled = scaleJournalButton(original, percent);
+                    EXPECT_GE(scaled.left, original.left);
+                    EXPECT_GE(scaled.top, original.top);
+                    EXPECT_LE(scaled.right(), original.right());
+                    EXPECT_LE(scaled.bottom(), original.bottom());
+                    EXPECT_NEAR(2 * scaled.left + scaled.width, 2 * original.left + original.width, 1);
+                    EXPECT_NEAR(2 * scaled.top + scaled.height, 2 * original.top + original.height, 1);
+                    EXPECT_NEAR(scaled.width, original.width * percent / 100.0, 0.5);
+                    EXPECT_NEAR(scaled.height, original.height * percent / 100.0, 0.5);
+                }
+                EXPECT_EQ(scaleJournalButton(original, 100), original);
+            }
+        }
+
+        TEST_F(JournalTypographyTest, ThreeColumnIndexUsesSeparateHitAreasWithinTheOriginalSpan)
+        {
+            Settings::gui().mJournalFontSize.set(24);
+            const TextColours colours;
+            for (const auto original : {
+                     std::array{ MyGUI::IntCoord(20, 10, 92, 260), MyGUI::IntCoord(75, 10, 92, 260),
+                         MyGUI::IntCoord(130, 10, 92, 260) },
+                     std::array{ MyGUI::IntCoord(8, 14, 100, 230), MyGUI::IntCoord(96, 14, 100, 230),
+                         MyGUI::IntCoord(184, 14, 100, 230) },
+                 })
+            {
+                EXPECT_EQ(layoutJournalIndexColumns(original, 2), original);
+                const auto columns = layoutJournalIndexColumns(original, 3);
+                EXPECT_EQ(columns.front().left, original.front().left);
+                EXPECT_LE(columns.back().right(), original.back().right());
+                EXPECT_LT(original.back().right() - columns.back().right(), static_cast<int>(columns.size()));
+                for (std::size_t i = 0; i < columns.size(); ++i)
+                {
+                    EXPECT_GT(columns[i].width, 0);
+                    EXPECT_EQ(columns[i].top, original[i].top);
+                    EXPECT_EQ(columns[i].height, original[i].height);
+                    if (i + 1 < columns.size())
+                        EXPECT_EQ(columns[i].right(), columns[i + 1].left);
+                }
+                JournalBooks journal(nullptr, ToUTF8::WINDOWS_1252);
+                const auto book = journal.createTopicIndexBook(colours, columns.front().width);
+                EXPECT_EQ(book->pageCount(), 3u);
+                for (const auto& line : lineExtents(*book))
+                {
+                    const auto& extent = line.second;
+                    EXPECT_GE(extent.first, 0);
+                    EXPECT_LE(extent.second, columns.front().width);
+                    EXPECT_NEAR(extent.first + extent.second, columns.front().width, 1);
+                }
+            }
+        }
+
+        TEST_F(JournalTypographyTest, PageNumberBoundsFitLargeMultiDigitTextAndRestoreTheLayoutAnchor)
+        {
+            const MyGUI::IntCoord original(150, 350, 32, 16);
+            const auto large = resizeJournalPageNumber(original, MyGUI::IntSize(60, 24));
+            EXPECT_EQ(large.left, 135);
+            EXPECT_EQ(large.top, original.top);
+            EXPECT_GE(large.width, 62); // Four large digits plus right-side ink clearance.
+            EXPECT_GE(large.height, 24);
+            EXPECT_LT(large.right(), 205); // Native Previous button begins at 205.
+            const auto rightPage = resizeJournalPageNumber(MyGUI::IntCoord(410, 350, 32, 16), MyGUI::IntSize(60, 24));
+            EXPECT_LT(rightPage.right(), 460); // Native Close button begins at 460.
+            const auto restored = resizeJournalPageNumber(original, MyGUI::IntSize(8, 16));
+            EXPECT_EQ(restored, original);
         }
 
         TEST_F(JournalTypographyTest, FontAtlasResolutionDoesNotChangeDocumentMetrics)

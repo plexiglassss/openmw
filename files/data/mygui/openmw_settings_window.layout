@@ -1051,7 +1051,19 @@
                     <Property key="AddItem" value="#{OMWEngine:JournalAlignRight}"/>
                     <Property key="AddItem" value="#{OMWEngine:JournalAlignJustified}"/>
                 </Widget>
-                <Widget type="EditBox" skin="SandText" position="4 212 362 100" align="Left Top">
+                <Widget type="TextBox" skin="SandText" position="4 204 154 24" align="Left Top">
+                    <Property key="Caption" value="#{OMWEngine:JournalPageNumberFontSize}"/>
+                </Widget>
+                <Widget type="ComboBox" skin="MW_ComboBox" position="164 200 202 28" align="Left Top" name="JournalPageNumberFontSize">
+                    <Property key="ComboDropMode" value="true"/>
+                </Widget>
+                <Widget type="TextBox" skin="SandText" position="4 240 154 24" align="Left Top">
+                    <Property key="Caption" value="#{OMWEngine:JournalButtonScale}"/>
+                </Widget>
+                <Widget type="ComboBox" skin="MW_ComboBox" position="164 236 202 28" align="Left Top" name="JournalButtonScale">
+                    <Property key="ComboDropMode" value="true"/>
+                </Widget>
+                <Widget type="EditBox" skin="SandText" position="4 280 362 90" align="Left Top">
                     <Property key="Caption" value="#{OMWEngine:JournalTypographyHint}"/>
                     <Property key="TextAlign" value="Left Top"/>
                     <Property key="MultiLine" value="true"/>

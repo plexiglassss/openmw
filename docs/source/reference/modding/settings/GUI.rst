@@ -31,12 +31,12 @@ GUI Settings
    :location: :bdg-success:`Launcher > Settings > Interface` :bdg-success:`In Game > Options > Interface`
 
    Sets the logical glyph size for journal entries and quest/topic text, including
-   their date and title lines. Zero follows the regular ``font size`` setting.
-   This does not resize dialogue, inventory, books, scrolls, journal buttons or the
-   alphabetical topic index. GUI scaling still scales the journal window normally.
+   their date and title lines, quest/topic lists and the alphabetical topic index.
+   Zero follows the regular ``font size`` setting. Page numbers and button artwork
+   have separate controls. GUI scaling still scales the journal window normally.
    Close and reopen the journal to apply an in-game change; a restart is unnecessary.
-   If a UI mod overrides an older settings layout, a separate Journal text tab
-   provides the controls in game without requiring edits to that mod.
+   If a UI mod supplies an older settings layout, a separate Journal text tab
+   provides any missing controls. Controls already present in that layout stay there.
    Values outside the listed range are rejected. Custom bitmap fonts may become less sharp when resized.
 
 .. omw-setting::
@@ -54,6 +54,32 @@ GUI Settings
    Dates, standalone titles and the alphabetical index retain their original alignment.
    Inline speaker attributions stay with their quoted paragraph.
    Close and reopen the journal to apply a change. Values outside zero through three are rejected.
+
+.. omw-setting::
+   :title: journal page number font size
+   :type: int
+   :range: 0, 10 to 24
+   :default: 0
+   :location: :bdg-success:`Launcher > Settings > Interface` :bdg-success:`In Game > Options > Interface`
+
+   Sets the logical font height of the two journal page numbers independently of
+   the journal text. Zero preserves the font height supplied by the current layout.
+   Close and reopen the journal to apply a change. Values outside the listed range
+   are rejected.
+
+.. omw-setting::
+   :title: journal button scale
+   :type: int
+   :range: 50 to 100
+   :default: 100
+   :location: :bdg-success:`Launcher > Settings > Interface` :bdg-success:`In Game > Options > Interface`
+
+   Scales the journal's existing button artwork by this percentage. 100 keeps its
+   original size; 75 makes it three quarters of that size. Applies to Options,
+   Close, Previous/Next, Journal, Topics, Quests, Cancel and Show All/Show Active.
+   The label artwork and its hover/pressed appearance are retained. Mod-owned tabs
+   are outside this setting. Values outside 50 through 100 are clamped to that range.
+   Close and reopen the journal to apply a change.
 
 .. omw-setting::
    :title: menu transparency

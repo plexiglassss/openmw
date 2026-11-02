@@ -24,6 +24,8 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin 00af1d5c63313c61a46c6c8782ce45b3e05f023a
           if ($LASTEXITCODE) { throw 'Cannot recover accepted source baseline' }
+          git fetch --no-tags --depth=1 origin 26f1abfa8f8fe855fde50839dc66df5dd0ba9847
+          if ($LASTEXITCODE) { throw 'Cannot recover user-confirmed journal predecessor' }
           python custom/journal-typography/verify-source.py
           if ($LASTEXITCODE) { throw 'Journal source scope or resources failed verification' }
       - uses: ilammy/msvc-dev-cmd@v1
@@ -99,7 +101,12 @@ jobs:
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/bookpage.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalbooks.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalwindow.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          components/CMakeFiles/components.dir/widgets/list.cpp.obj
+          components/CMakeFiles/components.dir/widgets/imagebutton.cpp.obj
+          apps/launcher/CMakeFiles/openmw-launcher.dir/settingspage.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/settings/testvalues.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/test_journaltypography.cpp.obj
       - name: Build engine and regression tests
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests

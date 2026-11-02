@@ -1,6 +1,9 @@
 # Journal typography — custom Windows OpenMW build
 
-This build adds separate controls for journal text size and paragraph alignment.
+This build extends journal text sizing to the quest/topic lists and alphabetical
+index, and adds independent page-number size and button-label scale controls.
+It preserves the user-confirmed journal build `26f1abfa`, including its tiny
+two-pixel right clearance, selected text size and paragraph alignment.
 It is based on the accepted `00af1d5c63313c61a46c6c8782ce45b3e05f023a` engine,
 retaining its lookup optimization and removal of the rejected initializing stage.
 
@@ -25,41 +28,63 @@ Open **Launcher → Settings → Interface → Journal Text**, or in game open
 **Options → Interface → Journal text**.
 
 If a UI mod supplies an older settings layout, the engine adds a separate
-**Journal text** tab to Options. Both controls still work there; the UI mod's
-files are not edited. The launcher controls are always available.
+**Journal text** tab to Options for any missing controls. Controls that the
+layout already provides stay in their existing location. The launcher controls
+are also available.
 
 - **Font size:** Use interface size (default), or an integer from **10 to 24**.
-  Try **14** first, or **12** for more compact text.
+  Keep your existing choice; it now also applies to the quest/topic lists and alphabet.
 - **Alignment:** **Left**, **Centred**, **Right**, or **Justified**.
   Choose **Justified** for straight left and right edges on wrapped paragraphs.
+- **Page number size:** Use current layout (default), or **10 to 24** logical pixels.
+  Select the same number as your journal text size if you want matching heights.
+- **Button label scale:** **50% to 100%**, in one-percent steps. **100%** keeps the
+  current artwork size; **75%** is a useful starting point for smaller labels.
+  These labels are images, so this scales their artwork rather than changing fonts.
 
 In-game changes apply when you close and reopen the journal; no engine restart
 is needed. Options saves the values to your user settings when it closes.
 
 For configuration-file users, the equivalent values in the existing `[GUI]`
-section of `settings.cfg` are:
+section of `settings.cfg` are shown below. This is an optional example, not a
+requirement to replace your existing font-size/alignment values:
 
 ```ini
 journal font size = 14
 journal text alignment = 3
+journal page number font size = 14
+journal button scale = 75
 ```
 
 Font size `0` follows the regular interface font size. Alignment values are
 `0` left, `1` centred, `2` right, and `3` justified. Other values are rejected.
-The defaults are `0` and `0`, preserving the old font size and alignment until changed.
+Page-number size `0` retains the font height from the journal layout; other allowed
+values are 10 through 24. Button scale is an integer percentage; out-of-range
+values are clamped to 50 through 100. New defaults are page size `0` and button
+scale `100`, retaining their existing appearance until you choose a size.
 
 ## Exact behavior
 
 Font size changes journal entries, quest text and topic text, including their
-date and title lines. It does not change dialogue, books, scrolls, inventory,
-HUD text, journal buttons or the alphabetical topic index. Existing GUI scaling
-still scales the whole journal window as before.
+date and title lines, quest/topic lists and the alphabetical topic index. Lists
+remain left aligned; the alphabet remains centred. Large alphabet text uses an
+additional column with compact `(A)` labels so all letters remain accessible.
+The column widgets have separate click areas. Existing GUI scaling still
+scales the whole journal window as before.
+
+Page-number size applies to the two numbers below the pages. Button scale applies
+to Options, Close, Previous/Next, Journal, Topics, Quests, Cancel and Show All/Show
+Active. It retains their artwork and hover/pressed states, resizing around their
+original centres. Reopening the journal applies the selected scale from the
+original geometry, so repeated openings do not progressively shrink the labels.
+The mod-owned Bestiary tab is excluded. Dialogue, inventory, books, scrolls and
+HUD text retain their own sizes.
 
 Journal reading pages reserve **two logical pixels** at the right edge of their
 240-pixel widget. The text is laid out across 238 pixels so small glyph overhangs
 have room before the clipping boundary. The left edge, page height and font size
-are unchanged. A few lines or page breaks may reflow; the alphabetical index and
-ordinary books retain their existing widths.
+are unchanged. A few lines or page breaks may reflow; ordinary books retain their
+existing widths. The alphabetical index has its own column layout.
 
 Alignment changes prose paragraphs. Dates and standalone topic/quest titles
 retain their original alignment. Inline speaker attributions stay with their
@@ -87,7 +112,11 @@ engine tests and the four existing cell-lookup configurations succeed.
 Typography tests use the actual typesetter and deterministic font metrics to
 check size isolation, atlas scaling, pagination, alignment, paragraph endings,
 Unicode, styled links and click coordinates. Settings tests check persistence,
-defaults, every offered value and rejection of unsupported values.
+defaults, every offered value, rejected font-size values and bounded button scale.
+Index tests cover Latin/Cyrillic letter coverage and click targets at all offered
+sizes; production geometry helpers cover page bounds, centred button resizing
+and controller navigation. List/widget integration is source-reviewed; these
+automated checks do not establish actual GUI rendering or input interaction.
 
 The archive includes `CI-ID.txt`, both test-result XML files,
 `journal-typography-source-manifest.json`, `PACKAGE-SHA256.json`, and the retained
@@ -98,26 +127,28 @@ lookup-repair evidence. CI does **not** constitute a visual OpenMW playthrough.
 Use an existing save with several journal entries and known clickable topic
 links. No quest console command is needed.
 
-1. With **Use interface size / Left**, inspect the journal, inventory, dialogue
-   and a book. The previous font size and left alignment should be retained.
-2. Select **14 / Justified**, close Options and close/reopen the journal. Long
-   paragraphs should have even side margins; final lines should remain natural.
-   Dates and titles should stay at their original alignment. Check that the last
-   letters on the right retain their complete strokes, with only a tiny inset.
-3. Turn forward/back through entries, open a quest and a topic, and click a link
-   near the right edge of a justified line. The correct topic should open.
-4. Try **12**, then **24**. Entries should reflow without missing text or an empty
-   first page. Check long entries that cross multiple pages.
-5. Check **Centred** and **Right** on short and long paragraphs. Return to your
-   preferred size and **Justified**.
-6. Reopen inventory, dialogue and an ordinary book. Their text size must match
-   the baseline. Alphabetical topic navigation and journal buttons keep their
-   old size.
-7. Exit normally, restart the same engine, and confirm the two selections persist.
+1. Keep your current text size/alignment. Open the journal, then its Options,
+   Quests and Topics pages. List entries and alphabet letters should now follow
+   that text size. Select a quest, an alphabet letter and a topic; each should open.
+2. Set **Page number size** to the same numeric size as your journal text and
+   **Button label scale** to **75%**. Close/reopen the journal. Page numbers and
+   native button labels should use the selected height and 75% artwork size,
+   respectively, while the main text retains your choice.
+3. Hover and click Options, Close, Previous/Next, Journal, Topics, Quests, Cancel
+   and Show All/Show Active where available. Check their full artwork in each state.
+   The Bestiary tab should retain its mod-defined appearance.
+4. Close/reopen the journal several times. Labels must keep the selected size.
+   Scroll long quest/topic lists and click entries near the bottom and after wrapping.
+5. Record your preferred settings, then optionally test text sizes **10**, **20**
+   and **24**. Check every alphabet column, including its last letter, and keyboard/
+   controller selection if used. Restore your preferred text size afterwards.
+6. Check journal right-edge strokes, links and page navigation. Reopen inventory,
+   dialogue and an ordinary book; their text size should retain its own setting.
+7. Exit normally and restart this build. Confirm all four selections persist.
 
 Live visual appearance with your exact font/UI mods, mouse/controller behavior
 and the Windows launcher must still be observed in game. Report any clipping
-with the font size, alignment, UI scale, active font mod and a screenshot.
+with all four journal settings, UI scale, active font mod and a screenshot.
 
 ## Rollback
 

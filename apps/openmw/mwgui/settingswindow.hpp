@@ -67,6 +67,8 @@ namespace MWGui
 
         MyGUI::ComboBox* mJournalFontSize = nullptr;
         MyGUI::ComboBox* mJournalTextAlignment = nullptr;
+        MyGUI::ComboBox* mJournalPageNumberFontSize = nullptr;
+        MyGUI::ComboBox* mJournalButtonScale = nullptr;
 
         MyGUI::Widget* mWindowModeHint;
 
@@ -112,6 +114,8 @@ namespace MWGui
 
         void onJournalFontSizeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onJournalTextAlignmentChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onJournalPageNumberFontSizeChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onJournalButtonScaleChanged(MyGUI::ComboBox* sender, size_t pos);
         void initialiseJournalControls();
         void updateJournalSettings();
 

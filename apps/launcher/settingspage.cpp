@@ -380,6 +380,13 @@ bool Launcher::SettingsPage::loadSettings()
         journalFontSizeComboBox->setCurrentIndex(
             journalFontSizeComboBox->findData(Settings::gui().mJournalFontSize.get()));
         journalTextAlignmentComboBox->setCurrentIndex(Settings::gui().mJournalTextAlignment);
+        journalPageNumberFontSizeComboBox->clear();
+        journalPageNumberFontSizeComboBox->addItem(tr("Use current layout"), 0);
+        for (int size = 10; size <= 24; ++size)
+            journalPageNumberFontSizeComboBox->addItem(QString::number(size), size);
+        journalPageNumberFontSizeComboBox->setCurrentIndex(
+            journalPageNumberFontSizeComboBox->findData(Settings::gui().mJournalPageNumberFontSize.get()));
+        journalButtonScaleSpinBox->setValue(Settings::gui().mJournalButtonScale);
     }
 
     // Bug fixes
@@ -661,6 +668,8 @@ void Launcher::SettingsPage::saveSettings()
         Settings::gui().mFontSize.set(fontSizeSpinBox->value());
         Settings::gui().mJournalFontSize.set(journalFontSizeComboBox->currentData().toInt());
         Settings::gui().mJournalTextAlignment.set(journalTextAlignmentComboBox->currentIndex());
+        Settings::gui().mJournalPageNumberFontSize.set(journalPageNumberFontSizeComboBox->currentData().toInt());
+        Settings::gui().mJournalButtonScale.set(journalButtonScaleSpinBox->value());
     }
 
     // Bug fixes

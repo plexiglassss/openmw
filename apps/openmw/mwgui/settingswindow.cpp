@@ -378,12 +378,23 @@ namespace MWGui
         initialiseJournalControls();
         mJournalFontSize->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:JournalFontSizeAutomatic}"), 0);
+        mJournalPageNumberFontSize->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:JournalPageNumberFontSizeAutomatic}"), 0);
         for (int size = 10; size <= 24; ++size)
+        {
             mJournalFontSize->addItem(MyGUI::utility::toString(size), size);
+            mJournalPageNumberFontSize->addItem(MyGUI::utility::toString(size), size);
+        }
+        for (int scale = 50; scale <= 100; ++scale)
+            mJournalButtonScale->addItem(MyGUI::utility::toString(scale) + "%", scale);
         mJournalFontSize->eventComboChangePosition
             += MyGUI::newDelegate(this, &SettingsWindow::onJournalFontSizeChanged);
         mJournalTextAlignment->eventComboChangePosition
             += MyGUI::newDelegate(this, &SettingsWindow::onJournalTextAlignmentChanged);
+        mJournalPageNumberFontSize->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalPageNumberFontSizeChanged);
+        mJournalButtonScale->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalButtonScaleChanged);
         updateJournalSettings();
 
         computeMinimumWindowSize();
@@ -773,45 +784,50 @@ namespace MWGui
         };
         mJournalFontSize = findComboBox("JournalFontSize");
         mJournalTextAlignment = findComboBox("JournalTextAlignment");
-        if (mJournalFontSize && mJournalTextAlignment)
+        mJournalPageNumberFontSize = findComboBox("JournalPageNumberFontSize");
+        mJournalButtonScale = findComboBox("JournalButtonScale");
+        if (mJournalFontSize && mJournalTextAlignment && mJournalPageNumberFontSize && mJournalButtonScale)
             return;
 
-        // Interface mods can override an older settings layout. Add a native tab
-        // instead of requiring new widget names in the mod's unchanged file.
-        if (mJournalFontSize)
-            mJournalFontSize->setVisible(false);
-        if (mJournalTextAlignment)
-            mJournalTextAlignment->setVisible(false);
+        // Keep any controls an older interface layout already provides. Put only
+        // missing controls in a native tab, avoiding duplicate or orphaned fields.
 
         const auto translated = [](std::string_view text) {
             return MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(text));
         };
         MyGUI::TabItem* tab = mSettingsTab->addItem(translated("#{OMWEngine:JournalTypography}"));
-        const auto addLabel = [tab](const MyGUI::IntCoord& coord, std::string_view caption) {
-            auto* label = tab->createWidget<MyGUI::TextBox>("SandText", coord, MyGUI::Align::Default);
+        int row = 12;
+        const auto addControl = [this, tab, &row](
+                                    MyGUI::ComboBox*& control, std::string_view caption, const std::string& name) {
+            if (control)
+                return;
+            auto* label = tab->createWidget<MyGUI::TextBox>(
+                "SandText", { 4, row + 4, 154, 24 }, MyGUI::Align::Default);
             label->setCaptionWithReplacing(caption);
-            return label;
+            control = tab->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 164, row, 202, 28 },
+                MyGUI::Align::Default, mPrefix + name);
+            control->setComboModeDrop(true);
+            row += 36;
         };
-        addLabel({ 4, 16, 154, 24 }, "#{OMWEngine:JournalFontSize}");
-        addLabel({ 4, 52, 154, 24 }, "#{OMWEngine:JournalTextAlignment}");
+        const bool alignmentMissing = mJournalTextAlignment == nullptr;
+        addControl(mJournalFontSize, "#{OMWEngine:JournalFontSize}", "JournalFontSizeFallback");
+        addControl(mJournalTextAlignment, "#{OMWEngine:JournalTextAlignment}", "JournalTextAlignmentFallback");
+        addControl(mJournalPageNumberFontSize, "#{OMWEngine:JournalPageNumberFontSize}",
+            "JournalPageNumberFontSizeFallback");
+        addControl(mJournalButtonScale, "#{OMWEngine:JournalButtonScale}", "JournalButtonScaleFallback");
         // The hint is deliberately wrapped within the same content width as the
         // bundled Interface tab, independent of the replacement's decoration.
         auto* hint = tab->createWidget<MyGUI::EditBox>(
-            "SandText", { 4, 100, 362, 100 }, MyGUI::Align::Default);
+            "SandText", { 4, row + 12, 362, 100 }, MyGUI::Align::Default);
         hint->setEditStatic(true);
         hint->setEditMultiLine(true);
         hint->setEditWordWrap(true);
         hint->setTextAlign(MyGUI::Align::Left | MyGUI::Align::Top);
         hint->setCaptionWithReplacing("#{OMWEngine:JournalTypographyHint}");
-        mJournalFontSize = tab->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 164, 12, 202, 28 },
-            MyGUI::Align::Default, mPrefix + "JournalFontSizeFallback");
-        mJournalTextAlignment = tab->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 164, 48, 202, 28 },
-            MyGUI::Align::Default, mPrefix + "JournalTextAlignmentFallback");
-        mJournalFontSize->setComboModeDrop(true);
-        mJournalTextAlignment->setComboModeDrop(true);
-        for (std::string_view name : { "#{OMWEngine:JournalAlignLeft}", "#{OMWEngine:JournalAlignCentre}",
-                 "#{OMWEngine:JournalAlignRight}", "#{OMWEngine:JournalAlignJustified}" })
-            mJournalTextAlignment->addItem(translated(name));
+        if (alignmentMissing)
+            for (std::string_view name : { "#{OMWEngine:JournalAlignLeft}", "#{OMWEngine:JournalAlignCentre}",
+                     "#{OMWEngine:JournalAlignRight}", "#{OMWEngine:JournalAlignJustified}" })
+                mJournalTextAlignment->addItem(translated(name));
     }
 
     void SettingsWindow::updateJournalSettings()
@@ -819,6 +835,9 @@ namespace MWGui
         const int size = Settings::gui().mJournalFontSize;
         mJournalFontSize->setIndexSelected(size == 0 ? 0 : static_cast<size_t>(size - 9));
         mJournalTextAlignment->setIndexSelected(Settings::gui().mJournalTextAlignment);
+        const int pageSize = Settings::gui().mJournalPageNumberFontSize;
+        mJournalPageNumberFontSize->setIndexSelected(pageSize == 0 ? 0 : static_cast<size_t>(pageSize - 9));
+        mJournalButtonScale->setIndexSelected(static_cast<size_t>(Settings::gui().mJournalButtonScale.get() - 50));
     }
 
     void SettingsWindow::onJournalFontSizeChanged(MyGUI::ComboBox* sender, size_t pos)
@@ -838,6 +857,28 @@ namespace MWGui
             return;
         Settings::gui().mJournalTextAlignment.set(static_cast<int>(pos));
         apply();
+    }
+
+    void SettingsWindow::onJournalPageNumberFontSizeChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE)
+            return;
+        if (const int* size = sender->getItemDataAt<int>(pos))
+        {
+            Settings::gui().mJournalPageNumberFontSize.set(*size);
+            apply();
+        }
+    }
+
+    void SettingsWindow::onJournalButtonScaleChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE)
+            return;
+        if (const int* scale = sender->getItemDataAt<int>(pos))
+        {
+            Settings::gui().mJournalButtonScale.set(*scale);
+            apply();
+        }
     }
 
     void SettingsWindow::onShadowsButtonClicked(MyGUI::Widget* /*sender*/)

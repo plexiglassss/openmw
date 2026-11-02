@@ -24,6 +24,9 @@ namespace Settings
             makeEnumSanitizerInt({ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 }) };
         SettingValue<int> mJournalTextAlignment{ mIndex, "GUI", "journal text alignment",
             makeEnumSanitizerInt({ 0, 1, 2, 3 }) };
+        SettingValue<int> mJournalPageNumberFontSize{ mIndex, "GUI", "journal page number font size",
+            makeEnumSanitizerInt({ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 }) };
+        SettingValue<int> mJournalButtonScale{ mIndex, "GUI", "journal button scale", makeClampSanitizerInt(50, 100) };
         SettingValue<float> mMenuTransparency{ mIndex, "GUI", "menu transparency", makeClampSanitizerFloat(0, 1) };
         SettingValue<float> mTooltipDelay{ mIndex, "GUI", "tooltip delay", makeMaxSanitizerFloat(0) };
         SettingValue<bool> mEnhancedWorldTooltips{ mIndex, "GUI", "enhanced world tooltips" };

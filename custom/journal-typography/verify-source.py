@@ -8,12 +8,15 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = "00af1d5c63313c61a46c6c8782ce45b3e05f023a"
+PREDECESSOR = "26f1abfa8f8fe855fde50839dc66df5dd0ba9847"
 ALLOWED = {
     ".github/workflows/push.yml",
     "apps/openmw/mwgui/bookpage.cpp",
     "apps/openmw/mwgui/bookpage.hpp",
     "apps/openmw/mwgui/journalbooks.cpp",
     "apps/openmw/mwgui/journalbooks.hpp",
+    "apps/openmw/mwgui/journalwindow.cpp",
+    "apps/openmw/mwgui/journaltypography.hpp",
     "apps/openmw/mwgui/settingswindow.cpp",
     "apps/openmw/mwgui/settingswindow.hpp",
     "apps/launcher/settingspage.cpp",
@@ -22,10 +25,20 @@ ALLOWED = {
     "apps/openmw_tests/mwgui/test_journaltypography.cpp",
     "apps/components_tests/settings/testvalues.cpp",
     "components/settings/categories/gui.hpp",
+    "components/widgets/list.cpp",
+    "components/widgets/list.hpp",
+    "components/widgets/imagebutton.cpp",
+    "components/widgets/imagebutton.hpp",
     "files/settings-default.cfg",
     "files/data/l10n/OMWEngine/en.yaml",
     "files/data/mygui/openmw_settings_window.layout",
     "docs/source/reference/modding/settings/GUI.rst",
+}
+
+FOLLOWUP_ALLOWED = ALLOWED - {
+    "apps/openmw/mwgui/bookpage.cpp",
+    "apps/openmw/mwgui/bookpage.hpp",
+    "apps/openmw_tests/CMakeLists.txt",
 }
 
 
@@ -41,6 +54,10 @@ changed = git("diff", "--name-only", BASELINE, "--").decode().splitlines()
 unexpected = [p for p in changed if p not in ALLOWED and not p.startswith("custom/journal-typography/")]
 if unexpected:
     raise SystemExit("Unreviewed changes outside typography scope: " + ", ".join(unexpected))
+followup = git("diff", "--name-only", PREDECESSOR, "--").decode().splitlines()
+unexpected_followup = [p for p in followup if p not in FOLLOWUP_ALLOWED and not p.startswith("custom/journal-typography/")]
+if unexpected_followup:
+    raise SystemExit("Changes outside the journal controls follow-up: " + ", ".join(unexpected_followup))
 subprocess.run(["git", "diff", "--check", BASELINE], cwd=ROOT, check=True)
 
 files = {}
@@ -65,10 +82,13 @@ for name in ("apps/launcher/ui/settingspage.ui", "files/data/mygui/openmw_settin
         raise SystemExit("New duplicate widget names in " + name)
 
 manifest = {
-    "feature": "journal-only font size and paragraph alignment",
+    "feature": "journal text, list and index sizing; independent page numbers and button artwork scale",
     "accepted_baseline": BASELINE,
+    "accepted_predecessor": PREDECESSOR,
     "commit": git("rev-parse", "HEAD").decode().strip(),
     "changed_files": files,
+    "changed_paths_since_predecessor": followup,
+    "body_typesetter_equal_accepted_predecessor": True,
     "all_other_tracked_source_files_equal_baseline": True,
     "native_plugin_or_world_record_changes": False,
     "retained_lookup_build_scripts_equal_baseline": True,

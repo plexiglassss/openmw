@@ -35,6 +35,10 @@ namespace Gui
          */
         void adjustSize();
 
+        /// Override this list's item font height. Zero retains the item skin's font height.
+        /// Call adjustSize() after changing an already populated list.
+        void setFontHeight(int height);
+
         void sort();
         void addItem(std::string_view name, int verticalPadding = 0);
         void addSeparator(); ///< add a seperator between the current and the next item.
@@ -64,6 +68,7 @@ namespace Gui
         MyGUI::ScrollView* mScrollView;
         MyGUI::Widget* mClient;
         std::string mListItemSkin;
+        int mFontHeight = 0;
 
         struct ListItemData
         {

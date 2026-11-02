@@ -8,6 +8,9 @@
 
 namespace MWGui
 {
+    struct TextColours;
+
+    int getJournalFontSize();
     int getCyrillicIndexPageCount();
 
     const MyGUI::Colour journalHeaderColour = MyGUI::Colour(0.60f, 0.00f, 0.00f);
@@ -22,15 +25,16 @@ namespace MWGui
         std::shared_ptr<TypesetBook> createJournalBook();
         std::shared_ptr<TypesetBook> createTopicBook(const MWDialogue::Topic& topic);
         std::shared_ptr<TypesetBook> createQuestBook(std::string_view questName);
-        std::shared_ptr<TypesetBook> createTopicIndexBook();
+        std::shared_ptr<TypesetBook> createTopicIndexBook(int columnWidth = 0);
+        std::shared_ptr<TypesetBook> createTopicIndexBook(const TextColours& textColours, int columnWidth = 0);
 
         ToUTF8::FromType mEncoding;
         int mIndexPagesCount;
 
     private:
         std::shared_ptr<BookTypesetter> createTypesetter();
-        std::shared_ptr<BookTypesetter> createLatinJournalIndex();
-        std::shared_ptr<BookTypesetter> createCyrillicJournalIndex();
+        std::shared_ptr<BookTypesetter> createJournalIndex(
+            bool cyrillic, const TextColours& textColours, int columnWidth);
     };
 }
 

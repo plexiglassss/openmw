@@ -44,6 +44,11 @@ namespace Gui
         redraw();
     }
 
+    void MWList::setFontHeight(int height)
+    {
+        mFontHeight = std::max(0, height);
+    }
+
     void MWList::redraw(bool scrollbarShown)
     {
         constexpr int scrollbarShownScrollBarWidth = 20; // fetch this from skin?
@@ -67,6 +72,8 @@ namespace Gui
                 MyGUI::Button* button = mScrollView->createWidget<MyGUI::Button>(mListItemSkin,
                     MyGUI::IntCoord(0, mItemHeight, mScrollView->getSize().width - scrollBarWidth - 2, 24),
                     MyGUI::Align::Left | MyGUI::Align::Top, getName() + "_item_" + item.mName);
+                if (mFontHeight > 0)
+                    button->setFontHeight(mFontHeight);
                 button->setCaption(item.mName);
                 button->getSubWidgetText()->setWordWrap(true);
                 button->getSubWidgetText()->setTextAlign(MyGUI::Align::Left);

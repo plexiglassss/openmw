@@ -26,6 +26,10 @@ namespace Gui
 
         void setTextureRect(MyGUI::IntCoord coord);
 
+        /// Retain a cropped image's original logical height while resizing its widget.
+        /// Zero keeps the existing behavior of using the current widget height.
+        void setTextureReferenceHeight(int height);
+
     private:
         void updateImage();
 
@@ -50,6 +54,7 @@ namespace Gui
         bool mUseWholeTexture;
 
         MyGUI::IntCoord mTextureRect;
+        int mTextureReferenceHeight = 0;
     };
 
 }
