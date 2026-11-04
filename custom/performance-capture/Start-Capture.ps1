@@ -377,6 +377,7 @@ function New-CaptureArchive([string]$RunDir) {
             size_bytes=$file.Length; sha256=$identity.sha256; status=$identity.status }
     }
     Write-JsonFile (Join-Path $RunDir 'capture-files.json') $manifest
+    Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = $RunDir + '.zip'
     # .NET Framework CreateFromDirectory uses platform separators in entry names.
