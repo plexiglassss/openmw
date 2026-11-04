@@ -27,6 +27,14 @@ function Add-CaptureWarning([string]$Text) {
     $script:Warnings.Add($Text)
     Write-Warning $Text
 }
+function Invoke-OptionalCaptureStage([string]$Name, [scriptblock]$Action) {
+    try { & $Action }
+    catch { Add-CaptureWarning ($Name+' did not complete: '+$_.Exception.Message+'; collected raw evidence will still be packaged.') }
+}
+function Get-PathComparisonKey([string]$Path) {
+    try { return [IO.Path]::GetFullPath($Path).Replace('/','\').TrimEnd([char]92) }
+    catch { return $Path.Replace('/','\').TrimEnd([char]92) }
+}
 function ConvertTo-WindowsArgument([AllowEmptyString()][string]$Value) {
     if ($Value.Length -gt 0 -and $Value -notmatch '[\s"]') { return $Value }
     $b = New-Object Text.StringBuilder
@@ -329,9 +337,9 @@ function Test-NativeTrace([string]$Path, [ValidateSet('osg','timing')][string]$K
     $result=[ordered]@{ path=$Path; kind=$Kind; valid_markers=$false; status='missing';
         scope='Bounded header/data/tail validation, not proof that every frame was recorded or that presentation/input was responsive.' }
     if (!(Test-Path -LiteralPath $Path -PathType Leaf)) { return [pscustomobject]$result }
-    $result.size_bytes=(Get-Item -LiteralPath $Path).Length
     $parser=$null
     try {
+        $result.size_bytes=(Get-Item -LiteralPath $Path).Length
         if ($Kind -eq 'timing') {
             Add-Type -AssemblyName Microsoft.VisualBasic
             $parser=New-Object Microsoft.VisualBasic.FileIO.TextFieldParser($Path)
@@ -360,8 +368,10 @@ function Test-NativeTrace([string]$Path, [ValidateSet('osg','timing')][string]$K
     return [pscustomobject]$result
 }
 function New-CaptureArchive([string]$RunDir) {
+    $RunDir=[IO.Path]::GetFullPath($RunDir).TrimEnd([IO.Path]::DirectorySeparatorChar)
     $manifest = @()
     foreach ($file in Get-ChildItem -LiteralPath $RunDir -Recurse -File) {
+        if ($file.FullName -eq (Join-Path $RunDir 'capture-files.json')) { continue }
         $identity = Get-FileIdentity $file.FullName
         $manifest += [pscustomobject]@{ path=$file.FullName.Substring($RunDir.Length+1).Replace('\','/');
             size_bytes=$file.Length; sha256=$identity.sha256; status=$identity.status }
@@ -369,7 +379,25 @@ function New-CaptureArchive([string]$RunDir) {
     Write-JsonFile (Join-Path $RunDir 'capture-files.json') $manifest
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip = $RunDir + '.zip'
-    [IO.Compression.ZipFile]::CreateFromDirectory($RunDir, $zip, [IO.Compression.CompressionLevel]::Optimal, $false)
+    # .NET Framework CreateFromDirectory uses platform separators in entry names.
+    # Write explicit portable '/' names so both Windows and Unix readers resolve
+    # exactly the names recorded in capture-files.json.
+    $created=[IO.Compression.ZipFile]::Open($zip,[IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($file in Get-ChildItem -LiteralPath $RunDir -Recurse -File) {
+            $name=$file.FullName.Substring($RunDir.Length+1).Replace('\','/')
+            $entry=$created.CreateEntry($name,[IO.Compression.CompressionLevel]::Optimal)
+            $inputStream=$null; $outputStream=$null
+            try {
+                $inputStream=[IO.File]::OpenRead($file.FullName)
+                $outputStream=$entry.Open()
+                $inputStream.CopyTo($outputStream)
+            } finally {
+                if ($outputStream) { $outputStream.Dispose() }
+                if ($inputStream) { $inputStream.Dispose() }
+            }
+        }
+    } finally { $created.Dispose() }
     $archive = [IO.Compression.ZipFile]::OpenRead($zip)
     try {
         $fileEntries=@($archive.Entries | Where-Object { $_.Name.Length -gt 0 })
@@ -393,7 +421,7 @@ $exe = Resolve-GameExecutable $OpenMWExe $UserConfigDir -NonInteractive:$NoPromp
 $exeDir = Split-Path -Parent $exe
 $safeLabel = [regex]::Replace($RunLabel, '[^A-Za-z0-9_-]', '_')
 if ($safeLabel.Length -gt 48) { $safeLabel = $safeLabel.Substring(0,48) }
-$runDir = Join-Path $OutputRoot ('Run-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + $safeLabel)
+$runDir = [IO.Path]::GetFullPath((Join-Path $OutputRoot ('Run-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + $safeLabel)))
 [void][IO.Directory]::CreateDirectory($runDir)
 [void][IO.Directory]::CreateDirectory((Join-Path $runDir 'logs'))
 Copy-Item -LiteralPath $PSCommandPath -Destination (Join-Path $runDir 'collector.ps1')
@@ -563,19 +591,21 @@ foreach ($name in @('process-stdout.txt','process-stderr.txt')) {
 }
 $freshLog=$null; $newContext=$null
 foreach ($path in @($logCandidates | Select-Object -Unique)) {
-    if (!$startUtc -or !(Test-Path -LiteralPath $path -PathType Leaf)) { continue }
-    $item=Get-Item -LiteralPath $path
-    if ($item.LastWriteTimeUtc -lt $startUtc.AddSeconds(-2)) { continue }
-    $text=Read-SharedText $path
-    $context=Get-LogContext $text
-    if (!$context.engine_version) { continue }
-    # Presence of the unique output path binds this log to the launched capture.
-    $expectedStats = (Join-Path $runDir 'openmw-stats.log').Replace('/','\')
-    $boundStats = @($context.stats_output_paths | Where-Object { $_.Replace('/','\') -ieq $expectedStats })
-    if ($boundStats.Count -eq 0) { continue }
-    $freshLog=$path; $newContext=$context
-    Copy-Item -LiteralPath $path -Destination (Join-Path $runDir 'logs\openmw.log')
-    break
+    try {
+        if (!$startUtc -or !(Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        $item=Get-Item -LiteralPath $path
+        if ($item.LastWriteTimeUtc -lt $startUtc.AddSeconds(-2)) { continue }
+        $text=Read-SharedText $path
+        $context=Get-LogContext $text
+        if (!$context.engine_version) { continue }
+        # Presence of the unique output path binds this log to the launched capture.
+        $expectedStats = Get-PathComparisonKey (Join-Path $runDir 'openmw-stats.log')
+        $boundStats = @($context.stats_output_paths | Where-Object { (Get-PathComparisonKey $_) -ieq $expectedStats })
+        if ($boundStats.Count -eq 0) { continue }
+        Copy-Item -LiteralPath $path -Destination (Join-Path $runDir 'logs\openmw.log')
+        $freshLog=$path; $newContext=$context
+        break
+    } catch { Add-CaptureWarning ('Cannot collect log candidate '+$path+': '+$_.Exception.Message) }
 }
 if (!$freshLog) { Add-CaptureWarning 'No log bound to this run was found. The ZIP is incomplete; raw stdout/stderr and timing files are retained.' }
 $session.fresh_log_source=$freshLog
@@ -583,14 +613,14 @@ if ($newContext) {
     Write-JsonFile (Join-Path $runDir 'runtime-context.json') $newContext
     $afterPaths = @(Get-ConfigCandidates $newContext $exeDir $UserConfigDir)
     Save-ConfigSnapshot $afterPaths 'after' $runDir
-    $beforeCaptured=@($script:Snapshots | Where-Object { $_.phase -eq 'before' -and $_.status -eq 'copied' } | ForEach-Object { $_.source_path })
+    $beforeCaptured=@($script:Snapshots | Where-Object { $_.phase -eq 'before' -and $_.status -eq 'copied' } | ForEach-Object { Get-PathComparisonKey $_.source_path })
     $activeTexts=@(@($newContext.config_paths)+@($newContext.settings_paths)+@($newContext.shader_settings_paths) |
         Where-Object { [IO.Path]::GetFileName($_) -ne 'defaults.bin' } | Select-Object -Unique)
-    $session.active_configs_missing_before_snapshot=@($activeTexts | Where-Object { $_ -notin $beforeCaptured })
+    $session.active_configs_missing_before_snapshot=@($activeTexts | Where-Object { (Get-PathComparisonKey $_) -notin $beforeCaptured })
     if ($session.active_configs_missing_before_snapshot.Count -gt 0) {
         Add-CaptureWarning ('Some active configuration files were discovered only in this launch; their before snapshots are missing: '+($session.active_configs_missing_before_snapshot -join '; '))
     }
-    Get-TargetedScriptIdentities $newContext $runDir
+    Invoke-OptionalCaptureStage 'Targeted Lua source collection' { Get-TargetedScriptIdentities $newContext $runDir }
     $storageAfter=@()
     foreach ($dir in @($newContext.logs_dirs | Select-Object -Unique)) {
         foreach ($name in @('player_storage.bin','global_storage.bin')) { $storageAfter += Get-FileIdentity (Join-Path $dir $name) -MetadataOnly }
@@ -601,17 +631,19 @@ $fgLogCandidates=@((Join-Path $exeDir 'openmw_fg.log'),(Join-Path $UserConfigDir
     (Join-Path $env:USERPROFILE 'Documents\My Games\OpenMW\openmw_fg.log'))
 $fgIndex=0
 foreach ($path in @($fgLogCandidates | Select-Object -Unique)) {
-    if ($startUtc -and (Test-Path -LiteralPath $path -PathType Leaf) -and (Get-Item -LiteralPath $path).LastWriteTimeUtc -ge $startUtc.AddSeconds(-2)) {
-        Copy-Item -LiteralPath $path -Destination (Join-Path $runDir ('logs\fg-{0}-openmw_fg.log' -f $fgIndex))
-        $fgIndex++
-    }
+    try {
+        if ($startUtc -and (Test-Path -LiteralPath $path -PathType Leaf) -and (Get-Item -LiteralPath $path).LastWriteTimeUtc -ge $startUtc.AddSeconds(-2)) {
+            Copy-Item -LiteralPath $path -Destination (Join-Path $runDir ('logs\fg-{0}-openmw_fg.log' -f $fgIndex))
+            $fgIndex++
+        }
+    } catch { Add-CaptureWarning ('Cannot collect optional FG log '+$path+': '+$_.Exception.Message) }
 }
 $afterIds=@($coreFiles | ForEach-Object { Get-FileIdentity (Join-Path $exeDir $_) })
 foreach ($dll in Get-ChildItem -LiteralPath $exeDir -Filter '*.dll' -File) {
     if ($dll.Name -notin $coreFiles) { $afterIds += Get-FileIdentity $dll.FullName }
 }
 Write-JsonFile (Join-Path $runDir 'runtime-identities-after.json') $afterIds
-Get-ResourceIdentities $exeDir $runDir
+Invoke-OptionalCaptureStage 'Runtime resource hashing' { Get-ResourceIdentities $exeDir $runDir }
 Write-JsonFile (Join-Path $runDir 'config-snapshots.json') $script:Snapshots.ToArray()
 $traceChecks=@(Test-NativeTrace (Join-Path $runDir 'openmw-stats.log') 'osg')
 if ($Mode -eq 'Detailed') { $traceChecks+=Test-NativeTrace (Join-Path $runDir 'script-timing.csv') 'timing' }

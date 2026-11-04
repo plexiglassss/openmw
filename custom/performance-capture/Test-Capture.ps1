@@ -60,6 +60,11 @@ Check 'Configuration snapshots preserve exact bytes and ignore missing files' {
     Assert-True ((Get-FileHash -LiteralPath (Join-Path $unitRun $row.captured_path)).Hash -eq $cfgHash) 'Copy bytes differ.'
     Assert-True ((Get-FileHash -LiteralPath $fixtureCfg).Hash -eq $cfgHash) 'Original configuration changed.'
 }
+Check 'Optional collection failures are visible without aborting evidence packaging' {
+    $oldWarningCount=$script:Warnings.Count
+    Invoke-OptionalCaptureStage 'Test-only optional failure' { throw 'intentional fixture read failure' }
+    Assert-True ($script:Warnings.Count -eq ($oldWarningCount+1)) 'Optional failure was not recorded.'
+}
 Check 'Missing identity is explicit rather than a fabricated hash' {
     $id=Get-FileIdentity (Join-Path $fixtureDir 'absent.dll')
     Assert-True ($id.status -eq 'unavailable') 'Missing file not marked unavailable.'
@@ -95,6 +100,7 @@ Check 'ZIP contains exact captured data and leaves originals unchanged' {
     try {
         foreach ($entry in $archive.Entries) {
             if ($entry.Name.Length -eq 0) { continue }
+            Assert-True ($entry.FullName -notmatch '\\') 'ZIP member uses a platform-dependent backslash.'
             $original=Join-Path $unitRun $entry.FullName
             Assert-True ($entry.Length -eq (Get-Item -LiteralPath $original).Length) 'ZIP length mismatch.'
             $stream=$entry.Open(); $sha=[Security.Cryptography.SHA256]::Create()
@@ -142,8 +148,8 @@ public static class CaptureStubGame {
     var log=new StringBuilder();
     log.AppendLine("Loading config file: "+Path.Combine(root,"openmw.cfg"));
     log.AppendLine("Loading config file: "+Path.Combine(profile,"openmw.cfg"));
-    log.AppendLine("Loading settings file: "+Path.Combine(profile,"settings.cfg"));
-    log.AppendLine("Loading shader settings file: "+Path.Combine(profile,"shaders.yaml"));
+    log.AppendLine("Loading settings file: "+Path.Combine(profile,"settings.cfg").Replace('\\','/'));
+    log.AppendLine("Loading shader settings file: "+Path.Combine(profile,"shaders.yaml").Replace('\\','/'));
     log.AppendLine("Logs dir: "+profile);
     log.AppendLine("User data dir: "+profile);
     log.AppendLine("Adding data directory "+data);
@@ -189,7 +195,7 @@ public static class CaptureStubGame {
                 & $CaptureScript -OpenMWExe $stubExe -UserConfigDir $profile -OutputRoot $out -RunLabel $script:LastCase -NoPrompt -GameArguments $argv
                 $run=Get-ChildItem -LiteralPath $out -Directory | Where-Object { $_.Name -like ('*-'+$script:LastCase) } | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
                 Assert-True ($null -ne $run) 'Run directory not produced.'
-                $session=Get-Content -LiteralPath (Join-Path $run.FullName 'session.json') -Raw | ConvertFrom-Json
+                $session=Get-Content -LiteralPath (Join-Path $run.FullName 'session.json') -Raw -Encoding UTF8 | ConvertFrom-Json
                 $expectedExit=0;if($script:LastCase -eq 'abnormal'){$expectedExit=7}
                 Assert-True ($null -ne $session.exit_code -and $session.exit_code -eq $expectedExit) ('Exit code not preserved: '+$session.exit_code)
                 Assert-True ($session.process_exit_observed -eq $true) 'Child exit was not observed.'
@@ -215,8 +221,9 @@ public static class CaptureStubGame {
                 if($script:LastCase -eq 'missing') {
                     Assert-True (@($session.warnings | Where-Object {$_ -match 'incomplete|too small|missing'}).Count -gt 0) 'Missing outputs were not reported.'
                 } else {
-                    Assert-True ($session.fresh_log_source -ceq (Join-Path $profile 'openmw.log')) 'Fresh log was not bound.'
-                    $ids=Get-Content -LiteralPath (Join-Path $run.FullName 'targeted-script-identities.json') -Raw | ConvertFrom-Json
+                    Assert-True ($session.fresh_log_source -ceq (Join-Path $profile 'openmw.log')) ('Fresh log path mismatch. Expected: '+(Join-Path $profile 'openmw.log')+'; actual: '+$session.fresh_log_source)
+                    Assert-True (@($session.active_configs_missing_before_snapshot).Count -eq 0) 'Mixed slash spelling incorrectly marked captured settings as missing.'
+                    $ids=Get-Content -LiteralPath (Join-Path $run.FullName 'targeted-script-identities.json') -Raw -Encoding UTF8 | ConvertFrom-Json
                     $selected=@($ids.targets | Where-Object {$_.vfs_path -eq 'scripts/a with space.lua'})[0]
                     Assert-True ($selected.source_and_copy_match -eq $true) 'Measured source was not copied/hash-bound.'
                 }
