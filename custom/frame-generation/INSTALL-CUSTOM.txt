@@ -1,3 +1,23 @@
+4 November FPS overlay position controls
+---------------------------------------
+The F8 menu is wider and both position sliders now use a full row. Horizontal
+and vertical offsets each have an editable integer field with -/+ buttons;
+each button step changes the selected offset by exactly 1 pixel, including
+Ctrl-click. Drag a slider for placement, then use -/+ or type an exact value.
+Changes appear live. Click Save Settings to retain the position after restart.
+
+Close OpenMW and its launcher, back up version.dll beside openmw.exe, then
+replace only version.dll with this build. Keep openmw_fg.ini and lua51.dll.
+Existing anchors, saved offsets, and Reset FPS overlay position still apply.
+This build includes the startup loading-progress repair described below and
+all preceding FG repairs. No engine executable update is needed.
+
+Build validation covers compilation, DLL loading/version forwarding, and the
+existing framebuffer regressions. Live menu operation in OpenMW remains a
+separate user check. BUILD-ID.txt identifies the exact source and build run.
+
+Earlier release information follows:
+
 4 November startup loading-progress repair
 -----------------------------------------
 Fixes the startup handoff that could leave FG displaying the first captured

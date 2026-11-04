@@ -1,3 +1,18 @@
+4 November FPS overlay position controls
+---------------------------------------
+Increase the initial menu width from 330 to 480 scaled pixels and give both
+offset sliders the full available row. The former short sliders compressed
+the entire screen range, causing multi-pixel jumps during mouse dragging.
+Each axis now has an editable integer value and -/+ buttons with 1-pixel steps
+(also when Ctrl is held). Values edited through these controls are clamped to
+the existing viewport-based range. Existing float INI fields remain compatible;
+opening the menu alone does not rewrite saved offsets. Click Save Settings to
+persist edits. Keep the existing INI when replacing version.dll.
+
+This build is based on the 4 November loading-progress repair and preserves
+the framebuffer handoff, seeding, continuity, screenshot, input, and shutdown
+behavior. Only the shared menu drawing code changes at runtime.
+
 4 November startup loading-progress repair
 -----------------------------------------
 The redirect previously captured the first loading frame but left any already-

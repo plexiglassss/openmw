@@ -1,8 +1,8 @@
-name: Frame generation loading progress and shutdown
+name: Frame generation overlay precision and loading
 on:
   workflow_dispatch:
   push:
-    branches: [framegen-loading-continuity-24b9e917, diagnostic-timing-2829ae6d, fix/fg-loading-progress-20261104]
+    branches: [framegen-loading-continuity-24b9e917, diagnostic-timing-2829ae6d, fix/fg-loading-progress-20261104, fix/fg-overlay-pixel-controls-20261104]
     paths: ['custom/frame-generation/**', '.github/workflows/framegen-loading.yml']
 permissions:
   contents: read
@@ -49,6 +49,6 @@ jobs:
           Get-FileHash fg-package/version.dll -Algorithm SHA256 | Format-List | Out-File fg-package/SHA256.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: OpenMW-Frame-Generation-Loading-Progress-${{ github.sha }}
+          name: OpenMW-Frame-Generation-Overlay-Precision-${{ github.sha }}
           path: fg-package/
           if-no-files-found: error

@@ -184,9 +184,44 @@ void drawFpsOverlay(float inFps, float outFps, const Diagnostics& diagnostics, b
     ImGui::End();
 }
 
+void drawPixelOffsetControl(const char* label, float& offset, float maximum)
+{
+    const int maxPixels = static_cast<int>(maximum);
+    const float bounded = offset < 0.f ? 0.f : offset > maxPixels ? static_cast<float>(maxPixels) : offset;
+    int pixels = static_cast<int>(bounded + 0.5f);
+
+    ImGui::PushID(label);
+    const float available = ImGui::GetContentRegionAvail().x;
+    float inputWidth = 160.f * g_cfg.menuScale;
+    const float inputX = ImGui::GetCursorPosX() + available - inputWidth;
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(label);
+    if (available >= ImGui::CalcTextSize(label).x + ImGui::GetStyle().ItemSpacing.x + inputWidth)
+    {
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(inputX);
+    }
+    else
+        inputWidth = available;
+
+    ImGui::SetNextItemWidth(inputWidth);
+    // Full-screen coordinates cannot all fit on a slider. These buttons give
+    // exact one-pixel steps, including Ctrl-click, and the value is editable.
+    bool changed = ImGui::InputInt("##pixels", &pixels, 1, 1);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    changed = ImGui::SliderInt("##position", &pixels, 0, maxPixels, "%d px", ImGuiSliderFlags_AlwaysClamp) || changed;
+    if (changed)
+    {
+        if (pixels < 0) pixels = 0;
+        if (pixels > maxPixels) pixels = maxPixels;
+        offset = static_cast<float>(pixels);
+    }
+    ImGui::PopID();
+}
+
 void drawMenu(float inFps, float outFps, const Diagnostics& diagnostics, std::atomic<bool>& fgEnabled, bool paused)
 {
-    ImGui::SetNextWindowSize(ImVec2(330.f * g_cfg.menuScale, 0.f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(480.f * g_cfg.menuScale, 0.f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(60.f, 60.f), ImGuiCond_FirstUseEver);
     bool open = true;
     ImGui::Begin("Frame Generation", &open, ImGuiWindowFlags_NoCollapse);
@@ -238,9 +273,11 @@ void drawMenu(float inFps, float outFps, const Diagnostics& diagnostics, std::at
         const ImGuiViewport* vp = ImGui::GetMainViewport();
         const float maxX = vp && vp->WorkSize.x > 24.f ? vp->WorkSize.x - 12.f : 1000.f;
         const float maxY = vp && vp->WorkSize.y > 24.f ? vp->WorkSize.y - 12.f : 1000.f;
-        ImGui::SliderFloat("Horizontal offset", &g_cfg.fpsOverlayOffsetX, 0.f, maxX, "%.0f px");
-        ImGui::SliderFloat("Vertical offset", &g_cfg.fpsOverlayOffsetY, 0.f, maxY, "%.0f px");
-        ImGui::TextDisabled("Position updates live; Save Settings to persist.");
+        drawPixelOffsetControl("Horizontal offset", g_cfg.fpsOverlayOffsetX, maxX);
+        drawPixelOffsetControl("Vertical offset", g_cfg.fpsOverlayOffsetY, maxY);
+        ImGui::PushTextWrapPos(0.f);
+        ImGui::TextDisabled("-/+ adjusts 1 px. Position updates live; Save Settings to persist.");
+        ImGui::PopTextWrapPos();
         if (ImGui::Button("Reset FPS overlay position"))
         {
             g_cfg.fpsOverlayAnchor = 0;
