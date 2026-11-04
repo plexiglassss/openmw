@@ -1,3 +1,18 @@
+4 November startup loading-progress repair
+-----------------------------------------
+The redirect previously captured the first loading frame but left any already-
+bound default framebuffer active. Loading-only cameras can draw without ever
+binding it again, leaving FG on the first captured plugin name and progress bar.
+After seeding, immediately remap default draw/read bindings to the FG framebuffer
+and preserve nondefault bindings independently. Future binds keep the existing
+hook behavior. Added regression coverage reproduces the old stale-image path
+and checks successive partial loading draws without another engine FBO bind.
+Existing seeding, loading continuity, GPU reuse fences, readback suppression,
+timeline reset, input handling, and shutdown repairs are preserved.
+
+DLL-only update. Keep openmw_fg.ini and lua51.dll. No new per-frame work.
+See LOADING-PROGRESS-REPAIR.md for validation scope and runtime limits.
+
 24 October startup handoff repair (offline test build)
 ---------------------------------------------------
 Seed the first redirected texture from the native back buffer before activating

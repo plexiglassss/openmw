@@ -1,6 +1,6 @@
-"""Headless Mesa regression for the production frame-preservation helper.
+"""Headless Mesa regression for the production framebuffer handoff helpers.
 Requires Linux libEGL, libGL, C++ compiler and GL/gl.h (headers_dir argument).
-No OpenMW/NVIDIA runtime claim: simulates copy-before-draw loading traversals.
+No OpenMW/NVIDIA runtime claim: simulates loading draws and framebuffer copies.
 """
 import ctypes as C
 import pathlib
@@ -69,6 +69,12 @@ extern "C" void init(void* copy, void* bind, void* blit) {
 }
 extern "C" void seed(unsigned src, unsigned buffer, unsigned dst, int w, int h) {
     fg::SeedFrameContents(src,buffer,dst,w,h);
+}
+extern "C" void redirect(unsigned dst) {
+    GLint draw = 0, read = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &draw);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &read);
+    fg::RedirectDefaultFramebufferBindings(dst,draw,read);
 }
 extern "C" void preserve(unsigned src, unsigned dst, int w, int h) { fg::PreserveFrameContents(src,dst,w,h); }
 ''')
@@ -162,6 +168,72 @@ extern "C" void preserve(unsigned src, unsigned dst, int w, int h) { fg::Preserv
     assert error()==0
     print('PASS: native default framebuffer seeds first redirected texture.')
 
+    # Startup GUI cameras can keep drawing without ever rebinding framebuffer 0.
+    # Negative control: seeding alone captures the first caption, but the next
+    # draw changes the native image while the submitted texture stays stale.
+    def integer(name):
+        value=I();query(name,C.byref(value));return value.value
+    def bindings():
+        return integer(0x8CA6), integer(0x8CAA)
+    clearColor=gl('glClearColor',None,C.c_float,C.c_float,C.c_float,C.c_float)
+    clear=gl('glClear',None,U)
+    readPixels=gl('glReadPixels',None,I,I,I,I,U,U,P)
+    scissor=gl('glScissor',None,I,I,I,I)
+    drawBuffer=gl('glDrawBuffer',None,U)
+    readBuffer=gl('glReadBuffer',None,U)
+    assert bindings()==(0,0), 'seeding must restore the original bindings'
+    readBuffer(buffer)
+    clearColor(0,1,0,1);clear(0x4000)
+    native=(C.c_ubyte*(W*H*4))()
+    readPixels(0,0,W,H,RGBA,BYTE,native)
+    assert bytes(native)==bytes([0,255,0,255])*(W*H)
+    expected=bytes([255,0,0,255])*(W*H)
+    assert read(textures[1])==expected, 'negative control must retain the stale first caption'
+    assert error()==0
+    print('PASS: seed-only negative control reproduces a stale submitted image while native loading draws advance.')
+
+    bridge.redirect.argtypes=[U]
+    bridge.redirect(fb[1])
+    assert bindings()==(fb[1],fb[1])
+    enable(0x0C11)
+    current=1
+    # No framebuffer bind occurs in this loop. The game draws a changing GUI
+    # region; FG preserves the frame and rotates the attachment at each swap.
+    for step,nxt in enumerate([2,3,0,1,2,3,0,1,3,0,2,1]):
+        x,y=step%W,(step//W)%H
+        pixel=bytes((16+step*13,47+step*7,240-step*11,255))
+        scissor(x,y,1,1)
+        clearColor(*(component/255 for component in pixel));clear(0x4000)
+        offset=(y*W+x)*4
+        expected=expected[:offset]+pixel+expected[offset+4:]
+        assert read(textures[current])==expected, 'loading draw missed the submitted texture'
+        readPixels(0,0,W,H,RGBA,BYTE,native)
+        assert bytes(native)==expected, 'loading readback missed the redirected framebuffer'
+        bridge.preserve(textures[current],textures[nxt],W,H)
+        attach(FBO,COLOR,T,textures[nxt],0)
+        assert read(textures[nxt])==expected, 'rotation lost the latest loading draw'
+        assert bindings()==(fb[1],fb[1])
+        assert error()==0
+        current=nxt
+    disable(0x0C11)
+    clearColor(0,0,1,1);clear(0x4000)
+    assert read(textures[current])==bytes([0,0,255,255])*(W*H)
+    assert error()==0
+    print('PASS: 12 partial loading draws update all four ring slots without framebuffer rebinds; full-frame drawing resumes.')
+
+    # Read and draw bindings are independent. Do not replace an engine-owned
+    # FBO or change its buffer selection when only the other binding is zero.
+    bind(DRAW,fb[0]);drawBuffer(0)  # NONE on an application-owned draw FBO
+    bind(READ,fb[2]);readBuffer(0)  # NONE on a different application read FBO
+    for oldDraw,oldRead in ((0,0),(fb[0],0),(0,fb[2]),(fb[0],fb[2])):
+        bind(DRAW,oldDraw);bind(READ,oldRead)
+        bridge.redirect(fb[1])
+        assert bindings()==(oldDraw or fb[1],oldRead or fb[1]), 'nondefault binding was replaced'
+        assert integer(0x0C01)==(0 if oldDraw else COLOR), 'draw-buffer selection changed'
+        assert integer(0x0C02)==(0 if oldRead else COLOR), 'read-buffer selection changed'
+        assert error()==0
+    print('PASS: all four default/user read-draw binding combinations and application buffer selections are preserved.')
+
 
 # Verify the integration orders the destination wait before copy and attachment.
 s=(root/'src/fg/framegen.cpp').read_text()
@@ -174,6 +246,9 @@ print('PASS: integration preserves destination GPU fence -> copy -> attachment o
 
 arm=s.index('if (!S.redirect.load())')
 a=s.index('fg::SeedFrameContents(0, GL_BACK',arm)
-b=s.index('S.redirect = true',a)
-assert arm<a<b
-print('PASS: native back buffer seeded before redirection is enabled.')
+b=s.index('real_glGetIntegerv(GL_FRAMEBUFFER_BINDING',a)
+c=s.index('real_glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING',a)
+d=s.index('fg::RedirectDefaultFramebufferBindings(',a)
+e=s.index('S.redirect = true',a)
+assert arm<a<b<d<e and a<c<d
+print('PASS: native back buffer seeded, raw bindings queried and redirected before the redirect flag is enabled.')

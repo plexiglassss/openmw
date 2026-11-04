@@ -900,6 +900,13 @@ namespace fg
             S.gameCur = 0;
             attachGameTexture(0);
             fg::SeedFrameContents(0, GL_BACK, S.gameFbo, S.width, S.height);
+            // The seed restores the original bindings. Loading-only cameras
+            // can keep drawing without another framebuffer bind, so redirect
+            // their already-bound default targets as well as future binds.
+            GLint drawFramebuffer = 0, readFramebuffer = 0;
+            real_glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFramebuffer);
+            real_glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFramebuffer);
+            fg::RedirectDefaultFramebufferBindings(S.gameFbo, drawFramebuffer, readFramebuffer);
             S.redirect = true;
             Log("fg: framebuffer redirect ACTIVE");
             return false;

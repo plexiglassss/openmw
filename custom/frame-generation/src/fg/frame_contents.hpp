@@ -4,6 +4,19 @@
 
 namespace fg
 {
+    // Arming a bind hook does not change the context's existing bindings.
+    // Default-framebuffer loading cameras may never bind framebuffer 0 again,
+    // so move any currently bound default targets to the redirect immediately.
+    // The caller supplies physical bindings queried through the raw GL entry
+    // point; preserve nondefault read/draw targets independently.
+    inline void RedirectDefaultFramebufferBindings(GLuint framebuffer, GLint drawFramebuffer, GLint readFramebuffer)
+    {
+        if (drawFramebuffer == 0)
+            glBindFramebuffer_(GL_DRAW_FRAMEBUFFER, framebuffer);
+        if (readFramebuffer == 0)
+            glBindFramebuffer_(GL_READ_FRAMEBUFFER, framebuffer);
+    }
+
     // Seed the first offscreen target from the real, just-rendered back buffer.
     // A loading traversal may copy/read its background before drawing anything;
     // the texture ring must already contain the native image when redirection starts.

@@ -1,8 +1,8 @@
-name: Frame generation loading and shutdown
+name: Frame generation loading progress and shutdown
 on:
   workflow_dispatch:
   push:
-    branches: [framegen-loading-continuity-24b9e917, diagnostic-timing-2829ae6d]
+    branches: [framegen-loading-continuity-24b9e917, diagnostic-timing-2829ae6d, fix/fg-loading-progress-20261104]
     paths: ['custom/frame-generation/**', '.github/workflows/framegen-loading.yml']
 permissions:
   contents: read
@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install headless GL test dependencies
         run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl1 libgl1-mesa-dri g++
-      - name: Reproduce and verify loading framebuffer retention
+      - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
   FrameGeneration:
     needs: GLRegression
@@ -42,12 +42,13 @@ jobs:
           Copy-Item custom/frame-generation/PATCH_NOTES.txt fg-package/
           Copy-Item custom/frame-generation/LICENSE fg-package/
           Copy-Item custom/frame-generation/LOADING-CONTINUITY-AUDIT.md fg-package/
+          Copy-Item custom/frame-generation/LOADING-PROGRESS-REPAIR.md fg-package/
           Copy-Item custom/frame-generation/SHUTDOWN-REPAIR.md fg-package/
           Copy-Item custom/frame-generation/* fg-package/source/ -Recurse
           "Commit ${{ github.sha }}`nRun ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`n" | Set-Content fg-package/BUILD-ID.txt
           Get-FileHash fg-package/version.dll -Algorithm SHA256 | Format-List | Out-File fg-package/SHA256.txt
       - uses: actions/upload-artifact@v6
         with:
-          name: OpenMW-Frame-Generation-Loading-Shutdown-${{ github.sha }}
+          name: OpenMW-Frame-Generation-Loading-Progress-${{ github.sha }}
           path: fg-package/
           if-no-files-found: error
