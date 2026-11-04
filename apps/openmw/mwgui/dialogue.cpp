@@ -33,6 +33,7 @@
 #include "../mwmechanics/npcstats.hpp"
 
 #include "bookpage.hpp"
+#include "dialogueformatting.hpp"
 #include "textcolours.hpp"
 
 namespace MWGui
@@ -227,15 +228,8 @@ namespace MWGui
             typesetter->sectionBreak();
         }
 
-        struct Token
-        {
-            size_t mStart;
-            size_t mEnd;
-            Link* mTopic;
-        };
-
         std::vector<KeywordSearch::Match> matches = keywordSearch.parseHyperText(mText, translationStorage);
-        std::vector<Token> tokens;
+        std::vector<DialogueTextLink> tokens;
         tokens.reserve(matches.size());
         std::string text;
         text.reserve(mText.size());
@@ -252,32 +246,21 @@ namespace MWGui
 
             auto value = topicLinks.find(token.mTopicId);
             if (value != topicLinks.end())
-                tokens.emplace_back(text.size() - displayName.size(), text.size(), value->second.get());
+                tokens.push_back({ text.size() - displayName.size(), text.size(),
+                    reinterpret_cast<TypesetBook::InteractiveId>(value->second.get()) });
         }
         text.append(pos, mText.end());
 
-        typesetter->addContent(text);
-
-        BookTypesetter::Style* textStyle = typesetter->createStyle({}, colors.normal, false);
-
-        size_t i = 0;
-        for (const Token& token : tokens)
-        {
-            if (i < token.mStart)
-                typesetter->write(textStyle, i, token.mStart);
-
-            auto id = reinterpret_cast<TypesetBook::InteractiveId>(token.mTopic);
-            BookTypesetter::Style* linkStyle
-                = typesetter->createHotStyle(textStyle, colors.link, colors.linkOver, colors.linkPressed, id);
-            typesetter->write(linkStyle, token.mStart, token.mEnd);
-            i = token.mEnd;
-        }
-
-        if (i < text.size())
-            typesetter->write(textStyle, i, text.size());
+        const auto& settings = Settings::gui();
+        const auto spans = settings.mDialogueColouring
+            ? Misc::DialogueText::classify(text, Misc::DialogueText::Context::Dialogue,
+                settings.mDialogueClassifyNarration)
+            : std::vector<Misc::DialogueText::Span>{};
+        writeDialogueText(*typesetter, text, spans, tokens, getDialoguePalette(colors));
     }
 
-    Message::Message(std::string_view text)
+    Message::Message(std::string_view text, Misc::DialogueText::Category category)
+        : mCategory(category)
     {
         mText = text;
     }
@@ -285,10 +268,19 @@ namespace MWGui
     void Message::write(std::shared_ptr<BookTypesetter> typesetter, const MWDialogue::KeywordSearch&,
         std::unordered_map<std::string, std::unique_ptr<Link>>&) const
     {
-        const MyGUI::Colour& textColour = MWBase::Environment::get().getWindowManager()->getTextColours().notify;
-        BookTypesetter::Style* title = typesetter->createStyle({}, textColour, false);
+        const auto& settings = Settings::gui();
+        std::vector<Misc::DialogueText::Span> spans;
+        if (settings.mDialogueColouring)
+        {
+            if (mCategory != Misc::DialogueText::Category::Default)
+                spans.push_back({ 0, mText.size(), mCategory });
+            else
+                spans = Misc::DialogueText::classify(mText, Misc::DialogueText::Context::Dialogue,
+                    settings.mDialogueClassifyNarration);
+        }
         typesetter->sectionBreak(9);
-        typesetter->write(title, mText);
+        writeDialogueText(*typesetter, mText, spans, {},
+            getDialoguePalette(MWBase::Environment::get().getWindowManager()->getTextColours(), true));
     }
 
     // --------------------------------------------------------------------------------------------------
@@ -650,6 +642,7 @@ namespace MWGui
     void DialogueWindow::updateHistory(bool scrollbar)
     {
         Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "updateHistory");
+        mTextColoursDirty = false;
         if (!scrollbar && mScrollBar->getVisible())
         {
             mHistory->setSize(mHistory->getSize() + MyGUI::IntSize(mScrollBar->getWidth(), 0));
@@ -846,10 +839,18 @@ namespace MWGui
         updateHistory();
     }
 
-    void DialogueWindow::addMessageBox(std::string_view text)
+    void DialogueWindow::addMessageBox(std::string_view text, Misc::DialogueText::Category category)
     {
-        mHistoryContents.push_back(std::make_unique<Message>(text));
+        mHistoryContents.push_back(std::make_unique<Message>(text, category));
         updateHistory();
+    }
+
+    void DialogueWindow::refreshTextColours()
+    {
+        // Coalesce changes from RGB sliders and repaint only when this window is
+        // next active. Stored response text and semantic message categories stay
+        // intact, so changing the palette also updates existing history.
+        mTextColoursDirty = true;
     }
 
     void DialogueWindow::updateDisposition()
@@ -901,6 +902,24 @@ namespace MWGui
         if (mChoices != MWBase::Environment::get().getDialogueManager()->getChoices()
             || mGoodbye != MWBase::Environment::get().getDialogueManager()->isGoodbye())
             updateHistory();
+        else if (mTextColoursDirty)
+        {
+            const size_t oldPosition = mScrollBar->getScrollPosition();
+            const bool atBottom = oldPosition + 1 >= mScrollBar->getScrollRange();
+            const int oldChoice = mControllerChoice;
+            updateHistory();
+            if (!atBottom && mScrollBar->getVisible())
+            {
+                const size_t position = std::min(oldPosition, mScrollBar->getScrollRange() - 1);
+                mScrollBar->setScrollPosition(position);
+                onScrollbarMoved(mScrollBar, position);
+            }
+            if (oldChoice >= 0 && static_cast<size_t>(oldChoice) < mChoiceStyles.size())
+            {
+                mControllerChoice = oldChoice;
+                mHistory->setFocusItem(mChoiceStyles[oldChoice]);
+            }
+        }
     }
 
     void DialogueWindow::updateTopicFormat()

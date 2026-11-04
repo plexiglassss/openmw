@@ -1,5 +1,6 @@
 #include "journalbooks.hpp"
 
+#include "dialogueformatting.hpp"
 #include "journaltypography.hpp"
 
 #include "../mwbase/environment.hpp"
@@ -39,42 +40,35 @@ namespace
         }
     };
 
-    struct AddSpan : AddContent
-    {
-        explicit AddSpan(std::shared_ptr<MWGui::BookTypesetter> typesetter, MWGui::BookTypesetter::Style* bodyStyle)
-            : AddContent(std::move(typesetter), bodyStyle)
-        {
-        }
-
-        void operator()(const MWDialogue::Topic* topic, size_t begin, size_t end)
-        {
-            MWGui::BookTypesetter::Style* style = mBodyStyle;
-
-            const MWGui::TextColours& textColours = MWBase::Environment::get().getWindowManager()->getTextColours();
-            if (topic)
-                style = mTypesetter->createHotStyle(mBodyStyle, textColours.journalLink, textColours.journalLinkOver,
-                    textColours.journalLinkPressed, MWGui::TypesetBook::InteractiveId(topic));
-
-            mTypesetter->write(style, begin, end);
-        }
-    };
-
     struct AddEntry
     {
         std::shared_ptr<MWGui::BookTypesetter> mTypesetter;
         MWGui::BookTypesetter::Style* mBodyStyle;
+        Misc::DialogueText::Context mContext;
 
-        AddEntry(std::shared_ptr<MWGui::BookTypesetter> typesetter, MWGui::BookTypesetter::Style* bodyStyle)
+        AddEntry(std::shared_ptr<MWGui::BookTypesetter> typesetter, MWGui::BookTypesetter::Style* bodyStyle,
+            Misc::DialogueText::Context context = Misc::DialogueText::Context::Journal)
             : mTypesetter(std::move(typesetter))
             , mBodyStyle(bodyStyle)
+            , mContext(context)
         {
         }
 
         void operator()(MWGui::JournalViewModel::Entry const& entry)
         {
-            mTypesetter->addContent(entry.body());
-
-            entry.visitSpans(AddSpan(mTypesetter, mBodyStyle));
+            const std::string_view text = entry.body();
+            std::vector<MWGui::DialogueTextLink> links;
+            entry.visitSpans([&links](const MWDialogue::Topic* topic, size_t begin, size_t end) {
+                if (topic)
+                    links.push_back({ begin, end, reinterpret_cast<MWGui::TypesetBook::InteractiveId>(topic) });
+            });
+            const auto& settings = Settings::gui();
+            const auto spans = settings.mDialogueColouring && settings.mJournalColourNarration
+                ? Misc::DialogueText::classify(text, mContext)
+                : std::vector<Misc::DialogueText::Span>{};
+            const auto& colours = MWBase::Environment::get().getWindowManager()->getTextColours();
+            MWGui::writeDialogueText(*mTypesetter, text, spans, links,
+                MWGui::getJournalDialoguePalette(colours), true);
         }
     };
 
@@ -115,7 +109,7 @@ namespace
         explicit AddTopicEntry(std::shared_ptr<MWGui::BookTypesetter> typesetter,
             MWGui::BookTypesetter::Style* bodyStyle, MWGui::BookTypesetter::Style* headerStyle,
             const MWGui::TypesetBook::Content* contentId)
-            : AddEntry(std::move(typesetter), bodyStyle)
+            : AddEntry(std::move(typesetter), bodyStyle, Misc::DialogueText::Context::Dialogue)
             , mContentId(contentId)
             , mHeaderStyle(headerStyle)
         {

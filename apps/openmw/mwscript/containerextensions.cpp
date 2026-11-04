@@ -178,7 +178,8 @@ namespace MWScript
                         msgBox = MyGUI::LanguageManager::getInstance().replaceTags("#{sNotifyMessage61}");
                         msgBox = ::Misc::StringUtils::format(msgBox, count, itemName);
                     }
-                    MWBase::Environment::get().getWindowManager()->messageBox(msgBox, MWGui::ShowInDialogueMode_Only);
+                    MWBase::Environment::get().getWindowManager()->messageBox(
+                        msgBox, MWGui::ShowInDialogueMode_Only, Misc::DialogueText::Category::Inventory);
                 }
             }
         };
@@ -299,7 +300,8 @@ namespace MWScript
                         msgBox = MyGUI::LanguageManager::getInstance().replaceTags("#{sNotifyMessage62}");
                         msgBox = ::Misc::StringUtils::format(msgBox, itemName);
                     }
-                    MWBase::Environment::get().getWindowManager()->messageBox(msgBox, MWGui::ShowInDialogueMode_Only);
+                    MWBase::Environment::get().getWindowManager()->messageBox(
+                        msgBox, MWGui::ShowInDialogueMode_Only, Misc::DialogueText::Category::Inventory);
                 }
             }
         };

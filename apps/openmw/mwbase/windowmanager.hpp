@@ -13,6 +13,7 @@
 
 #include "../mwgui/mode.hpp"
 
+#include <components/misc/dialoguetext.hpp>
 #include <components/sdlutil/events.hpp>
 
 namespace LuaUi
@@ -257,7 +258,8 @@ namespace MWBase
         virtual void exitCurrentGuiMode() = 0;
 
         virtual void messageBox(std::string_view message,
-            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) = 0;
+            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible,
+            Misc::DialogueText::Category category = Misc::DialogueText::Category::Default) = 0;
         /// Puts message into a queue to show on the next update. Thread safe alternative for messageBox.
         virtual void scheduleMessageBox(std::string message,
             enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) = 0;

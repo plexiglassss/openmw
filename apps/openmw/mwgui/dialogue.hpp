@@ -11,6 +11,8 @@
 #include "../mwbase/dialoguemanager.hpp"
 #include "../mwdialogue/keywordsearch.hpp"
 
+#include <components/misc/dialoguetext.hpp>
+
 #include <MyGUI_Delegate.h>
 #include <MyGUI_KeyCode.h>
 
@@ -131,9 +133,10 @@ namespace MWGui
 
     struct Message : DialogueText
     {
-        Message(std::string_view text);
+        Message(std::string_view text, Misc::DialogueText::Category category = Misc::DialogueText::Category::Default);
         void write(std::shared_ptr<BookTypesetter> typesetter, const MWDialogue::KeywordSearch& keywordSearch,
             std::unordered_map<std::string, std::unique_ptr<Link>>& topicLinks) const override;
+        Misc::DialogueText::Category mCategory;
     };
 
     class DialogueWindow : public WindowBase, public ReferenceInterface
@@ -157,7 +160,10 @@ namespace MWGui
 
         void addResponse(std::string_view title, std::string_view text, bool needMargin = true);
 
-        void addMessageBox(std::string_view text);
+        void addMessageBox(std::string_view text,
+            Misc::DialogueText::Category category = Misc::DialogueText::Category::Default);
+
+        void refreshTextColours();
 
         void onFrame(float dt) override;
         void clear() override { resetReference(); }
@@ -202,6 +208,7 @@ namespace MWGui
         std::vector<std::pair<std::string, int>> mChoices;
         std::vector<BookTypesetter::Style*> mChoiceStyles;
         bool mGoodbye;
+        bool mTextColoursDirty = false;
 
         std::vector<std::unique_ptr<Link>> mLinks;
         std::unordered_map<std::string, std::unique_ptr<Link>> mTopicLinks;

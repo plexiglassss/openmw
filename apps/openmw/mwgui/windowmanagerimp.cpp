@@ -823,12 +823,37 @@ namespace MWGui
         }
     }
 
-    void WindowManager::messageBox(std::string_view message, enum MWGui::ShowInDialogueMode showInDialogueMode)
+    void WindowManager::messageBox(std::string_view message, enum MWGui::ShowInDialogueMode showInDialogueMode,
+        Misc::DialogueText::Category category)
     {
         if (getMode() == GM_Dialogue && showInDialogueMode != MWGui::ShowInDialogueMode_Never)
         {
             MyGUI::UString text = MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(message));
-            mDialogueWindow->addMessageBox(text);
+            // Native callers supply their meaning directly. Also recognise the
+            // current localized GMST formats used by Lua/mod-authored notices.
+            // HUD routing and the displayed text remain unchanged.
+            if (category == Misc::DialogueText::Category::Default)
+            {
+                using Misc::DialogueText::Category;
+                for (const auto& [setting, candidate] : {
+                         std::pair{ "sJournalEntry", Category::Journal },
+                         std::pair{ "sNotifyMessage60", Category::Inventory },
+                         std::pair{ "sNotifyMessage61", Category::Inventory },
+                         std::pair{ "sNotifyMessage62", Category::Inventory },
+                         std::pair{ "sNotifyMessage63", Category::Inventory },
+                         std::pair{ "sNotifyMessage39", Category::Stat },
+                         std::pair{ "sNotifyMessage44", Category::Stat } })
+                {
+                    const auto* gmst = mStore->get<ESM::GameSetting>().search(setting);
+                    if (gmst && gmst->mValue.getType() == ESM::VT_String
+                        && Misc::DialogueText::matchesFormat(text.asUTF8(), gmst->mValue.getString()))
+                    {
+                        category = candidate;
+                        break;
+                    }
+                }
+            }
+            mDialogueWindow->addMessageBox(text, category);
         }
         else if (showInDialogueMode != MWGui::ShowInDialogueMode_Only)
         {
@@ -1310,10 +1335,14 @@ namespace MWGui
     void WindowManager::processChangedSettings(const Settings::CategorySettingVector& changed)
     {
         bool changeRes = false;
+        bool changeDialogueColours = false;
         for (const auto& setting : changed)
         {
             if (setting.first == "GUI" && setting.second == "menu transparency")
                 setMenuTransparency(Settings::gui().mMenuTransparency);
+            else if (setting.first == "GUI"
+                && (setting.second.starts_with("dialogue ") || setting.second.starts_with("color dialogue ")))
+                changeDialogueColours = true;
             else if (setting.first == "Video"
                 && (setting.second == "resolution x" || setting.second == "resolution y"
                     || setting.second == "window mode" || setting.second == "window border"))
@@ -1330,6 +1359,8 @@ namespace MWGui
             mVideoWrapper->setVideoMode(Settings::video().mResolutionX, Settings::video().mResolutionY,
                 Settings::video().mWindowMode, Settings::video().mWindowBorder);
         }
+        if (changeDialogueColours && mDialogueWindow)
+            mDialogueWindow->refreshTextColours();
     }
 
     void WindowManager::windowResized(int x, int y)

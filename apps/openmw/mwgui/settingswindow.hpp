@@ -4,6 +4,8 @@
 #include <components/files/configurationmanager.hpp>
 #include <components/lua_ui/adapter.hpp>
 
+#include <array>
+
 #include "windowbase.hpp"
 
 namespace MWGui
@@ -70,6 +72,18 @@ namespace MWGui
         MyGUI::ComboBox* mJournalPageNumberFontSize = nullptr;
         MyGUI::ComboBox* mJournalButtonScale = nullptr;
 
+        MyGUI::TabItem* mDialogueColourTab = nullptr;
+        MyGUI::ScrollView* mDialogueColourView = nullptr;
+        MyGUI::Widget* mDialogueColourContent = nullptr;
+        std::array<MyGUI::Button*, 4> mDialogueColourToggles{};
+        MyGUI::ComboBox* mDialogueColourRole = nullptr;
+        std::array<MyGUI::ScrollBar*, 3> mDialogueColourSliders{};
+        std::array<MyGUI::TextBox*, 3> mDialogueColourValues{};
+        MyGUI::Widget* mDialogueColourPreviewBackground = nullptr;
+        MyGUI::EditBox* mDialogueColourPreview = nullptr;
+        MyGUI::Button* mDialogueColourReset = nullptr;
+        bool mUpdatingDialogueColours = false;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
@@ -118,6 +132,14 @@ namespace MWGui
         void onJournalButtonScaleChanged(MyGUI::ComboBox* sender, size_t pos);
         void initialiseJournalControls();
         void updateJournalSettings();
+
+        void initialiseDialogueColourControls();
+        void layoutDialogueColourControls();
+        void updateDialogueColourSettings();
+        void onDialogueColourToggled(MyGUI::Widget* sender);
+        void onDialogueColourRoleChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onDialogueColourChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onDialogueColourReset(MyGUI::Widget* sender);
 
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);

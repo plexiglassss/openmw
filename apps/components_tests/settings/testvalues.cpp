@@ -6,6 +6,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <array>
+
 #ifndef OPENMW_PROJECT_SOURCE_DIR
 #define OPENMW_PROJECT_SOURCE_DIR "."
 #endif
@@ -160,6 +162,88 @@ namespace Settings
             EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
             EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
             EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 100);
+        }
+
+        TEST_F(SettingsValuesTest, dialogueColoursKeepTheThemeForNormalDialogueByDefault)
+        {
+            Index index;
+            Values values(index);
+            EXPECT_TRUE(values.mGUI.mDialogueColouring.get());
+            EXPECT_TRUE(values.mGUI.mDialogueUseSystemColour.get());
+            EXPECT_TRUE(values.mGUI.mDialogueClassifyNarration.get());
+            EXPECT_TRUE(values.mGUI.mJournalColourNarration.get());
+            const auto& journalNotice = values.mGUI.mColorDialogueJournal.get();
+            EXPECT_FLOAT_EQ(journalNotice.red, journalNotice.green);
+            EXPECT_FLOAT_EQ(journalNotice.green, journalNotice.blue);
+            EXPECT_LT(values.mGUI.mColorJournalNarration.get().red, values.mGUI.mColorDialogueNarration.get().red);
+        }
+
+        TEST_F(SettingsValuesTest, dialogueColoursRoundTripAllRolesWithoutChangingOtherInterfaceSettings)
+        {
+            const auto path = TestingOpenMW::outputFilePath("dialogue-colour-settings.cfg");
+            const std::array<std::pair<std::string_view, MyGUI::Colour>, 6> colours{ {
+                { "color dialogue normal", MyGUI::Colour(37.f / 255.f, 121.f / 255.f, 231.f / 255.f) },
+                { "color dialogue inventory", MyGUI::Colour(0.13f, 0.37f, 0.61f) },
+                { "color dialogue stat", MyGUI::Colour(0.71f, 0.19f, 0.83f) },
+                { "color dialogue narration", MyGUI::Colour(0.21f, 0.51f, 0.81f) },
+                { "color dialogue journal", MyGUI::Colour(0.31f, 0.41f, 0.51f) },
+                { "color journal narration", MyGUI::Colour(0.11f, 0.22f, 0.33f) },
+            } };
+            MyGUI::Colour topicColour;
+            {
+                Index index;
+                Values values(index);
+                topicColour = values.mGUI.mColorTopicSpecific.get();
+                values.mGUI.mDialogueColouring.set(false);
+                values.mGUI.mDialogueUseSystemColour.set(false);
+                values.mGUI.mDialogueClassifyNarration.set(false);
+                values.mGUI.mJournalColourNarration.set(false);
+                for (const auto& [name, colour] : colours)
+                    index.get<MyGUI::Colour>("GUI", name).set(colour);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_FALSE(values.mGUI.mDialogueColouring.get());
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
+            EXPECT_FALSE(values.mGUI.mDialogueClassifyNarration.get());
+            EXPECT_FALSE(values.mGUI.mJournalColourNarration.get());
+            for (const auto& [name, expected] : colours)
+            {
+                SCOPED_TRACE(name);
+                const auto& actual = index.get<MyGUI::Colour>("GUI", name).get();
+                EXPECT_NEAR(actual.red, expected.red, 0.000001f);
+                EXPECT_NEAR(actual.green, expected.green, 0.000001f);
+                EXPECT_NEAR(actual.blue, expected.blue, 0.000001f);
+                EXPECT_FLOAT_EQ(actual.alpha, expected.alpha);
+            }
+            EXPECT_EQ(values.mGUI.mColorTopicSpecific.get(), topicColour);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+            EXPECT_EQ(values.mGUI.mFontSize.get(), 16);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), 1.f);
+        }
+
+        TEST_F(SettingsValuesTest, resettingOneDialogueColourKeepsOtherColoursAndThemeChoice)
+        {
+            Index index;
+            Values values(index);
+            const auto defaultStatColour = values.mGUI.mColorDialogueStat.get();
+            const MyGUI::Colour customNormal(0.123456f, 0.345678f, 0.567891f);
+            const MyGUI::Colour customInventory(0.15f, 0.35f, 0.75f);
+            values.mGUI.mColorDialogueNormal.set(customNormal);
+            values.mGUI.mColorDialogueInventory.set(customInventory);
+            values.mGUI.mColorDialogueStat.set(MyGUI::Colour::Black);
+            values.mGUI.mColorDialogueStat.reset();
+            EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), defaultStatColour);
+            EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
+            EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
+            EXPECT_TRUE(values.mGUI.mDialogueUseSystemColour.get());
         }
 
         TEST_F(SettingsValuesTest, journalTypographyRoundTripsWithoutChangingGlobalFontOrScale)

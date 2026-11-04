@@ -82,6 +82,119 @@ GUI Settings
    Close and reopen the journal to apply a change.
 
 .. omw-setting::
+   :title: dialogue colouring
+   :type: boolean
+   :range: true, false
+   :default: true
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Uses separate colours for inventory notices, stat changes, narration and
+   journal-update notices in dialogue. It also enables the optional journal
+   narration colour. Disable this setting to restore the previous text colours.
+   Topic links and response choices keep their existing colours and behaviour.
+   The settings tab is provided by the engine even when a UI mod replaces the
+   settings-window layout. Select a text type to adjust its red, green and blue
+   channels from 0 to 255, or reset only that colour. Journal narration is
+   previewed against a light background; the other roles use a dark preview.
+   Settings are saved when Options closes. Dialogue colours update immediately;
+   reopen the journal to refresh text that has already been drawn.
+
+.. omw-setting::
+   :title: dialogue use system colour
+   :type: boolean
+   :range: true, false
+   :default: true
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Keeps ordinary dialogue in the normal text colour supplied by the current
+   interface theme. This default preserves the existing appearance of spoken
+   dialogue. Disable it to use ``color dialogue normal`` instead. The custom
+   colour is retained when theme mode is enabled; switching modes does not
+   overwrite it.
+
+.. omw-setting::
+   :title: dialogue classify narration
+   :type: boolean
+   :range: true, false
+   :default: true
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Recognises narrative descriptions and stage directions within dialogue text
+   and applies ``color dialogue narration``. Recognition cannot cover every way
+   a mod may describe an action or sound. Disabling this option leaves that text
+   in its ordinary colour while retaining the notice colours.
+
+.. omw-setting::
+   :title: journal colour narration
+   :type: boolean
+   :range: true, false
+   :default: true
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Colours recognised narration in journal entries. The separate
+   ``color journal narration`` setting defaults to a darker colour suited to
+   the journal's paper background. Other journal text keeps its current colour.
+
+.. omw-setting::
+   :title: color dialogue normal
+   :type: color
+   :range: [0, 1]
+   :default: 0.80 0.70 0.50 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Custom colour for ordinary dialogue, used only when ``dialogue colouring``
+   is enabled and ``dialogue use system colour`` is disabled. Like the other
+   colour settings below, its four components are red, green, blue and alpha.
+   The in-game controls edit the three colour channels and preserve alpha.
+
+.. omw-setting::
+   :title: color dialogue inventory
+   :type: color
+   :range: [0, 1]
+   :default: 0.60 0.80 0.56 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Colour for notices about items being added to or removed from inventory.
+
+.. omw-setting::
+   :title: color dialogue stat
+   :type: color
+   :range: [0, 1]
+   :default: 0.52 0.76 0.90 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Colour for recognised notices about changes to attributes, skills or other
+   player statistics. This changes only the displayed text, not the statistics.
+
+.. omw-setting::
+   :title: color dialogue narration
+   :type: color
+   :range: [0, 1]
+   :default: 0.76 0.66 0.86 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Colour for recognised narration and stage directions in the dialogue window.
+
+.. omw-setting::
+   :title: color dialogue journal
+   :type: color
+   :range: [0, 1]
+   :default: 0.65 0.65 0.65 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Neutral grey colour for the journal-update notice in the dialogue window.
+
+.. omw-setting::
+   :title: color journal narration
+   :type: color
+   :range: [0, 1]
+   :default: 0.32 0.22 0.42 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Darker colour for recognised narration on the journal's paper background.
+   It can be adjusted independently of narration in the dialogue window.
+
+.. omw-setting::
    :title: menu transparency
    :type: float32
    :range: 0.0 (transparent) to 1.0 (opaque)

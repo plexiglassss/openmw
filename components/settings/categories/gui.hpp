@@ -27,6 +27,16 @@ namespace Settings
         SettingValue<int> mJournalPageNumberFontSize{ mIndex, "GUI", "journal page number font size",
             makeEnumSanitizerInt({ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 }) };
         SettingValue<int> mJournalButtonScale{ mIndex, "GUI", "journal button scale", makeClampSanitizerInt(50, 100) };
+        SettingValue<bool> mDialogueColouring{ mIndex, "GUI", "dialogue colouring" };
+        SettingValue<bool> mDialogueUseSystemColour{ mIndex, "GUI", "dialogue use system colour" };
+        SettingValue<bool> mDialogueClassifyNarration{ mIndex, "GUI", "dialogue classify narration" };
+        SettingValue<bool> mJournalColourNarration{ mIndex, "GUI", "journal colour narration" };
+        SettingValue<MyGUI::Colour> mColorDialogueNormal{ mIndex, "GUI", "color dialogue normal" };
+        SettingValue<MyGUI::Colour> mColorDialogueInventory{ mIndex, "GUI", "color dialogue inventory" };
+        SettingValue<MyGUI::Colour> mColorDialogueStat{ mIndex, "GUI", "color dialogue stat" };
+        SettingValue<MyGUI::Colour> mColorDialogueNarration{ mIndex, "GUI", "color dialogue narration" };
+        SettingValue<MyGUI::Colour> mColorDialogueJournal{ mIndex, "GUI", "color dialogue journal" };
+        SettingValue<MyGUI::Colour> mColorJournalNarration{ mIndex, "GUI", "color journal narration" };
         SettingValue<float> mMenuTransparency{ mIndex, "GUI", "menu transparency", makeClampSanitizerFloat(0, 1) };
         SettingValue<float> mTooltipDelay{ mIndex, "GUI", "tooltip delay", makeMaxSanitizerFloat(0) };
         SettingValue<bool> mEnhancedWorldTooltips{ mIndex, "GUI", "enhanced world tooltips" };

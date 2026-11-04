@@ -30,6 +30,7 @@ namespace MWGui
             std::string_view mText;
             int mLeft, mTop, mRight, mBottom;
             InteractiveId mInteractiveId;
+            MyGUI::Colour mColour;
         };
 
         virtual std::vector<TextRun> getTextRuns() const = 0;

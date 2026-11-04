@@ -91,7 +91,8 @@ namespace MWDialogue
                 if (getJournalIndex(id) < index)
                 {
                     setJournalIndex(id, index);
-                    MWBase::Environment::get().getWindowManager()->messageBox("#{sJournalEntry}");
+                    MWBase::Environment::get().getWindowManager()->messageBox("#{sJournalEntry}",
+                        MWGui::ShowInDialogueMode_IfPossible, Misc::DialogueText::Category::Journal);
                 }
                 return;
             }
@@ -114,7 +115,8 @@ namespace MWDialogue
         if (!entry.getText().empty())
         {
             mJournal.push_back(std::move(entry));
-            MWBase::Environment::get().getWindowManager()->messageBox("#{sJournalEntry}");
+            MWBase::Environment::get().getWindowManager()->messageBox("#{sJournalEntry}",
+                MWGui::ShowInDialogueMode_IfPossible, Misc::DialogueText::Category::Journal);
         }
     }
 

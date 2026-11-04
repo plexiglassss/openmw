@@ -196,7 +196,7 @@ namespace MWGui
                 result.push_back({ std::string_view(reinterpret_cast<const char*>(run.mRange.first),
                                        run.mRange.second - run.mRange.first),
                     left + run.mLeft, line.mRect.top, left + run.mRight, line.mRect.bottom,
-                    run.mStyle->mInteractiveId });
+                    run.mStyle->mInteractiveId, run.mStyle->mNormalColour });
             });
             return result;
         }
