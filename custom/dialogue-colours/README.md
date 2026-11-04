@@ -1,12 +1,15 @@
 # Configurable dialogue and journal colours
 
 This cumulative Windows engine build adds a **Dialogue colours** tab in the in-game Settings menu.
-It is based on the delivered journal typography engine, source `cbdf7a0a`, and retains its separately
-applied lookup optimization and removal of the rejected extra loading stage.
+This revision builds on the delivered dialogue-colour engine, source `b34db577`, and fixes the
+settings-tab layout reported in game. It retains the journal typography engine from `cbdf7a0a`,
+its separately applied lookup optimization and removal of the rejected extra loading stage.
 
 ## What changes
 
 - Ordinary dialogue follows the current system/theme font colour by default.
+- Your selected topic/question headings, such as "Haldenshore" and "latest rumors", use soft cyan.
+  This also applies to other response headings, such as persuasion/service headings.
 - Inventory additions and removals use soft green.
 - Recognised attribute, skill and other stat-change notices use light blue.
 - Recognised stage directions, actions and sensory descriptions in dialogue use lavender.
@@ -23,25 +26,34 @@ This feature changes presentation; it does not add notifications for stat change
 2. Keep a copy of your current engine folder so the whole engine update can be rolled back together.
 3. Copy the supplied engine files into that engine folder and allow matching files to be replaced.
    Include **defaults.bin and resources**, not just openmw.exe: they contain the new defaults and labels.
-4. Start the game using the updated openmw.exe. Open **Settings → Dialogue colours**.
+4. Start the game using the updated openmw.exe. Open **Options → Dialogue colours**.
 
 Keep your current openmw.cfg, settings.cfg, mods and saves. This package contains no game plugin.
 It does not replace your separately installed frame-generation version.dll, openmw_fg.ini or its settings.
 
 ## Configure
 
-The feature is enabled by default. **Use system colour for normal dialogue** is also enabled by default.
+The feature is enabled by default. **Use theme colour for normal dialogue** is also enabled by default.
 Leave it enabled to retain the colour you already like, including theme changes.
 
-Choose one of six text types and adjust Red, Green and Blue from 0 to 255 in one-unit steps.
+Choose one of seven text types and adjust Red, Green and Blue from 0 to 255 in one-unit steps.
+Select **Your topics/questions** to change the headings independently of NPC speech.
 The preview shows the result on a dark background, or on paper for journal narration. The reset button
 restores only the selected colour. To set a custom ordinary-dialogue colour, first turn off the system-colour option.
 
 Dialogue narration recognition and journal narration colouring have separate toggles. Turning off
 the main colour feature restores the original colours. Settings persist through the normal settings.cfg mechanism.
 Existing dialogue history is recoloured when the dialogue window resumes. Reopen the journal to rebuild its pages.
-The new tab is created by the engine and is available even if a mod provides an older settings-window layout;
+The tab is created by the engine and is available even if a mod provides an older settings-window layout;
 use the tab bar's arrows when all tabs do not fit, and scroll within the colour tab for lower controls.
+
+## Settings-tab repair
+
+The previous tab gave several row controls horizontal stretching without top anchoring. MyGUI
+then vertically centred those controls when their parent canvas resized, causing the overlap and
+missing labels in the reported screenshot. The controls now use explicit row anchors and layout
+based on the available panel width and measured text. The actual production widget layout is
+covered by a headless MyGUI regression, in addition to the existing text/typesetter tests.
 
 ## Recognition limits
 
@@ -56,6 +68,11 @@ item or sound should remain dialogue. The narration toggles allow these inferred
 
 ## Checks to perform in game
 
+- Open **Options → Dialogue colours**. Check that each toggle has a readable description, the
+  text-type selector and RGB tracks are separate, and the preview/help/reset controls do not overlap.
+  Repeat after switching tabs or resizing the game window; scroll to any controls below the viewport.
+- Select **Your topics/questions** and change its colour. Ask about "Haldenshore" or "latest rumors":
+  the heading should change while the NPC response keeps your normal dialogue colour.
 - Repeat a conversation that awards an item and a journal entry. The NPC speech should keep its familiar colour;
   the inventory notice should be green and the journal notice grey.
 - Try a conversation that explicitly prints a stat gain or loss. The printed notice should use the stat colour.

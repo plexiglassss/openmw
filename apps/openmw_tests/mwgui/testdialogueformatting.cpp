@@ -53,6 +53,7 @@ namespace MWGui
             const bool mOldTheme = Settings::gui().mDialogueUseSystemColour;
             const bool mOldJournal = Settings::gui().mJournalColourNarration;
             const MyGUI::Colour mOldNormal = Settings::gui().mColorDialogueNormal;
+            const MyGUI::Colour mOldTopic = Settings::gui().mColorDialogueTopic;
             const Settings::CategorySettingVector mOldChanges = Settings::Manager::mChangedSettings;
 
             void SetUp() override
@@ -73,6 +74,7 @@ namespace MWGui
                 Settings::gui().mDialogueUseSystemColour.set(mOldTheme);
                 Settings::gui().mJournalColourNarration.set(mOldJournal);
                 Settings::gui().mColorDialogueNormal.set(mOldNormal);
+                Settings::gui().mColorDialogueTopic.set(mOldTopic);
                 Settings::Manager::mChangedSettings = mOldChanges;
                 mResources.removeResource(&mBookFont);
                 mResources.removeResource(&mFont);
@@ -82,6 +84,7 @@ namespace MWGui
             {
                 TextColours colours{};
                 colours.normal = MyGUI::Colour(.82f, .68f, .42f);
+                colours.header = MyGUI::Colour(.78f, .62f, .35f);
                 colours.notify = MyGUI::Colour(.88f, .72f, .48f);
                 colours.link = MyGUI::Colour(.2f, .4f, .8f);
                 colours.linkOver = MyGUI::Colour(.3f, .5f, .9f);
@@ -119,6 +122,106 @@ namespace MWGui
             ASSERT_FALSE(book->getTextRuns().empty());
             for (const auto& run : book->getTextRuns())
                 EXPECT_EQ(run.mColour, colours.normal);
+        }
+
+        TEST_F(DialogueFormattingTest, SelectedTopicHeadingsHaveTheirOwnColour)
+        {
+            const MyGUI::Colour topicColour(.21f, .81f, .74f);
+            Settings::gui().mColorDialogueTopic.set(topicColour);
+            const auto colours = theme();
+            for (std::string_view topic : { "Haldenshore", "latest rumors", "Île de Tel" })
+            {
+                SCOPED_TRACE(topic);
+                auto typesetter = BookTypesetter::create(1000, 320, 16);
+                writeDialogueTopic(*typesetter, topic, colours);
+                writeDialogueText(*typesetter, "Reply", {}, {}, getDialoguePalette(colours));
+                const auto book = typesetter->complete();
+                std::string headingText;
+                bool foundReply = false;
+                for (const auto& run : book->getTextRuns())
+                {
+                    if (run.mText == "Reply")
+                    {
+                        foundReply = true;
+                        EXPECT_EQ(run.mColour, colours.normal);
+                        EXPECT_GT(run.mTop, 0);
+                    }
+                    else
+                    {
+                        headingText.append(run.mText);
+                        EXPECT_EQ(run.mColour, topicColour);
+                        EXPECT_EQ(run.mInteractiveId, 0);
+                    }
+                }
+                EXPECT_EQ(headingText, topic);
+                EXPECT_TRUE(foundReply);
+            }
+        }
+
+        TEST_F(DialogueFormattingTest, TopicColourOptOutRestoresHeaderWithoutMovingLinks)
+        {
+            const MyGUI::Colour topicColour(0.f, 1.f, 1.f);
+            Settings::gui().mColorDialogueTopic.set(topicColour);
+            const auto colours = theme();
+            const auto withHeading = [&](bool enabled) {
+                Settings::gui().mDialogueColouring.set(enabled);
+                auto typesetter = BookTypesetter::create(1000, 320, 16);
+                writeDialogueTopic(*typesetter, "Haldenshore", colours);
+                writeDialogueText(*typesetter, "Visit Balmora.", {}, std::array{ DialogueTextLink{ 6, 13, 71 } },
+                    getDialoguePalette(colours));
+                return typesetter->complete();
+            };
+            const auto coloured = withHeading(true);
+            const auto original = withHeading(false);
+            EXPECT_EQ(coloured->getSize(), original->getSize());
+            EXPECT_EQ(visibleText(*coloured), visibleText(*original));
+            const auto beforeRuns = original->getTextRuns();
+            const auto afterRuns = coloured->getTextRuns();
+            ASSERT_EQ(afterRuns.size(), beforeRuns.size());
+            bool foundLink = false;
+            for (size_t i = 0; i < beforeRuns.size(); ++i)
+            {
+                const auto& before = beforeRuns[i];
+                const auto& after = afterRuns[i];
+                EXPECT_EQ(before.mText, after.mText);
+                EXPECT_EQ(std::tie(before.mLeft, before.mTop, before.mRight, before.mBottom),
+                    std::tie(after.mLeft, after.mTop, after.mRight, after.mBottom));
+                if (before.mText == "Haldenshore")
+                {
+                    EXPECT_EQ(before.mColour, colours.header);
+                    EXPECT_EQ(after.mColour, topicColour);
+                }
+                else
+                    EXPECT_EQ(before.mColour, after.mColour);
+                if (after.mInteractiveId)
+                {
+                    foundLink = true;
+                    EXPECT_EQ(after.mInteractiveId, 71);
+                    EXPECT_EQ(after.mColour, colours.link);
+                    EXPECT_EQ(coloured->getLinkAt((after.mLeft + after.mRight) / 2,
+                                  (after.mTop + after.mBottom) / 2),
+                        71);
+                }
+            }
+            EXPECT_TRUE(foundLink);
+        }
+
+        TEST_F(DialogueFormattingTest, EmptyTopicKeepsGreetingPosition)
+        {
+            const auto colours = theme();
+            auto typesetter = BookTypesetter::create(1000, 320, 16);
+            writeDialogueTopic(*typesetter, {}, colours);
+            writeDialogueText(*typesetter, "Hello.", {}, {}, getDialoguePalette(colours));
+            const auto book = typesetter->complete();
+            const auto original = render("Hello.", {}, {}, getDialoguePalette(colours));
+            EXPECT_EQ(book->getSize(), original->getSize());
+            EXPECT_EQ(visibleText(*book), visibleText(*original));
+            const auto runs = book->getTextRuns();
+            const auto originalRuns = original->getTextRuns();
+            ASSERT_FALSE(runs.empty());
+            ASSERT_FALSE(originalRuns.empty());
+            EXPECT_EQ(runs.front().mTop, originalRuns.front().mTop);
+            EXPECT_EQ(runs.front().mColour, colours.normal);
         }
 
         TEST_F(DialogueFormattingTest, ExplicitInventoryCategoryWorksWithLocalizedText)

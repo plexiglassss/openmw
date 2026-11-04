@@ -20,6 +20,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/weightedsearch.cpp
     mwgui/test_journaltypography.cpp
     mwgui/testdialogueformatting.cpp
+    mwgui/testdialoguecolourcontrols.cpp
 
     mwlua/testobjectcache.cpp
 

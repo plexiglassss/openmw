@@ -172,6 +172,7 @@ namespace Settings
             EXPECT_TRUE(values.mGUI.mDialogueUseSystemColour.get());
             EXPECT_TRUE(values.mGUI.mDialogueClassifyNarration.get());
             EXPECT_TRUE(values.mGUI.mJournalColourNarration.get());
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), MyGUI::Colour(0.55f, 0.85f, 0.85f));
             const auto& journalNotice = values.mGUI.mColorDialogueJournal.get();
             EXPECT_FLOAT_EQ(journalNotice.red, journalNotice.green);
             EXPECT_FLOAT_EQ(journalNotice.green, journalNotice.blue);
@@ -181,8 +182,9 @@ namespace Settings
         TEST_F(SettingsValuesTest, dialogueColoursRoundTripAllRolesWithoutChangingOtherInterfaceSettings)
         {
             const auto path = TestingOpenMW::outputFilePath("dialogue-colour-settings.cfg");
-            const std::array<std::pair<std::string_view, MyGUI::Colour>, 6> colours{ {
+            const std::array<std::pair<std::string_view, MyGUI::Colour>, 7> colours{ {
                 { "color dialogue normal", MyGUI::Colour(37.f / 255.f, 121.f / 255.f, 231.f / 255.f) },
+                { "color dialogue topic", MyGUI::Colour(0.17f, 0.63f, 0.89f) },
                 { "color dialogue inventory", MyGUI::Colour(0.13f, 0.37f, 0.61f) },
                 { "color dialogue stat", MyGUI::Colour(0.71f, 0.19f, 0.83f) },
                 { "color dialogue narration", MyGUI::Colour(0.21f, 0.51f, 0.81f) },
@@ -236,20 +238,31 @@ namespace Settings
             // default palette before reading the saved user settings.
             Values defaultValues(index);
             const auto defaultStatColour = defaultValues.mGUI.mColorDialogueStat.get();
+            const auto defaultTopicColour = defaultValues.mGUI.mColorDialogueTopic.get();
             const MyGUI::Colour customNormal(0.123456f, 0.345678f, 0.567891f);
             const MyGUI::Colour customInventory(0.15f, 0.35f, 0.75f);
+            const MyGUI::Colour customTopic(0.17f, 0.63f, 0.89f);
             Manager::mUserSettings[{ "GUI", "color dialogue normal" }] = "0.123456 0.345678 0.567891 1";
             Manager::mUserSettings[{ "GUI", "color dialogue inventory" }] = "0.15 0.35 0.75 1";
+            Manager::mUserSettings[{ "GUI", "color dialogue topic" }] = "0.17 0.63 0.89 1";
             Manager::mUserSettings[{ "GUI", "color dialogue stat" }] = "0.9 0.8 0.7 1";
             Manager::mUserSettings[{ "GUI", "dialogue use system colour" }] = "false";
             Values values(std::move(defaultValues));
             EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
             EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
             EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), MyGUI::Colour(0.9f, 0.8f, 0.7f));
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), customTopic);
             EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
             values.mGUI.mColorDialogueStat.set(MyGUI::Colour::Black);
             index.get<MyGUI::Colour>("GUI", "color dialogue stat").reset();
             EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), defaultStatColour);
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), customTopic);
+            EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
+            EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
+
+            index.get<MyGUI::Colour>("GUI", "color dialogue topic").reset();
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), defaultTopicColour);
             EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
             EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
             EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());

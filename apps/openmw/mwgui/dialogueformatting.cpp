@@ -8,6 +8,18 @@
 
 namespace MWGui
 {
+    void writeDialogueTopic(BookTypesetter& typesetter, std::string_view topic, const TextColours& colours)
+    {
+        if (topic.empty())
+            return;
+
+        const auto& settings = Settings::gui();
+        const MyGUI::Colour colour = settings.mDialogueColouring ? settings.mColorDialogueTopic.get() : colours.header;
+        auto* style = typesetter.createStyle({}, colour, false);
+        typesetter.write(style, topic);
+        typesetter.sectionBreak();
+    }
+
     DialoguePalette getDialoguePalette(const TextColours& colours, bool message)
     {
         const auto& settings = Settings::gui();

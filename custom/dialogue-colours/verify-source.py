@@ -11,6 +11,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 BASELINE = "cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0"
+PREVIOUS_DELIVERY = "b34db5770f947b0f5b90dc699627c2ccdae12f16"
 ALLOWED = {
     ".github/workflows/push.yml",
     "apps/components_tests/CMakeLists.txt",
@@ -23,6 +24,8 @@ ALLOWED = {
     "apps/openmw/mwgui/bookpage.hpp",
     "apps/openmw/mwgui/dialogue.cpp",
     "apps/openmw/mwgui/dialogue.hpp",
+    "apps/openmw/mwgui/dialoguecolourcontrols.cpp",
+    "apps/openmw/mwgui/dialoguecolourcontrols.hpp",
     "apps/openmw/mwgui/dialogueformatting.cpp",
     "apps/openmw/mwgui/dialogueformatting.hpp",
     "apps/openmw/mwgui/journalbooks.cpp",
@@ -33,9 +36,33 @@ ALLOWED = {
     "apps/openmw/mwscript/containerextensions.cpp",
     "apps/openmw_tests/CMakeLists.txt",
     "apps/openmw_tests/mwgui/testdialogueformatting.cpp",
+    "apps/openmw_tests/mwgui/testdialoguecolourcontrols.cpp",
     "components/CMakeLists.txt",
     "components/misc/dialoguetext.cpp",
     "components/misc/dialoguetext.hpp",
+    "components/settings/categories/gui.hpp",
+    "docs/source/reference/modding/settings/GUI.rst",
+    "files/data/l10n/OMWEngine/en.yaml",
+    "files/settings-default.cfg",
+}
+
+# This follow-up changes only the requested topic headings, broken settings
+# controls, and their tests/documentation. Earlier notification classification,
+# journal rendering and all unrelated engine work must retain delivered bytes.
+FOLLOWUP_ALLOWED = {
+    ".github/workflows/push.yml",
+    "apps/components_tests/settings/testvalues.cpp",
+    "apps/openmw/CMakeLists.txt",
+    "apps/openmw/mwgui/dialogue.cpp",
+    "apps/openmw/mwgui/dialoguecolourcontrols.cpp",
+    "apps/openmw/mwgui/dialoguecolourcontrols.hpp",
+    "apps/openmw/mwgui/dialogueformatting.cpp",
+    "apps/openmw/mwgui/dialogueformatting.hpp",
+    "apps/openmw/mwgui/settingswindow.cpp",
+    "apps/openmw/mwgui/settingswindow.hpp",
+    "apps/openmw_tests/CMakeLists.txt",
+    "apps/openmw_tests/mwgui/testdialogueformatting.cpp",
+    "apps/openmw_tests/mwgui/testdialoguecolourcontrols.cpp",
     "components/settings/categories/gui.hpp",
     "docs/source/reference/modding/settings/GUI.rst",
     "files/data/l10n/OMWEngine/en.yaml",
@@ -57,6 +84,13 @@ unexpected = [p for p in changed if p not in ALLOWED and not p.startswith("custo
 if unexpected:
     raise SystemExit("Unreviewed changes outside dialogue colour scope: " + ", ".join(unexpected))
 subprocess.run(["git", "diff", "--check", BASELINE], cwd=ROOT, check=True)
+
+previous_files = set(git("ls-tree", "-r", "--name-only", PREVIOUS_DELIVERY).decode().splitlines())
+followup_changed = git("diff", "--name-only", PREVIOUS_DELIVERY, "--").decode().splitlines()
+unexpected_followup = [p for p in followup_changed
+                       if p not in FOLLOWUP_ALLOWED and not p.startswith("custom/dialogue-colours/")]
+if unexpected_followup:
+    raise SystemExit("Unreviewed changes outside topic/settings repair: " + ", ".join(unexpected_followup))
 
 files = {}
 for name in changed:
@@ -92,6 +126,12 @@ for section in old_settings.sections():
     for key, value in old_settings[section].items():
         if new_settings.get(section, key, fallback=None) != value:
             raise SystemExit(f"Existing default changed: [{section}] {key}")
+previous_settings = configparser.ConfigParser(interpolation=None, strict=False)
+previous_settings.read_string(git("show", f"{PREVIOUS_DELIVERY}:files/settings-default.cfg").decode())
+for section in previous_settings.sections():
+    for key, value in previous_settings[section].items():
+        if new_settings.get(section, key, fallback=None) != value:
+            raise SystemExit(f"Previously delivered default changed: [{section}] {key}")
 for key in ("dialogue colouring", "dialogue use system colour", "dialogue classify narration", "journal colour narration"):
     if not new_settings.getboolean("GUI", key):
         raise SystemExit("Requested default must be enabled: " + key)
@@ -102,13 +142,21 @@ if native:
     raise SystemExit("Unexpected native content in engine feature: " + ", ".join(native))
 
 manifest = {
-    "feature": "Configurable dialogue notices and dialogue/journal narration colours",
+    "feature": "Configurable dialogue topics, notices and narration colours with repaired settings layout",
     "baseline": BASELINE,
+    "previous_delivery": PREVIOUS_DELIVERY,
     "commit": git("rev-parse", "HEAD").decode().strip(),
     "changed_files": files,
     "explicitly_preserved_files": preserved,
     "all_other_tracked_source_files_equal_baseline": True,
     "all_existing_settings_defaults_preserved": True,
+    "changed_since_previous_delivery": {
+        name: {"before_sha256": sha(git("show", f"{PREVIOUS_DELIVERY}:{name}")) if name in previous_files else None,
+               "after_sha256": sha((ROOT / name).read_bytes())}
+        for name in followup_changed
+    },
+    "all_other_tracked_source_files_equal_previous_delivery": True,
+    "all_previous_dialogue_colour_defaults_preserved": True,
     "native_plugin_changes": False,
     "build_time_lookup_patch": "Retained; run and verify custom/loading-repair/apply.py separately",
     "in_game_tested": False,

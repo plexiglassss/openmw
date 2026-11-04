@@ -221,12 +221,7 @@ namespace MWGui
 
         typesetter->sectionBreak(mNeedMargin ? 9 : 0);
 
-        if (!mTitle.empty())
-        {
-            BookTypesetter::Style* title = typesetter->createStyle({}, colors.header, false);
-            typesetter->write(title, mTitle);
-            typesetter->sectionBreak();
-        }
+        writeDialogueTopic(*typesetter, mTitle, colors);
 
         std::vector<KeywordSearch::Match> matches = keywordSearch.parseHyperText(mText, translationStorage);
         std::vector<DialogueTextLink> tokens;

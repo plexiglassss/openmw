@@ -88,7 +88,7 @@ GUI Settings
    :default: true
    :location: :bdg-success:`In Game > Options > Dialogue colours`
 
-   Uses separate colours for inventory notices, stat changes, narration and
+   Uses separate colours for selected topic headings, inventory notices, stat changes, narration and
    journal-update notices in dialogue. It also enables the optional journal
    narration colour. Disable this setting to restore the previous text colours.
    Topic links and response choices keep their existing colours and behaviour.
@@ -146,6 +146,20 @@ GUI Settings
    is enabled and ``dialogue use system colour`` is disabled. Like the other
    colour settings below, its four components are red, green, blue and alpha.
    The in-game controls edit the three colour channels and preserve alpha.
+
+.. omw-setting::
+   :title: color dialogue topic
+   :type: color
+   :range: [0, 1]
+   :default: 0.55 0.85 0.85 1
+   :location: :bdg-success:`In Game > Options > Dialogue colours`
+
+   Colour for the topic/question headings displayed above NPC replies in the
+   conversation history, such as "Haldenshore" and "latest rumors". Other
+   response headings, including persuasion/service headings, use this colour
+   too. The default is soft cyan. It is independent of normal speech and
+   clickable topic links. Turning off ``dialogue colouring`` restores the
+   theme's original heading colour.
 
 .. omw-setting::
    :title: color dialogue inventory

@@ -31,6 +31,10 @@ namespace MWGui
     DialoguePalette getDialoguePalette(const TextColours& colours, bool message = false);
     DialoguePalette getJournalDialoguePalette(const TextColours& colours);
 
+    // Response headings come from the selected dialogue topic/action, rather
+    // than inferred prose. Keep their colour independent of NPC speech and links.
+    void writeDialogueTopic(BookTypesetter& typesetter, std::string_view topic, const TextColours& colours);
+
     // Text is the already expanded display text. Both kinds of span refer to its
     // UTF-8 byte offsets. Links are ordered, non-overlapping, and always take
     // precedence over semantic colours; no text, topic IDs or whitespace changes.

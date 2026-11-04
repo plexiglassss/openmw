@@ -81,13 +81,13 @@ namespace
     constexpr std::array<std::string_view, 4> dialogueColourToggleSettings{
         "dialogue colouring", "dialogue use system colour", "dialogue classify narration", "journal colour narration"
     };
-    constexpr std::array<std::string_view, 6> dialogueColourSettings{ "color dialogue normal",
+    constexpr std::array<std::string_view, 7> dialogueColourSettings{ "color dialogue normal",
         "color dialogue inventory", "color dialogue stat", "color dialogue narration", "color dialogue journal",
-        "color journal narration" };
-    constexpr std::array<std::string_view, 6> dialogueColourSamples{ "#{OMWEngine:DialogueColourSampleNormal}",
+        "color journal narration", "color dialogue topic" };
+    constexpr std::array<std::string_view, 7> dialogueColourSamples{ "#{OMWEngine:DialogueColourSampleNormal}",
         "#{OMWEngine:DialogueColourSampleInventory}", "#{OMWEngine:DialogueColourSampleStat}",
         "#{OMWEngine:DialogueColourSampleNarration}", "#{OMWEngine:DialogueColourSampleJournal}",
-        "#{OMWEngine:DialogueColourSampleJournalNarration}" };
+        "#{OMWEngine:DialogueColourSampleJournalNarration}", "#{OMWEngine:DialogueColourSampleTopic}" };
 
     size_t colourChannelPosition(float value)
     {
@@ -541,6 +541,7 @@ namespace MWGui
 
     void SettingsWindow::onTabChanged(MyGUI::TabControl* /*sender*/, size_t /*index*/)
     {
+        layoutDialogueColourControls();
         resetScrollbars();
     }
 
@@ -907,146 +908,40 @@ namespace MWGui
     void SettingsWindow::initialiseDialogueColourControls()
     {
         // Build this tab natively so a UI mod's older settings layout cannot omit it.
-        const auto translated = [](std::string_view text) {
-            return MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(text));
-        };
-        MyGUI::TabItem* tab = mSettingsTab->addItem(translated("#{OMWEngine:DialogueColours}"));
-        mDialogueColourTab = tab;
-        mDialogueColourView = tab->createWidget<MyGUI::ScrollView>("MW_ScrollViewVH",
-            { 0, 0, tab->getWidth(), tab->getHeight() }, MyGUI::Align::Stretch, mPrefix + "DialogueColourView");
-        mDialogueColourView->setCanvasAlign(MyGUI::Align::Left | MyGUI::Align::Top);
-        mDialogueColourContent = mDialogueColourView->createWidget<MyGUI::Widget>(
-            {}, { 0, 0, 364, 500 }, MyGUI::Align::Default);
-
-        constexpr std::array<std::string_view, 4> toggles{ "#{OMWEngine:DialogueColouring}",
-            "#{OMWEngine:DialogueUseSystemColour}", "#{OMWEngine:DialogueClassifyNarration}",
-            "#{OMWEngine:JournalColourNarration}" };
-        for (size_t i = 0; i < toggles.size(); ++i)
+        mDialogueColourTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:DialogueColours}"));
+        mDialogueColourControls = createDialogueColourControls(mDialogueColourTab, mPrefix);
+        for (size_t i = 0; i < dialogueColourToggleSettings.size(); ++i)
         {
-            const int top = 8 + static_cast<int>(i) * 40;
-            auto* button = mDialogueColourContent->createWidget<MyGUI::Button>(
-                "MW_Button", { 4, top, 64, 28 }, MyGUI::Align::Default);
+            auto* button = mDialogueColourControls.mToggles[i];
             button->setUserString("SettingName", std::string(dialogueColourToggleSettings[i]));
             button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourToggled);
-            mDialogueColourToggles[i] = button;
-            auto* label = mDialogueColourContent->createWidget<MyGUI::EditBox>(
-                "SandText", { 76, top, 284, 36 }, MyGUI::Align::HStretch);
-            label->setEditStatic(true);
-            label->setEditMultiLine(true);
-            label->setEditWordWrap(true);
-            label->setTextAlign(MyGUI::Align::Left | MyGUI::Align::Top);
-            label->setCaptionWithReplacing(toggles[i]);
-            label->setNeedKeyFocus(false);
-            if (i != 0)
-            {
-                const std::string hint(i == 1 ? "#{OMWEngine:DialogueUseSystemColourHint}"
-                                            : "#{OMWEngine:DialogueNarrationHint}");
-                for (MyGUI::Widget* widget : std::array<MyGUI::Widget*, 2>{ button, label })
-                {
-                    widget->setUserString("ToolTipType", "Layout");
-                    widget->setUserString("ToolTipLayout", "TextToolTip");
-                    widget->setUserString("Caption_Text", hint);
-                }
-            }
         }
-
-        auto* roleLabel = mDialogueColourContent->createWidget<MyGUI::TextBox>(
-            "SandText", { 4, 180, 90, 24 }, MyGUI::Align::Default);
-        roleLabel->setCaptionWithReplacing("#{OMWEngine:DialogueColourRole}");
-        mDialogueColourRole = mDialogueColourContent->createWidget<MyGUI::ComboBox>(
-            "MW_ComboBox", { 100, 176, 260, 28 }, MyGUI::Align::HStretch, mPrefix + "DialogueColourRole");
-        mDialogueColourRole->setComboModeDrop(true);
-        for (std::string_view caption : { "#{OMWEngine:DialogueColourNormal}", "#{OMWEngine:DialogueColourInventory}",
-                 "#{OMWEngine:DialogueColourStat}", "#{OMWEngine:DialogueColourNarration}",
-                 "#{OMWEngine:DialogueColourJournal}", "#{OMWEngine:DialogueColourJournalNarration}" })
-            mDialogueColourRole->addItem(translated(caption));
-        mDialogueColourRole->setIndexSelected(0);
-        mDialogueColourRole->eventComboChangePosition
+        mDialogueColourControls.mRole->eventComboChangePosition
             += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourRoleChanged);
-
-        constexpr std::array<std::string_view, 3> channelNames{
-            "#{OMWEngine:DialogueColourRed}", "#{OMWEngine:DialogueColourGreen}", "#{OMWEngine:DialogueColourBlue}"
-        };
-        for (size_t i = 0; i < channelNames.size(); ++i)
-        {
-            const int top = 220 + static_cast<int>(i) * 32;
-            auto* label = mDialogueColourContent->createWidget<MyGUI::TextBox>(
-                "SandText", { 4, top, 50, 24 }, MyGUI::Align::Default);
-            label->setCaptionWithReplacing(channelNames[i]);
-            auto* slider = mDialogueColourContent->createWidget<MyGUI::ScrollBar>(
-                "MW_HScroll", { 60, top + 5, 250, 14 }, MyGUI::Align::HStretch);
-            slider->setScrollRange(256);
-            slider->setScrollPage(1);
-            slider->setScrollViewPage(1);
-            slider->setScrollWheelPage(1);
+        for (auto* slider : mDialogueColourControls.mSliders)
             slider->eventScrollChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourChanged);
-            mDialogueColourSliders[i] = slider;
-            auto* value = mDialogueColourContent->createWidget<MyGUI::TextBox>(
-                "SandText", { 316, top, 44, 24 }, MyGUI::Align::Right | MyGUI::Align::Top);
-            value->setTextAlign(MyGUI::Align::Right | MyGUI::Align::VCenter);
-            mDialogueColourValues[i] = value;
-        }
-
-        auto* background = mDialogueColourContent->createWidget<MyGUI::ImageBox>(
-            "ImageBox", { 4, 320, 356, 60 }, MyGUI::Align::HStretch);
-        background->setImageTexture("white");
-        background->setNeedMouseFocus(false);
-        mDialogueColourPreviewBackground = background;
-        mDialogueColourPreview = background->createWidget<MyGUI::EditBox>(
-            "SandText", { 8, 6, 340, 48 }, MyGUI::Align::Stretch);
-        mDialogueColourPreview->setEditStatic(true);
-        mDialogueColourPreview->setEditMultiLine(true);
-        mDialogueColourPreview->setEditWordWrap(true);
-        mDialogueColourPreview->setTextAlign(MyGUI::Align::Left | MyGUI::Align::Top);
-        mDialogueColourPreview->setNeedKeyFocus(false);
-        mDialogueColourPreview->setNeedMouseFocus(false);
-
-        mDialogueColourReset = mDialogueColourContent->createWidget<MyGUI::Button>(
-            "MW_Button", { 4, 392, 196, 28 }, MyGUI::Align::Default);
-        mDialogueColourReset->setCaptionWithReplacing("#{OMWEngine:DialogueColourReset}");
-        mDialogueColourReset->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourReset);
-
-        auto* hint = mDialogueColourContent->createWidget<MyGUI::EditBox>(
-            "SandText", { 4, 432, 356, 60 }, MyGUI::Align::HStretch);
-        hint->setEditStatic(true);
-        hint->setEditMultiLine(true);
-        hint->setEditWordWrap(true);
-        hint->setTextAlign(MyGUI::Align::Left | MyGUI::Align::Top);
-        hint->setCaptionWithReplacing("#{OMWEngine:DialogueColourHint}");
-        hint->setNeedKeyFocus(false);
-        hint->setNeedMouseFocus(false);
-
-        layoutDialogueColourControls();
+        mDialogueColourControls.mReset->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourReset);
         updateDialogueColourSettings();
     }
 
     void SettingsWindow::layoutDialogueColourControls()
     {
-        if (!mDialogueColourContent)
-            return;
-        // Reserve scrollbar space rather than causing horizontal scrolling as soon
-        // as the vertical scrollbar becomes necessary. Narrow custom layouts can
-        // still scroll both ways to reach every control.
-        const MyGUI::IntSize size(std::max(364, mDialogueColourView->getWidth() - 18), 500);
-        mDialogueColourView->setVisibleVScroll(false);
-        mDialogueColourView->setVisibleHScroll(false);
-        mDialogueColourView->setCanvasSize(size);
-        mDialogueColourView->setVisibleVScroll(true);
-        mDialogueColourView->setVisibleHScroll(true);
-        mDialogueColourContent->setSize(size);
+        MWGui::layoutDialogueColourControls(mDialogueColourControls);
     }
 
     void SettingsWindow::updateDialogueColourSettings()
     {
-        if (!mDialogueColourRole)
+        if (!mDialogueColourControls.mRole)
             return;
         mUpdatingDialogueColours = true;
         for (size_t i = 0; i < dialogueColourToggleSettings.size(); ++i)
         {
             const bool enabled = Settings::get<bool>("GUI", dialogueColourToggleSettings[i]);
-            mDialogueColourToggles[i]->setCaptionWithReplacing(enabled ? "#{Interface:On}" : "#{Interface:Off}");
+            mDialogueColourControls.mToggles[i]->setCaptionWithReplacing(enabled ? "#{Interface:On}" : "#{Interface:Off}");
         }
-        const size_t role = mDialogueColourRole->getIndexSelected();
+        const size_t role = mDialogueColourControls.mRole->getIndexSelected();
         if (role < dialogueColourSettings.size())
         {
             const bool useTheme = role == 0 && Settings::gui().mDialogueUseSystemColour;
@@ -1057,18 +952,19 @@ namespace MWGui
             for (size_t i = 0; i < channels.size(); ++i)
             {
                 const size_t position = colourChannelPosition(channels[i]);
-                mDialogueColourSliders[i]->setScrollPosition(position);
-                mDialogueColourSliders[i]->setEnabled(!useTheme);
-                mDialogueColourValues[i]->setCaption(std::to_string(position));
+                mDialogueColourControls.mSliders[i]->setScrollPosition(position);
+                mDialogueColourControls.mSliders[i]->setEnabled(!useTheme);
+                mDialogueColourControls.mValues[i]->setCaption(std::to_string(position));
             }
-            mDialogueColourReset->setEnabled(!useTheme);
+            mDialogueColourControls.mReset->setEnabled(!useTheme);
             // Journal text is previewed against paper, not the dark dialogue box.
-            mDialogueColourPreviewBackground->setColour(role == 5 ? MyGUI::Colour(0.87f, 0.83f, 0.69f)
-                                                                 : MyGUI::Colour(0.06f, 0.06f, 0.06f));
-            mDialogueColourPreview->setCaptionWithReplacing(dialogueColourSamples[role]);
-            mDialogueColourPreview->setTextColour(colour);
+            mDialogueColourControls.mPreviewBackground->setColour(
+                role == 5 ? MyGUI::Colour(0.87f, 0.83f, 0.69f) : MyGUI::Colour(0.06f, 0.06f, 0.06f));
+            mDialogueColourControls.mPreview->setCaptionWithReplacing(dialogueColourSamples[role]);
+            mDialogueColourControls.mPreview->setTextColour(colour);
         }
         mUpdatingDialogueColours = false;
+        layoutDialogueColourControls();
     }
 
     void SettingsWindow::onDialogueColourToggled(MyGUI::Widget* sender)
@@ -1089,16 +985,17 @@ namespace MWGui
     {
         if (mUpdatingDialogueColours)
             return;
-        const size_t role = mDialogueColourRole->getIndexSelected();
+        const size_t role = mDialogueColourControls.mRole->getIndexSelected();
         if (role >= dialogueColourSettings.size() || (role == 0 && Settings::gui().mDialogueUseSystemColour))
             return;
-        const auto channel = std::find(mDialogueColourSliders.begin(), mDialogueColourSliders.end(), sender);
-        if (channel == mDialogueColourSliders.end())
+        const auto channel
+            = std::find(mDialogueColourControls.mSliders.begin(), mDialogueColourControls.mSliders.end(), sender);
+        if (channel == mDialogueColourControls.mSliders.end())
             return;
         auto& setting = Settings::get<MyGUI::Colour>("GUI", dialogueColourSettings[role]);
         MyGUI::Colour colour = setting.get();
         const float value = static_cast<float>(std::min(pos, size_t(255))) / 255.f;
-        switch (channel - mDialogueColourSliders.begin())
+        switch (channel - mDialogueColourControls.mSliders.begin())
         {
             case 0:
                 colour.red = value;
@@ -1119,7 +1016,7 @@ namespace MWGui
 
     void SettingsWindow::onDialogueColourReset(MyGUI::Widget* /*sender*/)
     {
-        const size_t role = mDialogueColourRole->getIndexSelected();
+        const size_t role = mDialogueColourControls.mRole->getIndexSelected();
         if (role >= dialogueColourSettings.size() || (role == 0 && Settings::gui().mDialogueUseSystemColour))
             return;
         Settings::get<MyGUI::Colour>("GUI", dialogueColourSettings[role]).reset();
@@ -1173,6 +1070,7 @@ namespace MWGui
     void SettingsWindow::onResChange(int /*width*/, int /*height*/)
     {
         center();
+        layoutDialogueColourControls();
         highlightCurrentResolution();
     }
 
@@ -1509,7 +1407,6 @@ namespace MWGui
         updateVSyncModeSettings();
         updateJournalSettings();
         updateDialogueColourSettings();
-        layoutDialogueColourControls();
         resetScrollbars();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
@@ -1561,8 +1458,8 @@ namespace MWGui
     {
         mResolutionList->setScrollPosition(0);
         mControlsBox->setViewOffset(MyGUI::IntPoint(0, 0));
-        if (mDialogueColourView)
-            mDialogueColourView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mDialogueColourControls.mView)
+            mDialogueColourControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
     }
 
     bool SettingsWindow::onControllerButtonEvent(const SDL_ControllerButtonEvent& arg)

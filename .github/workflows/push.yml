@@ -1,7 +1,7 @@
-name: OpenMW - dialogue colours (Windows)
+name: OpenMW - dialogue topics and settings repair (Windows)
 on:
   push:
-    branches: [feature/dialogue-colours-20261104]
+    branches: [feature/dialogue-colours-20261104, fix/dialogue-topics-layout-20261104]
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +28,8 @@ jobs:
         run: |
           git fetch --no-tags --depth=1 origin cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0
           if ($LASTEXITCODE) { throw 'Cannot recover delivered journal engine source' }
+          git fetch --no-tags --depth=1 origin b34db5770f947b0f5b90dc699627c2ccdae12f16
+          if ($LASTEXITCODE) { throw 'Cannot recover delivered dialogue-colour engine source' }
           python custom/dialogue-colours/verify-source.py
           if ($LASTEXITCODE) { throw 'Dialogue colour source scope or preservation verification failed' }
       - uses: ilammy/msvc-dev-cmd@v1
@@ -103,6 +105,7 @@ jobs:
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/bookpage.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialogueformatting.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialoguecolourcontrols.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialogue.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalbooks.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalwindow.cpp.obj
@@ -113,6 +116,7 @@ jobs:
           apps/components_tests/CMakeFiles/components-tests.dir/settings/testvalues.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/test_journaltypography.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialogueformatting.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialoguecolourcontrols.cpp.obj
           components/CMakeFiles/components.dir/misc/dialoguetext.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/misc/testdialoguetext.cpp.obj
       - name: Build engine and regression tests

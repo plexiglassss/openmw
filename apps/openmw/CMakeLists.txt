@@ -33,7 +33,7 @@ add_openmw_dir (mwinput
     )
 
 add_openmw_dir (mwgui
-    layout textinput widgets race class birth review windowmanagerimp console dialogue dialogueformatting
+    layout textinput widgets race class birth review windowmanagerimp console dialogue dialogueformatting dialoguecolourcontrols
     windowbase statswindow messagebox journalwindow charactercreation
     mapwindow windowpinnablebase tooltips scrollwindow bookwindow resourceskin
     formatting inventorywindow luapaperdoll container hud countdialog tradewindow settingswindow
