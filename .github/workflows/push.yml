@@ -13,6 +13,10 @@ jobs:
   Windows:
     runs-on: windows-2022
     env:
+      # Keep tracked bytes identical to the verified source on Windows too.
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
       SCCACHE_GHA_ENABLED: "on"
       SCCACHE_GHA_VERSION: openmw-msvc-2022-Release-v1
       SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
