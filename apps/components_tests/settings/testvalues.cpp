@@ -232,18 +232,27 @@ namespace Settings
         TEST_F(SettingsValuesTest, resettingOneDialogueColourKeepsOtherColoursAndThemeChoice)
         {
             Index index;
-            Values values(index);
-            const auto defaultStatColour = values.mGUI.mColorDialogueStat.get();
+            // Mirror StaticValues::initDefaults()/init(): the move captures the
+            // default palette before reading the saved user settings.
+            Values defaultValues(index);
+            const auto defaultStatColour = defaultValues.mGUI.mColorDialogueStat.get();
             const MyGUI::Colour customNormal(0.123456f, 0.345678f, 0.567891f);
             const MyGUI::Colour customInventory(0.15f, 0.35f, 0.75f);
-            values.mGUI.mColorDialogueNormal.set(customNormal);
-            values.mGUI.mColorDialogueInventory.set(customInventory);
+            Manager::mUserSettings[{ "GUI", "color dialogue normal" }] = "0.123456 0.345678 0.567891 1";
+            Manager::mUserSettings[{ "GUI", "color dialogue inventory" }] = "0.15 0.35 0.75 1";
+            Manager::mUserSettings[{ "GUI", "color dialogue stat" }] = "0.9 0.8 0.7 1";
+            Manager::mUserSettings[{ "GUI", "dialogue use system colour" }] = "false";
+            Values values(std::move(defaultValues));
+            EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
+            EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
+            EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), MyGUI::Colour(0.9f, 0.8f, 0.7f));
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
             values.mGUI.mColorDialogueStat.set(MyGUI::Colour::Black);
-            values.mGUI.mColorDialogueStat.reset();
+            index.get<MyGUI::Colour>("GUI", "color dialogue stat").reset();
             EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), defaultStatColour);
             EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
             EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
-            EXPECT_TRUE(values.mGUI.mDialogueUseSystemColour.get());
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
         }
 
         TEST_F(SettingsValuesTest, journalTypographyRoundTripsWithoutChangingGlobalFontOrScale)
