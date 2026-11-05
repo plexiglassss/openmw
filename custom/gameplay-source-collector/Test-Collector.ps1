@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $checks = New-Object System.Collections.Generic.List[object]
+$archiveChecks = New-Object System.Collections.Generic.List[object]
 $caseNumber = 0
 $invokeNumber = 0
 $sessionRoot = Join-Path ([IO.Path]::GetFullPath($TestRoot)) ('session-' + [Guid]::NewGuid().ToString('N'))
@@ -182,14 +183,16 @@ function Assert-ZipMatches($Capture, $Rows) {
         $relativeFiles = @('Source-check.json') + @($Rows | Where-Object { $_.status -eq 'copied' } | ForEach-Object { $_.captured_path })
         foreach ($relative in $relativeFiles) {
             $normal = $relative.Replace('\', '/')
-            $entries = @($zip.Entries | Where-Object { $_.FullName -eq $normal -or $_.FullName.EndsWith('/' + $normal, [StringComparison]::Ordinal) })
-            Assert-That ($entries.Count -eq 1) ('Expected one ZIP entry for ' + $relative)
+            $entries = @($zip.Entries | Where-Object { $entryName = $_.FullName.Replace('\', '/'); $entryName -eq $normal -or $entryName.EndsWith('/' + $normal, [StringComparison]::Ordinal) })
+            Assert-That ($entries.Count -eq 1) ('Expected one ZIP entry for ' + $relative + '; actual names: ' + (($zip.Entries | ForEach-Object { $_.FullName }) -join ', '))
             $stream = $entries[0].Open()
             $sha = [Security.Cryptography.SHA256]::Create()
             try { $hash = ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
             finally { $sha.Dispose(); $stream.Dispose() }
             Assert-That ($hash -eq (Get-Sha (Join-Path $Capture.folder $relative))) ('ZIP byte mismatch for ' + $relative)
         }
+        $archiveChecks.Add([ordered]@{zip_name=[IO.Path]::GetFileName($Capture.zip_path); entries_checked=$relativeFiles.Count;
+            total_entries=$zip.Entries.Count; backslash_entry_count=@($zip.Entries | Where-Object { $_.FullName.Contains('\') }).Count})
     }
     finally { $zip.Dispose() }
 }
@@ -520,6 +523,7 @@ $report = [ordered]@{
     passed=$passed
     failed=$failed
     checks=@($checks.ToArray())
+    archive_checks=@($archiveChecks.ToArray())
 }
 Write-Json ([IO.Path]::GetFullPath($ReportPath)) $report
 Write-Host ("Collector checks: $passed passed; $failed failed.")
