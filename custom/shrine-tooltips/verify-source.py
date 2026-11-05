@@ -86,4 +86,3 @@ manifest = {
 }
 (ROOT / "shrine-tooltips-source-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 print(f"PASS: {len(changed)} scoped files; all other source equals {BASELINE}.")
-

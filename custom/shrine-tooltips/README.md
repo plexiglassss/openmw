@@ -55,4 +55,3 @@ an ordinary non-shrine choice box and a second shrine menu.
 
 To roll back, launch the preserved previous engine and disable the separate
 `ShrineTooltips.omwscripts` mod. No save conversion is required.
-
