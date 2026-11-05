@@ -30,7 +30,7 @@ function Write-Json([string]$Path, $Value) {
     $temporary = $Path + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
     try {
         [IO.File]::WriteAllText($temporary, ($Value | ConvertTo-Json -Depth 20), $utf8)
-        if (Test-Path -LiteralPath $Path -PathType Leaf) { [IO.File]::Replace($temporary, $Path, $null) }
+        if (Test-Path -LiteralPath $Path -PathType Leaf) { [IO.File]::Replace($temporary, $Path, [NullString]::Value) }
         else { [IO.File]::Move($temporary, $Path) }
     }
     finally { if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue } }
@@ -89,7 +89,9 @@ function Write-SourceEvidence([string]$Reason) {
     }
     Write-Json (Join-Path $folder 'Source-check.json') $evidence
     $zip = $folder + '.zip'
-    Compress-Archive -LiteralPath $folder -DestinationPath $zip -CompressionLevel Optimal
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [IO.Compression.ZipFile]::CreateFromDirectory($folder, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
     Write-Host ('Source-check ZIP (send this back if blocked): ' + $zip)
 }
 function Invoke-Transaction($Items, $Receipt) {
@@ -109,7 +111,7 @@ function Invoke-Transaction($Items, $Receipt) {
         foreach ($entry in $staged) {
             $item = $entry.item
             if ((Get-Sha $item.target) -ne $item.before) { Stop-Guard ('File changed before replacement: ' + $item.target) }
-            [IO.File]::Replace($entry.temporary, $item.target, $null)
+            [IO.File]::Replace($entry.temporary, $item.target, [NullString]::Value)
             $applied.Add($item)
             if ((Get-Sha $item.target) -ne $item.after) { throw ('Installed file failed verification: ' + $item.target) }
         }
@@ -132,7 +134,7 @@ function Invoke-Transaction($Items, $Receipt) {
                 try {
                     [IO.File]::Copy($item.rollback, $recovery, $false)
                     if ((Get-Sha $recovery) -ne $item.before) { throw 'Rollback copy failed hash verification.' }
-                    [IO.File]::Replace($recovery, $item.target, $null)
+                    [IO.File]::Replace($recovery, $item.target, [NullString]::Value)
                     if ((Get-Sha $item.target) -ne $item.before) { throw 'Rollback target failed hash verification.' }
                 }
                 finally { if (Test-Path -LiteralPath $recovery) { Remove-Item -LiteralPath $recovery -Force -ErrorAction SilentlyContinue } }
@@ -147,7 +149,7 @@ function Invoke-Transaction($Items, $Receipt) {
         $Receipt.error = $originalError
         $Receipt.rollback_errors = $failures
         Write-Json $receiptPath $Receipt
-        if ($failures.Count -gt 0) { throw ($originalError + ' Recovery needs attention; see ' + $receiptPath) }
+        if ($failures.Count -gt 0) { throw ('RECOVERY INCOMPLETE: ' + $originalError + ' Recovery needs attention; see ' + $receiptPath) }
         throw $originalError
     }
     finally {

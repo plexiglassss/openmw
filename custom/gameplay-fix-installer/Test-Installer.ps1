@@ -357,6 +357,68 @@ Check 'Failed restoration rolls back to patched bytes and remains retryable' {
     Assert-Exit (Invoke-Installer $f @('-RestoreLatest')) 0
     Assert-Bytes $f
 }
+Check 'Receipt finalization failure rolls installed files back and preserves the prior receipt' {
+    $f = New-Fixture 'receipt-finalization'
+    # A native watcher acquires a read-share lock as soon as the prepared
+    # receipt appears. A larger authored dummy payload keeps staging open long
+    # enough for the watcher; it does not add any installer test hook.
+    $source = @'
+using System;
+using System.IO;
+public sealed class InstallerReceiptLock : IDisposable {
+    private readonly object gate = new object();
+    private FileSystemWatcher watcher;
+    private FileStream held;
+    private bool disposed;
+    public InstallerReceiptLock(string root) {
+        watcher = new FileSystemWatcher(root, "receipt.json");
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite;
+        watcher.Created += TryLock;
+        watcher.Changed += TryLock;
+        watcher.Renamed += delegate(object sender, RenamedEventArgs e) { TryLock(sender, e); };
+        watcher.EnableRaisingEvents = true;
+    }
+    private void TryLock(object sender, FileSystemEventArgs e) {
+        lock (gate) {
+            if (held != null || disposed) return;
+            try { held = File.Open(e.FullPath, FileMode.Open, FileAccess.Read, FileShare.Read); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+    public bool HasLock { get { lock (gate) { return held != null; } } }
+    public void Dispose() {
+        watcher.EnableRaisingEvents = false;
+        watcher.Dispose();
+        lock (gate) { disposed = true; if (held != null) { held.Dispose(); held = null; } }
+    }
+}
+'@
+    Add-Type -TypeDefinition $source -Language CSharp
+    $payload = Join-Path (Join-Path $f.package 'Data Files') $f.manifest.files[0].path
+    [IO.File]::WriteAllBytes($payload, (New-Object byte[] (16 * 1024 * 1024)))
+    $f.manifest.files[0].installed_sha256 = Get-Sha $payload
+    Save-Manifest $f
+    [void][IO.Directory]::CreateDirectory($f.backup)
+    $watcher = New-Object InstallerReceiptLock -ArgumentList $f.backup
+    try {
+        $result = Invoke-Installer $f
+        Assert-That $watcher.HasLock 'Native receipt lock did not engage; failure was not injected.'
+    }
+    finally { $watcher.Dispose() }
+    Assert-Exit $result 1
+    Assert-Bytes $f
+    $receipts = @(Get-Receipts $f)
+    Assert-That ($receipts.Count -eq 1) 'Prepared receipt missing after finalization failure.'
+    $receipt = Get-Content -LiteralPath $receipts[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-That ($receipt.state -eq 'prepared' -and @($receipt.files).Count -eq 2) 'Original prepared receipt was corrupted or lost.'
+    Assert-NoTemporaryFiles $f
+    Assert-Exit (Invoke-Installer $f) 0
+    Assert-Bytes $f 'installed'
+    Assert-Exit (Invoke-Installer $f @('-RestoreLatest')) 0
+    Assert-Bytes $f
+}
 Check 'Running OpenMW or launcher is rejected without stopping it' {
     $source = 'public static class InstallerFixtureWait { public static void Main() { System.Threading.Thread.Sleep(120000); } }'
     $stub = Join-Path $sessionRoot 'AuthoredProcessStub.exe'

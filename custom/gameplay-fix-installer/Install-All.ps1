@@ -22,6 +22,7 @@ foreach ($component in $components) {
 Write-Host ''
 Write-Host 'RESULTS'
 $results | Format-Table -AutoSize -Wrap | Out-Host
-Write-Host 'Only rows reporting success were applied. Keep the backup receipts.'
+Write-Host 'Successful rows are installed or already present. Keep the backup receipts.'
+Write-Host 'For stopped rows, inspect their receipts: recovery may be incomplete.'
 Write-Host 'If any component was skipped, send its Source-check ZIP back for review.'
 exit $exitCode
