@@ -1,13 +1,13 @@
-name: OpenMW - dialogue topics and settings repair (Windows)
+name: OpenMW - shrine tooltip support (Windows)
 on:
   push:
-    branches: [feature/dialogue-colours-20261104, fix/dialogue-topics-layout-20261104]
+    branches: [feature/shrine-tooltips-20261105]
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: dialogue-colours-${{ github.ref }}
+  group: shrine-tooltips-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   Windows:
@@ -30,8 +30,17 @@ jobs:
           if ($LASTEXITCODE) { throw 'Cannot recover delivered journal engine source' }
           git fetch --no-tags --depth=1 origin b34db5770f947b0f5b90dc699627c2ccdae12f16
           if ($LASTEXITCODE) { throw 'Cannot recover delivered dialogue-colour engine source' }
-          python custom/dialogue-colours/verify-source.py
-          if ($LASTEXITCODE) { throw 'Dialogue colour source scope or preservation verification failed' }
+          git fetch --no-tags --depth=1 origin 528bffb348872a964d25c092fa5dd574c1b7f673
+          if ($LASTEXITCODE) { throw 'Cannot recover current dialogue topics/settings engine baseline' }
+          git worktree add --detach preservation-baseline 528bffb348872a964d25c092fa5dd574c1b7f673
+          if ($LASTEXITCODE) { throw 'Cannot prepare preserved engine source verification' }
+          python preservation-baseline/custom/dialogue-colours/verify-source.py
+          if ($LASTEXITCODE) { throw 'Preserved dialogue/journal baseline failed verification' }
+          Copy-Item preservation-baseline/dialogue-colours-source-manifest.json ./
+          git worktree remove --force preservation-baseline
+          if ($LASTEXITCODE) { throw 'Cannot remove temporary verification worktree' }
+          python custom/shrine-tooltips/verify-source.py
+          if ($LASTEXITCODE) { throw 'Shrine tooltip source scope or preservation verification failed' }
       - uses: ilammy/msvc-dev-cmd@v1
       - uses: seanmiddleditch/gha-setup-ninja@master
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
@@ -99,7 +108,16 @@ jobs:
       - name: Compile lookup change first
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
-      - name: Compile colour implementation and focused regressions first
+      - name: Compile native tooltip bridge first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagebox.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/uibindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/interpretercontext.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/scriptmanagerimp.cpp.obj
+      - name: Compile preserved colour implementation and focused regressions first
         shell: pwsh
         run: >
           cmake --build build --target
@@ -165,20 +183,23 @@ jobs:
           Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
           Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
+          Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
+          Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ github.sha }}`nDelivered journal source baseline cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0`nBuild-time lookup edits: loading-repair-applied.patch`nColour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
+          "Commit ${{ github.sha }}`nPreserved engine baseline 528bffb348872a964d25c092fa5dd574c1b7f673`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-dialogue-colours-windows-${{ github.sha }}
+          name: openmw-shrine-tooltips-windows-${{ github.sha }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: dialogue-colours-evidence-${{ github.sha }}
+          name: shrine-tooltips-evidence-${{ github.sha }}
           path: |
+            shrine-tooltips-source-manifest.json
             dialogue-colours-source-manifest.json
             components-tests.xml
             openmw-tests.xml
@@ -188,3 +209,4 @@ jobs:
             build/CMakeCache.txt
             build/**/*.log
             build/compile_commands.json
+

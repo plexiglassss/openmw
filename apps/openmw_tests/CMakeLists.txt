@@ -21,6 +21,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/test_journaltypography.cpp
     mwgui/testdialogueformatting.cpp
     mwgui/testdialoguecolourcontrols.cpp
+    mwgui/testmessageboxstate.cpp
 
     mwlua/testobjectcache.cpp
 

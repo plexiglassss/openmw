@@ -783,9 +783,10 @@ namespace MWGui
     }
 
     void WindowManager::interactiveMessageBox(
-        std::string_view message, const std::vector<std::string>& buttons, bool block, int defaultFocus)
+        std::string_view message, const std::vector<std::string>& buttons, bool block, int defaultFocus,
+        std::string_view sourceScriptId)
     {
-        mMessageBoxManager->createInteractiveMessageBox(message, buttons, block, defaultFocus);
+        mMessageBoxManager->createInteractiveMessageBox(message, buttons, block, defaultFocus, sourceScriptId);
         updateVisible();
 
         if (block)
@@ -821,6 +822,21 @@ namespace MWGui
 
             mMessageBoxManager->resetInteractiveMessageBox();
         }
+    }
+
+    std::optional<InteractiveMessageBoxInfo> WindowManager::getInteractiveMessageBoxInfo(
+        std::optional<MessageBoxId> lastId) const
+    {
+        if (mMessageBoxManager)
+            if (const auto* info = mMessageBoxManager->getInteractiveMessageBoxInfo(lastId))
+                return *info;
+        return {};
+    }
+
+    void WindowManager::setMessageBoxButtonSpellTooltips(MessageBoxId id, const MessageBoxSpellTooltips& tooltips)
+    {
+        if (mMessageBoxManager)
+            mMessageBoxManager->setMessageBoxButtonSpellTooltips(id, tooltips);
     }
 
     void WindowManager::messageBox(std::string_view message, enum MWGui::ShowInDialogueMode showInDialogueMode,

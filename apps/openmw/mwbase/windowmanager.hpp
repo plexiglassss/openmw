@@ -12,6 +12,7 @@
 #include <MyGUI_KeyCode.h>
 
 #include "../mwgui/mode.hpp"
+#include "../mwgui/messageboxstate.hpp"
 
 #include <components/misc/dialoguetext.hpp>
 #include <components/sdlutil/events.hpp>
@@ -266,7 +267,12 @@ namespace MWBase
         virtual void staticMessageBox(std::string_view message) = 0;
         virtual void removeStaticMessageBox() = 0;
         virtual void interactiveMessageBox(std::string_view message, const std::vector<std::string>& buttons = {},
-            bool block = false, int defaultFocus = -1) = 0;
+            bool block = false, int defaultFocus = -1, std::string_view sourceScriptId = {}) = 0;
+
+        virtual std::optional<MWGui::InteractiveMessageBoxInfo> getInteractiveMessageBoxInfo(
+            std::optional<MWGui::MessageBoxId> lastId = {}) const = 0;
+        virtual void setMessageBoxButtonSpellTooltips(
+            MWGui::MessageBoxId id, const MWGui::MessageBoxSpellTooltips& tooltips) = 0;
 
         /// returns the index of the pressed button or -1 if no button was pressed
         /// (->MessageBoxmanager->InteractiveMessageBox)

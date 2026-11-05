@@ -12,6 +12,7 @@
 #include <components/lua_ui/util.hpp>
 
 #include <components/misc/strings/format.hpp>
+#include <components/esm3/loadspel.hpp>
 #include <components/settings/values.hpp>
 
 #include "context.hpp"
@@ -19,6 +20,7 @@
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwworld/esmstore.hpp"
 
 namespace sol
 {
@@ -136,6 +138,49 @@ namespace MWLua
         };
         if (!menu)
         {
+            api["getInteractiveMessageBox"] = [windowManager](
+                sol::this_state state, sol::optional<double> previousId) -> sol::object {
+                std::optional<MWGui::MessageBoxId> lastId;
+                if (previousId)
+                    lastId = MWGui::checkedMessageBoxId(*previousId);
+                const auto info = windowManager->getInteractiveMessageBoxInfo(lastId);
+                if (!info)
+                    return sol::nil;
+                sol::table result(state, sol::create);
+                result["id"] = info->mId;
+                result["message"] = info->mMessage;
+                sol::table buttons(state, sol::create);
+                for (std::size_t i = 0; i < info->mButtons.size(); ++i)
+                    buttons[LuaUtil::toLuaIndex(i)] = info->mButtons[i];
+                result["buttons"] = buttons;
+                if (!info->mSourceScriptId.empty())
+                    result["sourceScriptId"] = info->mSourceScriptId;
+                return result;
+            };
+            api["setMessageBoxButtonSpellTooltips"] = [luaManager = context.mLuaManager, windowManager](
+                double generation, const sol::table& requested) {
+                const auto id = MWGui::checkedMessageBoxId(generation);
+                const auto info = windowManager->getInteractiveMessageBoxInfo();
+                if (!info || info->mId != id)
+                    return;
+                MWGui::MessageBoxSpellTooltips tooltips;
+                const auto& spells = MWBase::Environment::get().getESMStore()->get<ESM::Spell>();
+                for (const auto& [key, value] : requested)
+                {
+                    if (key.get_type() != sol::type::number || value.get_type() != sol::type::string)
+                        throw std::invalid_argument("Message box tooltips must map 1-based button indices to spell IDs");
+                    const auto index = MWGui::checkedMessageBoxButtonIndex(key.as<double>(), info->mButtons.size());
+                    const auto spellId = ESM::RefId::deserializeText(value.as<std::string>());
+                    if (spellId.empty() || !spells.search(spellId))
+                        throw std::invalid_argument("Message box tooltip spell does not exist: " + spellId.serializeText());
+                    tooltips.emplace(index, spellId.serialize());
+                }
+                luaManager->addAction(
+                    [windowManager, id, tooltips = std::move(tooltips)] {
+                        windowManager->setMessageBoxButtonSpellTooltips(id, tooltips);
+                    },
+                    "Set message box button spell tooltips");
+            };
             api["getWorldTooltipObject"] = [windowManager](sol::this_state state) -> sol::object {
                 const auto object = windowManager->getWorldTooltipObject();
                 if (object.isEmpty())

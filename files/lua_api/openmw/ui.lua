@@ -49,6 +49,43 @@
 -- ui.showMessage("Hello world", params)
 
 ---
+-- Read the current unanswered native interactive message box. Player scripts only.
+-- This custom-engine API observes a box without changing its buttons, payment,
+-- selected answer, focus, visibility or MWScript execution.
+-- Returns nil when there is no unanswered box. If lastId is supplied, also returns
+-- nil while that same box remains open, without allocating another snapshot.
+-- Use onFrame to observe these menus, including while simulation is paused.
+-- @function [parent=#ui] getInteractiveMessageBox
+-- @param #number lastId Optional ID returned by a previous call; omit to force a snapshot.
+-- @return #InteractiveMessageBoxInfo
+
+---
+-- A copied snapshot, not a handle to native widgets.
+-- @type InteractiveMessageBoxInfo
+-- @field #number id Positive generation ID. Changes for every new box, including identical prompts; not reused across save loads.
+-- @field #string message The message caption after native language-tag replacement.
+-- @field #list<#string> buttons Actual rendered button captions, in their original order; indices start at 1.
+-- @field #string sourceScriptId The ID of the named MWScript that issued this box. Nil for native boxes and contexts without a known issuing script. Never inferred from the player's current target.
+
+---
+-- Attach native spell-effect tooltips to buttons of one observed message box.
+-- Player scripts only. The engine reads the winning spell records, so magnitudes,
+-- durations, affected attributes/skills and effect icons follow the current load order.
+-- The map replaces this bridge's annotations for that box; an empty table clears
+-- them. Existing tooltips from other native providers are left alone.
+-- Missing spells, non-integer/out-of-range indices and non-string IDs raise errors
+-- before queuing an update. A stale/answered box is a harmless no-op. The engine
+-- checks the generation again when applying the queued action, so an old request
+-- cannot annotate the next menu. No click, answer or spell-cast is performed.
+-- @function [parent=#ui] setMessageBoxButtonSpellTooltips
+-- @param #number id A generation ID returned by getInteractiveMessageBox.
+-- @param #map<#number,#string> tooltips Sparse map of 1-based button index to spell record ID.
+-- @usage local box = ui.getInteractiveMessageBox()
+-- if box then
+--     ui.setMessageBoxButtonSpellTooltips(box.id, { [1] = 'cure common disease' })
+-- end
+
+---
 -- Predefined colors for console output
 -- @field [parent=#ui] #CONSOLE_COLOR CONSOLE_COLOR
 

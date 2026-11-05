@@ -7,12 +7,14 @@
 #include <MyGUI_UString.h>
 
 #include <components/debug/debuglog.hpp>
+#include <components/esm3/loadspel.hpp>
 #include <components/misc/strings/algorithm.hpp>
 #include <components/settings/values.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/inputmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwworld/esmstore.hpp"
 
 namespace MWGui
 {
@@ -36,6 +38,7 @@ namespace MWGui
 
     void MessageBoxManager::clear()
     {
+        mInteractiveState.clear();
         if (mInterMessageBoxe)
         {
             mInterMessageBoxe->setVisible(false);
@@ -50,6 +53,7 @@ namespace MWGui
 
     void MessageBoxManager::resetInteractiveMessageBox()
     {
+        mInteractiveState.clear();
         if (mInterMessageBoxe)
         {
             mInterMessageBoxe->setVisible(false);
@@ -86,6 +90,7 @@ namespace MWGui
 
         if (mInterMessageBoxe != nullptr && mInterMessageBoxe->mMarkedToDelete)
         {
+            mInteractiveState.clear();
             mLastButtonPressed = mInterMessageBoxe->readPressedButton();
             mInterMessageBoxe->setVisible(false);
             mInterMessageBoxe.reset();
@@ -128,8 +133,10 @@ namespace MWGui
     }
 
     bool MessageBoxManager::createInteractiveMessageBox(
-        std::string_view message, const std::vector<std::string>& buttons, bool immediate, int defaultFocus)
+        std::string_view message, const std::vector<std::string>& buttons, bool immediate, int defaultFocus,
+        std::string_view sourceScriptId)
     {
+        mInteractiveState.clear();
         if (mInterMessageBoxe != nullptr)
         {
             Log(Debug::Warning) << "Warning: replacing an interactive message box that was not answered yet";
@@ -138,6 +145,8 @@ namespace MWGui
 
         mInterMessageBoxe
             = std::make_unique<InteractiveMessageBox>(*this, std::string{ message }, buttons, immediate, defaultFocus);
+        mInteractiveState.begin(mInterMessageBoxe->getMessageCaption(), mInterMessageBoxe->getButtonCaptions(),
+            std::string{ sourceScriptId });
         mLastButtonPressed = -1;
 
         return true;
@@ -146,6 +155,27 @@ namespace MWGui
     bool MessageBoxManager::isInteractiveMessageBox()
     {
         return mInterMessageBoxe != nullptr;
+    }
+
+    const InteractiveMessageBoxInfo* MessageBoxManager::getInteractiveMessageBoxInfo(
+        std::optional<MessageBoxId> lastId) const
+    {
+        if (!mInterMessageBoxe || mInterMessageBoxe->mMarkedToDelete)
+            return nullptr;
+        return mInteractiveState.get(lastId);
+    }
+
+    void MessageBoxManager::setMessageBoxButtonSpellTooltips(MessageBoxId id, const MessageBoxSpellTooltips& tooltips)
+    {
+        if (!mInterMessageBoxe || mInterMessageBoxe->mMarkedToDelete || !mInteractiveState.accepts(id, tooltips))
+            return;
+        // Revalidate after the Lua action has been queued. Never leave a native
+        // Spell tooltip pointing at a missing record, which would throw on hover.
+        const auto& spells = MWBase::Environment::get().getESMStore()->get<ESM::Spell>();
+        for (const auto& [index, spell] : tooltips)
+            if (!spells.search(ESM::RefId::deserialize(spell)))
+                return;
+        mInterMessageBoxe->setSpellTooltips(tooltips);
     }
 
     bool MessageBoxManager::removeMessageBox(MessageBox* msgbox)
@@ -415,6 +445,44 @@ namespace MWGui
             }
         }
         return nullptr;
+    }
+
+    std::string InteractiveMessageBox::getMessageCaption() const
+    {
+        return mMessageWidget->getCaption().asUTF8();
+    }
+
+    std::vector<std::string> InteractiveMessageBox::getButtonCaptions() const
+    {
+        std::vector<std::string> captions;
+        captions.reserve(mButtons.size());
+        for (const auto* button : mButtons)
+            captions.push_back(button->getCaption().asUTF8());
+        return captions;
+    }
+
+    void InteractiveMessageBox::setSpellTooltips(const MessageBoxSpellTooltips& tooltips)
+    {
+        for (const auto& [index, spell] : mOwnedSpellTooltips)
+        {
+            auto* button = mButtons[index];
+            // Do not clear annotations another native provider has replaced.
+            if (button->getUserString("ToolTipType") == "Spell" && button->getUserString("Spell") == spell)
+            {
+                button->clearUserString("ToolTipType");
+                button->clearUserString("Spell");
+            }
+        }
+        mOwnedSpellTooltips.clear();
+        for (const auto& [index, spell] : tooltips)
+        {
+            auto* button = mButtons[index];
+            if (!button->getUserString("ToolTipType").empty())
+                continue;
+            button->setUserString("ToolTipType", "Spell");
+            button->setUserString("Spell", spell);
+            mOwnedSpellTooltips.emplace(index, spell);
+        }
     }
 
     void InteractiveMessageBox::mousePressed(MyGUI::Widget* widget)

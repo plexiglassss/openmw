@@ -195,7 +195,8 @@ namespace MWScript
         if (buttons.empty())
             MWBase::Environment::get().getWindowManager()->messageBox(message);
         else
-            MWBase::Environment::get().getWindowManager()->interactiveMessageBox(message, buttons);
+            MWBase::Environment::get().getWindowManager()->interactiveMessageBox(
+                message, buttons, false, -1, mMessageBoxSourceScriptId.serializeText());
     }
 
     void InterpreterContext::report(const std::string& message) {}

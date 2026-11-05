@@ -116,6 +116,8 @@ namespace MWScript
             try
             {
                 Diagnostics::Scope execution("mwscript_phase", timingName, "execute");
+                const InterpreterContext::ScriptSourceScope source(
+                    dynamic_cast<InterpreterContext*>(&interpreterContext), name);
                 mInterpreter.run(iter->second.mProgram, interpreterContext);
                 return true;
             }

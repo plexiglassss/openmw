@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "messageboxstate.hpp"
 #include "windowbase.hpp"
 
 namespace MyGUI
@@ -26,8 +27,11 @@ namespace MWGui
         void createMessageBox(std::string_view message, bool stat = false);
         void removeStaticMessageBox();
         bool createInteractiveMessageBox(std::string_view message, const std::vector<std::string>& buttons,
-            bool immediate = false, int defaultFocus = -1);
+            bool immediate = false, int defaultFocus = -1, std::string_view sourceScriptId = {});
         bool isInteractiveMessageBox();
+
+        const InteractiveMessageBoxInfo* getInteractiveMessageBoxInfo(std::optional<MessageBoxId> lastId = {}) const;
+        void setMessageBoxButtonSpellTooltips(MessageBoxId id, const MessageBoxSpellTooltips& tooltips);
 
         std::size_t getMessagesCount();
 
@@ -52,6 +56,8 @@ namespace MWGui
 
         void onButtonPressed(int button)
         {
+            // Invalidate before listeners run, including immediate message boxes.
+            mInteractiveState.clear();
             eventButtonPressed(button);
             eventButtonPressed.clear();
         }
@@ -63,6 +69,7 @@ namespace MWGui
     private:
         std::vector<std::unique_ptr<MessageBox>> mMessageBoxes;
         std::unique_ptr<InteractiveMessageBox> mInterMessageBoxe;
+        MessageBoxState mInteractiveState;
         MessageBox* mStaticMessageBox;
         float mMessageBoxSpeed;
         int mLastButtonPressed;
@@ -97,6 +104,10 @@ namespace MWGui
         void mousePressed(MyGUI::Widget* widget);
         int readPressedButton();
 
+        std::string getMessageCaption() const;
+        std::vector<std::string> getButtonCaptions() const;
+        void setSpellTooltips(const MessageBoxSpellTooltips& tooltips);
+
         MyGUI::Widget* getDefaultKeyFocus() override;
 
         bool exit() override { return false; }
@@ -112,6 +123,7 @@ namespace MWGui
         MyGUI::EditBox* mMessageWidget;
         MyGUI::Widget* mButtonsWidget;
         std::vector<MyGUI::Button*> mButtons;
+        MessageBoxSpellTooltips mOwnedSpellTooltips;
 
         int mButtonPressed;
         size_t mDefaultFocus;
