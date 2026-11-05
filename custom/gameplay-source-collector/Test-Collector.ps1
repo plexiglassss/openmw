@@ -89,7 +89,7 @@ function Invoke-Script($Fixture, [string[]]$Parameters) {
     Write-Text ($prefix + '.stdout.txt') $stdout
     Write-Text ($prefix + '.stderr.txt') $stderr
     Write-Json ($prefix + '.json') @{arguments = $arguments; exit_code = $exitCode}
-    return [pscustomobject]@{code = $exitCode; stdout = $stdout; stderr = $stderr}
+    return [pscustomobject]@{code = $exitCode; stdout = $stdout; stderr = $stderr; output_root = $Fixture.output}
 }
 function Assert-Exit($Result, [int]$Expected) {
     Assert-That ($Result.code -eq $Expected) ("Expected exit $Expected, got $($Result.code).`n$($Result.stdout)`n$($Result.stderr)")
@@ -150,11 +150,19 @@ function Read-Capture($Result) {
     $zipMatch = [regex]::Match($Result.stdout, '(?m)^SOURCE_CHECK_ZIP=(.+)\r?$')
     Assert-That $jsonMatch.Success ('Missing SOURCE_CHECK_JSON output. ' + $Result.stdout)
     Assert-That $zipMatch.Success 'Missing SOURCE_CHECK_ZIP output.'
-    $jsonPath = $jsonMatch.Groups[1].Value.TrimEnd("`r")
-    $zipPath = $zipMatch.Groups[1].Value.TrimEnd("`r")
+    # Windows PowerShell 5.1's redirected legacy console encoding cannot round-
+    # trip every Unicode path. Retain the unique ASCII run name from both output
+    # markers, and resolve it under the exact literal OutputRoot passed above.
+    $name = [regex]::Match($jsonMatch.Groups[1].Value.TrimEnd("`r"), '(SourceCheck-\d{8}-\d{6}-\d{3}-[0-9a-f]{8})[\\/]Source-check\.json$')
+    Assert-That $name.Success 'JSON marker lacks the unique source-check run name.'
+    Assert-That ($zipMatch.Groups[1].Value.TrimEnd("`r").EndsWith($name.Groups[1].Value + '.zip', [StringComparison]::Ordinal)) 'ZIP/JSON stdout markers identify different runs.'
+    $folder = Join-Path $Result.output_root $name.Groups[1].Value
+    $jsonPath = Join-Path $folder 'Source-check.json'
+    $zipPath = $folder + '.zip'
     Assert-That (Test-Path -LiteralPath $jsonPath -PathType Leaf) 'Source-check JSON is absent.'
     Assert-That (Test-Path -LiteralPath $zipPath -PathType Leaf) 'Source-check ZIP is absent.'
     $document = Get-Content -LiteralPath $jsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-That ($document.output_directory -eq $folder) 'The copied JSON does not identify the exact requested literal output directory.'
     return [pscustomobject]@{json=$document; json_path=$jsonPath; zip_path=$zipPath; folder=[IO.Path]::GetDirectoryName($jsonPath)}
 }
 function Assert-CapturedHashes($Capture, $Rows) {
@@ -310,7 +318,7 @@ function Invoke-Wrapper($Fixture) {
     Write-Text ($prefix + '.stdout.txt') $stdout
     Write-Text ($prefix + '.stderr.txt') $stderr
     Write-Json ($prefix + '.json') @{arguments=$command; exit_code=$exitCode; via='cmd.exe'}
-    return [pscustomobject]@{code=$exitCode; stdout=$stdout; stderr=$stderr}
+    return [pscustomobject]@{code=$exitCode; stdout=$stdout; stderr=$stderr; output_root=$Fixture.output}
 }
 Check 'Optional module union and six fixed actor entries select current loose winners' {
     $f = New-Fixture 'optional-union'
@@ -439,9 +447,17 @@ Check 'Running game-name fixture is observed without being stopped or claiming s
     $reference = Write-Reference $f
     $stub = Join-Path $f.inputs 'Authored process fixture\openmw.exe'
     [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($stub))
-    Add-Type -TypeDefinition 'public static class SourceCollectorFixtureWait { public static void Main() { System.Threading.Thread.Sleep(120000); } }' -Language CSharp -OutputAssembly $stub -OutputType ConsoleApplication
+    # Add-Type resolves its output path using wildcard semantics. Compile into a
+    # simple staging path and then copy literally into the adversarial fixture.
+    $stagedStub = Join-Path $sessionRoot 'AuthoredProcessStub.exe'
+    Add-Type -TypeDefinition 'public static class SourceCollectorFixtureWait { public static void Main() { System.Threading.Thread.Sleep(120000); } }' -Language CSharp -OutputAssembly $stagedStub -OutputType ConsoleApplication
+    [IO.File]::Copy($stagedStub, $stub, $false)
     $before = Get-InputState $f.inputs
-    $process = Start-Process -FilePath $stub -WindowStyle Hidden -PassThru
+    $process = New-Object Diagnostics.Process
+    $process.StartInfo.FileName = $stub
+    $process.StartInfo.UseShellExecute = $false
+    $process.StartInfo.CreateNoWindow = $true
+    [void]$process.Start()
     try {
         $capture = Read-Capture (Invoke-Collector $f @('-ReferencePath', $reference))
         Assert-That (-not $process.HasExited) 'Collector stopped the already-running process.'
