@@ -419,6 +419,7 @@ namespace MWGui
             += MyGUI::newDelegate(this, &SettingsWindow::onJournalButtonScaleChanged);
         updateJournalSettings();
         initialiseDialogueColourControls();
+        initialiseMessagePositionControls();
 
         computeMinimumWindowSize();
 
@@ -542,6 +543,7 @@ namespace MWGui
     void SettingsWindow::onTabChanged(MyGUI::TabControl* /*sender*/, size_t /*index*/)
     {
         layoutDialogueColourControls();
+        layoutMessagePositionControls();
         resetScrollbars();
     }
 
@@ -1024,6 +1026,91 @@ namespace MWGui
         apply();
     }
 
+    void SettingsWindow::initialiseMessagePositionControls()
+    {
+        // A native tab stays available when a mod replaces the settings layout.
+        mMessagePositionTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:MessagePositionTab}"));
+        mMessagePositionControls = createMessagePositionControls(mMessagePositionTab, mPrefix);
+        mMessagePositionControls.mPosition->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionChanged);
+        for (auto* slider : mMessagePositionControls.mSliders)
+            slider->eventScrollChangePosition
+                += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionOffsetChanged);
+        mMessagePositionControls.mReset->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionReset);
+        mMessagePositionControls.mTest->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionTest);
+        updateMessagePositionSettings();
+    }
+
+    void SettingsWindow::layoutMessagePositionControls()
+    {
+        MWGui::layoutMessagePositionControls(mMessagePositionControls);
+    }
+
+    void SettingsWindow::updateMessagePositionSettings()
+    {
+        if (!mMessagePositionControls.mPosition)
+            return;
+        mUpdatingMessagePosition = true;
+        const auto& settings = Settings::gui();
+        mMessagePositionControls.mPosition->setIndexSelected(static_cast<size_t>(settings.mMessageBoxPosition.get()));
+        const std::array<int, 2> offsets{
+            settings.mMessageBoxHorizontalOffset.get(), settings.mMessageBoxVerticalOffset.get()
+        };
+        for (size_t i = 0; i < offsets.size(); ++i)
+        {
+            mMessagePositionControls.mSliders[i]->setScrollPosition(static_cast<size_t>(offsets[i] + 1000));
+            mMessagePositionControls.mValues[i]->setCaption(std::to_string(offsets[i]));
+        }
+        mUpdatingMessagePosition = false;
+        layoutMessagePositionControls();
+    }
+
+    void SettingsWindow::onMessagePositionChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (mUpdatingMessagePosition || pos >= 9)
+            return;
+        Settings::gui().mMessageBoxPosition.set(static_cast<int>(pos));
+        updateMessagePositionSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMessagePositionOffsetChanged(MyGUI::ScrollBar* sender, size_t pos)
+    {
+        if (mUpdatingMessagePosition)
+            return;
+        const auto slider = std::find(
+            mMessagePositionControls.mSliders.begin(), mMessagePositionControls.mSliders.end(), sender);
+        if (slider == mMessagePositionControls.mSliders.end())
+            return;
+        const int value = static_cast<int>(std::min(pos, size_t(2000))) - 1000;
+        auto& settings = Settings::gui();
+        if (slider == mMessagePositionControls.mSliders.begin())
+            settings.mMessageBoxHorizontalOffset.set(value);
+        else
+            settings.mMessageBoxVerticalOffset.set(value);
+        updateMessagePositionSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMessagePositionReset(MyGUI::Widget* /*sender*/)
+    {
+        auto& settings = Settings::gui();
+        settings.mMessageBoxPosition.reset();
+        settings.mMessageBoxHorizontalOffset.reset();
+        settings.mMessageBoxVerticalOffset.reset();
+        updateMessagePositionSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMessagePositionTest(MyGUI::Widget* /*sender*/)
+    {
+        MWBase::Environment::get().getWindowManager()->messageBox(
+            "#{OMWEngine:MessagePositionTest}", MWGui::ShowInDialogueMode_Never);
+    }
+
     void SettingsWindow::onShadowsButtonClicked(MyGUI::Widget* /*sender*/)
     {
         auto& shadowSettings = Settings::shadows();
@@ -1071,6 +1158,7 @@ namespace MWGui
     {
         center();
         layoutDialogueColourControls();
+        layoutMessagePositionControls();
         highlightCurrentResolution();
     }
 
@@ -1407,6 +1495,7 @@ namespace MWGui
         updateVSyncModeSettings();
         updateJournalSettings();
         updateDialogueColourSettings();
+        updateMessagePositionSettings();
         resetScrollbars();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
@@ -1424,6 +1513,7 @@ namespace MWGui
     {
         layoutControlsBox();
         layoutDialogueColourControls();
+        layoutMessagePositionControls();
     }
 
     void SettingsWindow::computeMinimumWindowSize()
@@ -1431,12 +1521,12 @@ namespace MWGui
         auto* window = mMainWidget->castType<MyGUI::Window>();
         auto minSize = window->getMinSize();
 
-        // Preserve the existing layout's minimum width. The native colour tab
-        // can use the tab bar's overflow arrows instead of widening the window.
+        // Preserve the existing layout's minimum width. Native colour and message
+        // tabs can use the tab bar's overflow arrows instead of widening the window.
         int tabBarWidth = 0;
         for (uint32_t i = 0; i < mSettingsTab->getItemCount(); i++)
         {
-            if (mSettingsTab->getItemAt(i) != mDialogueColourTab)
+            if (mSettingsTab->getItemAt(i) != mDialogueColourTab && mSettingsTab->getItemAt(i) != mMessagePositionTab)
                 tabBarWidth += mSettingsTab->getButtonWidthAt(i);
         }
 
@@ -1460,6 +1550,8 @@ namespace MWGui
         mControlsBox->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mDialogueColourControls.mView)
             mDialogueColourControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mMessagePositionControls.mView)
+            mMessagePositionControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
     }
 
     bool SettingsWindow::onControllerButtonEvent(const SDL_ControllerButtonEvent& arg)

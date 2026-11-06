@@ -369,5 +369,70 @@ namespace Settings
             EXPECT_EQ(values.mGUI.mFontSize.get(), globalFontSize);
             EXPECT_EQ(values.mGUI.mScalingFactor.get(), globalScale);
         }
+
+        TEST_F(SettingsValuesTest, messagePositionLoadsSavedValuesAndResetsToOriginalPosition)
+        {
+            Index index;
+            Values defaultValues(index);
+            EXPECT_EQ(defaultValues.mGUI.mMessageBoxPosition.get(), 7);
+            EXPECT_EQ(defaultValues.mGUI.mMessageBoxHorizontalOffset.get(), 0);
+            EXPECT_EQ(defaultValues.mGUI.mMessageBoxVerticalOffset.get(), 0);
+            Manager::mUserSettings[{ "GUI", "message box position" }] = "1";
+            Manager::mUserSettings[{ "GUI", "message box horizontal offset" }] = "125";
+            Manager::mUserSettings[{ "GUI", "message box vertical offset" }] = "-80";
+            Values values(std::move(defaultValues));
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 1);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), 125);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), -80);
+            values.mGUI.mMessageBoxPosition.reset();
+            values.mGUI.mMessageBoxHorizontalOffset.reset();
+            values.mGUI.mMessageBoxVerticalOffset.reset();
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 7);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), 0);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), 0);
+        }
+
+        TEST_F(SettingsValuesTest, messagePositionRoundTripsWithoutChangingOtherInterfaceSettings)
+        {
+            const auto path = TestingOpenMW::outputFilePath("message-position-settings.cfg");
+            {
+                Index index;
+                Values values(index);
+                values.mGUI.mMessageBoxPosition.set(1);
+                values.mGUI.mMessageBoxHorizontalOffset.set(-123);
+                values.mGUI.mMessageBoxVerticalOffset.set(87);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 1);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), -123);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), 87);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_TRUE(values.mGUI.mDialogueColouring.get());
+            EXPECT_EQ(values.mGUI.mFontSize.get(), 16);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), 1.f);
+        }
+
+        TEST_F(SettingsValuesTest, messagePositionSanitizesSavedValuesWithoutRejectingOldSettings)
+        {
+            Manager::mUserSettings[{ "GUI", "message box position" }] = "999";
+            Manager::mUserSettings[{ "GUI", "message box horizontal offset" }] = "-99999";
+            Manager::mUserSettings[{ "GUI", "message box vertical offset" }] = "99999";
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 7);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), -1000);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), 1000);
+            for (int anchor = 0; anchor < 9; ++anchor)
+            {
+                values.mGUI.mMessageBoxPosition.set(anchor);
+                EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), anchor);
+            }
+        }
     }
 }
