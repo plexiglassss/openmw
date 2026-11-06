@@ -47,8 +47,8 @@ viewing distance, resolution, shadow-map size and other settings.
 `bounds` is OpenMW's default shadow coverage method. It reduces CPU work compared with the
 captured `primitives` setting, with less precise shadow coverage. Shadows stay enabled.
 
-To undo the preset, use `Apply-Settings.ps1 -RestoreBackup <backup-folder>` while the game
-is closed. It restores exact original bytes only if settings have not changed since the
+To undo the preset, close the game, open a terminal in `Gameplay_Settings`, and run
+`.\Apply-Settings.cmd -RestoreBackup "<printed backup folder>"`. It restores exact original bytes only if settings have not changed since the
 preset. If you have made later settings edits, keep those edits and set cache duration to
 `0` and shadow bounds back to `primitives` manually.
 
