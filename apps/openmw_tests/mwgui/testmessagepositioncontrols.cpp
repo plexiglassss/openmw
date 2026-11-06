@@ -407,6 +407,7 @@ namespace MWGui
             EXPECT_GT(canvas.height, view.height);
             mControls.mView->setViewOffset({ view.width - canvas.width, view.height - canvas.height });
             const auto offset = mControls.mView->getViewOffset();
+            EXPECT_EQ(offset, MyGUI::IntPoint(view.width - canvas.width, view.height - canvas.height));
             EXPECT_LT(offset.left, 0);
             EXPECT_LT(offset.top, 0);
             EXPECT_GE(mControls.mHint->getTop() + offset.top, 0);

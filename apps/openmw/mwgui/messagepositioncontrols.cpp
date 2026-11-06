@@ -199,6 +199,10 @@ namespace MWGui
                 break;
             width = clientWidth;
         }
+        // Recompute ranges after both scrollbar visibility states have settled.
+        // MyGUI 3.4 can otherwise retain the viewport height from before the
+        // horizontal bar appeared, leaving the bottom of the form unreachable.
+        controls.mView->setCanvasSize(controls.mContent->getSize());
         controls.mView->setViewOffset(offset);
     }
 }
