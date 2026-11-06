@@ -1,13 +1,13 @@
-name: OpenMW - shrine tooltip support (Windows)
+name: OpenMW - gameplay responsiveness (Windows)
 on:
   push:
-    branches: [feature/shrine-tooltips-20261105]
+    branches: [perf/gameplay-activation-20261106]
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: shrine-tooltips-${{ github.ref }}
+  group: gameplay-responsiveness-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   Windows:
@@ -23,6 +23,8 @@ jobs:
       SCCACHE_IDLE_TIMEOUT: "0"
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 32
       - name: Verify feature scope and accepted baseline
         shell: pwsh
         run: |
@@ -39,8 +41,32 @@ jobs:
           Copy-Item preservation-baseline/dialogue-colours-source-manifest.json ./
           git worktree remove --force preservation-baseline
           if ($LASTEXITCODE) { throw 'Cannot remove temporary verification worktree' }
-          python custom/shrine-tooltips/verify-source.py
-          if ($LASTEXITCODE) { throw 'Shrine tooltip source scope or preservation verification failed' }
+          git fetch --no-tags --depth=1 origin 1b78b9c1a566b91bbe1576387842625f3ae509d1
+          if ($LASTEXITCODE) { throw 'Cannot recover delivered shrine tooltip engine baseline' }
+          git worktree add --detach preservation-shrine 1b78b9c1a566b91bbe1576387842625f3ae509d1
+          if ($LASTEXITCODE) { throw 'Cannot prepare shrine preservation verification' }
+          python preservation-shrine/custom/shrine-tooltips/verify-source.py
+          if ($LASTEXITCODE) { throw 'Preserved shrine tooltip baseline failed verification' }
+          Copy-Item preservation-shrine/shrine-tooltips-source-manifest.json ./
+          git worktree remove --force preservation-shrine
+          if ($LASTEXITCODE) { throw 'Cannot remove temporary shrine verification worktree' }
+          python custom/gameplay-responsiveness/verify-source.py
+          if ($LASTEXITCODE) { throw 'Gameplay source scope or preservation verification failed' }
+      - name: Test script installer preflight and rollback on authored fixtures
+        shell: powershell
+        run: |
+          ./custom/gameplay-responsiveness/Test-Installer.ps1 -InstallerScript ./custom/gameplay-responsiveness/Install-Fix.ps1 -WrapperScript ./custom/gameplay-responsiveness/Install-All.ps1 -TestRoot ./installer-fixtures -ReportPath ./gameplay-installer-tests.json
+          if ($LASTEXITCODE) { throw 'Script installer regression tests failed' }
+      - name: Test settings editing and rollback in Windows PowerShell
+        shell: powershell
+        run: |
+          ./custom/gameplay-responsiveness/Test-Settings.ps1
+          if ($LASTEXITCODE) { throw 'Windows PowerShell settings tests failed' }
+      - name: Test settings editing and rollback in PowerShell 7
+        shell: pwsh
+        run: |
+          ./custom/gameplay-responsiveness/Test-Settings.ps1
+          if ($LASTEXITCODE) { throw 'PowerShell 7 settings tests failed' }
       - uses: ilammy/msvc-dev-cmd@v1
       - uses: seanmiddleditch/gha-setup-ninja@master
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
@@ -105,6 +131,13 @@ jobs:
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Compile Lua cache change and lifecycle tests first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/lua/scripttracker.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
       - name: Compile lookup change first
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
@@ -184,21 +217,25 @@ jobs:
           Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
           Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
+          Copy-Item custom/gameplay-responsiveness/README.md install/GAMEPLAY-RESPONSIVENESS.md
+          Copy-Item gameplay-responsiveness-source-manifest.json install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ github.sha }}`nPreserved engine baseline 528bffb348872a964d25c092fa5dd574c1b7f673`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
+          "Commit ${{ github.sha }}`nPreserved cumulative engine baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nGameplay changes: gameplay-responsiveness-source-manifest.json`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-shrine-tooltips-windows-${{ github.sha }}
+          name: openmw-gameplay-responsiveness-windows-${{ github.sha }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: shrine-tooltips-evidence-${{ github.sha }}
+          name: gameplay-responsiveness-evidence-${{ github.sha }}
           path: |
+            gameplay-installer-tests.json
+            gameplay-responsiveness-source-manifest.json
             shrine-tooltips-source-manifest.json
             dialogue-colours-source-manifest.json
             components-tests.xml
