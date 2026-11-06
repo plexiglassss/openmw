@@ -108,6 +108,8 @@ namespace MWLua
 
     LuaManager::LuaManager(const VFS::Manager* vfs, const std::filesystem::path& libsDir)
         : mLua(vfs, &mConfiguration, createLuaStateSettings())
+        , mScriptTracker(Settings::lua().mInactiveScriptCacheDuration,
+              Settings::lua().mInactiveScriptCacheMemoryThreshold)
     {
         Log(Debug::Info) << "Lua version: " << LuaUtil::getLuaVersion();
         mLua.addInternalLibSearchPath(libsDir);
@@ -303,7 +305,7 @@ namespace MWLua
                 mActiveLocalScripts, [&](LocalScripts* scripts) { scripts->update(isPaused ? 0 : frameDuration); });
             mGlobalScripts.update(isPaused ? 0 : frameDuration);
 
-            mScriptTracker.unloadInactiveScripts(lua);
+            mScriptTracker.unloadInactiveScripts(lua, frameDuration);
         });
     }
 

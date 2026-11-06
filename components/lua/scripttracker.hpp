@@ -1,6 +1,7 @@
 #ifndef COMPONENTS_LUA_SCRIPTTRACKER_H
 #define COMPONENTS_LUA_SCRIPTTRACKER_H
 
+#include <cstdint>
 #include <memory>
 #include <queue>
 #include <utility>
@@ -12,12 +13,25 @@ namespace LuaUtil
     class ScriptTracker
     {
         using Frame = unsigned int;
-        using TrackedScriptContainer = std::pair<ScriptsContainerWeakPtr, Frame>;
+        struct TrackedScriptContainer
+        {
+            ScriptsContainerWeakPtr mPtr;
+            Frame mTtl;
+            double mRetainUntil;
+        };
         std::queue<TrackedScriptContainer> mLoadedScripts;
         Frame mFrame = 0;
+        double mElapsedSeconds = 0;
+        double mInactiveCacheDuration;
+        std::uint64_t mCacheMemoryThreshold;
 
     public:
-        void unloadInactiveScripts(LuaView& lua);
+        // The threshold applies to total Lua memory. It is an eviction trigger, not a hard memory cap.
+        // A zero duration or threshold preserves the ordinary frame-based unloading policy.
+        explicit ScriptTracker(double inactiveCacheDuration = 0,
+            std::uint64_t cacheMemoryThreshold = std::uint64_t{ 2 } * 1024 * 1024 * 1024);
+
+        void unloadInactiveScripts(LuaView& lua, double frameDuration = 0);
 
         void onLoad(ScriptsContainer& container);
 

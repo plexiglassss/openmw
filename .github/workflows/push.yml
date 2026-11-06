@@ -1,20 +1,21 @@
-name: OpenMW - message position settings (Windows)
+name: OpenMW - cumulative Windows engine and preserved tools
 on:
   pull_request:
-    branches: [feature/shrine-tooltips-20261105]
+    branches: [perf/gameplay-activation-20261106]
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+env:
+  CUMULATIVE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: message-position-${{ github.event.pull_request.number || github.ref }}
+  group: cumulative-windows-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   Windows:
     runs-on: windows-2022
     env:
-      FEATURE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       # Keep tracked bytes identical to the verified source on Windows too.
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: core.autocrlf
@@ -26,34 +27,62 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ env.FEATURE_COMMIT }}
-      - name: Verify feature scope and accepted baseline
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+          fetch-depth: 100
+      - name: Verify historical source gates and complete cumulative source
         shell: pwsh
         run: |
-          git fetch --no-tags --depth=1 origin cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0
-          if ($LASTEXITCODE) { throw 'Cannot recover delivered journal engine source' }
-          git fetch --no-tags --depth=1 origin b34db5770f947b0f5b90dc699627c2ccdae12f16
-          if ($LASTEXITCODE) { throw 'Cannot recover delivered dialogue-colour engine source' }
-          git fetch --no-tags --depth=1 origin 528bffb348872a964d25c092fa5dd574c1b7f673
-          if ($LASTEXITCODE) { throw 'Cannot recover current dialogue topics/settings engine baseline' }
-          git worktree add --detach preservation-baseline 528bffb348872a964d25c092fa5dd574c1b7f673
-          if ($LASTEXITCODE) { throw 'Cannot prepare preserved engine source verification' }
-          python preservation-baseline/custom/dialogue-colours/verify-source.py
-          if ($LASTEXITCODE) { throw 'Preserved dialogue/journal baseline failed verification' }
-          Copy-Item preservation-baseline/dialogue-colours-source-manifest.json ./
-          git worktree remove --force preservation-baseline
-          if ($LASTEXITCODE) { throw 'Cannot remove temporary verification worktree' }
-          git fetch --no-tags --depth=1 origin 1b78b9c1a566b91bbe1576387842625f3ae509d1
-          if ($LASTEXITCODE) { throw 'Cannot recover cumulative shrine engine baseline' }
-          git worktree add --detach preservation-shrine 1b78b9c1a566b91bbe1576387842625f3ae509d1
-          if ($LASTEXITCODE) { throw 'Cannot prepare shrine preservation check' }
-          python preservation-shrine/custom/shrine-tooltips/verify-source.py
-          if ($LASTEXITCODE) { throw 'Preserved shrine tooltip baseline failed verification' }
-          Copy-Item preservation-shrine/shrine-tooltips-source-manifest.json ./
-          git worktree remove --force preservation-shrine
-          if ($LASTEXITCODE) { throw 'Cannot remove shrine verification worktree' }
-          python custom/message-position/verify-source.py
-          if ($LASTEXITCODE) { throw 'Message position scope or preservation verification failed' }
+          $commits = @(
+            'cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0',
+            'b34db5770f947b0f5b90dc699627c2ccdae12f16',
+            '528bffb348872a964d25c092fa5dd574c1b7f673',
+            '1b78b9c1a566b91bbe1576387842625f3ae509d1',
+            '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0',
+            'caeede91ff424d63b398737eb0220dea29058981',
+            '541a1e13cfcdac0c1101c08a465ea2c61ab951e4',
+            '5a446619744f2b07eb5efecef75c048ad09d046b',
+            'ba5c0bb03bb13604adf61781b8afb0d63ea231f0',
+            '80ce5372258b3cffd972dbdd2565d80e940b9351'
+          )
+          foreach ($commit in $commits) {
+            git fetch --no-tags --depth=100 origin $commit
+            if ($LASTEXITCODE) { throw "Cannot recover preserved source $commit" }
+          }
+          $gates = @(
+            @{ Path = 'preservation-dialogue'; Commit = '528bffb348872a964d25c092fa5dd574c1b7f673'; Script = 'custom/dialogue-colours/verify-source.py'; Manifest = 'dialogue-colours-source-manifest.json' },
+            @{ Path = 'preservation-shrine'; Commit = '1b78b9c1a566b91bbe1576387842625f3ae509d1'; Script = 'custom/shrine-tooltips/verify-source.py'; Manifest = 'shrine-tooltips-source-manifest.json' },
+            @{ Path = 'preservation-gameplay'; Commit = '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0'; Script = 'custom/gameplay-responsiveness/verify-source.py'; Manifest = 'gameplay-responsiveness-source-manifest.json' },
+            @{ Path = 'preservation-message'; Commit = 'caeede91ff424d63b398737eb0220dea29058981'; Script = 'custom/message-position/verify-source.py'; Manifest = 'message-position-source-manifest.json' }
+          )
+          foreach ($gate in $gates) {
+            git worktree add --detach $gate.Path $gate.Commit
+            if ($LASTEXITCODE) { throw "Cannot prepare $($gate.Path)" }
+            try {
+              python "$($gate.Path)/$($gate.Script)"
+              if ($LASTEXITCODE) { throw "Preserved source gate failed: $($gate.Path)" }
+              Copy-Item "$($gate.Path)/$($gate.Manifest)" ./
+            } finally {
+              git worktree remove --force $gate.Path
+              if ($LASTEXITCODE) { throw "Cannot remove $($gate.Path)" }
+            }
+          }
+          python custom/cumulative/verify-source.py
+          if ($LASTEXITCODE) { throw 'Cumulative source union or parent ancestry verification failed' }
+      - name: Test script installer preflight and rollback on authored fixtures
+        shell: powershell
+        run: |
+          ./custom/gameplay-responsiveness/Test-Installer.ps1 -InstallerScript ./custom/gameplay-responsiveness/Install-Fix.ps1 -WrapperScript ./custom/gameplay-responsiveness/Install-All.ps1 -TestRoot ./installer-fixtures -ReportPath ./gameplay-installer-tests.json
+          if ($LASTEXITCODE) { throw 'Script installer regression tests failed' }
+      - name: Test settings editing and rollback in Windows PowerShell
+        shell: powershell
+        run: |
+          ./custom/gameplay-responsiveness/Test-Settings.ps1
+          if ($LASTEXITCODE) { throw 'Windows PowerShell settings tests failed' }
+      - name: Test settings editing and rollback in PowerShell 7
+        shell: pwsh
+        run: |
+          ./custom/gameplay-responsiveness/Test-Settings.ps1
+          if ($LASTEXITCODE) { throw 'PowerShell 7 settings tests failed' }
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Test notification placement before compiling the engine
         shell: pwsh
@@ -73,6 +102,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
           python custom/loading-repair/check-integration.py
           if ($LASTEXITCODE) { throw 'Waiting-stage rollback/source validation failed' }
+          python custom/cumulative/verify-source.py --after-lookup
+          if ($LASTEXITCODE) { throw 'Final compiled source differs from the verified cumulative union' }
           git diff --check
           if ($LASTEXITCODE) { throw 'Invalid source diff' }
           git diff --binary --output=loading-repair-applied.patch -- apps/
@@ -125,6 +156,13 @@ jobs:
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Compile Lua cache change and lifecycle tests first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/lua/scripttracker.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
       - name: Compile lookup change first
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
@@ -134,7 +172,6 @@ jobs:
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagebox.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagepositioncontrols.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/uibindings.cpp.obj
@@ -189,7 +226,8 @@ jobs:
               $env:OPENMW_CELL_ID_INDEX = $mode[0]
               $env:OPENMW_WORLD_CELL_INDEX = $mode[1]
               $env:OPENMW_WORLD_CELL_CANDIDATES = $mode[2]
-              ./build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.*
+              $label = $mode -join '-'
+              ./build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.* "--gtest_output=xml:lookup-$label.xml"
               if ($LASTEXITCODE) { throw "Lookup configuration failed: $mode" }
             }
           } finally {
@@ -207,25 +245,39 @@ jobs:
           Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
           Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
+          Copy-Item custom/gameplay-responsiveness/README.md install/GAMEPLAY-RESPONSIVENESS.md
+          Copy-Item gameplay-responsiveness-source-manifest.json install/
           Copy-Item custom/message-position/README.md install/MESSAGE-POSITION.md
+          Copy-Item custom/cumulative/README.md install/CUMULATIVE-UPGRADE.md
           Copy-Item message-position-source-manifest.json,message-position-tests.txt install/
+          Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json install/
+          Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.FEATURE_COMMIT }}`nPreserved engine baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nMessage position settings: message-position-source-manifest.json`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCumulative source union: cumulative-source-manifest.json`nCompiled source after lookup patch: cumulative-build-source-manifest.json`nPreserved accepted baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nHistorical feature source manifests retain their original commits`nNative tests use the CI Lua runtime; preserved custom runtime and gameplay remain untested`nEngine overlay omits existing Lua pair, FG proxy and user configuration" | Set-Content install/CI-ID.txt
+          python custom/cumulative/prepare-upgrade.py install
+          if ($LASTEXITCODE) { throw 'Upgrade defaults or preservation exclusions failed' }
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-message-position-windows-${{ env.FEATURE_COMMIT }}
+          name: openmw-cumulative-windows-upgrade-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: message-position-evidence-${{ env.FEATURE_COMMIT }}
+          name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
+            gameplay-installer-tests.json
+            cumulative-source-manifest.json
+            cumulative-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
+            lookup-*.xml
+            install/UPGRADE-PRESERVATION.json
+            install/verification/CI-PACKAGE-SHA256.json
+            gameplay-responsiveness-source-manifest.json
             shrine-tooltips-source-manifest.json
             dialogue-colours-source-manifest.json
             components-tests.xml
@@ -236,3 +288,162 @@ jobs:
             build/CMakeCache.txt
             build/**/*.log
             build/compile_commands.json
+
+  GLRegression:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Install headless GL test dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl1 libgl1-mesa-dri g++
+      - name: Reproduce and verify loading progress and framebuffer retention
+        run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
+  FrameGeneration:
+    needs: GLRegression
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure and build modified Frame Generation
+        shell: pwsh
+        run: |
+          cmake -S custom/frame-generation -B fg-build -A x64 -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          if ($LASTEXITCODE) { throw "FG configure failed" }
+          cmake --build fg-build --config Release --parallel
+          if ($LASTEXITCODE) { throw "FG build failed" }
+      - name: Verify DLL and assemble install package with source
+        shell: pwsh
+        run: |
+          cl /nologo /EHsc custom/frame-generation/tests/proxy_smoke.cpp /Fe:fg-proxy-test.exe
+          if ($LASTEXITCODE) { throw "Smoke test compile failed" }
+          ./fg-proxy-test.exe "$PWD/fg-build/Release/version.dll"
+          if ($LASTEXITCODE) { throw "DLL load/export forwarding test failed" }
+          New-Item -ItemType Directory -Force fg-package/source | Out-Null
+          Copy-Item fg-build/Release/version.dll fg-package/
+          Copy-Item custom/frame-generation/openmw_fg.ini fg-package/openmw_fg.example.ini
+          Copy-Item custom/frame-generation/INSTALL-CUSTOM.txt fg-package/README.txt
+          Copy-Item custom/frame-generation/PATCH_NOTES.txt fg-package/
+          Copy-Item custom/frame-generation/LICENSE fg-package/
+          Copy-Item custom/frame-generation/LOADING-CONTINUITY-AUDIT.md fg-package/
+          Copy-Item custom/frame-generation/LOADING-PROGRESS-REPAIR.md fg-package/
+          Copy-Item custom/frame-generation/SHUTDOWN-REPAIR.md fg-package/
+          Copy-Item custom/frame-generation/* fg-package/source/ -Recurse
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nRun ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`n" | Set-Content fg-package/BUILD-ID.txt
+          Get-FileHash fg-package/version.dll -Algorithm SHA256 | Format-List | Out-File fg-package/SHA256.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cumulative-frame-generation-validation-${{ env.CUMULATIVE_COMMIT }}
+          path: fg-package/
+          if-no-files-found: error
+
+  HistoricalInstallerTools:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Test authored installer with dummy files on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/gameplay-fix-installer/Test-Installer.ps1 -InstallerScript ./custom/gameplay-fix-installer/Install-Fix.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW installer checks" -ReportPath "$env:GITHUB_WORKSPACE\installer-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-fix-installer-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            installer-test-report.json
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.json
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.stderr.txt
+            ${{ runner.temp }}/OpenMW installer checks/**/receipt.json
+          if-no-files-found: error
+
+  GameplaySourceCollector:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Test read-only collector with authored dummy files on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/gameplay-source-collector/Test-Collector.ps1 -CollectorScript ./custom/gameplay-source-collector/Collect-Sources.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW collector checks" -ReportPath "$env:GITHUB_WORKSPACE\collector-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-source-collector-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            collector-test-report.json
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.json
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.stderr.txt
+          if-no-files-found: error
+
+  PerformanceCaptureFollowup:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Check only changed collection functions and dummy installer orchestration
+        shell: powershell
+        run: |
+          & ./custom/performance-capture-followup/Test-CaptureFollowup.ps1 -CaptureScript ./custom/performance-capture-followup/Start-Capture.ps1 -InstallWrapper ./custom/performance-capture-followup/Install-All.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW followup checks" -ReportPath "$env:GITHUB_WORKSPACE\followup-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-capture-followup-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            followup-test-report.json
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.json
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.stdout.txt
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.stderr.txt
+          if-no-files-found: error
+
+  PerformanceCapture:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Exercise collector on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/performance-capture/Test-Capture.ps1 -CaptureScript ./custom/performance-capture/Start-Capture.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW capture smoke" -ReportPath "$env:GITHUB_WORKSPACE\capture-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-capture-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            capture-test-report.json
+            ${{ runner.temp }}/OpenMW capture smoke/captures/**/session.json
+            ${{ runner.temp }}/OpenMW capture smoke/captures/**/trace-validation.json
+            ${{ runner.temp }}/OpenMW capture smoke/captures/**/warnings.json
+          if-no-files-found: error
