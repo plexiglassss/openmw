@@ -7,6 +7,7 @@
 #include <array>
 
 #include "dialoguecolourcontrols.hpp"
+#include "messagepositioncontrols.hpp"
 #include "windowbase.hpp"
 
 namespace MWGui
@@ -77,6 +78,10 @@ namespace MWGui
         DialogueColourControls mDialogueColourControls;
         bool mUpdatingDialogueColours = false;
 
+        MyGUI::TabItem* mMessagePositionTab = nullptr;
+        MessagePositionControls mMessagePositionControls;
+        bool mUpdatingMessagePosition = false;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
@@ -133,6 +138,14 @@ namespace MWGui
         void onDialogueColourRoleChanged(MyGUI::ComboBox* sender, size_t pos);
         void onDialogueColourChanged(MyGUI::ScrollBar* sender, size_t pos);
         void onDialogueColourReset(MyGUI::Widget* sender);
+
+        void initialiseMessagePositionControls();
+        void layoutMessagePositionControls();
+        void updateMessagePositionSettings();
+        void onMessagePositionChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onMessagePositionOffsetChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onMessagePositionReset(MyGUI::Widget* sender);
+        void onMessagePositionTest(MyGUI::Widget* sender);
 
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);

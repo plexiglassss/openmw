@@ -1,4 +1,5 @@
 #include "messagebox.hpp"
+#include "messageboxposition.hpp"
 
 #include <MyGUI_Button.h>
 #include <MyGUI_EditBox.h>
@@ -79,14 +80,7 @@ namespace MWGui
                 ++it;
         }
 
-        float height = 0;
-        auto it = mMessageBoxes.begin();
-        while (it != mMessageBoxes.end())
-        {
-            (*it)->update(static_cast<int>(height));
-            height += (*it)->getHeight();
-            ++it;
-        }
+        updateMessageBoxes();
 
         if (mInterMessageBoxe != nullptr && mInterMessageBoxe->mMarkedToDelete)
         {
@@ -118,11 +112,28 @@ namespace MWGui
             mMessageBoxes.erase(mMessageBoxes.begin());
         }
 
-        int height = 0;
+        updateMessageBoxes();
+    }
+
+    void MessageBoxManager::updateMessageBoxes()
+    {
+        if (mMessageBoxes.empty())
+            return;
+
+        int stackHeight = 0;
+        for (const auto& messageBox : mMessageBoxes)
+            stackHeight += messageBox->getHeight();
+        // getHeight includes the gap after each box; there is no trailing gap
+        // in the stack's visual bounds.
+        stackHeight -= MessageBoxGap;
+
+        const auto& settings = Settings::gui();
+        int precedingHeight = 0;
         for (const auto& messageBox : mMessageBoxes)
         {
-            messageBox->update(height);
-            height += messageBox->getHeight();
+            messageBox->update(precedingHeight, stackHeight, settings.mMessageBoxPosition,
+                settings.mMessageBoxHorizontalOffset, settings.mMessageBoxVerticalOffset);
+            precedingHeight += messageBox->getHeight();
         }
     }
 
@@ -219,22 +230,21 @@ namespace MWGui
         , mMessage(message)
     {
         // defines
-        mBottomPadding = 48;
-        mNextBoxPadding = 4;
+        mNextBoxPadding = MessageBoxGap;
 
         getWidget(mMessageWidget, "message");
 
         mMessageWidget->setCaptionWithReplacing(mMessage);
     }
 
-    void MessageBox::update(int height)
+    void MessageBox::update(
+        int precedingHeight, int stackHeight, int anchor, int horizontalOffset, int verticalOffset)
     {
-        MyGUI::IntSize gameWindowSize = MyGUI::RenderManager::getInstance().getViewSize();
-        MyGUI::IntPoint pos;
-        pos.left = (gameWindowSize.width - mMainWidget->getWidth()) / 2;
-        pos.top = (gameWindowSize.height - mMainWidget->getHeight() - height - mBottomPadding);
-
-        mMainWidget->setPosition(pos);
+        const MyGUI::IntSize gameWindowSize = MyGUI::RenderManager::getInstance().getViewSize();
+        const MessageBoxPosition pos = getMessageBoxPosition(gameWindowSize.width, gameWindowSize.height,
+            mMainWidget->getWidth(), mMainWidget->getHeight(), stackHeight, precedingHeight, anchor,
+            horizontalOffset, verticalOffset);
+        mMainWidget->setPosition(pos.mLeft, pos.mTop);
     }
 
     int MessageBox::getHeight()

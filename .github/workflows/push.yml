@@ -1,18 +1,20 @@
-name: OpenMW - shrine tooltip support (Windows)
+name: OpenMW - message position settings (Windows)
 on:
-  push:
+  pull_request:
     branches: [feature/shrine-tooltips-20261105]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: shrine-tooltips-${{ github.ref }}
+  group: message-position-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   Windows:
     runs-on: windows-2022
     env:
+      FEATURE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       # Keep tracked bytes identical to the verified source on Windows too.
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: core.autocrlf
@@ -23,6 +25,8 @@ jobs:
       SCCACHE_IDLE_TIMEOUT: "0"
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.FEATURE_COMMIT }}
       - name: Verify feature scope and accepted baseline
         shell: pwsh
         run: |
@@ -39,9 +43,25 @@ jobs:
           Copy-Item preservation-baseline/dialogue-colours-source-manifest.json ./
           git worktree remove --force preservation-baseline
           if ($LASTEXITCODE) { throw 'Cannot remove temporary verification worktree' }
-          python custom/shrine-tooltips/verify-source.py
-          if ($LASTEXITCODE) { throw 'Shrine tooltip source scope or preservation verification failed' }
+          git fetch --no-tags --depth=1 origin 1b78b9c1a566b91bbe1576387842625f3ae509d1
+          if ($LASTEXITCODE) { throw 'Cannot recover cumulative shrine engine baseline' }
+          git worktree add --detach preservation-shrine 1b78b9c1a566b91bbe1576387842625f3ae509d1
+          if ($LASTEXITCODE) { throw 'Cannot prepare shrine preservation check' }
+          python preservation-shrine/custom/shrine-tooltips/verify-source.py
+          if ($LASTEXITCODE) { throw 'Preserved shrine tooltip baseline failed verification' }
+          Copy-Item preservation-shrine/shrine-tooltips-source-manifest.json ./
+          git worktree remove --force preservation-shrine
+          if ($LASTEXITCODE) { throw 'Cannot remove shrine verification worktree' }
+          python custom/message-position/verify-source.py
+          if ($LASTEXITCODE) { throw 'Message position scope or preservation verification failed' }
       - uses: ilammy/msvc-dev-cmd@v1
+      - name: Test notification placement before compiling the engine
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++17 /EHsc /W4 /WX custom/message-position/test-position.cpp /Fe:message-position-tests.exe
+          if ($LASTEXITCODE) { throw 'Notification geometry test compilation failed' }
+          ./message-position-tests.exe | Tee-Object message-position-tests.txt
+          if ($LASTEXITCODE) { throw 'Notification geometry regressions failed' }
       - uses: seanmiddleditch/gha-setup-ninja@master
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
         with:
@@ -108,11 +128,14 @@ jobs:
       - name: Compile lookup change first
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
-      - name: Compile native tooltip bridge first
+      - name: Compile message position and preserved tooltip bridge first
         shell: pwsh
         run: >
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagebox.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagepositioncontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/uibindings.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/interpretercontext.cpp.obj
@@ -184,21 +207,25 @@ jobs:
           Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
           Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
+          Copy-Item custom/message-position/README.md install/MESSAGE-POSITION.md
+          Copy-Item message-position-source-manifest.json,message-position-tests.txt install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ github.sha }}`nPreserved engine baseline 528bffb348872a964d25c092fa5dd574c1b7f673`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.FEATURE_COMMIT }}`nPreserved engine baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nMessage position settings: message-position-source-manifest.json`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-shrine-tooltips-windows-${{ github.sha }}
+          name: openmw-message-position-windows-${{ env.FEATURE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: shrine-tooltips-evidence-${{ github.sha }}
+          name: message-position-evidence-${{ env.FEATURE_COMMIT }}
           path: |
+            message-position-source-manifest.json
+            message-position-tests.txt
             shrine-tooltips-source-manifest.json
             dialogue-colours-source-manifest.json
             components-tests.xml

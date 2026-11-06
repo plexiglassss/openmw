@@ -67,6 +67,8 @@ namespace MWGui
         const std::vector<std::unique_ptr<MessageBox>>& getActiveMessageBoxes() const;
 
     private:
+        void updateMessageBoxes();
+
         std::vector<std::unique_ptr<MessageBox>> mMessageBoxes;
         std::unique_ptr<InteractiveMessageBox> mInterMessageBoxe;
         MessageBoxState mInteractiveState;
@@ -82,7 +84,7 @@ namespace MWGui
         MessageBox(MessageBoxManager& parMessageBoxManager, std::string_view message);
         const std::string& getMessage() { return mMessage; }
         int getHeight();
-        void update(int height);
+        void update(int precedingHeight, int stackHeight, int anchor, int horizontalOffset, int verticalOffset);
         void setVisible(bool value);
 
         float mCurrentTime;
@@ -92,7 +94,6 @@ namespace MWGui
         MessageBoxManager& mMessageBoxManager;
         std::string mMessage;
         MyGUI::EditBox* mMessageWidget;
-        int mBottomPadding;
         int mNextBoxPadding;
     };
 

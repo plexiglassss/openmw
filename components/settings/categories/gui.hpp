@@ -10,10 +10,20 @@
 
 #include <MyGUI_Colour.h>
 
+#include <memory>
 #include <string_view>
 
 namespace Settings
 {
+    struct MessageBoxPositionSanitizer final : Sanitizer<int>
+    {
+        int apply(const int& value) const override
+        {
+            // Invalid numeric values preserve the original bottom-centre position.
+            return value >= 0 && value <= 8 ? value : 7;
+        }
+    };
+
     struct GUICategory : WithIndex
     {
         using WithIndex::WithIndex;
@@ -27,6 +37,12 @@ namespace Settings
         SettingValue<int> mJournalPageNumberFontSize{ mIndex, "GUI", "journal page number font size",
             makeEnumSanitizerInt({ 0, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 }) };
         SettingValue<int> mJournalButtonScale{ mIndex, "GUI", "journal button scale", makeClampSanitizerInt(50, 100) };
+        SettingValue<int> mMessageBoxPosition{ mIndex, "GUI", "message box position", 7,
+            std::make_unique<MessageBoxPositionSanitizer>() };
+        SettingValue<int> mMessageBoxHorizontalOffset{ mIndex, "GUI", "message box horizontal offset", 0,
+            makeClampSanitizerInt(-1000, 1000) };
+        SettingValue<int> mMessageBoxVerticalOffset{ mIndex, "GUI", "message box vertical offset", 0,
+            makeClampSanitizerInt(-1000, 1000) };
         SettingValue<bool> mDialogueColouring{ mIndex, "GUI", "dialogue colouring" };
         SettingValue<bool> mDialogueUseSystemColour{ mIndex, "GUI", "dialogue use system colour" };
         SettingValue<bool> mDialogueClassifyNarration{ mIndex, "GUI", "dialogue classify narration" };
