@@ -2,11 +2,31 @@
   "schema_version": 1,
   "baseline": "1b78b9c1a566b91bbe1576387842625f3ae509d1",
   "sources": [
-    {"name": "message", "head": "caeede91ff424d63b398737eb0220dea29058981", "merge_base": "1b78b9c1a566b91bbe1576387842625f3ae509d1"},
-    {"name": "gameplay_docs", "head": "541a1e13cfcdac0c1101c08a465ea2c61ab951e4", "merge_base": "1b78b9c1a566b91bbe1576387842625f3ae509d1"},
-    {"name": "installer", "head": "5a446619744f2b07eb5efecef75c048ad09d046b", "merge_base": "1b78b9c1a566b91bbe1576387842625f3ae509d1"},
-    {"name": "frame_generation", "head": "ba5c0bb03bb13604adf61781b8afb0d63ea231f0", "merge_base": "cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0"},
-    {"name": "collectors", "head": "80ce5372258b3cffd972dbdd2565d80e940b9351", "merge_base": "528bffb348872a964d25c092fa5dd574c1b7f673"}
+    {
+      "name": "message",
+      "head": "caeede91ff424d63b398737eb0220dea29058981",
+      "merge_base": "1b78b9c1a566b91bbe1576387842625f3ae509d1"
+    },
+    {
+      "name": "gameplay_docs",
+      "head": "541a1e13cfcdac0c1101c08a465ea2c61ab951e4",
+      "merge_base": "1b78b9c1a566b91bbe1576387842625f3ae509d1"
+    },
+    {
+      "name": "installer",
+      "head": "5a446619744f2b07eb5efecef75c048ad09d046b",
+      "merge_base": "1b78b9c1a566b91bbe1576387842625f3ae509d1"
+    },
+    {
+      "name": "frame_generation",
+      "head": "ba5c0bb03bb13604adf61781b8afb0d63ea231f0",
+      "merge_base": "cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0"
+    },
+    {
+      "name": "collectors",
+      "head": "80ce5372258b3cffd972dbdd2565d80e940b9351",
+      "merge_base": "528bffb348872a964d25c092fa5dd574c1b7f673"
+    }
   ],
   "resolutions": {
     "files/settings-default.cfg": {
@@ -15,16 +35,27 @@
       "ours": "gameplay_docs",
       "theirs": "message"
     },
-    "custom/gameplay-responsiveness/README.md": {"kind": "choose", "source": "gameplay_docs"},
-    "custom/gameplay-responsiveness/Install-Fix.ps1": {"kind": "choose", "source": "installer"},
-    "custom/gameplay-responsiveness/Test-Installer.ps1": {"kind": "choose", "source": "installer"}
+    "custom/gameplay-responsiveness/README.md": {
+      "kind": "choose",
+      "source": "gameplay_docs"
+    },
+    "custom/gameplay-responsiveness/Install-Fix.ps1": {
+      "kind": "choose",
+      "source": "installer"
+    },
+    "custom/gameplay-responsiveness/Test-Installer.ps1": {
+      "kind": "choose",
+      "source": "installer"
+    }
   },
   "authored_files": [
     ".github/workflows/push.yml",
     "custom/cumulative/source-plan.json",
     "custom/cumulative/verify-source.py",
     "custom/cumulative/prepare-upgrade.py",
-    "custom/cumulative/README.md"
+    "custom/cumulative/README.md",
+    "custom/cumulative/restore-package.py",
+    "custom/cumulative/check-startup.ps1"
   ],
   "lookup_patch_files": [
     "apps/openmw/mwworld/worldmodel.cpp",

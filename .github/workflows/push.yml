@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   Windows:
+    if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: windows-2022
     env:
       # Keep tracked bytes identical to the verified source on Windows too.
@@ -254,14 +255,16 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCumulative source union: cumulative-source-manifest.json`nCompiled source after lookup patch: cumulative-build-source-manifest.json`nPreserved accepted baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nHistorical feature source manifests retain their original commits`nNative tests use the CI Lua runtime; preserved custom runtime and gameplay remain untested`nEngine overlay omits existing Lua pair, FG proxy and user configuration" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCumulative source union: cumulative-source-manifest.json`nCompiled source after lookup patch: cumulative-build-source-manifest.json`nPreserved accepted baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; custom replacements and gameplay remain untested`nComplete standard engine package includes its bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/cumulative/prepare-upgrade.py install
-          if ($LASTEXITCODE) { throw 'Upgrade defaults or preservation exclusions failed' }
+          if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
+          Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-cumulative-windows-upgrade-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-cumulative-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
@@ -277,6 +280,7 @@ jobs:
             lookup-*.xml
             install/UPGRADE-PRESERVATION.json
             install/verification/CI-PACKAGE-SHA256.json
+            package-startup/**
             gameplay-responsiveness-source-manifest.json
             shrine-tooltips-source-manifest.json
             dialogue-colours-source-manifest.json
@@ -290,6 +294,7 @@ jobs:
             build/compile_commands.json
 
   GLRegression:
+    if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
@@ -300,6 +305,7 @@ jobs:
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
   FrameGeneration:
+    if: github.head_ref != 'fix/windows-package-20261106'
     needs: GLRegression
     runs-on: windows-2022
     steps:
@@ -340,6 +346,7 @@ jobs:
           if-no-files-found: error
 
   HistoricalInstallerTools:
+    if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: windows-2022
     timeout-minutes: 10
     env:
@@ -368,6 +375,7 @@ jobs:
           if-no-files-found: error
 
   GameplaySourceCollector:
+    if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: windows-2022
     timeout-minutes: 10
     env:
@@ -395,6 +403,7 @@ jobs:
           if-no-files-found: error
 
   PerformanceCaptureFollowup:
+    if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: windows-2022
     timeout-minutes: 10
     env:
@@ -422,6 +431,7 @@ jobs:
           if-no-files-found: error
 
   PerformanceCapture:
+    if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: windows-2022
     timeout-minutes: 10
     env:
@@ -446,4 +456,86 @@ jobs:
             ${{ runner.temp }}/OpenMW capture smoke/captures/**/session.json
             ${{ runner.temp }}/OpenMW capture smoke/captures/**/trace-validation.json
             ${{ runner.temp }}/OpenMW capture smoke/captures/**/warnings.json
+          if-no-files-found: error
+
+  RepairPackage:
+    if: github.head_ref == 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+          fetch-depth: 100
+      - name: Download the two exact original CI archives
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $artifacts = @(
+            @{ Id = 13537633072; Run = 42279447874; Commit = '29022d6176d82b9281075cc2189d19b11ebce463';
+               Bytes = 63952619; Sha256 = 'b93a17c47066473232e07460c73eb4077f2df066e5e129f3d6515453a963eb2e'; File = 'current.zip' },
+            @{ Id = 13520058314; Run = 42240697023; Commit = '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0';
+               Bytes = 64186799; Sha256 = '38298fddd7e5c9f0aa53171ac53b97298645055337122626936c0ffed719b917'; File = 'recovery.zip' }
+          )
+          New-Item -ItemType Directory -Path downloads | Out-Null
+          $verified = @()
+          foreach ($artifact in $artifacts) {
+            $uri = "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$($artifact.Id)"
+            $metadata = Invoke-RestMethod -Uri $uri -Headers $headers
+            if ($metadata.id -ne $artifact.Id -or $metadata.workflow_run.id -ne $artifact.Run -or
+                $metadata.workflow_run.head_sha -ne $artifact.Commit -or $metadata.expired -or
+                $metadata.size_in_bytes -ne $artifact.Bytes -or $metadata.digest -ne "sha256:$($artifact.Sha256)") {
+              throw "Unexpected artifact metadata: $($artifact.Id)"
+            }
+            $metadata | ConvertTo-Json -Depth 12 | Set-Content "downloads/$($artifact.Id).metadata.json" -Encoding utf8
+            $destination = "downloads/$($artifact.File)"
+            Invoke-WebRequest -Uri "$uri/zip" -Headers $headers -OutFile $destination
+            $hash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -ne $artifact.Sha256 -or (Get-Item -LiteralPath $destination).Length -ne $artifact.Bytes) {
+              throw "CI archive digest or size mismatch: $($artifact.Id)"
+            }
+            $verified += @{ artifact_id = $artifact.Id; run_id = $artifact.Run; engine_commit = $artifact.Commit;
+                            sha256 = $hash; bytes = $artifact.Bytes; verified = $true }
+          }
+          $verified | ConvertTo-Json -Depth 5 | Set-Content downloads/verification.json -Encoding utf8
+      - name: Restore complete package without rebuilding the engine
+        shell: pwsh
+        run: |
+          python custom/cumulative/restore-package.py --current downloads/current.zip --recovery downloads/recovery.zip --output install
+          if ($LASTEXITCODE) { throw 'Exact original CI file restoration failed' }
+      - name: Exercise real startup and the missing-bootstrap regression
+        shell: pwsh
+        run: |
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup -NegativeControl
+          Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
+          python custom/dialogue-colours/package-manifest.py install
+          if ($LASTEXITCODE) { throw 'Complete package inventory validation failed' }
+      - uses: actions/upload-artifact@v6
+        with:
+          name: openmw-cumulative-windows-complete-29022d6176d82b9281075cc2189d19b11ebce463
+          path: install/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: package-startup-evidence-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            package-startup/**
+            downloads/*.metadata.json
+            downloads/verification.json
+            install/PACKAGE-REPAIR.json
+            install/PACKAGE-SHA256.json
+            install/CI-ID.txt
+            install/verification/CI-PACKAGE-SHA256.json
+            install/verification/original-upgrade/**
           if-no-files-found: error
