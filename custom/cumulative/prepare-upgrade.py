@@ -1,4 +1,4 @@
-"""Prepare only a fresh CI install tree; never run on a user's game directory."""
+"""Verify a complete fresh CI engine package; never edit a user's game directory."""
 from pathlib import Path
 import base64
 import hashlib
@@ -9,7 +9,8 @@ import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PRESERVE = ("lua51.dll", "resources/lua_libs/content.lua", "version.dll", "openmw.cfg", "openmw_fg.ini")
+REQUIRED_RUNTIME = ("openmw.cfg", "lua51.dll", "resources/lua_libs/content.lua")
+OPTIONAL_FRAME_GENERATION = ("version.dll", "openmw_fg.ini")
 
 
 def identity(path):
@@ -33,9 +34,9 @@ def prepare(root, source_root):
     if root == source_root or root != source_root / "install":
         raise ValueError("Only the repository's fresh CI install directory is supported")
     if (root / "UPGRADE-PRESERVATION.json").exists() or (root / "verification/CI-PACKAGE-SHA256.json").exists():
-        raise ValueError("Upgrade tree was already prepared; rebuild the fresh CI install tree")
+        raise ValueError("Package was already prepared; rebuild the fresh CI install tree")
     for name in ("openmw.exe", "openmw-launcher.exe", "defaults.bin", "CI-ID.txt", "components-tests.xml", "openmw-tests.xml",
-                 "cumulative-source-manifest.json", "cumulative-build-source-manifest.json"):
+                 "cumulative-source-manifest.json", "cumulative-build-source-manifest.json", *REQUIRED_RUNTIME):
         if not (root / name).is_file():
             raise ValueError("Missing required CI output: " + name)
     if not (root / "resources").is_dir():
@@ -71,40 +72,30 @@ def prepare(root, source_root):
                 raise ValueError("Case-colliding package files: " + name)
             files[name] = path
     before = {path.relative_to(root).as_posix(): identity(path) for path in files.values()}
-    removed = {}
-    for name in PRESERVE:
-        path = files.get(name.casefold())
-        if path is not None:
-            data = path.read_bytes()
-            removed[name] = {"present_in_ci_install": True, "bytes": len(data),
-                             "sha256": hashlib.sha256(data).hexdigest()}
-        else:
-            removed[name] = {"present_in_ci_install": False}
-    # Validate everything first, then omit only these explicitly protected paths.
-    for name in PRESERVE:
-        path = files.get(name.casefold())
-        if path is not None:
-            path.unlink()
-    present = {p.relative_to(root).as_posix().casefold() for p in root.rglob("*") if p.is_file()}
-    if present & {name.casefold() for name in PRESERVE}:
-        raise ValueError("Protected installed file remains in the upgrade")
+    if set(files) & {name.casefold() for name in OPTIONAL_FRAME_GENERATION}:
+        raise ValueError("Optional frame-generation files must remain in their separate package")
+    # All engine bootstrap/runtime files are required. Keep the complete CI output;
+    # an overlay user's optional custom runtime is an installation decision, not
+    # a reason to remove dependencies from a distributed engine package.
     retained = {path.relative_to(root).as_posix(): identity(path) for path in root.rglob("*") if path.is_file()}
-    expected_retained = {name: row for name, row in before.items() if name.casefold() not in {p.casefold() for p in PRESERVE}}
-    if retained != expected_retained:
-        raise ValueError("A retained CI package file changed during upgrade preparation")
+    if retained != before:
+        raise ValueError("A CI package file changed during package preparation")
     verification = root / "verification/CI-PACKAGE-SHA256.json"
     verification.parent.mkdir(parents=True, exist_ok=True)
     verification.write_text(json.dumps({"commit": commit, "files": before}, indent=2) + "\n")
-    report = {"result": "PASS", "commit": commit, "source_plan_sha256": source_plan_hash,
+    report = {"schema_version": 2, "result": "PASS", "commit": commit, "source_plan_sha256": source_plan_hash,
               "source_manifests": manifests, "native_tests": test_results,
               "original_ci_inventory": {"path": "verification/CI-PACKAGE-SHA256.json", **identity(verification)},
               "retained_ci_file_count": len(retained), "retained_bytes_equal_original_ci": True,
-              "preserved_installed_paths": list(PRESERVE), "omitted_ci_files": removed,
+              "required_runtime_files_included": {name: identity(root / name) for name in REQUIRED_RUNTIME},
+              "omitted_ci_files": {},
+              "optional_frame_generation_files_absent": list(OPTIONAL_FRAME_GENERATION),
               "merged_defaults_sha256": hashlib.sha256(expected).hexdigest(),
               "defaults_decoded_bytes_match_source": True,
-              "test_runtime": "CI dependency LuaJIT; the user's preserved custom Lua DLL/content pair was not tested",
-              "deployment_scope": "Overlay for the existing installation; not a complete fresh installation",
-              "frame_generation": "Proxy built and tested separately; no proxy or FG configuration in this upgrade",
+              "test_runtime": "Bundled CI dependency LuaJIT; custom replacement runtimes were not tested",
+              "deployment_scope": "Complete standard engine package; game assets and optional frame generation are separate",
+              "configuration": "Includes the engine bootstrap openmw.cfg; user modlist configuration is separate",
+              "frame_generation": "Proxy built and tested separately; no proxy or FG configuration in this engine package",
               "in_game_tested": False, "installed": False}
     (root / "UPGRADE-PRESERVATION.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
@@ -112,4 +103,4 @@ def prepare(root, source_root):
 
 if __name__ == "__main__":
     prepare(Path(sys.argv[1]).resolve(), ROOT)
-    print("PASS: exact merged defaults; five installed runtime/configuration paths omitted.")
+    print("PASS: exact merged defaults; complete bootstrap and runtime files retained; no CI files removed.")
