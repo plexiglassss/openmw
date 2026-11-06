@@ -1,248 +1,48 @@
-name: OpenMW - gameplay responsiveness (Windows)
+name: OpenMW - gameplay installer checks (Windows)
 on:
   push:
-    branches: [perf/gameplay-activation-20261106]
+    branches: [tools/gameplay-activation-installer-20261106]
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 concurrency:
-  group: gameplay-responsiveness-${{ github.ref }}
+  group: gameplay-installer-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   Windows:
     runs-on: windows-2022
     env:
-      # Keep tracked bytes identical to the verified source on Windows too.
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: core.autocrlf
       GIT_CONFIG_VALUE_0: "false"
-      SCCACHE_GHA_ENABLED: "on"
-      SCCACHE_GHA_VERSION: openmw-msvc-2022-Release-v1
-      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
-      SCCACHE_IDLE_TIMEOUT: "0"
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 32
-      - name: Verify feature scope and accepted baseline
+          fetch-depth: 16
+      - name: Verify that only installer diagnostics and tests changed
         shell: pwsh
         run: |
-          git fetch --no-tags --depth=1 origin cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0
-          if ($LASTEXITCODE) { throw 'Cannot recover delivered journal engine source' }
-          git fetch --no-tags --depth=1 origin b34db5770f947b0f5b90dc699627c2ccdae12f16
-          if ($LASTEXITCODE) { throw 'Cannot recover delivered dialogue-colour engine source' }
-          git fetch --no-tags --depth=1 origin 528bffb348872a964d25c092fa5dd574c1b7f673
-          if ($LASTEXITCODE) { throw 'Cannot recover current dialogue topics/settings engine baseline' }
-          git worktree add --detach preservation-baseline 528bffb348872a964d25c092fa5dd574c1b7f673
-          if ($LASTEXITCODE) { throw 'Cannot prepare preserved engine source verification' }
-          python preservation-baseline/custom/dialogue-colours/verify-source.py
-          if ($LASTEXITCODE) { throw 'Preserved dialogue/journal baseline failed verification' }
-          Copy-Item preservation-baseline/dialogue-colours-source-manifest.json ./
-          git worktree remove --force preservation-baseline
-          if ($LASTEXITCODE) { throw 'Cannot remove temporary verification worktree' }
-          git fetch --no-tags --depth=1 origin 1b78b9c1a566b91bbe1576387842625f3ae509d1
-          if ($LASTEXITCODE) { throw 'Cannot recover delivered shrine tooltip engine baseline' }
-          git worktree add --detach preservation-shrine 1b78b9c1a566b91bbe1576387842625f3ae509d1
-          if ($LASTEXITCODE) { throw 'Cannot prepare shrine preservation verification' }
-          python preservation-shrine/custom/shrine-tooltips/verify-source.py
-          if ($LASTEXITCODE) { throw 'Preserved shrine tooltip baseline failed verification' }
-          Copy-Item preservation-shrine/shrine-tooltips-source-manifest.json ./
-          git worktree remove --force preservation-shrine
-          if ($LASTEXITCODE) { throw 'Cannot remove temporary shrine verification worktree' }
-          python custom/gameplay-responsiveness/verify-source.py
-          if ($LASTEXITCODE) { throw 'Gameplay source scope or preservation verification failed' }
-      - name: Test script installer preflight and rollback on authored fixtures
+          $base = '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0'
+          $allowed = @('.github/workflows/push.yml', 'custom/gameplay-responsiveness/Install-Fix.ps1', 'custom/gameplay-responsiveness/Test-Installer.ps1')
+          $changed = @(git diff --name-only $base)
+          if ($LASTEXITCODE) { throw 'Cannot compare installer source to the engine build' }
+          foreach ($path in $changed) { if ($path -notin $allowed) { throw "Unexpected source change: $path" } }
+          git diff --check $base
+          if ($LASTEXITCODE) { throw 'Source whitespace validation failed' }
+          git merge-base --is-ancestor $base HEAD
+          if ($LASTEXITCODE) { throw 'The reviewed engine source is not preserved as an ancestor' }
+      - name: Test installer and blocked-source evidence on Windows PowerShell
         shell: powershell
         run: |
           ./custom/gameplay-responsiveness/Test-Installer.ps1 -InstallerScript ./custom/gameplay-responsiveness/Install-Fix.ps1 -WrapperScript ./custom/gameplay-responsiveness/Install-All.ps1 -TestRoot ./installer-fixtures -ReportPath ./gameplay-installer-tests.json
-          if ($LASTEXITCODE) { throw 'Script installer regression tests failed' }
-      - name: Test settings editing and rollback in Windows PowerShell
-        shell: powershell
-        run: |
-          ./custom/gameplay-responsiveness/Test-Settings.ps1
-          if ($LASTEXITCODE) { throw 'Windows PowerShell settings tests failed' }
-      - name: Test settings editing and rollback in PowerShell 7
-        shell: pwsh
-        run: |
-          ./custom/gameplay-responsiveness/Test-Settings.ps1
-          if ($LASTEXITCODE) { throw 'PowerShell 7 settings tests failed' }
-      - uses: ilammy/msvc-dev-cmd@v1
-      - uses: seanmiddleditch/gha-setup-ninja@master
-      - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
-        with:
-          version: v0.18.0
-      - name: Apply lookup-only repair and verify waiting-stage rollback
-        shell: pwsh
-        run: |
-          python custom/loading-repair/apply.py
-          if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
-          python custom/loading-repair/check-integration.py
-          if ($LASTEXITCODE) { throw 'Waiting-stage rollback/source validation failed' }
-          git diff --check
-          if ($LASTEXITCODE) { throw 'Invalid source diff' }
-          git diff --binary --output=loading-repair-applied.patch -- apps/
-      - name: Record dependency versions
-        shell: bash
-        run: sed '/^\s*#/d; /^\s*$/d' CI/deps_versions.msvc.sh >> "$GITHUB_ENV"
-      - name: Download verified dependencies
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force deps, deps/Qt | Out-Null
-          Set-Location deps
-          $manifest = "vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}-manifest.txt"
-          curl --fail --retry 3 -L -o "$manifest" "https://gitlab.com/OpenMW/openmw-deps/-/raw/main/windows/$manifest"
-          if ($LASTEXITCODE) { throw 'Dependency manifest download failed' }
-          $lines = Get-Content "$manifest"
-          $parts = -split $lines[1]
-          curl --fail --retry 3 -L -o "$($parts[1])" "$($lines[0])"
-          if ($LASTEXITCODE) { throw 'Dependency archive download failed' }
-          if ((Get-FileHash $parts[1] -Algorithm SHA512).Hash -ne $parts[0]) { throw 'Dependency hash mismatch' }
-          7z x -y "-ovcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}" $parts[1]
-          if ($LASTEXITCODE) { throw 'Dependency extraction failed' }
-      - uses: actions/cache@v5
-        id: qt-cache
-        with:
-          path: deps/Qt/${{ env.QT_VER }}/msvc2019_64
-          key: qt-cache-${{ env.QT_VER }}-msvc2019_64-v1
-      - name: Download Qt
-        if: steps.qt-cache.outputs.cache-hit != 'true'
-        shell: pwsh
-        working-directory: deps/Qt
-        run: |
-          curl --fail --retry 3 -L -o aqt_x64.exe https://github.com/miurahr/aqtinstall/releases/download/v3.1.15/aqt_x64.exe
-          if ($LASTEXITCODE) { throw 'Qt installer download failed' }
-          ./aqt_x64.exe install-qt windows desktop ${{ env.QT_VER }} win64_msvc2019_64
-          if ($LASTEXITCODE) { throw 'Qt installation failed' }
-      - name: Configure Release build with existing diagnostic cache
-        shell: pwsh
-        run: >
-          cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
-          -D CMAKE_TOOLCHAIN_FILE='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/scripts/buildsystems/vcpkg.cmake'
-          -D CMAKE_PREFIX_PATH='${{ github.workspace }}/deps/Qt/${{ env.QT_VER }}/msvc2019_64'
-          -D CMAKE_CXX_FLAGS_RELEASE="/O2 /Ob2 /DNDEBUG"
-          -D "CMAKE_EXE_LINKER_FLAGS_RELEASE=/DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO"
-          -D LuaJit_INCLUDE_DIR='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/include/luajit'
-          -D LuaJit_LIBRARY='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/lib/lua51.lib'
-          -D BUILD_BENCHMARKS=OFF -D BUILD_COMPONENTS_TESTS=ON -D BUILD_OPENMW_TESTS=ON
-          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=OFF -D BUILD_ESSIMPORTER=OFF -D BUILD_BSATOOL=OFF
-          -D BUILD_ESMTOOL=OFF -D BUILD_NIFTEST=OFF -D BUILD_BULLETOBJECTTOOL=OFF
-          -D OPENMW_USE_SYSTEM_SQLITE3=OFF -D OPENMW_USE_SYSTEM_YAML_CPP=OFF -D OPENMW_LTO_BUILD=ON
-          -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
-          -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
-          -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
-      - name: Compile Lua cache change and lifecycle tests first
-        shell: pwsh
-        run: >
-          cmake --build build --target
-          components/CMakeFiles/components.dir/lua/scripttracker.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
-          apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
-      - name: Compile lookup change first
-        shell: pwsh
-        run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
-      - name: Compile native tooltip bridge first
-        shell: pwsh
-        run: >
-          cmake --build build --target
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagebox.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/uibindings.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/interpretercontext.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/scriptmanagerimp.cpp.obj
-      - name: Compile preserved colour implementation and focused regressions first
-        shell: pwsh
-        run: >
-          cmake --build build --target
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/bookpage.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialogueformatting.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialoguecolourcontrols.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialogue.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalbooks.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalwindow.cpp.obj
-          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
-          components/CMakeFiles/components.dir/widgets/list.cpp.obj
-          components/CMakeFiles/components.dir/widgets/imagebutton.cpp.obj
-          apps/launcher/CMakeFiles/openmw-launcher.dir/settingspage.cpp.obj
-          apps/components_tests/CMakeFiles/components-tests.dir/settings/testvalues.cpp.obj
-          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/test_journaltypography.cpp.obj
-          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialogueformatting.cpp.obj
-          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialoguecolourcontrols.cpp.obj
-          components/CMakeFiles/components.dir/misc/dialoguetext.cpp.obj
-          apps/components_tests/CMakeFiles/components-tests.dir/misc/testdialoguetext.cpp.obj
-      - name: Build engine and regression tests
-        run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
-      - name: Prepare test DLLs
-        shell: pwsh
-        run: |
-          $deps = 'deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/bin'
-          Copy-Item "$deps/Release/MyGUIEngine.dll" build/
-          Copy-Item "$deps/*.dll" build/
-          Get-ChildItem "$deps/osgPlugins-3.6.5" -Filter *.dll -Recurse | Copy-Item -Destination build/
-          $qt = 'deps/Qt/${{ env.QT_VER }}/msvc2019_64'
-          foreach ($dll in 'Core','Gui','Network','OpenGL','OpenGLWidgets','Widgets','Svg') {
-            Copy-Item "$qt/bin/Qt6$dll.dll" build/
-          }
-          foreach ($plugin in 'styles/qwindowsvistastyle.dll','platforms/qwindows.dll','imageformats/qsvg.dll','iconengines/qsvgicon.dll') {
-            New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
-            Copy-Item "$qt/plugins/$plugin" "build/$plugin"
-          }
-      - name: All engine tests and four lookup configurations before packaging
-        shell: pwsh
-        run: |
-          ./build/components-tests.exe --gtest_output=xml:components-tests.xml
-          if ($LASTEXITCODE) { throw 'Component regressions failed' }
-          ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
-          if ($LASTEXITCODE) { throw 'Engine regressions failed' }
-          try {
-            foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
-              $env:OPENMW_CELL_ID_INDEX = $mode[0]
-              $env:OPENMW_WORLD_CELL_INDEX = $mode[1]
-              $env:OPENMW_WORLD_CELL_CANDIDATES = $mode[2]
-              ./build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.*
-              if ($LASTEXITCODE) { throw "Lookup configuration failed: $mode" }
-            }
-          } finally {
-            Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
-          }
-      - name: Package only after test success
-        shell: pwsh
-        run: |
-          cmake --install build --prefix install
-          if ($LASTEXITCODE) { throw 'Installation failed' }
-          Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
-          Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
-          Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
-          Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
-          Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
-          Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
-          Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
-          Copy-Item custom/gameplay-responsiveness/README.md install/GAMEPLAY-RESPONSIVENESS.md
-          Copy-Item gameplay-responsiveness-source-manifest.json install/
-          Copy-Item shrine-tooltips-source-manifest.json install/
-          Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ github.sha }}`nPreserved cumulative engine baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nGameplay changes: gameplay-responsiveness-source-manifest.json`nNative shrine tooltip bridge: shrine-tooltips-source-manifest.json`nBuild-time lookup edits: loading-repair-applied.patch`nPreserved colour source: dialogue-colours-source-manifest.json`nTests: passed before packaging; in-game appearance not tested by CI" | Set-Content install/CI-ID.txt
-          python custom/dialogue-colours/package-manifest.py install
-          if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
-      - uses: actions/upload-artifact@v6
-        with:
-          name: openmw-gameplay-responsiveness-windows-${{ github.sha }}
-          path: install/*
-          if-no-files-found: error
+          if ($LASTEXITCODE) { throw 'Installer regression tests failed' }
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: gameplay-responsiveness-evidence-${{ github.sha }}
+          name: gameplay-installer-tests-${{ github.sha }}
           path: |
             gameplay-installer-tests.json
-            gameplay-responsiveness-source-manifest.json
-            shrine-tooltips-source-manifest.json
-            dialogue-colours-source-manifest.json
-            components-tests.xml
-            openmw-tests.xml
-            install/PACKAGE-SHA256.json
-            loading-repair-source-manifest.json
-            loading-repair-applied.patch
-            build/CMakeCache.txt
-            build/**/*.log
-            build/compile_commands.json
+            custom/gameplay-responsiveness/Install-Fix.ps1
+            custom/gameplay-responsiveness/Install-All.ps1
+            custom/gameplay-responsiveness/Test-Installer.ps1
+          if-no-files-found: error

@@ -18,6 +18,7 @@ $configPaths = @()
 $archivePaths = @()
 $dependencyEvidence = @()
 $definitionInventory = @()
+$contextFailureSources = @()
 $receiptPath = $null
 
 function Stop-Guard([string]$Message) { throw ('GUARD: ' + $Message) }
@@ -69,10 +70,11 @@ function Find-ReadOnlyWinner([string]$Relative) {
     }
     return $null
 }
-function Assert-AllowedDefinition([string]$Name, [string]$Provider, [string]$Prefix, $Allowed) {
+function Assert-AllowedDefinition([string]$Name, [string]$Provider, [string]$Prefix, $Allowed, $FailureSource = $null) {
     $normalized = $Name.Replace('\', '/').ToLowerInvariant()
     if ($normalized.StartsWith($Prefix, [StringComparison]::Ordinal) -and $normalized.EndsWith('.lua', [StringComparison]::Ordinal)) {
         if (-not $Allowed.ContainsKey($normalized)) {
+            if ($null -ne $FailureSource) { $script:contextFailureSources += $FailureSource }
             Stop-Guard ('Unreviewed achievement definition module: ' + $normalized + ' in ' + $Provider + '. The addon needs review before lazy initialization can be installed.')
         }
     }
@@ -106,7 +108,7 @@ function Read-BsaDefinitionNames([string]$Path, [string]$Prefix, $Allowed) {
             $end = [Array]::IndexOf($names, [byte]0, [int]$begin)
             if ($end -lt 0) { Stop-Guard ('BSA name lacks a terminating byte: ' + $Path) }
             $name = $encoding.GetString($names, [int]$begin, ($end - [int]$begin)).Replace('\', '/').ToLowerInvariant()
-            Assert-AllowedDefinition $name $Path $Prefix $Allowed
+            Assert-AllowedDefinition $name $Path $Prefix $Allowed @{ kind = 'archive'; provider = $Path; path = $name; entry_index = $i; directory_size = $directorySize; file_count = $count }
             if ($name.StartsWith($Prefix, [StringComparison]::Ordinal) -and $name.EndsWith('.lua', [StringComparison]::Ordinal)) { $matching += $name }
         }
         $algorithm = [Security.Cryptography.SHA256]::Create()
@@ -156,7 +158,7 @@ function Assert-ReadOnlyContext {
                 }
                 if ($file.Extension -ine '.lua') { continue }
                 $relative = $file.FullName.Substring($base.Length + 1).Replace('\', '/').ToLowerInvariant()
-                Assert-AllowedDefinition $relative $base $prefix $allowed
+                Assert-AllowedDefinition $relative $base $prefix $allowed @{ kind = 'loose'; provider = $file.FullName; path = $relative }
                 $matching += $relative
             }
         }
@@ -168,6 +170,79 @@ function Assert-GameClosed {
     $running = @(Get-Process -Name 'openmw', 'openmw-launcher' -ErrorAction SilentlyContinue)
     if ($running.Count -gt 0) { Stop-Guard 'Close OpenMW and its launcher, then run this installer again.' }
 }
+function Write-ContextSourceEvidence([string]$Folder, $Evidence) {
+    # Capture only the small definition dependencies and the first offending addon.
+    # The failure ZIP remains useful without collecting the rest of the mod list.
+    $sources = @()
+    if ($null -ne $manifest.PSObject.Properties['read_only_dependencies']) {
+        foreach ($dependency in @($manifest.read_only_dependencies)) {
+            $winner = Find-ReadOnlyWinner $dependency.path
+            if ($null -ne $winner) { $sources += @{ kind = 'loose'; provider = $winner; path = $dependency.path } }
+        }
+    }
+    $sources += @($contextFailureSources)
+    $Evidence.context_sources = @()
+    $seen = @{}
+    [long]$limit = 2 * 1024 * 1024
+    foreach ($source in $sources) {
+        $key = $source.kind + '|' + $source.provider + '|' + $source.path
+        if ($seen.ContainsKey($key)) { continue }
+        $seen[$key] = $true
+        $record = [ordered]@{ kind = $source.kind; provider = $source.provider; path = $source.path; status = 'pending'; size_limit_bytes = $limit }
+        $stream = $null; $reader = $null
+        try {
+            if ($Evidence.context_sources.Count -ge 8) { throw 'The bounded source evidence record limit was reached.' }
+            $stream = [IO.File]::Open($source.provider, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
+            $reader = New-Object IO.BinaryReader($stream)
+            if ($source.kind -eq 'archive') {
+                if ($stream.Length -lt 12 -or $reader.ReadUInt32() -ne 0x100) { throw 'Archive header changed before evidence capture.' }
+                [long]$directorySize = $reader.ReadUInt32(); [long]$count = $reader.ReadUInt32()
+                if ($directorySize -ne $source.directory_size -or $count -ne $source.file_count -or
+                    $source.entry_index -lt 0 -or $source.entry_index -ge $count) { throw 'Archive directory changed before evidence capture.' }
+                [void]$stream.Seek((12 + 8 * $source.entry_index), [IO.SeekOrigin]::Begin)
+                [long]$size = $reader.ReadUInt32(); [long]$relativeOffset = $reader.ReadUInt32()
+                [void]$stream.Seek((12 + 8 * $count + 4 * $source.entry_index), [IO.SeekOrigin]::Begin)
+                [long]$nameOffset = $reader.ReadUInt32()
+                [long]$nameStart = 12 + 12 * $count + $nameOffset
+                [long]$nameEnd = 12 + $directorySize
+                if ($nameStart -ge $nameEnd -or $nameEnd -gt $stream.Length) { throw 'Archive member name bounds changed.' }
+                [void]$stream.Seek($nameStart, [IO.SeekOrigin]::Begin)
+                $nameBytes = New-Object System.Collections.Generic.List[byte]
+                $terminated = $false
+                while ($stream.Position -lt $nameEnd -and $nameBytes.Count -le 32768) {
+                    $value = $reader.ReadByte()
+                    if ($value -eq 0) { $terminated = $true; break }
+                    $nameBytes.Add($value)
+                }
+                if (-not $terminated) { throw 'Archive member name is incomplete or too long.' }
+                $name = [Text.Encoding]::GetEncoding(1252).GetString($nameBytes.ToArray()).Replace('\', '/').ToLowerInvariant()
+                if ($name -ne $source.path) { throw 'Archive member identity changed before evidence capture.' }
+                [long]$offset = 12 + $directorySize + 8 * $count + $relativeOffset
+                if ($offset -lt 0 -or ($offset + $size) -gt $stream.Length) { throw 'Archive member payload is outside the archive.' }
+                $record.entry_index = $source.entry_index; $record.offset = $offset; $record.archive_size_bytes = $stream.Length
+                [void]$stream.Seek($offset, [IO.SeekOrigin]::Begin)
+            }
+            else { [long]$size = $stream.Length }
+            $record.size_bytes = $size
+            if ($size -gt $limit) { $record.status = 'omitted_size_limit' }
+            else {
+                $bytes = $reader.ReadBytes([int]$size)
+                if ($bytes.Length -ne $size) { throw 'Source was truncated during evidence capture.' }
+                $copy = 'context-source-{0:D2}.txt' -f $Evidence.context_sources.Count
+                $destination = Join-Path $Folder $copy
+                [IO.File]::WriteAllBytes($destination, $bytes)
+                $record.copy = $copy; $record.sha256 = Get-Sha $destination; $record.status = 'copied'
+            }
+        }
+        catch { $record.status = 'capture_failed'; $record.error = $_.Exception.Message }
+        finally {
+            if ($null -ne $reader) { $reader.Dispose() }
+            elseif ($null -ne $stream) { $stream.Dispose() }
+        }
+        $Evidence.context_sources += $record
+    }
+}
+
 function Write-SourceEvidence([string]$Reason) {
     if ($null -eq $manifest -or $manifest.id -notmatch '^[a-z0-9_-]+$') { return }
     $stamp = (Get-Date -Format 'yyyyMMdd-HHmmss-fff') + '-' + ([Guid]::NewGuid().ToString('N').Substring(0, 6))
@@ -196,6 +271,7 @@ function Write-SourceEvidence([string]$Reason) {
         }
         $evidence.files += $record
     }
+    Write-ContextSourceEvidence $folder $evidence
     Write-Json (Join-Path $folder 'Source-check.json') $evidence
     $zip = $folder + '.zip'
     Add-Type -AssemblyName System.IO.Compression

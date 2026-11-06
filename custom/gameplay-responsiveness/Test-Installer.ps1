@@ -637,6 +637,78 @@ Check 'Rollback remains available after helper, addon, config, and log context c
     Assert-That ((Get-Content -LiteralPath $receipt.FullName -Raw -Encoding UTF8 | ConvertFrom-Json).state -eq 'restored') 'Changed-context restoration was not recorded.'
 }
 
+function Assert-ContextSourceInFailureZip($Fixture, [string]$Relative, [string]$ExpectedHash, [string]$ExpectedKind) {
+    $jsonFiles = @(Get-ChildItem -LiteralPath $Fixture.backup -Recurse -File -Filter 'Source-check.json')
+    Assert-That ($jsonFiles.Count -eq 1) 'Expected one source-check metadata file.'
+    $evidence = Get-Content -LiteralPath $jsonFiles[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    $records = @($evidence.context_sources | Where-Object { $_.path -ieq $Relative -and $_.kind -eq $ExpectedKind })
+    Assert-That ($records.Count -eq 1 -and $records[0].status -eq 'copied') 'The exact mismatching context source was not copied.'
+    $record = $records[0]
+    Assert-That ($record.sha256 -eq $ExpectedHash) 'Context-source hash differs from the offending bytes.'
+    Assert-That ((Get-Sha (Join-Path $jsonFiles[0].DirectoryName $record.copy)) -eq $ExpectedHash) 'Context-source file bytes differ.'
+    $zips = @(Get-ChildItem -LiteralPath $Fixture.backup -Recurse -File -Filter '*.zip')
+    Assert-That ($zips.Count -eq 1) 'Expected one failure evidence archive.'
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zip = [IO.Compression.ZipFile]::OpenRead($zips[0].FullName)
+    try {
+        $entries = @($zip.Entries | Where-Object { $_.FullName.Replace('\', '/').EndsWith('/' + $record.copy, [StringComparison]::Ordinal) })
+        Assert-That ($entries.Count -eq 1) 'Failure ZIP omitted the captured source member.'
+        $stream = $entries[0].Open(); $memory = New-Object IO.MemoryStream
+        try {
+            $stream.CopyTo($memory)
+            $algorithm = [Security.Cryptography.SHA256]::Create()
+            try { $hash = ([BitConverter]::ToString($algorithm.ComputeHash($memory.ToArray()))).Replace('-', '').ToLowerInvariant() }
+            finally { $algorithm.Dispose() }
+            Assert-That ($hash -eq $ExpectedHash) 'The exact failure ZIP source member differs.'
+        }
+        finally { $stream.Dispose(); $memory.Dispose() }
+    }
+    finally { $zip.Dispose() }
+}
+
+Check 'Mismatching helper bytes are present in the generated source-check ZIP' {
+    $f = New-Fixture 'evidence-helper'; Add-DefinitionContext $f
+    $dependency = $f.manifest.read_only_dependencies[0]
+    $file = Join-Path $f.providers[1] $dependency.path
+    Write-Text $file '-- Authored alternative definition loader that needs review'
+    $hash = Get-Sha $file
+    Assert-Exit (Invoke-Installer $f) 2
+    Assert-Bytes $f
+    Assert-ContextSourceInFailureZip $f $dependency.path $hash 'loose'
+}
+Check 'Offending loose addon bytes are present in the generated source-check ZIP' {
+    $f = New-Fixture 'evidence-loose-addon'; Add-DefinitionContext $f
+    $relative = 'scripts/omw_achievements/achievements/review_me.lua'
+    $file = Join-Path $f.providers[1] $relative
+    Write-Text $file '-- Authored addon initializer requiring review'
+    $hash = Get-Sha $file
+    Assert-Exit (Invoke-Installer $f) 2
+    Assert-Bytes $f
+    Assert-ContextSourceInFailureZip $f $relative $hash 'loose'
+}
+Check 'Offending BSA addon is read back as an exact bounded source member in failure ZIP' {
+    $f = New-Fixture 'evidence-archive-addon'; Add-DefinitionContext $f
+    $relative = 'scripts/omw_achievements/achievements/archived_addon.lua'
+    [void](Add-BsaFixture $f @('textures/fixture.dds', $relative))
+    Assert-Exit (Invoke-Installer $f) 2
+    Assert-Bytes $f
+    Assert-ContextSourceInFailureZip $f $relative (Get-TextSha ([string][char]0)) 'archive'
+}
+Check 'Oversized addon evidence is explicitly limited without installing anything' {
+    $f = New-Fixture 'evidence-limit'; Add-DefinitionContext $f
+    $relative = 'scripts/omw_achievements/achievements/large_authored_addon.lua'
+    $path = Join-Path $f.providers[1] $relative
+    [IO.File]::WriteAllBytes($path, (New-Object byte[] (2 * 1024 * 1024 + 1)))
+    Assert-Exit (Invoke-Installer $f) 2
+    Assert-Bytes $f
+    $jsonFiles = @(Get-ChildItem -LiteralPath $f.backup -Recurse -File -Filter 'Source-check.json')
+    $evidence = Get-Content -LiteralPath $jsonFiles[0].FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+    $records = @($evidence.context_sources | Where-Object { $_.path -eq $relative })
+    Assert-That ($records.Count -eq 1 -and $records[0].status -eq 'omitted_size_limit') 'Oversized addon was silently omitted or exceeded the evidence limit.'
+    Assert-That ($null -eq $records[0].PSObject.Properties['copy']) 'Oversized source was copied despite the limit.'
+}
+
 $failures = @($checks | Where-Object { -not $_.passed })
 $report = [ordered]@{
     powershell_version = $PSVersionTable.PSVersion.ToString()
