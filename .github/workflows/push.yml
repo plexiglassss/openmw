@@ -118,6 +118,25 @@ jobs:
           Write-Host "Using $($ninja.Source)"
           & $ninja.Source --version
           if ($LASTEXITCODE) { throw 'The installed Ninja build tool failed its version check' }
+      - name: Prepare the verified compiler cache tool through the release asset API
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'sccache-v0.18.0-windows-x64.tar.gz'
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -o $archive https://api.github.com/repos/mozilla/sccache/releases/assets/563130158
+          if ($LASTEXITCODE) { throw 'Compiler cache release asset download failed' }
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '1a63c1be2beab3f04d27e4cc145443e092e02d3dd83a51030989829d7023091b') {
+            throw 'Compiler cache archive does not match the official release asset digest'
+          }
+          $unpack = Join-Path $env:RUNNER_TEMP 'verified-sccache'
+          New-Item -ItemType Directory -Force $unpack | Out-Null
+          tar -xzf $archive -C $unpack
+          if ($LASTEXITCODE) { throw 'Compiler cache archive extraction failed' }
+          $toolPath = Join-Path $env:RUNNER_TOOL_CACHE 'sccache/0.18.0/x64'
+          New-Item -ItemType Directory -Force $toolPath | Out-Null
+          Copy-Item "$unpack/sccache-v0.18.0-x86_64-pc-windows-msvc/*" $toolPath
+          & "$toolPath/sccache.exe" --version
+          if ($LASTEXITCODE) { throw 'Verified compiler cache executable failed to start' }
+          New-Item -ItemType File -Force "$toolPath.complete" | Out-Null
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
         with:
           version: v0.18.0
@@ -161,8 +180,11 @@ jobs:
         shell: pwsh
         working-directory: deps/Qt
         run: |
-          curl --fail --retry 3 -L -o aqt_x64.exe https://github.com/miurahr/aqtinstall/releases/download/v3.1.15/aqt_x64.exe
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -o aqt_x64.exe https://api.github.com/repos/miurahr/aqtinstall/releases/assets/165924575
           if ($LASTEXITCODE) { throw 'Qt installer download failed' }
+          if ((Get-FileHash aqt_x64.exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'f9e9acc05975f2e70e4935ace76b41882cda4b53eb779c9bcf1d87a95029a6b0') {
+            throw 'Qt installer does not match the verified original v3.1.15 release asset'
+          }
           ./aqt_x64.exe install-qt windows desktop ${{ env.QT_VER }} win64_msvc2019_64
           if ($LASTEXITCODE) { throw 'Qt installation failed' }
       - name: Configure Release build with existing diagnostic cache

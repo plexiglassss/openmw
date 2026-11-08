@@ -11,11 +11,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1a122e80aa8bfdc1f6c974b54d4f1a2f59669aaf"
+        "blob": "0b31c9c1841dace042eb2e26cde3ed8c96f5b643"
       },
-      "bytes": 32434,
-      "sha256": "e355ea6cb6f9ea053f765e5e0ce682f00ef811ab5547a7360304c294b3786c7b",
-      "reason": "Build exact feature source and suites with the preserved cumulative checks and complete resource/package validation; use verified installed Visual Studio Ninja after the former downloader returned an invalid ZIP."
+      "bytes": 34208,
+      "sha256": "239a3ebf15b2e6d771e39680198e41c2908ccdbed6f7434279e5ffdd9dc77040",
+      "reason": "Build and verify the exact feature/cumulative source, native suites and complete package; use installed Ninja and hash-verified original sccache/Qt installer assets through the working release API after browser download URLs failed."
     },
     "apps/openmw/CMakeLists.txt": {
       "before": {
