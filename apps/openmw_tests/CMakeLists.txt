@@ -28,8 +28,10 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testresttime.cpp
     mwgui/testcontinuegame.cpp
     mwgui/testmainmenubutton.cpp
+    mwgui/testluauilayout.cpp
 
     mwlua/testobjectcache.cpp
+    mwlua/testmagicbindings.cpp
 
     mwscript/testscripts.cpp
 

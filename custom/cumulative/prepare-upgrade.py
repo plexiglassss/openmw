@@ -2,6 +2,7 @@
 from pathlib import Path
 import base64
 import hashlib
+import importlib.util
 import json
 import subprocess
 import sys
@@ -30,13 +31,13 @@ def native_tests(path):
     return {**identity(path), "tests": len(cases), "failures": 0, "errors": 0, "disabled": 0, "skipped": 0}
 
 
-def prepare(root, source_root, menu_qol=False, deleveler=False):
+def prepare(root, source_root, menu_qol=False, deleveler=False, town_performance=False):
     if root == source_root or root != source_root / "install":
         raise ValueError("Only the repository's fresh CI install directory is supported")
     if (root / "UPGRADE-PRESERVATION.json").exists() or (root / "verification/CI-PACKAGE-SHA256.json").exists():
         raise ValueError("Package was already prepared; rebuild the fresh CI install tree")
-    prefix = "deleveler" if deleveler else ("menu-qol" if menu_qol else "cumulative")
-    include_menu = menu_qol or deleveler
+    prefix = "town-performance" if town_performance else ("deleveler" if deleveler else ("menu-qol" if menu_qol else "cumulative"))
+    include_menu = menu_qol or deleveler or town_performance
     for name in ("openmw.exe", "openmw-launcher.exe", "defaults.bin", "CI-ID.txt", "components-tests.xml", "openmw-tests.xml",
                  f"{prefix}-source-manifest.json", f"{prefix}-build-source-manifest.json", *REQUIRED_RUNTIME):
         if not (root / name).is_file():
@@ -59,8 +60,36 @@ def prepare(root, source_root, menu_qol=False, deleveler=False):
     historical_manifests = {}
     menu_resources = {}
     deleveler_resources = {}
-    if deleveler:
+    native_layout_parity = {}
+    if town_performance:
         baseline = json.loads(source_plan_path.read_text())["baseline"]
+        historical_plan = subprocess.check_output(
+            ["git", "show", f"{baseline}:custom/deleveler/source-plan.json"], cwd=source_root)
+        historical_plan_hash = hashlib.sha256(historical_plan).hexdigest()
+        for name, phase in (("deleveler-source-manifest.json", "committed_source"),
+                            ("deleveler-build-source-manifest.json", "after_lookup")):
+            data = json.loads((root / name).read_text())
+            if (data.get("result") != "PASS" or data.get("commit") != baseline or data.get("phase") != phase
+                    or data.get("source_plan_sha256") != historical_plan_hash
+                    or data.get("accepted_heads_are_ancestors_of_commit") is not True):
+                raise ValueError("Historical combined engine proof is missing or mismatched: " + name)
+            historical_manifests[name] = {**identity(root / name), "commit": baseline, "phase": phase}
+        suites = {case.get("classname") for case in ET.parse(root / "openmw-tests.xml").getroot().iter("testcase")}
+        if not {"LuaUiLayoutTest", "LuaUiPropertyTest", "MWLuaMagicBindingsTest"} <= suites:
+            raise ValueError("Native Lua UI layout or magic binding regression suite did not run")
+        test_results["lua-ui-legacy-tests.xml"] = native_tests(root / "lua-ui-legacy-tests.xml")
+        legacy_suites = {case.get("classname") for case in ET.parse(root / "lua-ui-legacy-tests.xml").getroot().iter("testcase")}
+        if not {"LuaUiLayoutTest", "LuaUiPropertyTest"} <= legacy_suites:
+            raise ValueError("Legacy UI layout/property regression suites did not run")
+        spec = importlib.util.spec_from_file_location(
+            "town_layout_parity", source_root / "custom/town-performance/verify-layout-parity.py")
+        parity = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(parity)
+        native_layout_parity = parity.compare(root / "openmw-tests.xml", root / "lua-ui-legacy-tests.xml")
+        if json.loads((root / "lua-ui-layout-parity.json").read_text()) != native_layout_parity:
+            raise ValueError("Layout parity report is missing or does not bind the packaged native test XML")
+    if deleveler or town_performance:
+        baseline = json.loads((source_root / "custom/deleveler/source-plan.json").read_text())["baseline"]
         # The current menu plan may contain later repairs. Bind historical
         # evidence to the exact plan used at its recorded baseline instead.
         historical_plan = subprocess.check_output(
@@ -140,6 +169,7 @@ def prepare(root, source_root, menu_qol=False, deleveler=False):
               "verified_menu_resources": menu_resources,
               "verified_deleveler_resources": deleveler_resources,
               "native_tests": test_results,
+              "native_layout_parity": native_layout_parity,
               "original_ci_inventory": {"path": "verification/CI-PACKAGE-SHA256.json", **identity(verification)},
               "retained_ci_file_count": len(retained), "retained_bytes_equal_original_ci": True,
               "required_runtime_files_included": {name: identity(root / name) for name in REQUIRED_RUNTIME},
@@ -157,8 +187,9 @@ def prepare(root, source_root, menu_qol=False, deleveler=False):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in ("--menu-qol", "--deleveler")):
-        raise SystemExit("Usage: prepare-upgrade.py install [--menu-qol|--deleveler]")
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in ("--menu-qol", "--deleveler", "--town-performance")):
+        raise SystemExit("Usage: prepare-upgrade.py install [--menu-qol|--deleveler|--town-performance]")
     option = sys.argv[2] if len(sys.argv) == 3 else None
-    prepare(Path(sys.argv[1]).resolve(), ROOT, menu_qol=option == "--menu-qol", deleveler=option == "--deleveler")
+    prepare(Path(sys.argv[1]).resolve(), ROOT, menu_qol=option == "--menu-qol", deleveler=option == "--deleveler",
+            town_performance=option == "--town-performance")
     print("PASS: exact merged defaults; complete bootstrap and runtime files retained; no CI files removed.")
