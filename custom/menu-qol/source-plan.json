@@ -11,11 +11,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "763c9e910b2e30a70595877fa464f7dbdc59e25a"
+        "blob": "8def717fada4bac0692f0a9a179e2ae4a31e786d"
       },
-      "bytes": 35285,
-      "sha256": "11248a648d3b17ff12b37c52fb1c59c472aad9a47db7123758f2924fffb26a3d",
-      "reason": "Build and verify exact feature/cumulative source, native suites and complete package. Recover original verified build assets via release API, serialize LTO links without changing optimization, and retain explicitly unverified install files only on post-install packaging failure."
+      "bytes": 37727,
+      "sha256": "d456158dccb86abd2dfbd1764c74de786ffea2e8472d8ab4a996bf6c3c1d3c3d",
+      "reason": "Build and verify exact feature/cumulative source, native suites and complete package. Download original hash-pinned tools and source archives through reliable routes with retries, serialize LTO links without changing optimization, and retain explicitly unverified install files only on post-install packaging failure."
     },
     "apps/openmw/CMakeLists.txt": {
       "before": {
