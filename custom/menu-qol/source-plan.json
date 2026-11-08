@@ -11,11 +11,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0b31c9c1841dace042eb2e26cde3ed8c96f5b643"
+        "blob": "be3131c6f03e46dc7a580c8dcfedaf88acc10f68"
       },
-      "bytes": 34208,
-      "sha256": "239a3ebf15b2e6d771e39680198e41c2908ccdbed6f7434279e5ffdd9dc77040",
-      "reason": "Build and verify the exact feature/cumulative source, native suites and complete package; use installed Ninja and hash-verified original sccache/Qt installer assets through the working release API after browser download URLs failed."
+      "bytes": 34725,
+      "sha256": "ea5be46e51240ecc95c9e1f055499fb16f11e4f573711bfe4a53506416188c2c",
+      "reason": "Build and verify the exact feature/cumulative source, native suites and complete package; use installed Ninja and hash-verified original sccache/Qt installer/dependency assets through the working release API after browser download URLs failed, preserving the official dependency manifest check."
     },
     "apps/openmw/CMakeLists.txt": {
       "before": {

@@ -165,7 +165,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Dependency manifest download failed' }
           $lines = Get-Content "$manifest"
           $parts = -split $lines[1]
-          curl --fail --retry 3 -L -o "$($parts[1])" "$($lines[0])"
+          $archiveName = 'vcpkg-x64-windows-2022-2026-09-09.7z'
+          $releaseUrl = "https://github.com/OpenMW/openmw-deps-build/releases/download/2026-09-09/$archiveName"
+          if ($parts.Count -ne 2 -or $parts[1] -ne $archiveName -or $lines[0] -ne $releaseUrl) {
+            throw 'Dependency manifest no longer identifies the pinned original release asset'
+          }
+          curl --fail --retry 3 --connect-timeout 20 --max-time 300 -L -H 'Accept: application/octet-stream' -o $archiveName https://api.github.com/repos/OpenMW/openmw-deps-build/releases/assets/553691121
           if ($LASTEXITCODE) { throw 'Dependency archive download failed' }
           if ((Get-FileHash $parts[1] -Algorithm SHA512).Hash -ne $parts[0]) { throw 'Dependency hash mismatch' }
           7z x -y "-ovcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}" $parts[1]
