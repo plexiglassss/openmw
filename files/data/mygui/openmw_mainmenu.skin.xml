@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <MyGUI type="Resource" version="1.1">
+    <!-- Text-only title-menu entries share the menu's borderless presentation. -->
+    <Resource type="ResourceSkin" name="MW_MainMenuTextButton" size="256 48">
+        <Property key="FontName" value="Default"/>
+        <Property key="TextAlign" value="Center"/>
+        <Property key="NeedKey" value="true"/>
+        <BasisSkin type="SimpleText" offset="0 0 256 48" align="Stretch">
+            <State name="disabled" colour="#{fontcolour=disabled}" shift="0"/>
+            <State name="normal" colour="#{fontcolour=normal}" shift="0"/>
+            <State name="highlighted" colour="#{fontcolour=normal_over}" shift="0"/>
+            <State name="pushed" colour="#{fontcolour=normal_pressed}" shift="0"/>
+            <State name="disabled_checked" colour="#{fontcolour=disabled}" shift="0"/>
+            <State name="normal_checked" colour="#{fontcolour=normal}" shift="0"/>
+            <State name="highlighted_checked" colour="#{fontcolour=normal_over}" shift="0"/>
+            <State name="pushed_checked" colour="#{fontcolour=normal_pressed}" shift="0"/>
+        </BasisSkin>
+    </Resource>
 </MyGUI>

@@ -1,4 +1,4 @@
-name: OpenMW - cumulative Windows engine and preserved tools
+name: OpenMW - rest time and Continue menu
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -34,6 +34,7 @@ jobs:
         shell: pwsh
         run: |
           $commits = @(
+            'de695387ff24adac5ff28a56eaac30d996e45011',
             'cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0',
             'b34db5770f947b0f5b90dc699627c2ccdae12f16',
             '528bffb348872a964d25c092fa5dd574c1b7f673',
@@ -67,8 +68,26 @@ jobs:
               if ($LASTEXITCODE) { throw "Cannot remove $($gate.Path)" }
             }
           }
-          python custom/cumulative/verify-source.py
-          if ($LASTEXITCODE) { throw 'Cumulative source union or parent ancestry verification failed' }
+          git worktree add --detach preservation-cumulative de695387ff24adac5ff28a56eaac30d996e45011
+          if ($LASTEXITCODE) { throw 'Cannot prepare the exact preserved cumulative baseline' }
+          Push-Location preservation-cumulative
+          try {
+            python custom/cumulative/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical cumulative source union failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical waiting-stage rollback check failed' }
+            python custom/cumulative/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled source union failed' }
+            Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-cumulative
+            if ($LASTEXITCODE) { throw 'Cannot remove historical verification worktree' }
+          }
+          python custom/menu-qol/verify-source.py
+          if ($LASTEXITCODE) { throw 'Menu feature source or cumulative preservation verification failed' }
       - name: Test script installer preflight and rollback on authored fixtures
         shell: powershell
         run: |
@@ -103,8 +122,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
           python custom/loading-repair/check-integration.py
           if ($LASTEXITCODE) { throw 'Waiting-stage rollback/source validation failed' }
-          python custom/cumulative/verify-source.py --after-lookup
-          if ($LASTEXITCODE) { throw 'Final compiled source differs from the verified cumulative union' }
+          python custom/menu-qol/verify-source.py --after-lookup
+          if ($LASTEXITCODE) { throw 'Final compiled source differs from the reviewed menu feature source' }
           git diff --check
           if ($LASTEXITCODE) { throw 'Invalid source diff' }
           git diff --binary --output=loading-repair-applied.patch -- apps/
@@ -157,6 +176,14 @@ jobs:
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Compile rest and Continue implementation and regression tests first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mainmenu.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/waitdialog.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testcontinuegame.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testresttime.cpp.obj
       - name: Compile Lua cache change and lifecycle tests first
         shell: pwsh
         run: >
@@ -252,11 +279,13 @@ jobs:
           Copy-Item custom/cumulative/README.md install/CUMULATIVE-UPGRADE.md
           Copy-Item message-position-source-manifest.json,message-position-tests.txt install/
           Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json install/
+          Copy-Item menu-qol-source-manifest.json,menu-qol-build-source-manifest.json install/
+          Copy-Item custom/menu-qol/README.md install/REST-TIME-AND-CONTINUE.md
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCumulative source union: cumulative-source-manifest.json`nCompiled source after lookup patch: cumulative-build-source-manifest.json`nPreserved accepted baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; custom replacements and gameplay remain untested`nComplete standard engine package includes its bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
-          python custom/cumulative/prepare-upgrade.py install
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nMenu changes: menu-qol-source-manifest.json`nCompiled source after lookup patch: menu-qol-build-source-manifest.json`nPreserved complete cumulative baseline de695387ff24adac5ff28a56eaac30d996e45011`nHistorical cumulative verification: cumulative-source-manifest.json`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; custom replacements and gameplay remain untested`nComplete standard engine package includes its bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          python custom/cumulative/prepare-upgrade.py install --menu-qol
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
           Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
@@ -264,7 +293,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-cumulative-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-rest-time-continue-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
@@ -275,6 +304,8 @@ jobs:
             gameplay-installer-tests.json
             cumulative-source-manifest.json
             cumulative-build-source-manifest.json
+            menu-qol-source-manifest.json
+            menu-qol-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
             lookup-*.xml

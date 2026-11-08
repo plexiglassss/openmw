@@ -1,4 +1,5 @@
 #include "waitdialog.hpp"
+#include "waitdialogtime.hpp"
 
 #include <MyGUI_InputManager.h>
 #include <MyGUI_ProgressBar.h>
@@ -7,6 +8,7 @@
 #include <components/misc/rng.hpp>
 
 #include <components/esm3/loadregn.hpp>
+#include <components/l10n/manager.hpp>
 #include <components/misc/strings/format.hpp>
 #include <components/settings/values.hpp>
 #include <components/widgets/box.hpp>
@@ -62,6 +64,7 @@ namespace MWGui
         getWidget(mDateTimeText, "DateTimeText");
         getWidget(mRestText, "RestText");
         getWidget(mHourText, "HourText");
+        getWidget(mEndTimeText, "EndTimeText");
         getWidget(mUntilHealedButton, "UntilHealedButton");
         getWidget(mWaitButton, "WaitButton");
         getWidget(mCancelButton, "CancelButton");
@@ -172,6 +175,7 @@ namespace MWGui
         std::string dateTimeText
             = Misc::StringUtils::format("%i %s %s %i %s", currentDate.mDay, month, daysPassed, hour, formattedHour);
         mDateTimeText->setCaptionWithReplacing(dateTimeText);
+        center();
     }
 
     void WaitDialog::onUntilHealedButtonClicked(MyGUI::Widget* /*sender*/)
@@ -240,6 +244,14 @@ namespace MWGui
     {
         mHourText->setCaptionWithReplacing(MyGUI::utility::toString(position + 1) + " #{sRestMenu2}");
         mManualHours = static_cast<int>(position + 1);
+        const MWWorld::TimeStamp currentTime = MWBase::Environment::get().getWorld()->getTimeManager()->getTimeStamp();
+        const RestTimePreview target = getRestTimePreview(currentTime, mManualHours);
+        const std::string time = Misc::StringUtils::format(
+            "%i:%02i %s", target.mHour12, target.mMinute, target.mPm ? "#{Calendar:pm}" : "#{Calendar:am}");
+        const auto l10n = MWBase::Environment::get().getL10nManager()->getContext("Interface");
+        mEndTimeText->setCaptionWithReplacing(l10n->formatMessage(
+            target.mNextDay ? "RestWaitEndsNextDayAt" : "RestWaitEndsAt", { "time" }, { L10n::toUnicode(time) }));
+        center();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mWaitButton);
     }
 
