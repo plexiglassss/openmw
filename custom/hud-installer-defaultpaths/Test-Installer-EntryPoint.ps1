@@ -220,7 +220,7 @@ foreach ($name in @('Original-Install-Fix.ps1', 'Install-Fix.ps1', 'INSTALL_HUD_
     $sources += @{name = $name; bytes = (Get-Item -LiteralPath $p).Length; sha256 = Get-Sha $p}
 }
 Write-Json $ReportPath @{status = $(if ($failures.Count -eq 0) {'PASS'} else {'FAIL'}); powershell = $PSVersionTable.PSVersion.ToString();
-    checks = @($checks); passed = $checks.Count - $failures.Count; failed = $failures.Count; source_files = $sources;
-    session = $session; invocations = @($invokes); note = 'Authored fixture bytes only. No real mod source or user configuration is published or modified.'}
+    checks = $checks.ToArray(); passed = $checks.Count - $failures.Count; failed = $failures.Count; source_files = $sources;
+    session = $session; invocations = $invokes.ToArray(); note = 'Authored fixture bytes only. No real mod source or user configuration is published or modified.'}
 if ($failures.Count -gt 0) { exit 1 }
 exit 0
