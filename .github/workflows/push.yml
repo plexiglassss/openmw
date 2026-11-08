@@ -1,4 +1,4 @@
-name: OpenMW - evaluate town CPU candidates
+name: OpenMW - repair Lua UI image inheritance
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -277,11 +277,12 @@ jobs:
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
           -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
-      - name: Compile the Lua UI change and its native regressions first
+      - name: Compile Lua UI images and native regressions first
         shell: pwsh
         run: >
           cmake --build build --target
           components/CMakeFiles/components.dir/lua_ui/widget.cpp.obj
+          components/CMakeFiles/components.dir/lua_ui/image.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testluauilayout.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testmagicbindings.cpp.obj
@@ -359,7 +360,7 @@ jobs:
             New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
             Copy-Item "$qt/plugins/$plugin" "build/$plugin"
           }
-      - name: All engine tests and four lookup configurations before packaging
+      - name: All engine tests, both UI modes and four lookup configurations before packaging
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
@@ -370,12 +371,12 @@ jobs:
           try {
             $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
             ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
-            if ($LASTEXITCODE) { throw 'Legacy native layout regressions failed' }
+            if ($LASTEXITCODE) { throw 'Legacy native layout and Image inheritance regressions failed' }
           } finally {
             Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
           }
           python custom/town-performance/verify-layout-parity.py openmw-tests.xml lua-ui-legacy-tests.xml lua-ui-layout-parity.json
-          if ($LASTEXITCODE) { throw 'Candidate native layout differs from the preserved legacy behavior' }
+          if ($LASTEXITCODE) { throw 'Required native UI regressions or layout/Image parity verification failed' }
           try {
             foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
               $env:OPENMW_CELL_ID_INDEX = $mode[0]
@@ -421,7 +422,7 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nExperimental candidate: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/cumulative/prepare-upgrade.py install --town-performance
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup

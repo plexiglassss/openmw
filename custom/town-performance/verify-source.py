@@ -63,6 +63,8 @@ def main():
     plan = json.loads(plan_path.read_text())
     require(plan["schema_version"] == 1 and plan["baseline"] == BASELINE, "Wrong feature baseline")
     subprocess.run(["git", "merge-base", "--is-ancestor", BASELINE, "HEAD"], cwd=ROOT, check=True)
+    for revision in plan["preserved_heads"]:
+        subprocess.run(["git", "merge-base", "--is-ancestor", revision, "HEAD"], cwd=ROOT, check=True)
     before = tree(BASELINE)
     actual = tree("HEAD")
     dirty = set(git("diff", "HEAD", "--name-only", "-z").decode().split("\0")) - {""}

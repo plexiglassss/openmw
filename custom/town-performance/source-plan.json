@@ -1,11 +1,13 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Bounded native Lua UI property-reader, actor-query and no-due timer evaluation after installed Lua fixes did not improve town gameplay. Preserve the exact combined engine features, settings, game plugins, load order and saves. Native correctness and benchmark validation are distinct from unverified gameplay performance. The unsuccessful attachment candidate is excluded.",
+  "scope": "Bounded repair of inherited Lua UI image textures in the installed native performance candidate. Preserve the complete combined deleveler, Continue/menu, rest/wait, lookup, actor-query, timer, capture and installer changes, both accepted histories, and every other installed source path. Native correctness and package verification remain distinct from unverified user-game rendering, custom Lua runtime and gameplay performance; no ZHI, game plugin, load-order or save changes.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
-    "8737a9ca9c3fb1eb0210fff62731c9c5cab43654"
+    "8737a9ca9c3fb1eb0210fff62731c9c5cab43654",
+    "41b969ecf663a53d8f95c779313458bbd37ad264",
+    "1e2191f221079d89e46c15331ba6911b44f28b53"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -15,11 +17,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fbeb0005f25cae170ab29061a4b2133ef3878896"
+        "blob": "9167cff419d43e344196dbfb7cd7d1b04e62f0f3"
       },
-      "bytes": 43846,
-      "sha256": "afea92caaee4cf19afa33dba3ac8e3a959ec15757421334ed4edbeaedcf59728",
-      "reason": "Preserve exact combined and historical source gates; build native Lua candidates and real regressions; require two-process layout parity and complete package/runtime; include paired FrameOnly capture tools."
+      "bytes": 44092,
+      "sha256": "b7eae3b81ca46171a96f5488b432d12c27cb18d72db909f264da695497c307ce",
+      "reason": "Preserve the complete combined engine and historical gates; compile actual LuaImage and run all native tests in optimized mode plus the exact 14 UI regressions in legacy mode; require five Image inheritance phases and package parity before delivering the full runtime."
     },
     "apps/components_tests/lua/testscriptscontainer.cpp": {
       "before": {
@@ -74,11 +76,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "5f3badc4defd7881986ee62ca2b2fe43a2b1f16c"
+        "blob": "a5bb235b2e2040cfb95c4fdc2bb9a87f4e102ae5"
       },
-      "bytes": 36598,
-      "sha256": "85db27d4181a87478538984ec60477a8e1fa6e0c4c431fa8a505f788e5782c5f",
-      "reason": "Execute production UI and MyGUI in both modes for six exact hierarchy snapshots, plus five property semantics cases covering types, mutation, metatables, exceptions, stack restoration, owner replacement/finalizers and returned value lifetimes; record native HUD timings separately."
+      "bytes": 47516,
+      "sha256": "d8328181509c417b8d8b1afacd41b3dc16e301c64ec783bbe2c0267890857aab",
+      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage."
     },
     "apps/openmw_tests/mwlua/testmagicbindings.cpp": {
       "before": null,
@@ -108,13 +110,13 @@
         "mode": "100644",
         "blob": "f6e81f7200fdb83822ca27a4866535d4ad6e8e5c"
       },
-      "reason": "Read ordinary stored UI fields using stack-pinned owner/value lifetimes instead of temporary registry references; preserve legacy metatable/type/error semantics, mixed-state fallback and every layout/attachment pass; retain process diagnostic legacy reader.",
+      "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration.",
       "after": {
         "mode": "100644",
-        "blob": "4323b14be3a1c202aef36c1ea101d8537c804f4f"
+        "blob": "deab793d7dee19f9d1b7d95515c608fc5c50b081"
       },
-      "bytes": 7767,
-      "sha256": "aff542b1ca8067887778322c26e143e25d104d3610324fc0442674a5f3366a9d"
+      "bytes": 8193,
+      "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3"
     },
     "custom/cumulative/prepare-upgrade.py": {
       "before": {
@@ -179,11 +181,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "f8c3bf68508e1cae6967c1d4b6488b3ae8416ad3"
+        "blob": "6eec6cc41a13be6eaf50767577baeefa99e8b717"
       },
-      "bytes": 8913,
-      "sha256": "f8227b36627211d1e98b7ce12790e738b43416dbffa9d35a4e701b185044589b",
-      "reason": "Explain bounded native changes, preservation, real native test boundaries, matched FrameOnly capture, complete installation and rollback; keep gameplay improvement unverified."
+      "bytes": 11510,
+      "sha256": "774e31b53ab55ea75bad3da4ec13e4a7edd7e939b58461ac4022a351304439d4",
+      "reason": "Explain the confirmed inherited-image regression and narrow correction, preserve all accepted engine changes, label earlier timing as historical, and give complete-package installation, rollback and honest native-versus-in-game validation boundaries."
     },
     "custom/town-performance/Start-Comparison.ps1": {
       "before": null,
@@ -209,21 +211,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "576509281ae1b7f667152594469d936fedc0366d"
+        "blob": "fc3cde72f191c1b85f59bd92fa170761c2e48ee8"
       },
-      "bytes": 5575,
-      "sha256": "449b95737e0dab5f42b99a89c6456d3e637fab9a38b344f41aaed2860cffcb6a",
-      "reason": "Fail packaging on missing, failed or differing real native widget snapshots; retain helper benchmark results as measurements without timing thresholds."
+      "bytes": 6577,
+      "sha256": "de33c444ce761e4b57641c2382ce49c1fbf38b1c1f18d0870366cc2d95a52655",
+      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "614e01594cf8919e9d8ec1f56c32bec5797292f4"
+        "blob": "ac4b0ee4732a384c93cea01e37a204cee3e46c93"
       },
-      "bytes": 6399,
-      "sha256": "483e571a67e4363107e9e80b3496b6d0c41fd0f5d2b52bb1c58e7a483af24e13",
-      "reason": "Bind the exact reviewed change set against immutable combined baseline and retain the existing lookup-only build transformation."
+      "bytes": 6547,
+      "sha256": "cc67c30d900c15e5caea2b9ba1289da289d2773b7630d8468730493f1aec4eb2",
+      "reason": "Bind the exact reviewed changes against the immutable combined baseline, verify every declared preserved head is an ancestor, retain all other source identities and the existing lookup-only build transformation."
     }
   }
 }

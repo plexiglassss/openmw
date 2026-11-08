@@ -136,7 +136,13 @@ namespace LuaUi
                 {
                     lua_pushlstring(state, field.data(), field.size());
                     lua_rawget(state, index);
-                    return convertPropertyValue<T, LuaT>(sol::stack_object(state, -1), field, errorPrefix);
+                    const sol::stack_object value(state, -1);
+                    // Registry and stack objects accept different C++ types for
+                    // nil (notably pointers). Preserve the legacy nil checks so
+                    // a missing property cannot suppress its template/default.
+                    if (value == sol::nil)
+                        return convertPropertyValue<T, LuaT>(sol::object(value), field, errorPrefix);
+                    return convertPropertyValue<T, LuaT>(value, field, errorPrefix);
                 }
             }
             return parseValue<T, LuaT>(source, field, errorPrefix);

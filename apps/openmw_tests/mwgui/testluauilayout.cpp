@@ -1,7 +1,9 @@
 #include <components/lua_ui/content.hpp>
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/flex.hpp>
+#include <components/lua_ui/image.hpp>
 #include <components/lua_ui/properties.hpp>
+#include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 #include <components/lua_ui/widget.hpp>
 
@@ -37,6 +39,14 @@ namespace LuaUi
 {
     namespace
     {
+        void registerTextureResources(sol::state& lua, ResourceManager& resources)
+        {
+            lua.new_usertype<TextureResource>("TextureResource", sol::no_constructor);
+            lua["texture"] = [&resources](const std::string& path) {
+                return resources.registerTexture({ VFS::Path::Normalized(path), {}, {} });
+            };
+        }
+
         // Only the platform's file/render/font services are substitutes. The
         // actual MyGUI managers, widget factories, OpenMW skins, text wrapping,
         // child alignment and scroll canvas all run in this fixture.
@@ -159,6 +169,7 @@ namespace LuaUi
             LayoutRenderManager mRenderer;
             MyGUI::Gui mGui;
             sol::state mLua;
+            ResourceManager mResources;
             bool mInitialised = false;
             std::string mSnapshots;
             std::vector<std::shared_ptr<Element>> mElements;
@@ -205,6 +216,9 @@ namespace LuaUi
                     << widget->getNeedMouseFocus();
                 if (auto* text = dynamic_cast<MyGUI::TextBox*>(widget))
                     out << ':' << text->getCaption().asUTF8();
+                if (auto* image = dynamic_cast<LuaImage*>(widget))
+                    out << ":image=" << image->_getTextureName() << ":alpha=" << image->getAlpha()
+                        << ",inherit=" << image->getInheritsAlpha();
                 out << '\n';
                 for (size_t i = 0; i < widget->getChildCount(); ++i)
                     snapshotWidget(out, widget->getChildAt(i), path + '/' + std::to_string(i));
@@ -236,6 +250,8 @@ namespace LuaUi
                 mLua.open_libraries(sol::lib::base, sol::lib::table, sol::lib::string, sol::lib::math);
                 mLua["vec2"] = [](float x, float y) { return osg::Vec2f(x, y); };
                 mLua["vec4"] = [](float x, float y, float z, float w) { return osg::Vec4f(x, y, z, w); };
+                mLua["colour"] = [](float r, float g, float b, float a) { return Misc::Color(r, g, b, a); };
+                registerTextureResources(mLua, mResources);
                 const auto contentPath = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }
                     / "components/lua_ui/content.lua";
                 sol::table contentModule = mLua.safe_script_file(contentPath.string());
@@ -494,10 +510,75 @@ namespace LuaUi
             // checked by full native hierarchy snapshots in both modes.
         }
 
+        TEST_F(LuaUiLayoutTest, ImageTemplatesInheritResourcesAcrossOverridesAndUpdates)
+        {
+            // MWUI boxes use this structure: the image instance supplies its
+            // geometry, while a template supplies the border/background texture.
+            run(R"(
+                backgroundTemplate={type='LuaImage',props={
+                    resource=texture('textures/layout_background.dds'),
+                    color=colour(0,0,0,1),alpha=0.75}}
+                borderTemplate={type='LuaImage',props={
+                    resource=texture('textures/layout_border.dds'),tileH=true}}
+                background={name='background',template=backgroundTemplate,
+                            props={relativeSize=vec2(1,1)}}
+                border={name='border',template=borderTemplate,
+                        props={relativeSize=vec2(1,0),size=vec2(0,4)}}
+                root=element {name='root',layer='LuaUiTest',props={size=vec2(180,90)},
+                    template={content=content {background,border}},
+                    content=content {
+                        {name='icon',type='LuaImage',props={size=vec2(16,16),
+                            resource=texture('textures/layout_icon.dds')}},
+                        {name='label',type='LuaText',props={text='Visible content',textSize=16}}
+                    }}
+                roots={root}; refresh(root); snapshot('image-inherited')
+            )");
+            const auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            const auto checkImage = [&](std::string_view name, const char* texture, MyGUI::IntSize size, float alpha) {
+                auto* image = dynamic_cast<LuaImage*>(require(root, name)->widget());
+                ASSERT_NE(image, nullptr);
+                EXPECT_EQ(image->_getTextureName(), texture);
+                EXPECT_EQ(image->getSize(), size);
+                EXPECT_FLOAT_EQ(image->getAlpha(), alpha);
+                EXPECT_TRUE(image->getInheritedVisible());
+            };
+            const auto check = [&](const char* backgroundTexture, const char* borderTexture, MyGUI::IntSize size) {
+                checkImage("background", backgroundTexture, size, 0.75f);
+                checkImage("border", borderTexture, { size.width, 4 }, 1.f);
+                checkImage("icon", "textures/layout_icon.dds", { 16, 16 }, 1.f);
+                expectTemplateOrder(root->mRoot);
+            };
+            check("textures/layout_background.dds", "textures/layout_border.dds", { 180, 90 });
+
+            run(R"(
+                background.props.resource=texture('textures/layout_override.dds')
+                border.props.resource=texture('textures/layout_override.dds')
+                refresh(root); snapshot('image-overridden')
+            )");
+            check("textures/layout_override.dds", "textures/layout_override.dds", { 180, 90 });
+
+            run(R"(
+                background.props.resource=nil; border.props.resource=nil
+                refresh(root); snapshot('image-override-removed')
+            )");
+            check("textures/layout_background.dds", "textures/layout_border.dds", { 180, 90 });
+
+            run(R"(
+                backgroundTemplate.props.resource=texture('textures/layout_background_updated.dds')
+                borderTemplate.props.resource=texture('textures/layout_border_updated.dds')
+                root.layout.props.size=vec2(220,110)
+                refresh(root); snapshot('image-template-updated')
+            )");
+            check("textures/layout_background_updated.dds", "textures/layout_border_updated.dds", { 220, 110 });
+            run("refresh(root); snapshot('image-unchanged')");
+            check("textures/layout_background_updated.dds", "textures/layout_border_updated.dds", { 220, 110 });
+        }
+
         class LuaUiPropertyTest : public testing::Test
         {
         protected:
             sol::state mLua;
+            ResourceManager mResources;
 
             void SetUp() override
             {
@@ -505,6 +586,7 @@ namespace LuaUi
                 mLua["vec2"] = [](float x, float y) { return osg::Vec2f(x, y); };
                 mLua["vec4"] = [](float x, float y, float z, float w) { return osg::Vec4f(x, y, z, w); };
                 mLua["colour"] = [](float r, float g, float b, float a) { return Misc::Color(r, g, b, a); };
+                registerTextureResources(mLua, mResources);
             }
 
             void TearDown() override
@@ -571,6 +653,103 @@ namespace LuaUi
             EXPECT_EQ(parseProperty(props, fallback, "text", std::string()), "changed template");
             mLua.safe_script("props.number=nil; fallback.number=nil");
             EXPECT_EQ(parseProperty(props, fallback, "number", 81), 81);
+        }
+
+        TEST_F(LuaUiPropertyTest, TextureResourcesPreserveInheritanceDefaultsAndErrors)
+        {
+            mLua.safe_script(R"(
+                templateResource=texture('textures/property_template.dds')
+                overrideResource=texture('textures/property_override.dds')
+                defaultResource=texture('textures/property_default.dds')
+                props={}; fallback={resource=templateResource}
+            )");
+            const auto templateResource = mLua["templateResource"].get<std::shared_ptr<TextureResource>>();
+            const auto overrideResource = mLua["overrideResource"].get<std::shared_ptr<TextureResource>>();
+            const auto defaultResource = mLua["defaultResource"].get<std::shared_ptr<TextureResource>>();
+            const sol::main_object props = mLua["props"];
+            const sol::main_object fallback = mLua["fallback"];
+            lua_pushliteral(mLua, "texture stack sentinel");
+            const int top = lua_gettop(mLua);
+            const auto check = [&](TextureResource* expected) {
+                compare(props, fallback, "resource", defaultResource.get());
+                EXPECT_EQ(parseProperty(props, fallback, "resource", defaultResource.get()), expected);
+                EXPECT_EQ(lua_gettop(mLua), top);
+                EXPECT_STREQ(lua_tostring(mLua, -1), "texture stack sentinel");
+            };
+            check(templateResource.get());
+            mLua.safe_script("props.resource=overrideResource");
+            check(overrideResource.get());
+            mLua.safe_script("props.resource=nil");
+            check(templateResource.get());
+            mLua.safe_script("fallback.resource=nil");
+            check(defaultResource.get());
+            const sol::main_object noTemplate;
+            compare(props, noTemplate, "resource", defaultResource.get());
+            EXPECT_EQ(parseProperty(props, noTemplate, "resource", defaultResource.get()), defaultResource.get());
+            EXPECT_EQ(parseExternal(props, "resource", defaultResource.get()), defaultResource.get());
+
+            mLua.safe_script("fallback.resource=templateResource");
+            const sol::main_object nil = sol::make_object(mLua, sol::nil);
+            const sol::main_object scalar = sol::make_object(mLua, 7);
+            for (const sol::main_object& source : { sol::main_object(), nil, scalar })
+            {
+                compare(source, fallback, "resource", defaultResource.get());
+                EXPECT_EQ(parseProperty(source, fallback, "resource", defaultResource.get()), templateResource.get());
+                EXPECT_EQ(parseExternal(source, "resource", defaultResource.get()), defaultResource.get());
+            }
+
+            const auto checkError = [&](std::string_view prefix) {
+                const auto actual = error([&] { parseProperty(props, fallback, "resource", defaultResource.get()); });
+                EXPECT_EQ(actual, error([&] {
+                    parseProperty(sol::object(props), sol::object(fallback), "resource", defaultResource.get());
+                }));
+                EXPECT_EQ(actual.find(prefix), 0u);
+                EXPECT_EQ(lua_gettop(mLua), top);
+                EXPECT_STREQ(lua_tostring(mLua, -1), "texture stack sentinel");
+            };
+            mLua.safe_script("props.resource='invalid property'; fallback.resource='invalid template'");
+            checkError("Property \"resource\"");
+            EXPECT_EQ(error([&] { parseExternal(props, "resource", defaultResource.get()); }),
+                error([&] { parseExternal(sol::object(props), "resource", defaultResource.get()); }));
+            mLua.safe_script("props.resource=overrideResource");
+            checkError("Template property \"resource\"");
+            lua_pop(mLua, 1);
+        }
+
+        TEST_F(LuaUiPropertyTest, MissingFieldsPreserveLegacyNilTypeSemantics)
+        {
+            const sol::main_object props = mLua.create_table();
+            const sol::main_object fallback = mLua.create_table_with("value", 73);
+            const sol::main_object empty = mLua.create_table();
+            const sol::object objectDefault = sol::make_object(mLua, 91);
+            const sol::optional<int> optionalDefault = 91;
+            lua_pushliteral(mLua, "nil stack sentinel");
+            const int top = lua_gettop(mLua);
+            // Like pointer types, stack objects accept nil for these types even
+            // though the legacy registry-owned nil is not a supplied value.
+            compare(props, fallback, "value", objectDefault);
+            compare(props, empty, "value", objectDefault);
+            EXPECT_EQ(parseProperty(props, fallback, "value", objectDefault).as<int>(), 73);
+            EXPECT_EQ(parseProperty(props, empty, "value", objectDefault).as<int>(), 91);
+            EXPECT_EQ(parseExternal(props, "value", objectDefault).as<int>(), 91);
+            compare(props, fallback, "value", optionalDefault);
+            compare(props, empty, "value", optionalDefault);
+            EXPECT_EQ(parseProperty(props, fallback, "value", optionalDefault), sol::optional<int>(73));
+            EXPECT_EQ(parseProperty(props, empty, "value", optionalDefault), optionalDefault);
+            EXPECT_EQ(parseExternal(props, "value", optionalDefault), optionalDefault);
+
+            // A blanket "nil is absent" check would also change the sentinel
+            // types that the legacy reader does accept as supplied nil values.
+            props.push(mLua);
+            const sol::stack_object owner(mLua, lua_gettop(mLua));
+            EXPECT_TRUE(parseValue<std::nullptr_t>(sol::object(props), "value", "Property").has_value());
+            EXPECT_TRUE(Detail::parseStoredValue<std::nullptr_t>(owner, "value", "Property").has_value());
+            EXPECT_TRUE(parseValue<sol::lua_nil_t>(sol::object(props), "value", "Property").has_value());
+            EXPECT_TRUE(Detail::parseStoredValue<sol::lua_nil_t>(owner, "value", "Property").has_value());
+            EXPECT_EQ(lua_gettop(mLua), top + 1);
+            lua_pop(mLua, 1);
+            EXPECT_STREQ(lua_tostring(mLua, -1), "nil stack sentinel");
+            lua_pop(mLua, 1);
         }
 
         TEST_F(LuaUiPropertyTest, InvalidValuesAndOverriddenTemplateErrorsRestoreTheStack)

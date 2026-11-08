@@ -1,4 +1,4 @@
-# Town CPU performance candidate
+# Town CPU candidate with Lua UI template repair
 
 This engine continues the town-performance work from the combined Continue-menu
 and native-deleveling revision `ce3d5a2e981999df432cf8df416352cc85842e97`.
@@ -7,11 +7,39 @@ Native correctness tests and helper benchmarks do not establish a town FPS gain.
 
 An initial template-attachment candidate was discarded after its native benchmark
 showed no useful gain. The replacement targets temporary registry references while
-reading ordinary stored UI properties. Ten alternating local native process pairs
-measured median full-HUD updates of about 0.896 ms candidate and 1.138 ms legacy,
-21.2% lower in this authored workload. All 11 native tests passed in both modes; all six layout snapshots matched.
-This harness uses Linux GCC 13.3.0, MyGUI 3.4.3 and Lua 5.4.6 with a minimal settings service. Windows Release/LTO
-validation and matched gameplay measurement remain separate acceptance steps.
+reading ordinary stored UI properties. In the earlier, pre-repair experiment, ten
+alternating local native process pairs measured median full-HUD updates of about
+0.896 ms candidate and 1.138 ms legacy, 21.2% lower in that authored workload.
+The then-existing 11 native cases passed in both modes and their six layout
+snapshot sets matched, but they did not exercise an actual Image widget inheriting
+a texture. Those historical results do not establish correctness of image
+inheritance or a new measured gain for this corrected candidate. That harness used
+Linux GCC 13.3.0, MyGUI 3.4.3 and Lua 5.4.6 with a minimal settings service. Windows
+Release/LTO validation and matched gameplay measurement remain separate steps.
+
+## Missing Lua UI images: engine repair
+
+The optimized stored-property reader treated a missing or nil Lua-object property
+as an explicit value. For an Image widget, that empty local `resource` could
+override the valid texture inherited from its template. ZHI's editor uses
+inherited MWUI templates for its window background, group borders and empty assignment boxes;
+its directly assigned icons could remain visible while those decorations vanished.
+
+When the optimized raw lookup finds nil, it now uses the same owning Lua-object
+conversion as the unchanged legacy reader. An image with no local resource
+inherits its template resource, an explicit resource still overrides it, and
+removing the override returns to inheritance. Types that deliberately accept a
+nil sentinel retain their legacy meaning. Non-nil stored values keep the fast
+read path. Template validation, metatable behavior and stack/lifetime rules retain
+their existing checks. The other town-performance candidates remain in place.
+
+This is an engine change. Keep the installed ZHI F1 and miscellaneous-item fixes;
+no ZHI script, hotkey assignment, mod setting or load-order change is needed.
+The native regression exercises actual LuaImage code and inherited image state.
+It uses headless platform services and does not establish rendered appearance in
+the user's installation. Open F1 after installing the verified complete package
+and check the outer background, hotbar-group borders and empty-slot borders, then
+open and close an item/spell picker and reopen the editor.
 
 ## Why this change exists
 
@@ -67,7 +95,9 @@ The baseline contains the cumulative loading/lookup, dialogue and journal,
 shrine-tooltip, notification-placement, inactive-script-cache, rest/wait time,
 Continue colour/hover, native deleveling and installer corrections. The source
 gate binds every changed file and checks the rest of the complete tree against
-that baseline. Historical gates run at their own immutable commits.
+that baseline. Historical gates run at their own immutable commits. This repair
+also retains the installed town revision `41b969ecf6` and canonical combined
+engine `1e2191f221079d89e46c15331ba6911b44f28b53` in its accepted ancestry.
 
 The native deleveler controls and their existing defaults are retained. No mod
 plugin, load order, saved data, callback frequency or gameplay rule is changed by
@@ -82,14 +112,19 @@ new timer lifecycle/benchmark cases and zero unused Lua entries in both native
 no-due workloads.
 
 `LuaUiLayoutTest` executes actual MyGUI and OpenMW Element, WidgetExtension, Flex,
-Container and Text code using headless platform file/render/font services. Its
-six cases cover native parent/order/style repair, mutable template slots,
+Container, Text and Image code using headless platform file/render/font services.
+Its existing cases cover native parent/order/style repair, mutable template slots,
 retained elements moving between roots, a single nested resize, text/wrapping/
-visibility/reordering, and repeated HUD updates. The suite runs in two fresh
-processes. Every recorded widget-tree geometry/order/text/visibility snapshot
-must match between the candidate and legacy property-read paths. Five further
-`LuaUiPropertyTest` cases exercise defaults, mutable types, template validation,
-metatables, error propagation, stack restoration owning value lifetimes and template-owner replacement during a getter.
+visibility/reordering, and repeated HUD updates. The seventh case adds an Image
+regression: inherited texture resources must survive creation and updates, with
+explicit override and return-to-inheritance behavior. The suite runs in two fresh
+processes. Every recorded widget-tree geometry/order/text/visibility/image snapshot
+must match between the candidate and legacy property-read paths. Five existing
+`LuaUiPropertyTest` cases exercise defaults, mutable types, template
+validation, metatables, error propagation, stack restoration, owning value
+lifetimes and template-owner replacement during a getter. Two new cases require
+texture inheritance/default/error behavior and legacy nil-sentinel semantics.
+All seven layout and seven property cases must execute in each mode.
 
 `MWLuaMagicBindingsTest` uses actual ObjectVariant, SafePtr, WorldModel registry
 and MagicEffects code. Actor stats initialization and effect-key service boundaries
@@ -99,6 +134,7 @@ has no Lua dispatch, game simulation or recording overhead and has no timing
 pass/fail threshold.
 
 The package gate revalidates both source-manifest chains and native XML evidence,
+requires the Image/inherited-resource regression in both delivered mode reports,
 recomputes layout parity, verifies exact compiled defaults/resources, and requires
 the complete bootstrap and runtime. Startup is checked with the actual packaged
 executable and deliberately empty game data. The release report records which
@@ -142,8 +178,11 @@ For a custom executable location, use PowerShell:
 
 `OPENMW_LUA_UI_LEGACY_LAYOUT=1` selects legacy UI property reads in a new game
 process. The flag is read once at its first layout use. Other values select the
-candidate. To roll back the entire engine change, restore the complete backed-up
-engine folder; the two CMD variants only switch the layout diagnostic.
+candidate. Optimized reads now match the unchanged legacy nil/template semantics;
+the flag selects the property-read implementation for diagnosis and comparison.
+It is not a transparency setting. To roll back the entire engine change, restore
+the complete backed-up engine folder; the two CMD variants only switch the layout
+diagnostic.
 
 Do not compare one Detailed capture with one FrameOnly capture as evidence of an
 engine speedup. FrameOnly still has observer/OSG recording overhead and does not

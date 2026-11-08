@@ -7,6 +7,14 @@ import math
 import xml.etree.ElementTree as ET
 
 
+IMAGE_INHERITANCE_CASE = "ImageTemplatesInheritResourcesAcrossOverridesAndUpdates"
+IMAGE_INHERITANCE_SNAPSHOTS = (
+    "image-inherited",
+    "image-overridden",
+    "image-override-removed",
+    "image-template-updated",
+    "image-unchanged",
+)
 EXPECTED = {
     "StableTemplateHierarchyAndSiblingOrderRepair",
     "MutableTemplateSlotsAndReplacementKeepRetainedChild",
@@ -14,6 +22,7 @@ EXPECTED = {
     "NestedAutoSizeAndRelativeGrowRespondToASingleRootResize",
     "NestedWrappingTextPaddingVisibilityAndReorderStayConsistent",
     "RepeatedHudUpdatesBenchmark",
+    IMAGE_INHERITANCE_CASE,
 }
 EXPECTED_PROPERTIES = {
     "PlainTablesPreserveTypesDefaultsAndImmediateMutation",
@@ -21,6 +30,8 @@ EXPECTED_PROPERTIES = {
     "MetatableLookupsPreserveOrderSideEffectsAndProtectedErrors",
     "ReturnedOwningValuesSurviveFieldReplacementAndCollection",
     "MetatableOwnerReplacementUsesTheOriginalTemplate",
+    "TextureResourcesPreserveInheritanceDefaultsAndErrors",
+    "MissingFieldsPreserveLegacyNilTypeSemantics",
 }
 
 
@@ -46,6 +57,11 @@ def read_cases(path, expected_mode):
             raise ValueError("Missing native hierarchy snapshots: " + str(name))
         if properties.get("layout_mode") != expected_mode:
             raise ValueError("Native layout evidence has the wrong process mode: " + str(name))
+        if name == IMAGE_INHERITANCE_CASE:
+            labels = tuple(line[1:-1] for line in properties["layout_snapshots"].splitlines()
+                           if line.startswith("[") and line.endswith("]"))
+            if labels != IMAGE_INHERITANCE_SNAPSHOTS:
+                raise ValueError("Missing or reordered native Image inheritance snapshots: " + path.name)
         cases[name] = properties
     if set(cases) != EXPECTED:
         raise ValueError("Layout suite is missing or changed: " + repr(sorted(set(cases) ^ EXPECTED)))
@@ -91,6 +107,12 @@ def compare(optimized, legacy):
         "schema_version": 1, "result": "PASS", "native_layout_cases": len(cases),
         "native_property_cases_per_mode": len(EXPECTED_PROPERTIES),
         "property_cases": sorted(EXPECTED_PROPERTIES),
+        "image_resource_inheritance": {
+            "case": IMAGE_INHERITANCE_CASE,
+            "snapshot_labels": list(IMAGE_INHERITANCE_SNAPSHOTS),
+            "modes": ["optimized", "legacy"],
+            "snapshots_equal": True,
+        },
         "optimized_xml": identity(optimized), "legacy_xml": identity(legacy),
         "cases": cases, "native_benchmark": timings,
         "benchmark_ratio_optimized_to_legacy": (
