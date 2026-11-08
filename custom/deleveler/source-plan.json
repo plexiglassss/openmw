@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "baseline": "91cf944a0fe8a3d2333b3ae97ccb17376c577565",
+  "scope": "User-authorized native creature and item deleveling with independent Options controls. Preserve cumulative engine fixes, rest/wait finish time, Continue, game plugins, load order and save format. Scoped engine acceptance only.",
+  "files": {
+    ".github/workflows/push.yml": {
+      "before": {
+        "mode": "100644",
+        "blob": "24b7c1fe1bf02b25b6d2758ce1694ca122f9c3b7"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d88e354ae4e6333de25fca30978c15e749d86af4"
+      },
+      "bytes": 40034,
+      "sha256": "6e42dcf400312f29ccdf1d51608e29c3e4884ed663f3a21244a8e48867a9ccaf",
+      "reason": "Build the exact deleveler revision, preserve historical cumulative and menu verification, compile and execute the native regression suite, and validate and publish the complete Windows package."
+    },
+    "apps/openmw/mwgui/settingswindow.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4a939035548c3b199b370580b0f25cba3a37c966"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "039ad09e28c6f13a33a7bd3326baaa3b4c929590"
+      },
+      "bytes": 65666,
+      "sha256": "558eb2c6c58902b13a0f9a89883efadc92894d9f86feb14bb829518feb1f9cd5",
+      "reason": "Allow the added Gameplay tab to use existing tab overflow without increasing the Options minimum width."
+    },
+    "apps/openmw/mwmechanics/levelledlist.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "26f759425c5762fd578834b9e5d573b8334b611b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "a27d438ef43203dfcd50a0569c454c1776c4f278"
+      },
+      "bytes": 3319,
+      "sha256": "2140e305e4627dd7656a0faf552810ff56311ff247bf70bb25ecb7934c62e92d",
+      "reason": "Read independent live creature and item settings and treat entry thresholds as one in both native eligibility passes while preserving stored records and all other selection behavior."
+    },
+    "apps/openmw_tests/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "6f50352d1e12fe7a3661eb76e07dcc4f1fc3b8b7"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "67171f889a2cf53a05ef91f1d9c66f12c606077b"
+      },
+      "bytes": 2556,
+      "sha256": "49ac568a6900f4ba68e97e5da26f38612462eccb20fb183efe6e8268bdafe7cb",
+      "reason": "Register the focused production-selector regression suite in the existing native test executable."
+    },
+    "apps/openmw_tests/mwmechanics/testlevelledlist.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "625782049317d8ca7cd23e6f7a3a0a9fe691bd9e"
+      },
+      "bytes": 15121,
+      "sha256": "8019201de6a5a3a88a329eef8ba8532d76d85bd6e7146aa065065298f4f5e016",
+      "reason": "Exercise the actual native selector, stored records and save restoration for disabled equivalence, random state, independent toggles, duplicate weights, nested lists, chance-none, zero level and runtime changes."
+    },
+    "components/settings/categories/game.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1f6dbed03a7b894ffc7d0e4fe4250a92c9e75a1b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "0fa6dd14ec857b21c68202d45c589345e997d958"
+      },
+      "bytes": 5486,
+      "sha256": "6abbafbfa8154baf32cbba39f3327290be0cd533235c780671b2d953d6c48077",
+      "reason": "Declare the two typed Game settings using the existing settings manager."
+    },
+    "custom/cumulative/prepare-upgrade.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "0f76a57047c30d853c9edffec91b486c326f5f19"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ab73b0bec2fe41efda466ba70dad4f08e0626a74"
+      },
+      "bytes": 10838,
+      "sha256": "d98e98fb228e5f709149ff65482ce7f601a94bd1e6d5ade7648cb282e59ffc05",
+      "reason": "Require exact deleveler source manifests, executed native tests, unchanged historical menu and cumulative evidence, current defaults and byte-exact Options resources while preserving complete-package verification."
+    },
+    "custom/deleveler/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b0fb193583ec51df000412ce5ebac2eda7c3983f"
+      },
+      "bytes": 5830,
+      "sha256": "4544d6592e0dbc2ce630ab36b7d2b6a0034323214e7f61a0f63ac125e3ab616c",
+      "reason": "Document the native options, scope, interaction with modded lists, installation, rollback and verification limits."
+    },
+    "custom/deleveler/verify-source.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "39617dd5069b6cead6c27493563ddb379127c906"
+      },
+      "bytes": 6108,
+      "sha256": "8c51572b55e5aabe753bfc0fa03dbe5bc9b97db55b9f8aa554fe47f3b693efa5",
+      "reason": "Bind every reviewed feature delta and verify the rest of the complete source tree against the accepted engine baseline, retaining the existing lookup-only build transformation."
+    },
+    "docs/source/reference/modding/settings/game.rst": {
+      "before": {
+        "mode": "100644",
+        "blob": "e121e5079cd43b685c9fe097dc902f9c2da44f28"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "9ace583a166c059c4e1461d82b6b6f33e8e763e6"
+      },
+      "bytes": 22614,
+      "sha256": "bef69c05061598738a063858b93ee1f2b0dc72ccc82d92620263208a44ebed0b",
+      "reason": "Document each setting, opt-in default, native selection semantics and effects on future resolutions."
+    },
+    "files/data/l10n/OMWEngine/en.yaml": {
+      "before": {
+        "mode": "100644",
+        "blob": "4bbc255d075a9a49ae0b465b02b4ada3b78fc8c0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "331cf50920f21bfb220e70973a9f7608200769ef"
+      },
+      "bytes": 16083,
+      "sha256": "1255de629ef2a3a2aa3dff41b4d4d0a84cecbc03eaa543a86684b51c7c179517",
+      "reason": "Provide localizable Gameplay tab labels, deleveler option names, behavior hints and tooltips."
+    },
+    "files/data/mygui/openmw_settings_window.layout": {
+      "before": {
+        "mode": "100644",
+        "blob": "3f4d925e4397c51c3c9edb9b5afa4af8c9daf90c"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "41717c7c1f3e224080e0247c5cb783fa4f0e49c8"
+      },
+      "bytes": 78840,
+      "sha256": "76426ff16e6f4df673a3f9a96008970b50ae997f0c7b9cd4821477719bbccbf2",
+      "reason": "Add native Gameplay Options controls bound to both settings using existing checkbox and layout behavior."
+    },
+    "files/settings-default.cfg": {
+      "before": {
+        "mode": "100644",
+        "blob": "067dd45a3ed806fd25ae38471340a7debca69aad"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8fda75ab8ecf68f89b3ee9b903595979677578f8"
+      },
+      "bytes": 49328,
+      "sha256": "c0103bb67c386d9d356ec8eff7282e65ecc12cd1700b8d8591cdd31c8bcf2179",
+      "reason": "Default both deleveler options to false so existing installations retain ordinary selection until enabled."
+    }
+  }
+}
