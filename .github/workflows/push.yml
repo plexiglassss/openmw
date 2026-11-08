@@ -1,4 +1,4 @@
-name: OpenMW - cumulative Windows engine and preserved tools
+name: OpenMW - rest time and Continue menu
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -34,6 +34,7 @@ jobs:
         shell: pwsh
         run: |
           $commits = @(
+            'de695387ff24adac5ff28a56eaac30d996e45011',
             'cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0',
             'b34db5770f947b0f5b90dc699627c2ccdae12f16',
             '528bffb348872a964d25c092fa5dd574c1b7f673',
@@ -67,8 +68,26 @@ jobs:
               if ($LASTEXITCODE) { throw "Cannot remove $($gate.Path)" }
             }
           }
-          python custom/cumulative/verify-source.py
-          if ($LASTEXITCODE) { throw 'Cumulative source union or parent ancestry verification failed' }
+          git worktree add --detach preservation-cumulative de695387ff24adac5ff28a56eaac30d996e45011
+          if ($LASTEXITCODE) { throw 'Cannot prepare the exact preserved cumulative baseline' }
+          Push-Location preservation-cumulative
+          try {
+            python custom/cumulative/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical cumulative source union failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical waiting-stage rollback check failed' }
+            python custom/cumulative/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled source union failed' }
+            Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-cumulative
+            if ($LASTEXITCODE) { throw 'Cannot remove historical verification worktree' }
+          }
+          python custom/menu-qol/verify-source.py
+          if ($LASTEXITCODE) { throw 'Menu feature source or cumulative preservation verification failed' }
       - name: Test script installer preflight and rollback on authored fixtures
         shell: powershell
         run: |
@@ -92,7 +111,34 @@ jobs:
           if ($LASTEXITCODE) { throw 'Notification geometry test compilation failed' }
           ./message-position-tests.exe | Tee-Object message-position-tests.txt
           if ($LASTEXITCODE) { throw 'Notification geometry regressions failed' }
-      - uses: seanmiddleditch/gha-setup-ninja@master
+      - name: Verify Ninja supplied with the Visual Studio build tools
+        shell: pwsh
+        run: |
+          $ninja = Get-Command ninja.exe -ErrorAction Stop
+          Write-Host "Using $($ninja.Source)"
+          & $ninja.Source --version
+          if ($LASTEXITCODE) { throw 'The installed Ninja build tool failed its version check' }
+      - name: Prepare the verified compiler cache tool through the release asset API
+        shell: pwsh
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'sccache-v0.18.0-windows-x64.tar.gz'
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o $archive https://api.github.com/repos/mozilla/sccache/releases/assets/563130158
+          if ($LASTEXITCODE) { throw 'Compiler cache release asset download failed' }
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '1a63c1be2beab3f04d27e4cc145443e092e02d3dd83a51030989829d7023091b') {
+            throw 'Compiler cache archive does not match the official release asset digest'
+          }
+          $unpack = Join-Path $env:RUNNER_TEMP 'verified-sccache'
+          New-Item -ItemType Directory -Force $unpack | Out-Null
+          tar -xzf $archive -C $unpack
+          if ($LASTEXITCODE) { throw 'Compiler cache archive extraction failed' }
+          $toolPath = Join-Path $env:RUNNER_TOOL_CACHE 'sccache/0.18.0/x64'
+          New-Item -ItemType Directory -Force $toolPath | Out-Null
+          Copy-Item "$unpack/sccache-v0.18.0-x86_64-pc-windows-msvc/*" $toolPath
+          & "$toolPath/sccache.exe" --version
+          if ($LASTEXITCODE) { throw 'Verified compiler cache executable failed to start' }
+          New-Item -ItemType File -Force "$toolPath.complete" | Out-Null
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
         with:
           version: v0.18.0
@@ -103,8 +149,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
           python custom/loading-repair/check-integration.py
           if ($LASTEXITCODE) { throw 'Waiting-stage rollback/source validation failed' }
-          python custom/cumulative/verify-source.py --after-lookup
-          if ($LASTEXITCODE) { throw 'Final compiled source differs from the verified cumulative union' }
+          python custom/menu-qol/verify-source.py --after-lookup
+          if ($LASTEXITCODE) { throw 'Final compiled source differs from the reviewed menu feature source' }
           git diff --check
           if ($LASTEXITCODE) { throw 'Invalid source diff' }
           git diff --binary --output=loading-repair-applied.patch -- apps/
@@ -113,6 +159,8 @@ jobs:
         run: sed '/^\s*#/d; /^\s*$/d' CI/deps_versions.msvc.sh >> "$GITHUB_ENV"
       - name: Download verified dependencies
         shell: pwsh
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory -Force deps, deps/Qt | Out-Null
           Set-Location deps
@@ -121,7 +169,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Dependency manifest download failed' }
           $lines = Get-Content "$manifest"
           $parts = -split $lines[1]
-          curl --fail --retry 3 -L -o "$($parts[1])" "$($lines[0])"
+          $archiveName = 'vcpkg-x64-windows-2022-2026-09-09.7z'
+          $releaseUrl = "https://github.com/OpenMW/openmw-deps-build/releases/download/2026-09-09/$archiveName"
+          if ($parts.Count -ne 2 -or $parts[1] -ne $archiveName -or $lines[0] -ne $releaseUrl) {
+            throw 'Dependency manifest no longer identifies the pinned original release asset'
+          }
+          curl --fail --retry 3 --connect-timeout 20 --max-time 300 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o $archiveName https://api.github.com/repos/OpenMW/openmw-deps-build/releases/assets/553691121
           if ($LASTEXITCODE) { throw 'Dependency archive download failed' }
           if ((Get-FileHash $parts[1] -Algorithm SHA512).Hash -ne $parts[0]) { throw 'Dependency hash mismatch' }
           7z x -y "-ovcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}" $parts[1]
@@ -135,11 +188,39 @@ jobs:
         if: steps.qt-cache.outputs.cache-hit != 'true'
         shell: pwsh
         working-directory: deps/Qt
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
         run: |
-          curl --fail --retry 3 -L -o aqt_x64.exe https://github.com/miurahr/aqtinstall/releases/download/v3.1.15/aqt_x64.exe
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o aqt_x64.exe https://api.github.com/repos/miurahr/aqtinstall/releases/assets/165924575
           if ($LASTEXITCODE) { throw 'Qt installer download failed' }
+          if ((Get-FileHash aqt_x64.exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'f9e9acc05975f2e70e4935ace76b41882cda4b53eb779c9bcf1d87a95029a6b0') {
+            throw 'Qt installer does not match the verified original v3.1.15 release asset'
+          }
           ./aqt_x64.exe install-qt windows desktop ${{ env.QT_VER }} win64_msvc2019_64
           if ($LASTEXITCODE) { throw 'Qt installation failed' }
+      - name: Cache the original source dependency archives with verified retries
+        shell: pwsh
+        run: |
+          $archives = @(
+            @{ Name = 'recastnavigation'; File = '03259f3287ff8330f0d66fcd98d022edddffaa97.zip'; Url = 'https://codeload.github.com/OpenMW/recastnavigation/zip/03259f3287ff8330f0d66fcd98d022edddffaa97'; Hash = '63db2ac90904764d7f1466d3c95994ec51d777cddd870b70f8ef674c09ed166b3d16ffc4ac1d18d0eab865fda4bf51b6ea17049025b66a338d3cadd0f48dc712' },
+            @{ Name = 'sqlite3'; File = 'sqlite-amalgamation-3410100.zip'; Url = 'https://www.sqlite.org/2023/sqlite-amalgamation-3410100.zip'; Hash = '7de291709e88fffc693cf24ac675950cfc35c1bf7631cfea95167105720a05cf37fb943c57c5c985db2eeaa57b31894b3c0df98a7bd2939b5746fc5a24b5ae87' },
+            @{ Name = 'yaml-cpp'; File = 'c2680200486572baf8221ba052ef50b58ecd816e.zip'; Url = 'https://codeload.github.com/jbeder/yaml-cpp/zip/c2680200486572baf8221ba052ef50b58ecd816e'; Hash = '9eb328e37ff547e7f681d64e3a8f268a8a5645cb1c258106d1d9f959eec498dfc7c466690c56f210ad7d5fb95b806a30c87ccbb019cccf5c3c6135cfc3c13fe1' },
+            @{ Name = 'googletest'; File = 'v1.17.0.zip'; Url = 'https://codeload.github.com/google/googletest/zip/refs/tags/v1.17.0'; Hash = '2712d6f6e7f38eb0c8d5ebba957588c70aff68ea433c7aa0b31bde8cacfbe47de908a6e5a99a021969da568f5075daa2c45fca602bbf56711d146d333b76562b' }
+          )
+          $declarations = Get-Content extern/CMakeLists.txt -Raw
+          foreach ($item in $archives) {
+            if (-not $declarations.Contains("URL_HASH SHA512=$($item.Hash)") -or -not $declarations.Contains("SOURCE_DIR fetched/$($item.Name)")) {
+              throw "Source archive cache no longer matches the declared original dependency: $($item.Name)"
+            }
+            $directory = "build/_deps/$($item.Name)-subbuild/$($item.Name)-populate-prefix/src"
+            New-Item -ItemType Directory -Force $directory | Out-Null
+            $archive = Join-Path $directory $item.File
+            curl --fail --retry 4 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 180 -L -o $archive $item.Url
+            if ($LASTEXITCODE) { throw "Source archive download failed: $($item.Name)" }
+            if ((Get-FileHash -LiteralPath $archive -Algorithm SHA512).Hash.ToLowerInvariant() -ne $item.Hash) {
+              throw "Source archive differs from the original CMake dependency hash: $($item.Name)"
+            }
+          }
       - name: Configure Release build with existing diagnostic cache
         shell: pwsh
         run: >
@@ -157,6 +238,15 @@ jobs:
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
+      - name: Compile rest and Continue implementation and regression tests first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mainmenu.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/waitdialog.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testcontinuegame.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testresttime.cpp.obj
       - name: Compile Lua cache change and lifecycle tests first
         shell: pwsh
         run: >
@@ -235,10 +325,12 @@ jobs:
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
       - name: Package only after test success
+        id: package
         shell: pwsh
         run: |
           cmake --install build --prefix install
           if ($LASTEXITCODE) { throw 'Installation failed' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value 'installed=true'
           Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
           Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
           Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
@@ -252,11 +344,13 @@ jobs:
           Copy-Item custom/cumulative/README.md install/CUMULATIVE-UPGRADE.md
           Copy-Item message-position-source-manifest.json,message-position-tests.txt install/
           Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json install/
+          Copy-Item menu-qol-source-manifest.json,menu-qol-build-source-manifest.json install/
+          Copy-Item custom/menu-qol/README.md install/REST-TIME-AND-CONTINUE.md
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCumulative source union: cumulative-source-manifest.json`nCompiled source after lookup patch: cumulative-build-source-manifest.json`nPreserved accepted baseline 1b78b9c1a566b91bbe1576387842625f3ae509d1`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; custom replacements and gameplay remain untested`nComplete standard engine package includes its bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
-          python custom/cumulative/prepare-upgrade.py install
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nMenu changes: menu-qol-source-manifest.json`nCompiled source after lookup patch: menu-qol-build-source-manifest.json`nPreserved complete cumulative baseline de695387ff24adac5ff28a56eaac30d996e45011`nHistorical cumulative verification: cumulative-source-manifest.json`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; custom replacements and gameplay remain untested`nComplete standard engine package includes its bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          python custom/cumulative/prepare-upgrade.py install --menu-qol
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
           Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
@@ -264,9 +358,17 @@ jobs:
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-cumulative-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-rest-time-continue-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
+      - name: Preserve unverified files for packaging failure recovery
+        if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
+        uses: actions/upload-artifact@v6
+        with:
+          name: UNVERIFIED-menu-package-recovery-${{ env.CUMULATIVE_COMMIT }}
+          path: install/*
+          if-no-files-found: error
+          retention-days: 7
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -275,6 +377,8 @@ jobs:
             gameplay-installer-tests.json
             cumulative-source-manifest.json
             cumulative-build-source-manifest.json
+            menu-qol-source-manifest.json
+            menu-qol-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
             lookup-*.xml

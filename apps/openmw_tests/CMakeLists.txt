@@ -23,6 +23,8 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testdialoguecolourcontrols.cpp
     mwgui/testmessageboxstate.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testresttime.cpp
+    mwgui/testcontinuegame.cpp
 
     mwlua/testobjectcache.cpp
 

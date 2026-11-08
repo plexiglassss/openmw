@@ -38,7 +38,7 @@ add_openmw_dir (mwgui
     mapwindow windowpinnablebase tooltips scrollwindow bookwindow resourceskin
     formatting inventorywindow luapaperdoll container hud countdialog tradewindow settingswindow
     confirmationdialog alchemywindow referenceinterface spellwindow mainmenu quickkeysmenu
-    itemselection spellbuyingwindow loadingscreen levelupdialog waitdialog spellcreationdialog
+    itemselection spellbuyingwindow loadingscreen levelupdialog waitdialog waitdialogtime spellcreationdialog
     enchantingdialog trainingwindow travelwindow exposedwindow cursor spellicons
     merchantrepair repair soulgemdialog companionwindow bookpage journalviewmodel journalbooks
     itemmodel containeritemmodel inventoryitemmodel sortfilteritemmodel itemview
@@ -109,7 +109,7 @@ add_openmw_dir (mwmechanics
     )
 
 add_openmw_dir (mwstate
-    statemanagerimp charactermanager character quicksavemanager
+    statemanagerimp charactermanager character quicksavemanager saveselection
     )
 
 add_openmw_dir (mwbase

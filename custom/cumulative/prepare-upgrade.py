@@ -30,29 +30,54 @@ def native_tests(path):
     return {**identity(path), "tests": len(cases), "failures": 0, "errors": 0, "disabled": 0, "skipped": 0}
 
 
-def prepare(root, source_root):
+def prepare(root, source_root, menu_qol=False):
     if root == source_root or root != source_root / "install":
         raise ValueError("Only the repository's fresh CI install directory is supported")
     if (root / "UPGRADE-PRESERVATION.json").exists() or (root / "verification/CI-PACKAGE-SHA256.json").exists():
         raise ValueError("Package was already prepared; rebuild the fresh CI install tree")
+    prefix = "menu-qol" if menu_qol else "cumulative"
     for name in ("openmw.exe", "openmw-launcher.exe", "defaults.bin", "CI-ID.txt", "components-tests.xml", "openmw-tests.xml",
-                 "cumulative-source-manifest.json", "cumulative-build-source-manifest.json", *REQUIRED_RUNTIME):
+                 f"{prefix}-source-manifest.json", f"{prefix}-build-source-manifest.json", *REQUIRED_RUNTIME):
         if not (root / name).is_file():
             raise ValueError("Missing required CI output: " + name)
     if not (root / "resources").is_dir():
         raise ValueError("Missing engine resources")
     test_results = {name: native_tests(root / name) for name in ("components-tests.xml", "openmw-tests.xml")}
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source_root).decode().strip()
-    source_plan_hash = identity(source_root / "custom/cumulative/source-plan.json")["sha256"]
+    source_plan_path = source_root / ("custom/menu-qol/source-plan.json" if menu_qol else "custom/cumulative/source-plan.json")
+    source_plan_hash = identity(source_plan_path)["sha256"]
     manifests = {}
-    for name, phase in (("cumulative-source-manifest.json", "committed_source"),
-                        ("cumulative-build-source-manifest.json", "after_lookup")):
+    for name, phase in ((f"{prefix}-source-manifest.json", "committed_source"),
+                        (f"{prefix}-build-source-manifest.json", "after_lookup")):
         data = json.loads((root / name).read_text())
         if (data.get("result") != "PASS" or data.get("commit") != commit or data.get("phase") != phase
                 or data.get("source_plan_sha256") != source_plan_hash
                 or data.get("accepted_heads_are_ancestors_of_commit") is not True):
-            raise ValueError("Cumulative source manifest belongs to another source or phase: " + name)
+            raise ValueError("Engine source manifest belongs to another source or phase: " + name)
         manifests[name] = {**identity(root / name), "commit": commit, "phase": phase}
+    historical_manifests = {}
+    menu_resources = {}
+    if menu_qol:
+        baseline = json.loads(source_plan_path.read_text())["baseline"]
+        historical_plan_hash = identity(source_root / "custom/cumulative/source-plan.json")["sha256"]
+        for name, phase in (("cumulative-source-manifest.json", "committed_source"),
+                            ("cumulative-build-source-manifest.json", "after_lookup")):
+            data = json.loads((root / name).read_text())
+            if (data.get("result") != "PASS" or data.get("commit") != baseline or data.get("phase") != phase
+                    or data.get("source_plan_sha256") != historical_plan_hash
+                    or data.get("accepted_heads_are_ancestors_of_commit") is not True):
+                raise ValueError("Historical cumulative source proof is missing or mismatched: " + name)
+            historical_manifests[name] = {**identity(root / name), "commit": baseline, "phase": phase}
+        suites = {case.get("classname") for case in ET.parse(root / "openmw-tests.xml").getroot().iter("testcase")}
+        if not {"RestTimeTest", "ContinueGameTest"} <= suites:
+            raise ValueError("Menu feature regression suites did not run")
+        for relative in ("mygui/openmw_mainmenu.skin.xml", "mygui/openmw_wait_dialog.layout", "l10n/Interface/en.yaml"):
+            name = "resources/vfs/" + relative
+            resource = root / name
+            source = source_root / "files/data" / relative
+            if not resource.is_file() or resource.read_bytes() != source.read_bytes():
+                raise ValueError("Required menu resource is missing or differs from the compiled source: " + name)
+            menu_resources[name] = identity(resource)
     expected = (source_root / "files/settings-default.cfg").read_bytes()
     decoded = base64.b64decode(b"".join((root / "defaults.bin").read_bytes().split()), validate=True)
     if decoded != expected:
@@ -84,7 +109,9 @@ def prepare(root, source_root):
     verification.parent.mkdir(parents=True, exist_ok=True)
     verification.write_text(json.dumps({"commit": commit, "files": before}, indent=2) + "\n")
     report = {"schema_version": 2, "result": "PASS", "commit": commit, "source_plan_sha256": source_plan_hash,
-              "source_manifests": manifests, "native_tests": test_results,
+              "source_manifests": manifests, "historical_source_manifests": historical_manifests,
+              "verified_menu_resources": menu_resources,
+              "native_tests": test_results,
               "original_ci_inventory": {"path": "verification/CI-PACKAGE-SHA256.json", **identity(verification)},
               "retained_ci_file_count": len(retained), "retained_bytes_equal_original_ci": True,
               "required_runtime_files_included": {name: identity(root / name) for name in REQUIRED_RUNTIME},
@@ -102,5 +129,7 @@ def prepare(root, source_root):
 
 
 if __name__ == "__main__":
-    prepare(Path(sys.argv[1]).resolve(), ROOT)
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--menu-qol"):
+        raise SystemExit("Usage: prepare-upgrade.py install [--menu-qol]")
+    prepare(Path(sys.argv[1]).resolve(), ROOT, menu_qol=len(sys.argv) == 3)
     print("PASS: exact merged defaults; complete bootstrap and runtime files retained; no CI files removed.")

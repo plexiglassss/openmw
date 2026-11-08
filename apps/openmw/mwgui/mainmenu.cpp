@@ -1,5 +1,8 @@
 #include "mainmenu.hpp"
 
+#include <algorithm>
+
+#include <MyGUI_Button.h>
 #include <MyGUI_Gui.h>
 #include <MyGUI_InputManager.h>
 #include <MyGUI_RenderManager.h>
@@ -17,6 +20,8 @@
 #include "../mwbase/world.hpp"
 
 #include "../mwworld/globals.hpp"
+
+#include "../mwstate/saveselection.hpp"
 
 #include "backgroundimage.hpp"
 #include "confirmationdialog.hpp"
@@ -141,7 +146,9 @@ namespace MWGui
         {
             if (isMainMenu)
             {
-                if (mButtons["loadgame"]->getVisible())
+                if (mContinueButton->getVisible())
+                    MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mContinueButton);
+                else if (mButtons["loadgame"]->getVisible())
                     MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mButtons["loadgame"]);
                 else
                     MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mButtons["newgame"]);
@@ -172,6 +179,21 @@ namespace MWGui
         winMgr->playSound(ESM::RefId::stringRefId("Menu Click"));
         if (name == "return")
             winMgr->removeGuiMode(GM_MainMenu);
+        else if (name == "continue")
+        {
+            MWBase::StateManager* stateManager = MWBase::Environment::get().getStateManager();
+            // Continue belongs to the title screen. A stale event must never replace a running game.
+            if (stateManager->getState() != MWBase::StateManager::State_NoGame)
+                return;
+
+            // Re-select here: saves may have been deleted in the Load Game dialog since the menu opened.
+            const MWState::SaveSelection save
+                = MWState::selectLatestSave(stateManager->characterBegin(), stateManager->characterEnd());
+            if (save.mSlot)
+                stateManager->requestLoad(save.mCharacter, save.mSlot->mPath);
+            else
+                updateMenu();
+        }
         else if (name == "credits")
             winMgr->playVideo("mw_credits.bik", true);
         else if (name == "exitgame")
@@ -283,6 +305,30 @@ namespace MWGui
     {
         if (mVideo)
             mVideo->commitFrame();
+
+        // The Load Game dialog can delete the final save while the title menu stays open.
+        // This is only a presence check, not a per-frame filesystem scan or full save search.
+        if (isVisible()
+            && MWBase::Environment::get().getStateManager()->getState() == MWBase::StateManager::State_NoGame)
+        {
+            MWBase::StateManager* stateManager = MWBase::Environment::get().getStateManager();
+            const bool hasSaves = std::any_of(stateManager->characterBegin(), stateManager->characterEnd(),
+                [](const MWState::Character& character) { return character.begin() != character.end(); });
+            if (mContinueButton->getVisible() != hasSaves)
+                updateMenu();
+
+            MyGUI::InputManager& input = MyGUI::InputManager::getInstance();
+            MWBase::WindowManager* windowManager = MWBase::Environment::get().getWindowManager();
+            if (!input.isModalAny() && !windowManager->isSettingsWindowVisible())
+            {
+                // Closing Load Game after deleting the final save cannot restore its now-hidden button.
+                // Wait until the modal closes, and leave any valid focus selected by the player intact.
+                MyGUI::Widget* focus = input.getKeyFocusWidget();
+                if (!focus || !focus->getInheritedVisible() || !focus->getInheritedEnabled())
+                    windowManager->setKeyFocusWidget(
+                        hasSaves ? static_cast<MyGUI::Widget*>(mContinueButton) : mButtons["newgame"]);
+            }
+        }
     }
 
     bool MainMenu::exit()
@@ -304,9 +350,27 @@ namespace MWGui
             mButtonBox
                 = mMainWidget->createWidget<MyGUI::Widget>({}, MyGUI::IntCoord(0, 0, 0, 0), MyGUI::Align::Default);
 
+        // Create first so keyboard/controller traversal follows the visible top-to-bottom order.
+        // The borderless text skin uses the configured game font and normal menu interaction colours.
+        if (!mContinueButton)
+        {
+            mContinueButton = mButtonBox->createWidget<MyGUI::Button>(
+                "MW_MainMenuTextButton", MyGUI::IntCoord(0, 0, 0, 48), MyGUI::Align::Default);
+            mContinueButton->setCaptionWithReplacing("#{Interface:Continue}");
+            mContinueButton->setFontHeight(32);
+            mContinueButton->setTextShadow(true);
+            mContinueButton->setTextShadowColour(MyGUI::Colour(0, 0, 0, 1));
+            mContinueButton->eventMouseButtonClick += MyGUI::newDelegate(this, &MainMenu::onButtonClicked);
+            mContinueButton->setUserData(std::string("continue"));
+        }
+
         int curH = 0;
 
-        MWBase::StateManager::State state = MWBase::Environment::get().getStateManager()->getState();
+        MWBase::StateManager* stateManager = MWBase::Environment::get().getStateManager();
+        MWBase::StateManager::State state = stateManager->getState();
+        const bool canContinue = state == MWBase::StateManager::State_NoGame
+            && MWState::selectLatestSave(stateManager->characterBegin(), stateManager->characterEnd()).mSlot;
+        mContinueButton->setVisible(canContinue);
 
         mVersionText->setVisible(state == MWBase::StateManager::State_NoGame);
 
@@ -357,6 +421,16 @@ namespace MWGui
             MyGUI::IntSize requested = buttonPair.second->getRequestedSize();
             if (requested.width > maxwidth)
                 maxwidth = requested.width;
+        }
+
+        if (canContinue)
+        {
+            // Match the 64-pixel image rows after their existing 16-pixel padding trim.
+            constexpr int rowHeight = 48;
+            const int width = mContinueButton->getTextSize().width + 32;
+            maxwidth = std::max(maxwidth, width);
+            mContinueButton->setCoord((maxwidth - width) / 2, curH, width, rowHeight);
+            curH += rowHeight;
         }
 
         // Now show and position the ones we want

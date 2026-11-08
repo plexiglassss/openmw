@@ -1,4 +1,5 @@
 #include "waitdialog.hpp"
+#include "waitdialogtime.hpp"
 
 #include <MyGUI_InputManager.h>
 #include <MyGUI_ProgressBar.h>
@@ -7,6 +8,7 @@
 #include <components/misc/rng.hpp>
 
 #include <components/esm3/loadregn.hpp>
+#include <components/l10n/manager.hpp>
 #include <components/misc/strings/format.hpp>
 #include <components/settings/values.hpp>
 #include <components/widgets/box.hpp>
@@ -28,6 +30,18 @@
 
 namespace MWGui
 {
+    namespace
+    {
+        std::string getRestEndTimeCaption(const MWWorld::TimeStamp& currentTime, int hours)
+        {
+            const RestTimePreview target = getRestTimePreview(currentTime, hours);
+            const std::string time = Misc::StringUtils::format(
+                "%i:%02i %s", target.mHour12, target.mMinute, target.mPm ? "#{Calendar:pm}" : "#{Calendar:am}");
+            const auto l10n = MWBase::Environment::get().getL10nManager()->getContext("Interface");
+            return l10n->formatMessage(
+                target.mNextDay ? "RestWaitEndsNextDayAt" : "RestWaitEndsAt", { "time" }, { L10n::toUnicode(time) });
+        }
+    }
 
     WaitDialogProgressBar::WaitDialogProgressBar()
         : WindowBase("openmw_wait_dialog_progressbar.layout")
@@ -62,6 +76,7 @@ namespace MWGui
         getWidget(mDateTimeText, "DateTimeText");
         getWidget(mRestText, "RestText");
         getWidget(mHourText, "HourText");
+        getWidget(mEndTimeText, "EndTimeText");
         getWidget(mUntilHealedButton, "UntilHealedButton");
         getWidget(mWaitButton, "WaitButton");
         getWidget(mCancelButton, "CancelButton");
@@ -154,10 +169,23 @@ namespace MWGui
             MWBase::Environment::get().getWindowManager()->popGuiMode();
         }
 
+        const MWWorld::DateTimeManager& timeManager = *MWBase::Environment::get().getWorld()->getTimeManager();
+        const MWWorld::TimeStamp currentTime = timeManager.getTimeStamp();
+        // Reserve enough space for every selectable target before dragging.
+        // Changing to "next day" must not resize the dialog or its slider.
+        MyGUI::IntSize previewSize(0, 0);
+        for (size_t position = 0; position < mHourSlider->getScrollRange(); ++position)
+        {
+            mEndTimeText->setCaptionWithReplacing(getRestEndTimeCaption(currentTime, static_cast<int>(position + 1)));
+            const MyGUI::IntSize textSize = mEndTimeText->getTextSize();
+            previewSize.width = std::max(previewSize.width, textSize.width);
+            previewSize.height = std::max(previewSize.height, textSize.height);
+        }
+        mEndTimeText->setSize(previewSize);
+
         onHourSliderChangedPosition(mHourSlider, 0);
         mHourSlider->setScrollPosition(0);
 
-        const MWWorld::DateTimeManager& timeManager = *MWBase::Environment::get().getWorld()->getTimeManager();
         std::string_view month = timeManager.getMonthName();
         int hour = static_cast<int>(timeManager.getTimeStamp().getHour());
         bool pm = hour >= 12;
@@ -172,6 +200,7 @@ namespace MWGui
         std::string dateTimeText
             = Misc::StringUtils::format("%i %s %s %i %s", currentDate.mDay, month, daysPassed, hour, formattedHour);
         mDateTimeText->setCaptionWithReplacing(dateTimeText);
+        center();
     }
 
     void WaitDialog::onUntilHealedButtonClicked(MyGUI::Widget* /*sender*/)
@@ -240,6 +269,8 @@ namespace MWGui
     {
         mHourText->setCaptionWithReplacing(MyGUI::utility::toString(position + 1) + " #{sRestMenu2}");
         mManualHours = static_cast<int>(position + 1);
+        const MWWorld::TimeStamp currentTime = MWBase::Environment::get().getWorld()->getTimeManager()->getTimeStamp();
+        mEndTimeText->setCaptionWithReplacing(getRestEndTimeCaption(currentTime, mManualHours));
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mWaitButton);
     }
 
