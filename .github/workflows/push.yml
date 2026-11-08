@@ -120,9 +120,11 @@ jobs:
           if ($LASTEXITCODE) { throw 'The installed Ninja build tool failed its version check' }
       - name: Prepare the verified compiler cache tool through the release asset API
         shell: pwsh
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
         run: |
           $archive = Join-Path $env:RUNNER_TEMP 'sccache-v0.18.0-windows-x64.tar.gz'
-          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -o $archive https://api.github.com/repos/mozilla/sccache/releases/assets/563130158
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o $archive https://api.github.com/repos/mozilla/sccache/releases/assets/563130158
           if ($LASTEXITCODE) { throw 'Compiler cache release asset download failed' }
           if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '1a63c1be2beab3f04d27e4cc145443e092e02d3dd83a51030989829d7023091b') {
             throw 'Compiler cache archive does not match the official release asset digest'
@@ -157,6 +159,8 @@ jobs:
         run: sed '/^\s*#/d; /^\s*$/d' CI/deps_versions.msvc.sh >> "$GITHUB_ENV"
       - name: Download verified dependencies
         shell: pwsh
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
         run: |
           New-Item -ItemType Directory -Force deps, deps/Qt | Out-Null
           Set-Location deps
@@ -170,7 +174,7 @@ jobs:
           if ($parts.Count -ne 2 -or $parts[1] -ne $archiveName -or $lines[0] -ne $releaseUrl) {
             throw 'Dependency manifest no longer identifies the pinned original release asset'
           }
-          curl --fail --retry 3 --connect-timeout 20 --max-time 300 -L -H 'Accept: application/octet-stream' -o $archiveName https://api.github.com/repos/OpenMW/openmw-deps-build/releases/assets/553691121
+          curl --fail --retry 3 --connect-timeout 20 --max-time 300 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o $archiveName https://api.github.com/repos/OpenMW/openmw-deps-build/releases/assets/553691121
           if ($LASTEXITCODE) { throw 'Dependency archive download failed' }
           if ((Get-FileHash $parts[1] -Algorithm SHA512).Hash -ne $parts[0]) { throw 'Dependency hash mismatch' }
           7z x -y "-ovcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}" $parts[1]
@@ -184,8 +188,10 @@ jobs:
         if: steps.qt-cache.outputs.cache-hit != 'true'
         shell: pwsh
         working-directory: deps/Qt
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
         run: |
-          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -o aqt_x64.exe https://api.github.com/repos/miurahr/aqtinstall/releases/assets/165924575
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o aqt_x64.exe https://api.github.com/repos/miurahr/aqtinstall/releases/assets/165924575
           if ($LASTEXITCODE) { throw 'Qt installer download failed' }
           if ((Get-FileHash aqt_x64.exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'f9e9acc05975f2e70e4935ace76b41882cda4b53eb779c9bcf1d87a95029a6b0') {
             throw 'Qt installer does not match the verified original v3.1.15 release asset'
