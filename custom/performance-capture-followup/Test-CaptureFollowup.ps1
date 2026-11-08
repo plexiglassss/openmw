@@ -103,7 +103,10 @@ Check 'Native syntax and HelpersOnly preserve process environment' {
 }
 Check 'Removing only additions exactly reconstructs released v1.0 collector' {
     $text=[IO.File]::ReadAllText($CaptureScript,[Text.Encoding]::UTF8)
-    $original=[regex]::Replace($text,'(?s)#region Fixed follow-up evidence\n.*?#endregion Fixed follow-up evidence\n\n','')
+    $layoutObservationLine="        'OPENMW_LUA_UI_LEGACY_LAYOUT',`n"
+    Assert-True ([regex]::Matches($text,[regex]::Escape($layoutObservationLine)).Count -eq 1) 'Expected exactly one Lua UI reader mode observation line.'
+    $original=$text.Replace($layoutObservationLine,'')
+    $original=[regex]::Replace($original,'(?s)#region Fixed follow-up evidence\n.*?#endregion Fixed follow-up evidence\n\n','')
     $original=$original.Replace("    Invoke-OptionalCaptureStage 'Fixed follow-up Lua source collection' { Get-FixedFollowupSources `$newContext `$runDir }`n",'')
     $original=$original.Replace("Invoke-OptionalCaptureStage 'Optional install receipt collection' { Get-FixedInstallReceipts `$runDir }`n",'')
     Assert-True ((Text-Sha $original) -eq '72aa1ad2f78babf8d8f7c93c6127482b8332010e48f5abe44c2a6acfe77f66b3') 'Unexpected launch/recording/old helper change.'

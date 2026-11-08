@@ -142,6 +142,19 @@
       "sha256": "a6b29171f07452419ca8ddc2a04ba2f75a37ff4b75f140428aa7f89aadaaf024",
       "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls."
     },
+    "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "009ac560dfd46a62c7890079f7808e8fa04d3b6a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fdc1890b5c9ef2271b5d05e79d39945a057d38fd"
+      },
+      "bytes": 20498,
+      "sha256": "2d06055619f482c22e4fa50548b30beb4eb15363362b34b9ba530e5f012ae2ea",
+      "reason": "Require the one new inherited layout-mode inventory line exactly once and remove only it before the original byte-exact released-v1.0 collector preservation check; retain both historical digests and all prior assertions."
+    },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,
       "after": {
