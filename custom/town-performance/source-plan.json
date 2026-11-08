@@ -199,10 +199,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1ade2a0fe6bef59bf26a2a1bd6f36623961150e9"
+        "blob": "f3f6dfa637864f265da3a4ab4c2d3d6574e29d8f"
       },
-      "bytes": 10734,
-      "sha256": "af9951694bbd1ea87c912ed4249b14350e9e48232ef2fc1333a1224db96837ff",
+      "bytes": 10741,
+      "sha256": "c60f28a87a8e524330cf5d776395800e18d50ac4b8095705a7f696867c8bfdf2",
       "reason": "Exercise actual comparison wrapper invocation using a controlled collector boundary to verify FrameOnly selection, flag/argument forwarding and environment restoration on success and error."
     },
     "custom/town-performance/verify-layout-parity.py": {

@@ -192,7 +192,7 @@ $report = [ordered]@{
     scope = 'Real comparison wrapper with a stub capture script; no engine, GPU, or in-game performance test.'
     check_count = $checks.Count
     failure_count = $failures.Count
-    checks = @($checks)
+    checks = $checks.ToArray()
 }
 [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($ReportPath))
 [IO.File]::WriteAllText($ReportPath, (ConvertTo-Json -InputObject $report -Depth 8), $utf8)
