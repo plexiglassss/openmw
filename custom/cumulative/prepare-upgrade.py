@@ -72,7 +72,7 @@ def prepare(root, source_root, menu_qol=False):
         if not {"RestTimeTest", "ContinueGameTest"} <= suites:
             raise ValueError("Menu feature regression suites did not run")
         for relative in ("mygui/openmw_mainmenu.skin.xml", "mygui/openmw_wait_dialog.layout", "l10n/Interface/en.yaml"):
-            name = "resources/" + relative
+            name = "resources/vfs/" + relative
             resource = root / name
             source = source_root / "files/data" / relative
             if not resource.is_file() or resource.read_bytes() != source.read_bytes():

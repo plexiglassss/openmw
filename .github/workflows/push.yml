@@ -209,6 +209,7 @@ jobs:
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
       - name: Compile rest and Continue implementation and regression tests first
         shell: pwsh
         run: >
@@ -295,10 +296,12 @@ jobs:
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
       - name: Package only after test success
+        id: package
         shell: pwsh
         run: |
           cmake --install build --prefix install
           if ($LASTEXITCODE) { throw 'Installation failed' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value 'installed=true'
           Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
           Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
           Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
@@ -329,6 +332,14 @@ jobs:
           name: openmw-rest-time-continue-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
+      - name: Preserve unverified files for packaging failure recovery
+        if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
+        uses: actions/upload-artifact@v6
+        with:
+          name: UNVERIFIED-menu-package-recovery-${{ env.CUMULATIVE_COMMIT }}
+          path: install/*
+          if-no-files-found: error
+          retention-days: 7
       - uses: actions/upload-artifact@v6
         if: always()
         with:

@@ -11,11 +11,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "be3131c6f03e46dc7a580c8dcfedaf88acc10f68"
+        "blob": "763c9e910b2e30a70595877fa464f7dbdc59e25a"
       },
-      "bytes": 34725,
-      "sha256": "ea5be46e51240ecc95c9e1f055499fb16f11e4f573711bfe4a53506416188c2c",
-      "reason": "Build and verify the exact feature/cumulative source, native suites and complete package; use installed Ninja and hash-verified original sccache/Qt installer/dependency assets through the working release API after browser download URLs failed, preserving the official dependency manifest check."
+      "bytes": 35285,
+      "sha256": "11248a648d3b17ff12b37c52fb1c59c472aad9a47db7123758f2924fffb26a3d",
+      "reason": "Build and verify exact feature/cumulative source, native suites and complete package. Recover original verified build assets via release API, serialize LTO links without changing optimization, and retain explicitly unverified install files only on post-install packaging failure."
     },
     "apps/openmw/CMakeLists.txt": {
       "before": {
@@ -142,11 +142,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e1afc431df9acd6a84274edaf254902351865bbb"
+        "blob": "0f76a57047c30d853c9edffec91b486c326f5f19"
       },
-      "bytes": 8913,
-      "sha256": "f8681c4f57de3cbca99e7ab99f3008880deacd0562ba48baa3688a5fd27122e0",
-      "reason": "Bind this new feature build and its historical source proof; require executed menu suites and exact packaged UI resources while retaining complete-package checks."
+      "bytes": 8917,
+      "sha256": "c92b2a40688a011949a852c99a1355cd8e8fd97ae179aaeb7b6c64502463d163",
+      "reason": "Bind this feature build and historical source proof; require executed menu suites and byte-exact UI resources at the actual resources/vfs install paths while retaining complete-package checks."
     },
     "custom/menu-qol/README.md": {
       "before": null,
