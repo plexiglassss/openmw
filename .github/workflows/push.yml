@@ -305,6 +305,7 @@ jobs:
         run: >
           cmake --build build --target
           components/CMakeFiles/components.dir/lua/scripttracker.cpp.obj
+          components/CMakeFiles/components.dir/lua/scriptscontainer.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
       - name: Compile lookup change first

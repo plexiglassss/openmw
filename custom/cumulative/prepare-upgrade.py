@@ -74,6 +74,24 @@ def prepare(root, source_root, menu_qol=False, deleveler=False, town_performance
                     or data.get("accepted_heads_are_ancestors_of_commit") is not True):
                 raise ValueError("Historical combined engine proof is missing or mismatched: " + name)
             historical_manifests[name] = {**identity(root / name), "commit": baseline, "phase": phase}
+        component_cases = {(case.get("classname"), case.get("name")): case
+                           for case in ET.parse(root / "components-tests.xml").getroot().iter("testcase")}
+        required_timer_cases = {
+            'EmptyTimerQueuesAllowLaterSchedulingInBothClocks',
+            'EmptyTimerQueuesPreserveReentrantSchedulingAndProcessing',
+            'GameTimerSchedulingSimulationTimerPreservesNextPassOrdering',
+            'NoDueTimerDispatchNativeBenchmark',
+            'NoDueTimerProcessingRetainsTrackerActivityUntilProcessingStops',
+            'NoDueTimersPreserveExactDeadlineAndNonfiniteComparisons',
+            'UnloadedTimerProcessingStillInitializesAndRunsTimersCreatedByLoadHandlers',
+        }
+        if not {("LuaScriptsContainerTest", name) for name in required_timer_cases} <= set(component_cases):
+            raise ValueError("Required native timer lifecycle/benchmark cases did not run")
+        timer_benchmark = component_cases[("LuaScriptsContainerTest", "NoDueTimerDispatchNativeBenchmark")]
+        timer_properties = {item.get("name"): item.get("value") for item in timer_benchmark.findall("./properties/property")}
+        for workload in ("empty", "future"):
+            if timer_properties.get(workload + "_lua_call_events_per_160_containers") != "0":
+                raise ValueError("Native timer preflight did not avoid the unused Lua call boundary")
         suites = {case.get("classname") for case in ET.parse(root / "openmw-tests.xml").getroot().iter("testcase")}
         if not {"LuaUiLayoutTest", "LuaUiPropertyTest", "MWLuaMagicBindingsTest"} <= suites:
             raise ValueError("Native Lua UI layout or magic binding regression suite did not run")

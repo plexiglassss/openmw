@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Bounded experimental native Lua UI property-reader and actor-query evaluation after installed Lua fixes did not improve town gameplay. Preserve the exact combined engine features, settings, game plugins, load order and saves. Native correctness and benchmark validation are distinct from unverified gameplay performance. The unsuccessful attachment candidate is excluded.",
+  "scope": "Bounded native Lua UI property-reader, actor-query and no-due timer evaluation after installed Lua fixes did not improve town gameplay. Preserve the exact combined engine features, settings, game plugins, load order and saves. Native correctness and benchmark validation are distinct from unverified gameplay performance. The unsuccessful attachment candidate is excluded.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -15,11 +15,24 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "88c4fa36e0de22743f6026137faf0498914947ee"
+        "blob": "fbeb0005f25cae170ab29061a4b2133ef3878896"
       },
-      "bytes": 43770,
-      "sha256": "d030c741a7fc50fd7f726959c6d579aedc7d70bfcd60f31a91411b3a507059a8",
+      "bytes": 43846,
+      "sha256": "afea92caaee4cf19afa33dba3ac8e3a959ec15757421334ed4edbeaedcf59728",
       "reason": "Preserve exact combined and historical source gates; build native Lua candidates and real regressions; require two-process layout parity and complete package/runtime; include paired FrameOnly capture tools."
+    },
+    "apps/components_tests/lua/testscriptscontainer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "29405ed9fd77b506d3fcc67eaa53d15714fb1618"
+      },
+      "reason": "Add actual native timer scheduling, reentrancy, tracker/unload, initialization/load and 24 boundary/clock regressions plus a bounded benchmark with anti-hoisting barrier and separate Lua-call probe.",
+      "after": {
+        "mode": "100644",
+        "blob": "3d07dedff4fac72ed5ffcdd74b6b20e755946a0f"
+      },
+      "bytes": 50614,
+      "sha256": "68aef186f5c5d211d3edec1f10aa311a63a878e36915dcfd4715174eebb5a2dc"
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -77,6 +90,19 @@
       "sha256": "61f2e56a62980313dbb2e8b8e4fe5e4a0de1ef922eab315a1da3319833b7ccdf",
       "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim."
     },
+    "components/lua/scriptscontainer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "6f7703dbaa5f4c746c029c4af5ac957bb4f2eecc"
+      },
+      "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths.",
+      "after": {
+        "mode": "100644",
+        "blob": "ac63595ffe99c76bf3de39f4d8a4599f6d107b81"
+      },
+      "bytes": 34412,
+      "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10"
+    },
     "components/lua_ui/properties.hpp": {
       "before": {
         "mode": "100644",
@@ -97,10 +123,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "216a20f0f85ec8179982741208a0f0d3973d099b"
+        "blob": "215edcfbc3a2b9e9f47f194add2d74e37de9111b"
       },
-      "bytes": 13781,
-      "sha256": "6300ded3d5990b0c3cbc41aa9f46c4f6d71083c4d101513c63bec0ba6103fe0a",
+      "bytes": 15180,
+      "sha256": "cb0c658b75ab4de2efae90cae5af226e4cf1bf401fc49d6f28bdf8fac7f24e4e",
       "reason": "Validate current town and exact historical combined manifests, all retained feature tests/resources/defaults/runtime, and recompute native two-mode layout parity before packaging."
     },
     "custom/performance-capture-followup/Start-Capture.ps1": {
@@ -140,10 +166,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0d675c19c1e4ff932b6e5474e43a2400c59a5769"
+        "blob": "f8c3bf68508e1cae6967c1d4b6488b3ae8416ad3"
       },
-      "bytes": 8126,
-      "sha256": "f25b4cc4b6c1c23d98ee58f675d2fc22903fd8170979f1e7c63175a664b2db4e",
+      "bytes": 8913,
+      "sha256": "f8227b36627211d1e98b7ce12790e738b43416dbffa9d35a4e701b185044589b",
       "reason": "Explain bounded native changes, preservation, real native test boundaries, matched FrameOnly capture, complete installation and rollback; keep gameplay improvement unverified."
     },
     "custom/town-performance/Start-Comparison.ps1": {

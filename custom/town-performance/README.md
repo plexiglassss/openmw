@@ -42,6 +42,15 @@ preserve retained elements. Mutable layout tables, callbacks, text and propertie
 retain their existing behavior. The original type conversion/error logic is shared
 by both reader paths.
 
+Loaded script containers avoid entering Lua when neither timer queue has a due
+head. They still mark activity for the tracker, and the existing initialization,
+load, save, due-callback and ordering paths remain intact. Deadline equality and
+nonfinite clock comparisons use the same predicate as before. Local native
+Release/LTO LuaJIT tests passed all 31 cases on baseline and candidate with the
+Lua profiler both on and off. Ten alternating pairs saved only about 0.022 ms per
+160 containers with no due work. This is a small cleanup, not an explanation for
+the roughly 21 ms recorded worker budget; actual town queue coverage is unknown.
+
 Magic queries resolve their actor once within each call. They continue to use
 the current world registry and current effect values; no actor pointer, effect
 value or stats collection is cached across calls. Effect-ID validation remains
@@ -68,7 +77,9 @@ this performance patch. Keep the installed AttendMe and SkillPerks fixes.
 
 The Windows build uses Release optimization and LTO. It runs the complete native
 component and engine suites, four lookup configurations, the existing installer
-and settings fixtures, and the retained GL/frame-generation/tool jobs.
+and settings fixtures, and the retained GL/frame-generation/tool jobs. The package requires the seven
+new timer lifecycle/benchmark cases and zero unused Lua entries in both native
+no-due workloads.
 
 `LuaUiLayoutTest` executes actual MyGUI and OpenMW Element, WidgetExtension, Flex,
 Container and Text code using headless platform file/render/font services. Its
@@ -119,7 +130,8 @@ Both wrappers use FrameOnly recording and the same executable. Their process
 environment selects the property-reader path and is restored afterward. They do not
 edit settings or installed files. The recorded inherited environment includes
 the selected layout flag. LegacyLayout isolates only the UI property-read change;
-both runs still contain the magic-query candidate and all combined features.
+both runs still contain the magic-query and no-due timer candidates and all
+combined features.
 
 For a custom executable location, use PowerShell:
 
