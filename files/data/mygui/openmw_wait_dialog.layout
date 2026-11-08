@@ -16,7 +16,8 @@
         <Widget type="AutoSizedTextBox" skin="SandText" name="HourText">
         </Widget>
 
-        <Widget type="AutoSizedTextBox" skin="SandText" name="EndTimeText">
+        <Widget type="TextBox" skin="SandText" name="EndTimeText">
+            <Property key="TextAlign" value="HCenter Bottom"/>
         </Widget>
 
         <Widget type="ScrollBar" skin="MW_HScroll" name="HourSlider" position="0 0 0 18">

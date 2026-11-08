@@ -11,11 +11,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fbab35ca70b78354eaa0caf9ac08a9a5086ab743"
+        "blob": "1a122e80aa8bfdc1f6c974b54d4f1a2f59669aaf"
       },
-      "bytes": 32143,
-      "sha256": "61a2dd01efcc6767018a9c01fb957a591ec8bbc26e1e2b2d151fed24b56d81cb",
-      "reason": "Build the exact feature commit, preserve the unchanged historical cumulative gate, compile and run new suites, and verify complete package resources."
+      "bytes": 32434,
+      "sha256": "e355ea6cb6f9ea053f765e5e0ce682f00ef811ab5547a7360304c294b3786c7b",
+      "reason": "Build exact feature source and suites with the preserved cumulative checks and complete resource/package validation; use verified installed Visual Studio Ninja after the former downloader returned an invalid ZIP."
     },
     "apps/openmw/CMakeLists.txt": {
       "before": {
@@ -63,10 +63,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c92fd2b61ae0d7a41c2df326dc05c50f9451d12b"
+        "blob": "8e234f8992d8f6aa686774044f2f897130d25f8b"
       },
-      "bytes": 15816,
-      "sha256": "a60a939214055ea1b766f7c369e7905895e652ca6e0e6ac23fbc3617f1941a36",
+      "bytes": 16790,
+      "sha256": "9058f7882b7ae75367706ea542af6abecfd2c0c0713554179ca023291b1e5fa7",
       "reason": "Update the displayed finish clock time when the fixed-duration rest/wait selection changes."
     },
     "apps/openmw/mwgui/waitdialog.hpp": {
@@ -201,11 +201,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e849cfe75be852c289f9880d8fbb2d4f237c1097"
+        "blob": "2b90288d3e4da9aeec7be79cf28e41104216a4e8"
       },
-      "bytes": 1788,
-      "sha256": "d39b37918ab18329fcc7996e35d21e7c351c9ed1a8bab58b50372d61ab2ef067",
-      "reason": "Add the finish-time label above the existing hours slider."
+      "bytes": 1842,
+      "sha256": "b210661c6f0d35dc83019d12c375ea2a23f6412e27a1497fc294bb9d68d2a6bf",
+      "reason": "Add a finish-time label with measured fixed dimensions so changing the selected hours cannot resize the slider."
     }
   }
 }

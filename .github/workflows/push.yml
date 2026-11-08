@@ -111,7 +111,13 @@ jobs:
           if ($LASTEXITCODE) { throw 'Notification geometry test compilation failed' }
           ./message-position-tests.exe | Tee-Object message-position-tests.txt
           if ($LASTEXITCODE) { throw 'Notification geometry regressions failed' }
-      - uses: seanmiddleditch/gha-setup-ninja@master
+      - name: Verify Ninja supplied with the Visual Studio build tools
+        shell: pwsh
+        run: |
+          $ninja = Get-Command ninja.exe -ErrorAction Stop
+          Write-Host "Using $($ninja.Source)"
+          & $ninja.Source --version
+          if ($LASTEXITCODE) { throw 'The installed Ninja build tool failed its version check' }
       - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
         with:
           version: v0.18.0
