@@ -75,6 +75,23 @@ AudioMusic: "Music"
 AudioVoice: "Voice"
 AutoSaveOnResting: "Auto-Save on Resting"
 BestAttack: "Always Use Best Attack"
+Deleveling: "Deleveling"
+DelevelCreatures: "Delevel Creature Lists"
+DelevelCreaturesTooltip: |-
+    Allow every existing creature-list entry from player level 1. Creatures keep their normal strength.
+
+    Affects future selections, including respawns. Existing actors are not replaced.
+DelevelItems: "Delevel Item Lists"
+DelevelItemsTooltip: |-
+    Allow every existing item-list entry from player level 1, including higher-level loot.
+
+    Affects newly generated inventory. Existing items are not rerolled.
+DelevelingHint: |-
+    These options affect future spawns and newly generated inventory. Existing creatures and items stay as they are.
+
+    Changes take effect immediately. No restart is needed.
+
+    Your merged leveled lists are still required.
 CameraSensitivity: "Camera Sensitivity"
 CameraZoomIn: "Zoom Camera In"
 CameraZoomOut: "Zoom Camera Out"
@@ -125,6 +142,7 @@ GammaCorrection: "Gamma Correction"
 GammaCorrectionValue: "Gamma Correction ({value, number, ::.00})"
 GammaDark: "Dark"
 GammaLight: "Light"
+Gameplay: "Gameplay"
 GmstOverridesL10n: "Strings From ESM Files Have Priority"
 InvertXAxis: "Invert X Axis"
 InvertYAxis: "Invert Y Axis"

@@ -30,12 +30,13 @@ def native_tests(path):
     return {**identity(path), "tests": len(cases), "failures": 0, "errors": 0, "disabled": 0, "skipped": 0}
 
 
-def prepare(root, source_root, menu_qol=False):
+def prepare(root, source_root, menu_qol=False, deleveler=False):
     if root == source_root or root != source_root / "install":
         raise ValueError("Only the repository's fresh CI install directory is supported")
     if (root / "UPGRADE-PRESERVATION.json").exists() or (root / "verification/CI-PACKAGE-SHA256.json").exists():
         raise ValueError("Package was already prepared; rebuild the fresh CI install tree")
-    prefix = "menu-qol" if menu_qol else "cumulative"
+    prefix = "deleveler" if deleveler else ("menu-qol" if menu_qol else "cumulative")
+    include_menu = menu_qol or deleveler
     for name in ("openmw.exe", "openmw-launcher.exe", "defaults.bin", "CI-ID.txt", "components-tests.xml", "openmw-tests.xml",
                  f"{prefix}-source-manifest.json", f"{prefix}-build-source-manifest.json", *REQUIRED_RUNTIME):
         if not (root / name).is_file():
@@ -44,7 +45,7 @@ def prepare(root, source_root, menu_qol=False):
         raise ValueError("Missing engine resources")
     test_results = {name: native_tests(root / name) for name in ("components-tests.xml", "openmw-tests.xml")}
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source_root).decode().strip()
-    source_plan_path = source_root / ("custom/menu-qol/source-plan.json" if menu_qol else "custom/cumulative/source-plan.json")
+    source_plan_path = source_root / f"custom/{prefix}/source-plan.json"
     source_plan_hash = identity(source_plan_path)["sha256"]
     manifests = {}
     for name, phase in ((f"{prefix}-source-manifest.json", "committed_source"),
@@ -57,8 +58,34 @@ def prepare(root, source_root, menu_qol=False):
         manifests[name] = {**identity(root / name), "commit": commit, "phase": phase}
     historical_manifests = {}
     menu_resources = {}
-    if menu_qol:
+    deleveler_resources = {}
+    if deleveler:
         baseline = json.loads(source_plan_path.read_text())["baseline"]
+        # The current menu plan may contain later repairs. Bind historical
+        # evidence to the exact plan used at its recorded baseline instead.
+        historical_plan = subprocess.check_output(
+            ["git", "show", f"{baseline}:custom/menu-qol/source-plan.json"], cwd=source_root)
+        historical_plan_hash = hashlib.sha256(historical_plan).hexdigest()
+        for name, phase in (("menu-qol-source-manifest.json", "committed_source"),
+                            ("menu-qol-build-source-manifest.json", "after_lookup")):
+            data = json.loads((root / name).read_text())
+            if (data.get("result") != "PASS" or data.get("commit") != baseline or data.get("phase") != phase
+                    or data.get("source_plan_sha256") != historical_plan_hash
+                    or data.get("accepted_heads_are_ancestors_of_commit") is not True):
+                raise ValueError("Historical menu source proof is missing or mismatched: " + name)
+            historical_manifests[name] = {**identity(root / name), "commit": baseline, "phase": phase}
+        suites = {case.get("classname") for case in ET.parse(root / "openmw-tests.xml").getroot().iter("testcase")}
+        if "LevelledListTest" not in suites:
+            raise ValueError("Native deleveling regression suite did not run")
+        for relative in ("mygui/openmw_settings_window.layout", "l10n/OMWEngine/en.yaml"):
+            name = "resources/vfs/" + relative
+            resource = root / name
+            source = source_root / "files/data" / relative
+            if not resource.is_file() or resource.read_bytes() != source.read_bytes():
+                raise ValueError("Required deleveling resource is missing or differs from the source: " + name)
+            deleveler_resources[name] = identity(resource)
+    if include_menu:
+        baseline = json.loads((source_root / "custom/menu-qol/source-plan.json").read_text())["baseline"]
         historical_plan_hash = identity(source_root / "custom/cumulative/source-plan.json")["sha256"]
         for name, phase in (("cumulative-source-manifest.json", "committed_source"),
                             ("cumulative-build-source-manifest.json", "after_lookup")):
@@ -111,6 +138,7 @@ def prepare(root, source_root, menu_qol=False):
     report = {"schema_version": 2, "result": "PASS", "commit": commit, "source_plan_sha256": source_plan_hash,
               "source_manifests": manifests, "historical_source_manifests": historical_manifests,
               "verified_menu_resources": menu_resources,
+              "verified_deleveler_resources": deleveler_resources,
               "native_tests": test_results,
               "original_ci_inventory": {"path": "verification/CI-PACKAGE-SHA256.json", **identity(verification)},
               "retained_ci_file_count": len(retained), "retained_bytes_equal_original_ci": True,
@@ -129,7 +157,8 @@ def prepare(root, source_root, menu_qol=False):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--menu-qol"):
-        raise SystemExit("Usage: prepare-upgrade.py install [--menu-qol]")
-    prepare(Path(sys.argv[1]).resolve(), ROOT, menu_qol=len(sys.argv) == 3)
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in ("--menu-qol", "--deleveler")):
+        raise SystemExit("Usage: prepare-upgrade.py install [--menu-qol|--deleveler]")
+    option = sys.argv[2] if len(sys.argv) == 3 else None
+    prepare(Path(sys.argv[1]).resolve(), ROOT, menu_qol=option == "--menu-qol", deleveler=option == "--deleveler")
     print("PASS: exact merged defaults; complete bootstrap and runtime files retained; no CI files removed.")

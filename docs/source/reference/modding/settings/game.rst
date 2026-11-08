@@ -65,6 +65,45 @@ Game Settings
    the type of attack is determined by the direction that the character is moving at the time the attack begins.
 
 .. omw-setting::
+   :title: delevel creatures
+   :type: boolean
+   :range: true, false
+   :default: false
+   :location: :bdg-info:`In Game > Options > Gameplay`
+
+   Treat every creature-list entry's required level as 1 when the engine selects an entry.
+   All creature-list entries are therefore eligible at player level 1.
+   This setting is independent of ``delevel items``; each nested list uses the setting for its own type.
+   Creature strength, list contents, duplicate-entry weighting, list flags and chance of no spawn are preserved.
+   The stored entry levels remain unchanged, so scripts can still add or remove entries using those stored levels.
+
+   This applies to future native list selections, including respawns and lists modified by scripts or restored from a save.
+   Existing actors are not replaced. Changes take effect immediately without restarting OpenMW.
+   Turning the setting off restores ordinary selection against the current modlist, including any changes made by other deleveling mods.
+
+   No additional plugin is needed. A leveled-list merge such as Delta is still required to combine conflicting plugin contributions.
+   Lua mods that select from raw list data independently of the engine's selector are not affected.
+
+.. omw-setting::
+   :title: delevel items
+   :type: boolean
+   :range: true, false
+   :default: false
+   :location: :bdg-info:`In Game > Options > Gameplay`
+
+   Treat every item-list entry's required level as 1 when the engine selects an entry.
+   All entries are therefore eligible at player level 1, including higher-level loot.
+   This setting is independent of ``delevel creatures``; each nested list uses the setting for its own type.
+   Item records, stored entry levels, duplicate-entry weighting, list flags and chance of no item are preserved.
+
+   This applies to newly generated inventory and future native list selections, including lists modified by scripts or restored from a save.
+   Already-generated items are not rerolled. Changes take effect immediately without restarting OpenMW.
+   Turning the setting off restores ordinary selection against the current modlist.
+
+   No additional plugin is needed. Keep the leveled-list merge used for the modlist; this setting changes eligibility, not plugin merging.
+   Lua mods that select from raw list data independently of the engine's selector are not affected.
+
+.. omw-setting::
    :title: can loot during death animation
    :type: boolean
    :range: true, false
