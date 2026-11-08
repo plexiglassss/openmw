@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "baseline": "de695387ff24adac5ff28a56eaac30d996e45011",
-  "latest_accepted_merge": "35c9e82ab90416da642cff154b7eb5fad8721e15",
-  "scope": "Two explicitly requested native engine UI features; no game plugin, save-format, rest mechanics or load-order changes. Preserve all other cumulative engine files. Also includes the exact native-tested generic installer default-path repair; all accepted engine feature bytes remain unchanged.",
+  "latest_accepted_merge": "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
+  "scope": "Requested rest/wait and Continue UI features, including the bounded Continue colour/hover repair. Preserve all other cumulative engine files and accepted installer repair; no game plugin, save-format, rest mechanics or load-order changes.",
   "files": {
     ".github/workflows/push.yml": {
       "before": {
@@ -24,11 +24,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "87c8a77e532b7dde0d6f22402febc16ce0ac1db0"
+        "blob": "2eb7d1bb0feddbb8acdd152067c990ca8d5b9067"
       },
-      "bytes": 11796,
-      "sha256": "489ba21c3d864c2b836befdfcfa0f0962bda686cf9cfaedf629a29d09d12c5dc",
-      "reason": "Include the new header-only time-preview and save-selection helpers in source groups."
+      "bytes": 11815,
+      "sha256": "ba05efdab70ebc64928618c9e1020d426cbf6f769ce5cdc699b954ee7e3f1f59",
+      "reason": "Include the time-preview, save-selection and dedicated title-menu button headers in source groups."
     },
     "apps/openmw/mwgui/mainmenu.cpp": {
       "before": {
@@ -37,11 +37,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "18b463c90ec48b472165c06e51ebf982e84b6653"
+        "blob": "3d8f44693878ed51b795c4844014a08377223f85"
       },
-      "bytes": 18282,
-      "sha256": "36f009a96ffe10cf824d2308ef9c86f3c6aeb3b551613b97e627aa35afeae42f",
-      "reason": "Add title-screen Continue with newest-save selection and native input/focus behavior; retain normal loading and pause Return."
+      "bytes": 18437,
+      "sha256": "8281ef189d046ac4eb39a0cf8e5d4e810bf064fa5e393a1f3b42dde7401568dd",
+      "reason": "Add title-screen Continue with newest-save selection and native input/focus behavior; instantiate the scoped text button so mouse hover remains distinct from initial keyboard focus."
     },
     "apps/openmw/mwgui/mainmenu.hpp": {
       "before": {
@@ -55,6 +55,16 @@
       "bytes": 1759,
       "sha256": "93f1fdbd43987883b1bd952367588e4fc624833f366d60cb7363bc8e6d7a7eb4",
       "reason": "Store the native Continue button widget."
+    },
+    "apps/openmw/mwgui/mainmenutextbutton.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a6e532e3e9c1b6b4774a2110ed581a0bb2114b19"
+      },
+      "bytes": 2789,
+      "sha256": "9a1c5afde9cbd90f9c3ca10f65f34950eb5cd90965a0f85979e1dc9eed837500",
+      "reason": "Retain native MyGUI activation while distinguishing normal, keyboard-focused, mouse-hover, left-pressed and disabled appearance for Continue."
     },
     "apps/openmw/mwgui/waitdialog.cpp": {
       "before": {
@@ -109,11 +119,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6f50352d1e12fe7a3661eb76e07dcc4f1fc3b8b7"
+        "blob": "bca3fabe606ac364b42fcb75641f712e65bbdf93"
       },
-      "bytes": 2518,
-      "sha256": "b674b807c86abda6cb95f5d8b1f489e294816acf5c41ba9ea6f1cfb1e3dafdf0",
-      "reason": "Register the two focused native regression suites."
+      "bytes": 2551,
+      "sha256": "afd18876ab771343ef0735f3d74869b4672db2a7fc77274bf04833effb1d813c",
+      "reason": "Register the rest-time, save-selection and real MyGUI Continue-button regression suites."
     },
     "apps/openmw_tests/mwgui/testcontinuegame.cpp": {
       "before": null,
@@ -124,6 +134,16 @@
       "bytes": 7936,
       "sha256": "77bae5d20db7582eacf2e06660ce8016e5750cff9ecbf02529ed7ba3cdbd6a86",
       "reason": "Exercise production save discovery and selection using real temporary save headers."
+    },
+    "apps/openmw_tests/mwgui/testmainmenubutton.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8c48a3f12ee955799fe04932b3bfa35218a220b1"
+      },
+      "bytes": 12620,
+      "sha256": "5d5558ee6728fd621685426efd038463da5cab54704b1052db94b5de41a49ee8",
+      "reason": "Drive the production Continue widget and shipped skin through real MyGUI input events to verify focus, hover, clicks and disabled-state recovery."
     },
     "apps/openmw_tests/mwgui/testresttime.cpp": {
       "before": null,
@@ -142,21 +162,34 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0f76a57047c30d853c9edffec91b486c326f5f19"
+        "blob": "20f1fbacd369be5a68cfa5d8e1b08fb57e235be6"
       },
-      "bytes": 8917,
-      "sha256": "c92b2a40688a011949a852c99a1355cd8e8fd97ae179aaeb7b6c64502463d163",
-      "reason": "Bind this feature build and historical source proof; require executed menu suites and byte-exact UI resources at the actual resources/vfs install paths while retaining complete-package checks."
+      "bytes": 8943,
+      "sha256": "baa5df4daf1ec945e75fa4fceeb99fa0036b08951ab48b8811166d3990cf4af3",
+      "reason": "Require all three executed menu regression suites and byte-exact UI resources, retaining complete-package bootstrap/runtime and historical source checks."
+    },
+    "custom/gameplay-fix-installer/Install-Fix.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "b4d8441082452f6d4dfcc21a965b316615927abf"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e1d040ce5edd74c982b490bf475b9bf8cb19eb5e"
+      },
+      "bytes": 18701,
+      "sha256": "9c42bd5a4aa6b1d2347684336f1374d7d0553cb8eea1ee4f9bce374b8fe86079",
+      "reason": "Resolve omitted PackageRoot after Windows PowerShell -File parameter binding. Exact generic helper passed 10 entry-point and 22 guard/transaction/rollback checks in native Windows run 42496179114 at 405b2a00a48440ae37bc27fb909edd85da227be2. No engine, configuration or Lua payload change."
     },
     "custom/menu-qol/README.md": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "d5a68748138019fde2310bf9452c0880b1730b8d"
+        "blob": "d40e7911fd51ea6bbe630de504932d583f8d8d02"
       },
-      "bytes": 5631,
-      "sha256": "d622d0e89dc12b9b89605bbe81a849bd6655bdf9c28e912714fbbd247d86182e",
-      "reason": "Document behavior, installation, rollback, verification and honest runtime limits."
+      "bytes": 6490,
+      "sha256": "e5ceb68a3b5db045e0272469f2f4093061637fee6f7c2cf466b4659732ee28b0",
+      "reason": "Document menu behavior, the gold palette and independent hover state, installation/rollback, verification and honest runtime limits."
     },
     "custom/menu-qol/verify-source.py": {
       "before": null,
@@ -188,11 +221,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "005492c100826bbce51605cc8878f5f25f8f6e59"
+        "blob": "2cb9a53f941af1b84c33ccffce4444582fe8ecac"
       },
-      "bytes": 1185,
-      "sha256": "7a3f1b9fe1fb8ce2a03c59f8ff0a96e9809640cc5dc649533daa93412a0758a8",
-      "reason": "Define the native borderless Continue button using existing font and interface colours."
+      "bytes": 944,
+      "sha256": "13be62ef7d11605d5f593839392dd069b43a813947493ce91b47d41ca5317368",
+      "reason": "Give Continue explicit title-menu gold colours, distinct keyboard focus and mouse hover, and visible pressed feedback without changing the global interface palette."
     },
     "files/data/mygui/openmw_wait_dialog.layout": {
       "before": {
@@ -206,19 +239,6 @@
       "bytes": 1842,
       "sha256": "b210661c6f0d35dc83019d12c375ea2a23f6412e27a1497fc294bb9d68d2a6bf",
       "reason": "Add a finish-time label with measured fixed dimensions so changing the selected hours cannot resize the slider."
-    },
-    "custom/gameplay-fix-installer/Install-Fix.ps1": {
-      "before": {
-        "mode": "100644",
-        "blob": "b4d8441082452f6d4dfcc21a965b316615927abf"
-      },
-      "after": {
-        "mode": "100644",
-        "blob": "e1d040ce5edd74c982b490bf475b9bf8cb19eb5e"
-      },
-      "bytes": 18701,
-      "sha256": "9c42bd5a4aa6b1d2347684336f1374d7d0553cb8eea1ee4f9bce374b8fe86079",
-      "reason": "Resolve omitted PackageRoot after Windows PowerShell -File parameter binding. Exact generic helper passed 10 entry-point and 22 guard/transaction/rollback checks in native Windows run 42496179114 at 405b2a00a48440ae37bc27fb909edd85da227be2. No engine, configuration or Lua payload change."
     }
   }
 }

@@ -69,7 +69,7 @@ def prepare(root, source_root, menu_qol=False):
                 raise ValueError("Historical cumulative source proof is missing or mismatched: " + name)
             historical_manifests[name] = {**identity(root / name), "commit": baseline, "phase": phase}
         suites = {case.get("classname") for case in ET.parse(root / "openmw-tests.xml").getroot().iter("testcase")}
-        if not {"RestTimeTest", "ContinueGameTest"} <= suites:
+        if not {"RestTimeTest", "ContinueGameTest", "MainMenuTextButtonTest"} <= suites:
             raise ValueError("Menu feature regression suites did not run")
         for relative in ("mygui/openmw_mainmenu.skin.xml", "mygui/openmw_wait_dialog.layout", "l10n/Interface/en.yaml"):
             name = "resources/vfs/" + relative

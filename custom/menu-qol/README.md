@@ -28,8 +28,17 @@ indicator added to the original concept.
 
 The title screen shows **Continue** immediately above **New Game** whenever the
 engine has discovered a save for the current game. The new entry uses the game
-font, menu colours, hover/pressed feedback and a borderless row aligned with the
-existing menu. Keyboard and controller focus starts on Continue when available.
+font, gold title-menu colours, hover/pressed feedback and a borderless row aligned
+with the existing menu. Keyboard and controller focus starts on Continue when
+available. Key focus has its own gold state; moving the mouse over Continue
+brightens it further, including immediately after opening the title screen.
+Moving the pointer away restores the focused or normal state. A left-button
+press darkens and offsets the lettering until release.
+
+The Continue colour/hover repair replaces the general interface's brown palette
+with this dedicated gold palette. It preserves the configured font and localized
+caption. The other entries still use their existing image artwork, so the text
+is not a pixel-identical reproduction of their lettering.
 
 Continue loads the save with the newest saved-file timestamp across all
 recognized characters. Manual saves, quicksaves and autosaves are eligible. A
@@ -82,11 +91,15 @@ not change the save format.
 
 ## Verification and limits
 
-The focused native regression suites are `RestTimeTest` and `ContinueGameTest`.
+The focused native regression suites are `RestTimeTest`, `ContinueGameTest`, and
+`MainMenuTextButtonTest`.
 They exercise production time normalization and real serialized save-header
 discovery, including noon, midnight, fractional hours, 24 hours, all save types,
 multiple characters, overwrite ordering, deletion, tied timestamps and invalid
-or wrong-game headers.
+or wrong-game headers. The button suite uses the actual MyGUI widget, input
+manager and shipped menu skin to check focus, hover, press/release and disabled
+states. It checks the state transitions and colours without claiming to render
+the user's game font or menu artwork.
 
 CI compiles the actual menu implementation and runs the complete existing
 component/engine suites. It retains the lookup, notification, installer,

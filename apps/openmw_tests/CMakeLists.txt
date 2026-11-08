@@ -25,6 +25,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testmessagepositioncontrols.cpp
     mwgui/testresttime.cpp
     mwgui/testcontinuegame.cpp
+    mwgui/testmainmenubutton.cpp
 
     mwlua/testobjectcache.cpp
 
