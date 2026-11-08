@@ -10,6 +10,7 @@
 #include <MyGUI_LanguageManager.h>
 #include <MyGUI_LayerManager.h>
 #include <MyGUI_LogManager.h>
+#include <MyGUI_OverlappedLayer.h>
 #include <MyGUI_RenderManager.h>
 #include <MyGUI_ResourceManager.h>
 #include <MyGUI_ResourceSkin.h>
@@ -162,7 +163,12 @@ namespace MWGui
                 MyGUI::LanguageManager::getInstance().eventRequestTag
                     = MyGUI::newDelegate(this, &MainMenuTextButtonTest::requestTag);
                 MyGUI::FactoryManager::getInstance().registerFactory<MainMenuTextButton>("Widget");
-                MyGUI::LayerManager::getInstance().createLayerAt("MainMenuTest", "OverlappedLayer", 0);
+                // createLayerAt does not load XML's Pick property. Enable the
+                // same hit testing as the production MainMenu layer explicitly.
+                MyGUI::LayerManager::getInstance()
+                    .createLayerAt("MainMenuTest", "OverlappedLayer", 0)
+                    ->castType<MyGUI::OverlappedLayer>()
+                    ->setPick(true);
                 ASSERT_TRUE(resources.load("openmw_mainmenu.skin.xml"));
 
                 const auto* skin = resources.getByName("MW_MainMenuTextButton")->castType<MyGUI::ResourceSkin>();
