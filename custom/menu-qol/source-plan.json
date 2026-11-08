@@ -2,7 +2,7 @@
   "schema_version": 1,
   "baseline": "de695387ff24adac5ff28a56eaac30d996e45011",
   "latest_accepted_merge": "35c9e82ab90416da642cff154b7eb5fad8721e15",
-  "scope": "Two explicitly requested native engine UI features; no game plugin, save-format, rest mechanics or load-order changes. Preserve all other cumulative engine files.",
+  "scope": "Two explicitly requested native engine UI features; no game plugin, save-format, rest mechanics or load-order changes. Preserve all other cumulative engine files. Also includes the exact native-tested generic installer default-path repair; all accepted engine feature bytes remain unchanged.",
   "files": {
     ".github/workflows/push.yml": {
       "before": {
@@ -206,6 +206,19 @@
       "bytes": 1842,
       "sha256": "b210661c6f0d35dc83019d12c375ea2a23f6412e27a1497fc294bb9d68d2a6bf",
       "reason": "Add a finish-time label with measured fixed dimensions so changing the selected hours cannot resize the slider."
+    },
+    "custom/gameplay-fix-installer/Install-Fix.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "b4d8441082452f6d4dfcc21a965b316615927abf"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e1d040ce5edd74c982b490bf475b9bf8cb19eb5e"
+      },
+      "bytes": 18701,
+      "sha256": "9c42bd5a4aa6b1d2347684336f1374d7d0553cb8eea1ee4f9bce374b8fe86079",
+      "reason": "Resolve omitted PackageRoot after Windows PowerShell -File parameter binding. Exact generic helper passed 10 entry-point and 22 guard/transaction/rollback checks in native Windows run 42496179114 at 405b2a00a48440ae37bc27fb909edd85da227be2. No engine, configuration or Lua payload change."
     }
   }
 }
