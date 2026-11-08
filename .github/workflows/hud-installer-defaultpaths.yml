@@ -1,0 +1,42 @@
+name: HUD installer default path regression
+on:
+  push:
+    branches: [tools/hud-installer-defaultpaths-20261108]
+    paths:
+      - custom/hud-installer-defaultpaths/**
+      - .github/workflows/hud-installer-defaultpaths.yml
+permissions:
+  contents: read
+jobs:
+  windows-powershell:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce default launch and verify repaired installer entry points
+        shell: powershell
+        run: |
+          & ./custom/hud-installer-defaultpaths/Test-Installer-EntryPoint.ps1 -TestRoot "$env:RUNNER_TEMP\HUD entrypoint" -ReportPath "$env:GITHUB_WORKSPACE\entrypoint-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify existing guards, transactions and rollback with repaired initializer
+        if: always()
+        shell: powershell
+        run: |
+          & ./custom/gameplay-fix-installer/Test-Installer.ps1 -InstallerScript ./custom/hud-installer-defaultpaths/Install-Fix.ps1 -WrapperScript ./custom/gameplay-fix-installer/Install-All.ps1 -TestRoot "$env:RUNNER_TEMP\HUD rollback" -ReportPath "$env:GITHUB_WORKSPACE\rollback-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hud-installer-native-verification
+          path: |
+            entrypoint-report.json
+            rollback-report.json
+            ${{ runner.temp }}/HUD entrypoint/**/invoke-*.json
+            ${{ runner.temp }}/HUD rollback/**/invoke-*.json
+            ${{ runner.temp }}/HUD rollback/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/HUD rollback/**/invoke-*.stderr.txt
+          if-no-files-found: error
