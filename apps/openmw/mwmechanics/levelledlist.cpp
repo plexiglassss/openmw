@@ -1,5 +1,6 @@
 #include <components/debug/debuglog.hpp>
 #include <components/esm3/loadlevlist.hpp>
+#include <components/settings/values.hpp>
 
 #include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
@@ -33,12 +34,15 @@ namespace MWMechanics
         if (Misc::Rng::roll0to99(prng) < levItem->mChanceNone)
             return ESM::RefId();
 
+        // Resolve thresholds without changing records: scripts still address entries by their stored level.
+        const bool delevel = creature ? Settings::game().mDelevelCreatures : Settings::game().mDelevelItems;
         std::vector<const ESM::RefId*> candidates;
         int highestLevel = 0;
         for (const auto& levelledItem : items)
         {
-            if (levelledItem.mLevel > highestLevel && levelledItem.mLevel <= playerLevel)
-                highestLevel = levelledItem.mLevel;
+            const int entryLevel = delevel ? 1 : levelledItem.mLevel;
+            if (entryLevel > highestLevel && entryLevel <= playerLevel)
+                highestLevel = entryLevel;
         }
 
         // For levelled creatures, the flags are swapped. This file format just makes so much sense.
@@ -48,7 +52,8 @@ namespace MWMechanics
 
         for (const auto& levelledItem : items)
         {
-            if (playerLevel >= levelledItem.mLevel && (allLevels || levelledItem.mLevel == highestLevel))
+            const int entryLevel = delevel ? 1 : levelledItem.mLevel;
+            if (playerLevel >= entryLevel && (allLevels || entryLevel == highestLevel))
                 candidates.push_back(&levelledItem.mId);
         }
         if (candidates.empty())

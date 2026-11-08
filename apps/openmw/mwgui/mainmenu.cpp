@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <MyGUI_Button.h>
+#include <MyGUI_FactoryManager.h>
 #include <MyGUI_Gui.h>
 #include <MyGUI_InputManager.h>
 #include <MyGUI_RenderManager.h>
@@ -25,6 +26,7 @@
 
 #include "backgroundimage.hpp"
 #include "confirmationdialog.hpp"
+#include "mainmenutextbutton.hpp"
 #include "savegamedialog.hpp"
 #include "settingswindow.hpp"
 #include "videowidget.hpp"
@@ -111,6 +113,7 @@ namespace MWGui
         , mButtonBox(nullptr)
         , mBackground(nullptr)
     {
+        MyGUI::FactoryManager::getInstance().registerFactory<MainMenuTextButton>("Widget");
         getWidget(mVersionText, "VersionText");
         mVersionText->setCaption(versionDescription);
 
@@ -351,10 +354,10 @@ namespace MWGui
                 = mMainWidget->createWidget<MyGUI::Widget>({}, MyGUI::IntCoord(0, 0, 0, 0), MyGUI::Align::Default);
 
         // Create first so keyboard/controller traversal follows the visible top-to-bottom order.
-        // The borderless text skin uses the configured game font and normal menu interaction colours.
+        // Keep the configured game font with dedicated gold title-menu interaction colours.
         if (!mContinueButton)
         {
-            mContinueButton = mButtonBox->createWidget<MyGUI::Button>(
+            mContinueButton = mButtonBox->createWidget<MainMenuTextButton>(
                 "MW_MainMenuTextButton", MyGUI::IntCoord(0, 0, 0, 48), MyGUI::Align::Default);
             mContinueButton->setCaptionWithReplacing("#{Interface:Continue}");
             mContinueButton->setFontHeight(32);

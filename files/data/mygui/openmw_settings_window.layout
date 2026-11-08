@@ -154,6 +154,67 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
+                <Property key="Caption" value=" #{OMWEngine:Gameplay} "/>
+                <UserString key="AllowTabOverflow" value="true"/>
+                <Widget type="VBox" position_real="0 0 1 1" align="Stretch">
+                    <Property key="Padding" value="8"/>
+                    <Property key="Spacing" value="12"/>
+                    <Widget type="AutoSizedTextBox" skin="NormalText">
+                        <UserString key="HStretch" value="true"/>
+                        <Property key="Caption" value="#{OMWEngine:Deleveling}"/>
+                    </Widget>
+                    <Widget type="HBox" align="Stretch">
+                        <Property key="Spacing" value="8"/>
+                        <UserString key="HStretch" value="true"/>
+                        <UserString key="VStretch" value="false"/>
+                        <Widget type="AutoSizedButton" skin="MW_Button">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="delevel creatures"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                            <UserString key="ToolTipType" value="Layout"/>
+                            <UserString key="ToolTipLayout" value="TextToolTip"/>
+                            <UserString key="Caption_Text" value="#{OMWEngine:DelevelCreaturesTooltip}"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText">
+                            <UserString key="HStretch" value="true"/>
+                            <Property key="Caption" value="#{OMWEngine:DelevelCreatures}"/>
+                            <UserString key="ToolTipType" value="Layout"/>
+                            <UserString key="ToolTipLayout" value="TextToolTip"/>
+                            <UserString key="Caption_Text" value="#{OMWEngine:DelevelCreaturesTooltip}"/>
+                        </Widget>
+                    </Widget>
+                    <Widget type="HBox" align="Stretch">
+                        <Property key="Spacing" value="8"/>
+                        <UserString key="HStretch" value="true"/>
+                        <UserString key="VStretch" value="false"/>
+                        <Widget type="AutoSizedButton" skin="MW_Button">
+                            <UserString key="SettingCategory" value="Game"/>
+                            <UserString key="SettingName" value="delevel items"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                            <UserString key="ToolTipType" value="Layout"/>
+                            <UserString key="ToolTipLayout" value="TextToolTip"/>
+                            <UserString key="Caption_Text" value="#{OMWEngine:DelevelItemsTooltip}"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText">
+                            <UserString key="HStretch" value="true"/>
+                            <Property key="Caption" value="#{OMWEngine:DelevelItems}"/>
+                            <UserString key="ToolTipType" value="Layout"/>
+                            <UserString key="ToolTipLayout" value="TextToolTip"/>
+                            <UserString key="Caption_Text" value="#{OMWEngine:DelevelItemsTooltip}"/>
+                        </Widget>
+                    </Widget>
+                    <Widget type="EditBox" skin="SandText" position="0 0 0 140">
+                        <UserString key="HStretch" value="true"/>
+                        <UserString key="VStretch" value="true"/>
+                        <Property key="Caption" value="#{OMWEngine:DelevelingHint}"/>
+                        <Property key="TextAlign" value="Left Top"/>
+                        <Property key="MultiLine" value="true"/>
+                        <Property key="WordWrap" value="true"/>
+                        <Property key="Static" value="true"/>
+                    </Widget>
+                </Widget>
+            </Widget>
+            <Widget type="TabItem">
                 <Property key="Caption" value=" #{OMWEngine:Audio} "/>
                 <Widget type="TextBox" skin="NormalText" position="4 4 352 18" align="Left Top">
                     <Property key="Caption" value="#{OMWEngine:AudioMaster}"/>

@@ -1521,12 +1521,14 @@ namespace MWGui
         auto* window = mMainWidget->castType<MyGUI::Window>();
         auto minSize = window->getMinSize();
 
-        // Preserve the existing layout's minimum width. Native colour and message
-        // tabs can use the tab bar's overflow arrows instead of widening the window.
+        // Preserve the existing layout's minimum width. Native colour/message tabs
+        // and layout tabs marked AllowTabOverflow use the tab bar's overflow arrows.
         int tabBarWidth = 0;
         for (uint32_t i = 0; i < mSettingsTab->getItemCount(); i++)
         {
-            if (mSettingsTab->getItemAt(i) != mDialogueColourTab && mSettingsTab->getItemAt(i) != mMessagePositionTab)
+            const MyGUI::TabItem* tab = mSettingsTab->getItemAt(i);
+            if (tab != mDialogueColourTab && tab != mMessagePositionTab
+                && tab->getUserString("AllowTabOverflow") != "true")
                 tabBarWidth += mSettingsTab->getButtonWidthAt(i);
         }
 
