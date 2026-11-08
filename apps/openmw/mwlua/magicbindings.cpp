@@ -36,6 +36,7 @@
 
 #include "localscripts.hpp"
 #include "luamanagerimp.hpp"
+#include "magicbindingshelper.hpp"
 #include "magictypebindings.hpp"
 #include "object.hpp"
 #include "objectvariant.hpp"
@@ -99,35 +100,27 @@ namespace MWLua
     template <>
     MWMechanics::Spells* ActorStore<MWMechanics::Spells>::getStore() const
     {
-        if (!isActor())
-            return nullptr;
-        const MWWorld::Ptr& ptr = mActor.ptr();
-        return &ptr.getClass().getCreatureStats(ptr).getSpells();
+        if (auto* stats = MagicBindings::getActorStats(mActor))
+            return &stats->getSpells();
+        return nullptr;
     }
 
     template <>
     MWMechanics::MagicEffects* ActorStore<MWMechanics::MagicEffects>::getStore() const
     {
-        if (!isActor())
-            return nullptr;
-        const MWWorld::Ptr& ptr = mActor.ptr();
-        return &ptr.getClass().getCreatureStats(ptr).getMagicEffects();
+        if (auto* stats = MagicBindings::getActorStats(mActor))
+            return &stats->getMagicEffects();
+        return nullptr;
     }
 
     template <>
     MWMechanics::ActiveSpells* ActorStore<MWMechanics::ActiveSpells>::getStore() const
     {
-        if (!isActor())
-            return nullptr;
-        const MWWorld::Ptr& ptr = mActor.ptr();
-        return &ptr.getClass().getCreatureStats(ptr).getActiveSpells();
+        if (auto* stats = MagicBindings::getActorStats(mActor))
+            return &stats->getActiveSpells();
+        return nullptr;
     }
 
-    struct ActiveEffect
-    {
-        MWMechanics::EffectKey key;
-        MWMechanics::EffectParam param;
-    };
     struct ActiveSpell
     {
         ObjectVariant mActor;
@@ -885,15 +878,7 @@ namespace MWLua
         // types.Actor.activeEffects(o):getEffect(id, ?arg)
         activeEffectsT["getEffect"] = [getEffectKey](const ActorActiveEffects& effects, std::string_view idStr,
                                           sol::optional<std::string_view> argStr) -> sol::optional<ActiveEffect> {
-            if (!effects.isActor())
-                return sol::nullopt;
-
-            MWMechanics::EffectKey key = getEffectKey(idStr, argStr);
-
-            if (auto* store = effects.getStore())
-                if (auto effect = store->get(key))
-                    return ActiveEffect{ key, effect.value() };
-            return ActiveEffect{ key, MWMechanics::EffectParam() };
+            return MagicBindings::getActiveEffect(effects.mActor, [&] { return getEffectKey(idStr, argStr); });
         };
 
         // types.Actor.activeEffects(o):removeEffect(id, ?arg)

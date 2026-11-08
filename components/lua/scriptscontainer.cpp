@@ -767,6 +767,18 @@ namespace LuaUtil
 
     void ScriptsContainer::processTimers(double simulationTime, double gameTime)
     {
+        const auto hasDueTimer = [](const std::vector<Timer>& queue, double time) {
+            return !queue.empty() && queue.front().mTime <= time;
+        };
+        if (const auto* data = std::get_if<LoadedData>(&mData);
+            data && !hasDueTimer(data->mSimulationTimersQueue, simulationTime)
+            && !hasDueTimer(data->mGameTimersQueue, gameTime))
+        {
+            // Match ensureLoaded's activity mark even though no Lua work is
+            // needed. The tracker must retain a container that is still used.
+            mRequiredLoading = true;
+            return;
+        }
         mLua.protectedCall([&](LuaView& view) {
             LoadedData& data = ensureLoaded();
             updateTimerQueue(data.mSimulationTimersQueue, simulationTime);

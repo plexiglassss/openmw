@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
+  "scope": "Bounded repair of inherited Lua UI image textures in the installed native performance candidate. Preserve the complete combined deleveler, Continue/menu, rest/wait, lookup, actor-query, timer, capture and installer changes, both accepted histories, and every other installed source path. Native correctness and package verification remain distinct from unverified user-game rendering, custom Lua runtime and gameplay performance; no ZHI, game plugin, load-order or save changes.",
+  "preserved_heads": [
+    "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
+    "c0377d4d5732b454ac3fee69d9c4ece83776a876",
+    "8737a9ca9c3fb1eb0210fff62731c9c5cab43654",
+    "41b969ecf663a53d8f95c779313458bbd37ad264",
+    "1e2191f221079d89e46c15331ba6911b44f28b53"
+  ],
+  "files": {
+    ".github/workflows/push.yml": {
+      "before": {
+        "mode": "100644",
+        "blob": "40694b2006d82c3a31b08a7456bcb743e7a7a674"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "9167cff419d43e344196dbfb7cd7d1b04e62f0f3"
+      },
+      "bytes": 44092,
+      "sha256": "b7eae3b81ca46171a96f5488b432d12c27cb18d72db909f264da695497c307ce",
+      "reason": "Preserve the complete combined engine and historical gates; compile actual LuaImage and run all native tests in optimized mode plus the exact 14 UI regressions in legacy mode; require five Image inheritance phases and package parity before delivering the full runtime."
+    },
+    "apps/components_tests/lua/testscriptscontainer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "29405ed9fd77b506d3fcc67eaa53d15714fb1618"
+      },
+      "reason": "Add actual native timer scheduling, reentrancy, tracker/unload, initialization/load and 24 boundary/clock regressions plus a bounded benchmark with anti-hoisting barrier and separate Lua-call probe.",
+      "after": {
+        "mode": "100644",
+        "blob": "3d07dedff4fac72ed5ffcdd74b6b20e755946a0f"
+      },
+      "bytes": 50614,
+      "sha256": "68aef186f5c5d211d3edec1f10aa311a63a878e36915dcfd4715174eebb5a2dc"
+    },
+    "apps/openmw/mwlua/magicbindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e8b6bf68013624de12748f2b607374d817365a63"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ae2f88d76ef289d716fd4f17f056ef53f72315c6"
+      },
+      "bytes": 44278,
+      "sha256": "1481b1c0c9219c667f0a2e2236c33ed3878080065e81249b745e2c888e24949a",
+      "reason": "Resolve each query actor once through scoped native helpers while preserving current values, contexts, effect-key error ordering and existing iteration boundaries."
+    },
+    "apps/openmw/mwlua/magicbindingshelper.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "035d1aedebb182847c1c52a9917ca974a1421104"
+      },
+      "bytes": 1859,
+      "sha256": "a484eb16c309d1b3a48fbe0e8e9e4710db3547a77582e3c7cff28cf213606b70",
+      "reason": "Share the actual per-call actor/stats/effect lookup implementation with native regression fixtures; no persistent pointer or effect cache."
+    },
+    "apps/openmw_tests/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "6040001a916943005bb44e8872f59c1d0ca385e5"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f93e7f7d10d8a9d9df6e42c0f1eeac7fa83c53e6"
+      },
+      "bytes": 2651,
+      "sha256": "e5560ecd0da06906efaa6117a688735aecb71fff6bacd665104ec0cfe535bde2",
+      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test."
+    },
+    "apps/openmw_tests/mwgui/testluauilayout.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a5bb235b2e2040cfb95c4fdc2bb9a87f4e102ae5"
+      },
+      "bytes": 47516,
+      "sha256": "d8328181509c417b8d8b1afacd41b3dc16e301c64ec783bbe2c0267890857aab",
+      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage."
+    },
+    "apps/openmw_tests/mwlua/testmagicbindings.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2abc180b5b93b9fca2fce5bb01fd7422ad3fd445"
+      },
+      "bytes": 19012,
+      "sha256": "61f2e56a62980313dbb2e8b8e4fe5e4a0de1ef922eab315a1da3319833b7ccdf",
+      "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim."
+    },
+    "components/lua/scriptscontainer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "6f7703dbaa5f4c746c029c4af5ac957bb4f2eecc"
+      },
+      "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths.",
+      "after": {
+        "mode": "100644",
+        "blob": "ac63595ffe99c76bf3de39f4d8a4599f6d107b81"
+      },
+      "bytes": 34412,
+      "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10"
+    },
+    "components/lua_ui/properties.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f6e81f7200fdb83822ca27a4866535d4ad6e8e5c"
+      },
+      "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration.",
+      "after": {
+        "mode": "100644",
+        "blob": "deab793d7dee19f9d1b7d95515c608fc5c50b081"
+      },
+      "bytes": 8193,
+      "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3"
+    },
+    "custom/cumulative/prepare-upgrade.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "7d9cae3572eadd7b46921981f449951a1da394fa"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "215edcfbc3a2b9e9f47f194add2d74e37de9111b"
+      },
+      "bytes": 15180,
+      "sha256": "cb0c658b75ab4de2efae90cae5af226e4cf1bf401fc49d6f28bdf8fac7f24e4e",
+      "reason": "Validate current town and exact historical combined manifests, all retained feature tests/resources/defaults/runtime, and recompute native two-mode layout parity before packaging."
+    },
+    "custom/performance-capture-followup/Start-Capture.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "458610d8c0744e512d069a565d2b83445eb14d6d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6441fe1163452f141f3b0a2d965b70428b28543e"
+      },
+      "bytes": 52576,
+      "sha256": "a6b29171f07452419ca8ddc2a04ba2f75a37ff4b75f140428aa7f89aadaaf024",
+      "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls."
+    },
+    "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "009ac560dfd46a62c7890079f7808e8fa04d3b6a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fdc1890b5c9ef2271b5d05e79d39945a057d38fd"
+      },
+      "bytes": 20498,
+      "sha256": "2d06055619f482c22e4fa50548b30beb4eb15363362b34b9ba530e5f012ae2ea",
+      "reason": "Require the one new inherited layout-mode inventory line exactly once and remove only it before the original byte-exact released-v1.0 collector preservation check; retain both historical digests and all prior assertions."
+    },
+    "custom/town-performance/Compare-Legacy-Layout.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "99f5a77c6c6170428c0d1333179542b847c58822"
+      },
+      "bytes": 138,
+      "sha256": "529e029813bc4aa2ca3031bfe7a8cd38367df52582e4ee1fd2c371e549ac3293",
+      "reason": "Provide the explicit legacy-layout FrameOnly capture entry point."
+    },
+    "custom/town-performance/Compare-Optimized.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8766ea8b62b131a58cc9efd1b99ee4d8b8400b2a"
+      },
+      "bytes": 135,
+      "sha256": "90a0e429cdd2866b770dde61aa9a9d5979156a3b428efa0601fb1e05e051ef66",
+      "reason": "Provide the explicit candidate FrameOnly capture entry point."
+    },
+    "custom/town-performance/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6eec6cc41a13be6eaf50767577baeefa99e8b717"
+      },
+      "bytes": 11510,
+      "sha256": "774e31b53ab55ea75bad3da4ec13e4a7edd7e939b58461ac4022a351304439d4",
+      "reason": "Explain the confirmed inherited-image regression and narrow correction, preserve all accepted engine changes, label earlier timing as historical, and give complete-package installation, rollback and honest native-versus-in-game validation boundaries."
+    },
+    "custom/town-performance/Start-Comparison.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d6d05f4e250482a4aa8369994f8c7a5f035903c2"
+      },
+      "bytes": 1962,
+      "sha256": "9a326241759bda75bd2d470b8a051d93334c073d3fd945798a9391e1144492b7",
+      "reason": "Launch the same engine with explicit candidate or legacy layout behavior using FrameOnly recording, argument forwarding and process-local environment restoration."
+    },
+    "custom/town-performance/Test-Comparison.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f3f6dfa637864f265da3a4ab4c2d3d6574e29d8f"
+      },
+      "bytes": 10741,
+      "sha256": "c60f28a87a8e524330cf5d776395800e18d50ac4b8095705a7f696867c8bfdf2",
+      "reason": "Exercise actual comparison wrapper invocation using a controlled collector boundary to verify FrameOnly selection, flag/argument forwarding and environment restoration on success and error."
+    },
+    "custom/town-performance/verify-layout-parity.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "fc3cde72f191c1b85f59bd92fa170761c2e48ee8"
+      },
+      "bytes": 6577,
+      "sha256": "de33c444ce761e4b57641c2382ce49c1fbf38b1c1f18d0870366cc2d95a52655",
+      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging."
+    },
+    "custom/town-performance/verify-source.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ac4b0ee4732a384c93cea01e37a204cee3e46c93"
+      },
+      "bytes": 6547,
+      "sha256": "cc67c30d900c15e5caea2b9ba1289da289d2773b7630d8468730493f1aec4eb2",
+      "reason": "Bind the exact reviewed changes against the immutable combined baseline, verify every declared preserved head is an ancestor, retain all other source identities and the existing lookup-only build transformation."
+    }
+  }
+}

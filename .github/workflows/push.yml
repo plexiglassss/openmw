@@ -1,4 +1,4 @@
-name: OpenMW - native deleveling and Continue menu repair
+name: OpenMW - repair Lua UI image inheritance
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -35,6 +35,7 @@ jobs:
         run: |
           $commits = @(
             '91cf944a0fe8a3d2333b3ae97ccb17376c577565',
+            'ce3d5a2e981999df432cf8df416352cc85842e97',
             'de695387ff24adac5ff28a56eaac30d996e45011',
             'cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0',
             'b34db5770f947b0f5b90dc699627c2ccdae12f16',
@@ -105,8 +106,26 @@ jobs:
             git worktree remove --force preservation-menu
             if ($LASTEXITCODE) { throw 'Cannot remove historical menu verification worktree' }
           }
-          python custom/deleveler/verify-source.py
-          if ($LASTEXITCODE) { throw 'Native deleveler source or cumulative preservation verification failed' }
+          git worktree add --detach preservation-combined ce3d5a2e981999df432cf8df416352cc85842e97
+          if ($LASTEXITCODE) { throw 'Cannot prepare the combined Continue and deleveler baseline' }
+          Push-Location preservation-combined
+          try {
+            python custom/deleveler/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical combined engine source verification failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical combined lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical combined waiting-stage rollback check failed' }
+            python custom/deleveler/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled combined source verification failed' }
+            Copy-Item deleveler-source-manifest.json,deleveler-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-combined
+            if ($LASTEXITCODE) { throw 'Cannot remove historical combined verification worktree' }
+          }
+          python custom/town-performance/verify-source.py
+          if ($LASTEXITCODE) { throw 'Town performance source or combined feature preservation failed' }
       - name: Test script installer preflight and rollback on authored fixtures
         shell: powershell
         run: |
@@ -168,8 +187,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Source baseline/patch validation failed' }
           python custom/loading-repair/check-integration.py
           if ($LASTEXITCODE) { throw 'Waiting-stage rollback/source validation failed' }
-          python custom/deleveler/verify-source.py --after-lookup
-          if ($LASTEXITCODE) { throw 'Final compiled source differs from the reviewed native deleveler source' }
+          python custom/town-performance/verify-source.py --after-lookup
+          if ($LASTEXITCODE) { throw 'Final compiled source differs from the reviewed town performance source' }
           git diff --check
           if ($LASTEXITCODE) { throw 'Invalid source diff' }
           git diff --binary --output=loading-repair-applied.patch -- apps/
@@ -258,6 +277,15 @@ jobs:
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
           -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
+      - name: Compile Lua UI images and native regressions first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/lua_ui/widget.cpp.obj
+          components/CMakeFiles/components.dir/lua_ui/image.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testluauilayout.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testmagicbindings.cpp.obj
       - name: Compile native deleveling and its engine regressions first
         shell: pwsh
         run: >
@@ -278,6 +306,7 @@ jobs:
         run: >
           cmake --build build --target
           components/CMakeFiles/components.dir/lua/scripttracker.cpp.obj
+          components/CMakeFiles/components.dir/lua/scriptscontainer.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
       - name: Compile lookup change first
@@ -331,13 +360,23 @@ jobs:
             New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
             Copy-Item "$qt/plugins/$plugin" "build/$plugin"
           }
-      - name: All engine tests and four lookup configurations before packaging
+      - name: All engine tests, both UI modes and four lookup configurations before packaging
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
           if ($LASTEXITCODE) { throw 'Component regressions failed' }
+          Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
+          try {
+            $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
+            if ($LASTEXITCODE) { throw 'Legacy native layout and Image inheritance regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
+          }
+          python custom/town-performance/verify-layout-parity.py openmw-tests.xml lua-ui-legacy-tests.xml lua-ui-layout-parity.json
+          if ($LASTEXITCODE) { throw 'Required native UI regressions or layout/Image parity verification failed' }
           try {
             foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
               $env:OPENMW_CELL_ID_INDEX = $mode[0]
@@ -374,11 +413,17 @@ jobs:
           Copy-Item custom/menu-qol/README.md install/REST-TIME-AND-CONTINUE.md
           Copy-Item deleveler-source-manifest.json,deleveler-build-source-manifest.json install/
           Copy-Item custom/deleveler/README.md install/NATIVE-DELEVELER.md
+          Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
+          Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
+          Copy-Item lua-ui-legacy-tests.xml,lua-ui-layout-parity.json install/
+          New-Item -ItemType Directory -Force install/tools/town-performance/capture | Out-Null
+          Copy-Item custom/town-performance/Start-Comparison.ps1,custom/town-performance/Compare-Optimized.cmd,custom/town-performance/Compare-Legacy-Layout.cmd install/tools/town-performance/
+          Copy-Item custom/performance-capture-followup/Start-Capture.ps1 install/tools/town-performance/capture/
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nNative deleveling: deleveler-source-manifest.json`nCompiled source after lookup patch: deleveler-build-source-manifest.json`nPreserved combined engine and menu baseline 91cf944a0fe8a3d2333b3ae97ccb17376c577565`nHistorical menu verification: menu-qol-source-manifest.json`nPreserved complete cumulative baseline de695387ff24adac5ff28a56eaac30d996e45011`nHistorical cumulative verification: cumulative-source-manifest.json`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; custom replacements and gameplay remain untested`nComplete standard engine package includes its bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
-          python custom/cumulative/prepare-upgrade.py install --deleveler
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          python custom/cumulative/prepare-upgrade.py install --town-performance
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
           Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
@@ -386,14 +431,14 @@ jobs:
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-native-deleveler-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-town-candidate-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
         if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
         uses: actions/upload-artifact@v6
         with:
-          name: UNVERIFIED-deleveler-package-recovery-${{ env.CUMULATIVE_COMMIT }}
+          name: UNVERIFIED-town-performance-package-recovery-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
           retention-days: 7
@@ -409,6 +454,8 @@ jobs:
             menu-qol-build-source-manifest.json
             deleveler-source-manifest.json
             deleveler-build-source-manifest.json
+            town-performance-source-manifest.json
+            town-performance-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
             lookup-*.xml
@@ -420,6 +467,8 @@ jobs:
             dialogue-colours-source-manifest.json
             components-tests.xml
             openmw-tests.xml
+            lua-ui-legacy-tests.xml
+            lua-ui-layout-parity.json
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json
             loading-repair-applied.patch
@@ -553,12 +602,18 @@ jobs:
         run: |
           & ./custom/performance-capture-followup/Test-CaptureFollowup.ps1 -CaptureScript ./custom/performance-capture-followup/Start-Capture.ps1 -InstallWrapper ./custom/performance-capture-followup/Install-All.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW followup checks" -ReportPath "$env:GITHUB_WORKSPACE\followup-test-report.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify paired comparison wrapper in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/town-performance/Test-Comparison.ps1 -ComparisonScript ./custom/town-performance/Start-Comparison.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW comparison checks" -ReportPath "$env:GITHUB_WORKSPACE\comparison-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: performance-capture-followup-verification-${{ env.CUMULATIVE_COMMIT }}
           path: |
             followup-test-report.json
+            comparison-test-report.json
             ${{ runner.temp }}/OpenMW followup checks/**/invoke.json
             ${{ runner.temp }}/OpenMW followup checks/**/invoke.stdout.txt
             ${{ runner.temp }}/OpenMW followup checks/**/invoke.stderr.txt
