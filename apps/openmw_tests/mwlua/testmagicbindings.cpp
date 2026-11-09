@@ -14,6 +14,9 @@
 #include <components/esm3/loadnpc.hpp>
 #include <components/esm3/readerscache.hpp>
 #include <components/misc/combinedperformance.hpp>
+#include <components/resource/resourcesystem.hpp>
+#include <components/toutf8/toutf8.hpp>
+#include <components/vfs/manager.hpp>
 
 #include <gtest/gtest.h>
 
@@ -119,6 +122,9 @@ namespace MWLua
             MWWorld::ESMStore mStore;
             ESM::ReadersCache mReaders;
             MWWorld::WorldModel mWorld{ mStore, mReaders };
+            VFS::Manager mVfs;
+            ToUTF8::Utf8Encoder mEncoder{ ToUTF8::WINDOWS_1252 };
+            std::unique_ptr<Resource::ResourceSystem> mResources;
             LuaUtil::LuaState mLua{ nullptr, nullptr };
             ESM::NPC mNpc;
             Observations mObservations;
@@ -587,6 +593,11 @@ namespace MWLua
             Context context{ Context::Local };
             context.mLua = &mLua;
             sol::state_view lua = mLua.unsafeState();
+            // Core magic registration also binds record icon properties. They
+            // capture the resource VFS even though this test never loads an
+            // image. Keep these real services alive until after Lua teardown.
+            mResources = std::make_unique<Resource::ResourceSystem>(&mVfs, 1.0, &mEncoder.getStatelessEncoder());
+            mEnvironment.setResourceSystem(*mResources);
             // These are the production registration functions, including
             // ActorStore userdata, not a mock of the new methods. The only
             // reduced service boundary is the type-package inventory: populate

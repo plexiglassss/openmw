@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 
 
 CELL_CASES = {
+    "luaQueryRejectsUnknownTypeAfterLoading",
     "typedQuerySharesSnapshotsWithoutInvalidatingRegisteredPointers",
     "typedQueryObservesDeletionAndUndeletionInSameUpdate",
     "typedQueryDoesNotTrustAnOldEmptyMergedViewAfterUndelete",

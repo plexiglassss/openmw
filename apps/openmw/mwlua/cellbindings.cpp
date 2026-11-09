@@ -336,10 +336,22 @@ namespace MWLua
         if constexpr (std::is_same_v<CellT, GCell>)
         { // only for global scripts
             cellT["getAll"] = [ids = getPackageToTypeTable(view)](const CellT& cell, sol::optional<sol::table> type) {
-                std::optional<std::uint32_t> typeId;
-                if (type)
-                    typeId = ids[*type] == sol::nil ? 0u : ids[*type].template get<std::uint32_t>();
-                ObjectIdList res = queryCellObjects(*cell.mStore, typeId, useCellQueryCache());
+                ObjectIdList res;
+                if (type && ids[*type] == sol::nil)
+                {
+                    // Preserve the established load-then-error behavior for an
+                    // unknown package. Zero is a valid type ID (Player), so it
+                    // must never serve as an invalid-type sentinel.
+                    if (cell.mStore->getState() != MWWorld::CellStore::State_Loaded)
+                        cell.mStore->load();
+                }
+                else
+                {
+                    std::optional<std::uint32_t> typeId;
+                    if (type)
+                        typeId = ids[*type].template get<std::uint32_t>();
+                    res = queryCellObjects(*cell.mStore, typeId, useCellQueryCache());
+                }
                 if (!res)
                     throw std::runtime_error(
                         std::string("Incorrect type argument in cell:getAll: ") + LuaUtil::toString(*type));

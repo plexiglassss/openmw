@@ -1,6 +1,7 @@
 #include "lookup_test_lua.hpp"
 
 #include "apps/openmw/mwlua/cellbindings.hpp"
+#include "apps/openmw/mwlua/context.hpp"
 #include "apps/openmw/mwworld/queryrevision.hpp"
 
 #include "apps/openmw/mwbase/environment.hpp"
@@ -15,7 +16,9 @@
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/formatversion.hpp>
 #include <components/esm3/loadcell.hpp>
+#include <components/esm3/loadclas.hpp>
 #include <components/esm3/loadnpc.hpp>
+#include <components/esm3/loadrace.hpp>
 #include <components/esm3/loadstat.hpp>
 #include <components/esm3/objectstate.hpp>
 #include <components/esm3/readerscache.hpp>
@@ -143,6 +146,45 @@ namespace MWWorld
             CellStore& room = cell("room");
             check(room, "missing");
             EXPECT_FALSE(room.hasState());
+        }
+
+        TEST_F(CellLookupTest, luaQueryRejectsUnknownTypeAfterLoading)
+        {
+            CellStore& room = cell("unknown Lua type", false);
+            ASSERT_EQ(room.getState(), CellStore::State_Unloaded);
+            LuaUtil::LuaState bindingState{ nullptr, nullptr };
+            MWLua::Context context{ MWLua::Context::Global };
+            context.mLua = &bindingState;
+            // Use the real userdata binding and its empty type-package map.
+            // No World service is installed: treating an unknown table as the
+            // zero-valued Player type would enter the wrong service branch.
+            MWLua::initCellBindingsForGlobalScripts(context);
+            sol::state_view lua = bindingState.unsafeState();
+            lua["testedCell"] = MWLua::GCell{ &room };
+            const auto result = lua.safe_script(R"(
+                assert(not testedCell.hasBeenLoaded)
+                local formattedAfterLoad = false
+                local unknownType = setmetatable({}, {
+                    __tostring = function()
+                        formattedAfterLoad = testedCell.hasBeenLoaded
+                        return 'unregistered fixture type'
+                    end,
+                })
+                local ok, message = pcall(function() return testedCell:getAll(unknownType) end)
+                assert(not ok, 'An unknown type table must be rejected')
+                assert(type(message) == 'string')
+                assert(string.find(message,
+                    'Incorrect type argument in cell:getAll: unregistered fixture type', 1, true), message)
+                assert(formattedAfterLoad, 'The cell must load before formatting the type error')
+                assert(testedCell.hasBeenLoaded, 'Type rejection must preserve the preceding cell load')
+            )",
+                sol::script_pass_on_error);
+            if (!result.valid())
+            {
+                const auto error = result.get<sol::error>();
+                FAIL() << error.what();
+            }
+            EXPECT_EQ(room.getState(), CellStore::State_Loaded);
         }
 
         TEST_F(CellLookupTest, preservesDuplicateOrderAcrossRecordTypesAndCase)
@@ -530,10 +572,27 @@ namespace MWWorld
         TEST_F(CellLookupTest, typedQueryRetainsEmptyCellShortcutAndRejectsUnsupportedTypes)
         {
             CellStore& room = cell("query empty", false);
+            // The conservative shortcut requires the completed content index,
+            // just as it does in a running game. An unindexed cell is unknown.
+            EXPECT_TRUE(room.mayHaveReferenceOfType(ESM::REC_NPC_));
+            ESM::Class cls;
+            cls.blank();
+            cls.mId = ESM::RefId::stringRefId("class");
+            mStore.insertStatic(cls);
+            ESM::Race race;
+            race.blank();
+            race.mId = ESM::RefId::stringRefId("race");
+            mStore.insertStatic(race);
+            mStore.setUp();
+            mStore.validateRecords(mReaders);
+            ASSERT_FALSE(room.mayHaveReferenceOfType(ESM::REC_NPC_));
+            ASSERT_FALSE(room.mayHaveReferenceOfType(ESM::REC_DOOR));
             const auto result = MWLua::queryCellObjects(room, ESM::REC_NPC_);
             EXPECT_TRUE(result->empty());
             EXPECT_EQ(room.getState(), CellStore::State_Unloaded);
-            EXPECT_FALSE(MWLua::queryCellObjects(room, 0u));
+            EXPECT_TRUE(MWLua::queryCellObjects(room, ESM::REC_DOOR)->empty());
+            EXPECT_EQ(room.getState(), CellStore::State_Unloaded);
+            EXPECT_FALSE(MWLua::queryCellObjects(room, ESM::REC_GLOB));
             EXPECT_EQ(room.getState(), CellStore::State_Loaded);
         }
 

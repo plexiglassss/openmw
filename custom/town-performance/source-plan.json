@@ -405,10 +405,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b0708327249b5663b1bddca960e28c71ea85cbbb"
+        "blob": "badf72466202a7360499dcab7d9b5a5077c0d946"
       },
-      "bytes": 16091,
-      "sha256": "b8b36af6161466d9a9a0174e485c8af5f227b3a3a168c698aabfb79b8c27bb32",
+      "bytes": 16602,
+      "sha256": "ae1e171c20bde1cbdbd391f2261654d4ca465cfe10a39e54015501ad9787d530",
       "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
     },
     "apps/openmw/mwlua/cellbindings.hpp": {
@@ -683,10 +683,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "13c5c2b5bea5d7f9086986831a47728d2009e5c0"
+        "blob": "ab78ee6ce0b1b9f4cd0c7dc45d78692cedf8904d"
       },
-      "bytes": 41583,
-      "sha256": "93d3488e246b78d1fca48c3bc978054a784c25df9e57aa6b0300592a853f3723",
+      "bytes": 42280,
+      "sha256": "1200ce0569587ebb072e1e211a2cc53088f786fecfff3afa60baf49c312b2e6b",
       "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "apps/openmw_tests/mwworld/testcelllookup.cpp": {
@@ -696,10 +696,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "94cbbd7bd6c18724d3dcf625656587d620cb84d1"
+        "blob": "dd34e6212fc3f7e36bd4435f20afb97ecd89911e"
       },
-      "bytes": 37846,
-      "sha256": "1bcd3f082d3754a857e2b8bc04c4aa5b987aeb7dfa4444a85f83f2cdebddd841",
+      "bytes": 40952,
+      "sha256": "ac4d8b27a7ec9ad2cfd9b410693129f8d7bfc88a2e78964a49a2feb0e7c88d55",
       "reason": "Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "components/CMakeLists.txt": {
@@ -1190,10 +1190,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "5ec350e55b6b2c6a1d548a5b6cc6e1edd10308c8"
+        "blob": "7c046c2582a333cd7190a63672ae46e68750afe8"
       },
-      "bytes": 6212,
-      "sha256": "51a7d518e82428eb803d0fc440460ca2fa8a5472d1b92643db2a5fc48270e00d",
+      "bytes": 6258,
+      "sha256": "c179738cbf4906a092d231fe8d79f002b01c3ec723d472a5aa395a695e1e378e",
       "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
     },
     "custom/cumulative/prepare-upgrade.py": {
