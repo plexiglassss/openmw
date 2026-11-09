@@ -2,6 +2,7 @@
 #include <components/lua_ui/adapter.hpp>
 #include <components/lua_ui/element.hpp>
 
+#include <algorithm>
 #include <format>
 #include <iomanip>
 
@@ -29,6 +30,7 @@
 
 #include "inventorywindow.hpp"
 #include "mapwindow.hpp"
+#include "traveltooltip.hpp"
 
 #include "itemmodel.hpp"
 
@@ -54,6 +56,7 @@ namespace MWGui
             = mLuaTooltipBox->createWidget<LuaUi::LuaAdapter>("", MyGUI::IntCoord(), MyGUI::Align::Default);
         mLuaTooltipAdapter->setNeedMouseFocus(false);
         mLuaTooltipAdapter->setNeedKeyFocus(false);
+        mTravelTooltip = std::make_unique<TravelTooltip>(mMainWidget);
 
         mDynamicToolTipBox->setVisible(false);
 
@@ -200,7 +203,14 @@ namespace MWGui
 
                 // special handling for markers on the local map: the tooltip should only be visible
                 // if the marker is not hidden due to the fog of war.
-                if (type == "MapMarker")
+                if (type == "TravelDestination" || type == "TravelOverview")
+                {
+                    const auto size = mTravelTooltip->show(*focus, type == "TravelOverview", viewSize);
+                    if (!size)
+                        return;
+                    tooltipSize = *size;
+                }
+                else if (type == "MapMarker")
                 {
                     LocalMapBase::MarkerUserData data = *focus->getUserData<LocalMapBase::MarkerUserData>();
 
@@ -330,6 +340,12 @@ namespace MWGui
 
                 position(tooltipPosition, tooltipSize, viewSize);
 
+                if (type == "TravelDestination" || type == "TravelOverview")
+                {
+                    tooltipPosition.left = std::clamp(tooltipPosition.left, 0, std::max(0, viewSize.width - tooltipSize.width));
+                    tooltipPosition.top = std::clamp(tooltipPosition.top, 0, std::max(0, viewSize.height - tooltipSize.height));
+                }
+
                 setCoord(tooltipPosition.left, tooltipPosition.top, tooltipSize.width, tooltipSize.height);
             }
         }
@@ -367,6 +383,7 @@ namespace MWGui
 
     void ToolTips::clear()
     {
+        mTravelTooltip->clear();
         setLuaTooltip({}, nullptr);
         mFocusObject = MWWorld::Ptr();
 

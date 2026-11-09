@@ -1166,7 +1166,7 @@ namespace MWGui
 
         std::string name{ MWBase::Environment::get().getWorld()->getCellName(cell) };
 
-        mMap->setCellName(name);
+        mMap->setCellName(name, cell->isExterior() ? ESM::RefId() : cell->getCell()->getId());
         mHud->setCellName(name);
         auto cellCommon = cell->getCell();
 

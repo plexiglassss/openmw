@@ -23,6 +23,7 @@
 #include <components/vfs/manager.hpp>
 
 #include "../mwbase/environment.hpp"
+#include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
 
@@ -1119,9 +1120,30 @@ namespace MWGui
 
     MapWindow::~MapWindow() = default;
 
-    void MapWindow::setCellName(const std::string& cellName)
+    void MapWindow::setCellName(const std::string& cellName, const ESM::RefId& interiorCellId)
     {
-        setTitle("#{sCell=" + cellName + "}");
+        mCellName = cellName;
+        // Exterior transitions announce the new title before changing the
+        // player's cell pointer; use the announced cell's identity directly.
+        mCellNameId = interiorCellId;
+        refreshDungeonTitle(true);
+    }
+
+    void MapWindow::refreshDungeonTitle(bool force)
+    {
+        if (mCellName.empty())
+            return;
+        const MWBase::MechanicsManager* mechanics = MWBase::Environment::get().getMechanicsManager();
+        const bool enabled = Settings::gui().mClearedDungeonMapTitle;
+        const std::uint64_t revision = mechanics->getDungeonStatusRevision();
+        if (!force && enabled == mDungeonTitleEnabled && revision == mDungeonStatusRevision)
+            return;
+        mDungeonTitleEnabled = enabled;
+        mDungeonStatusRevision = revision;
+        std::string title = "#{sCell=" + mCellName + "}";
+        if (enabled && !mCellNameId.empty() && mechanics->isDungeonCleared(mCellNameId))
+            title += " #{OMWEngine:ClearedDungeonSuffix}";
+        setTitle(title);
     }
 
     MyGUI::IntCoord MapWindow::createMarkerCoords(const MapMarkerType& marker, size_t aggregatedWeight) const
@@ -1477,6 +1499,9 @@ namespace MWGui
     {
         LocalMapBase::onFrame(dt);
         NoDrop::onFrame(dt);
+        // Only two scalar comparisons unless the saved status or setting
+        // changed. Actor enumeration is driven by lifecycle events elsewhere.
+        refreshDungeonTitle();
     }
 
     void MapWindow::setGlobalMapMarkerTooltip(MyGUI::Widget* markerWidget, int x, int y)
@@ -1600,6 +1625,7 @@ namespace MWGui
 
     void MapWindow::onOpen()
     {
+        refreshDungeonTitle();
         ensureGlobalMapLoaded();
 
         updateLocationIconStyles();
@@ -1675,6 +1701,10 @@ namespace MWGui
 
     void MapWindow::clear()
     {
+        mCellName.clear();
+        mCellNameId = ESM::RefId();
+        mDungeonStatusRevision = 0;
+        mDungeonTitleEnabled = false;
         clearEntranceWidgets();
         mDiscoveredEntrances.clear();
         mEntrancesBySource.clear();

@@ -1,5 +1,7 @@
 #include "apps/openmw/mwgui/messagepositioncontrols.hpp"
 #include "apps/openmw/mwgui/mapiconcontrols.hpp"
+#include "apps/openmw/mwgui/tooltipcontrols.hpp"
+#include "apps/openmw/mwgui/traveltooltipview.hpp"
 #include "components/mapmarkers/classification.hpp"
 #include "apps/openmw/mwgui/resourceskin.hpp"
 
@@ -12,6 +14,7 @@
 #include <MyGUI_FactoryManager.h>
 #include <MyGUI_FontManager.h>
 #include <MyGUI_Gui.h>
+#include <MyGUI_ImageBox.h>
 #include <MyGUI_LanguageManager.h>
 #include <MyGUI_LayerManager.h>
 #include <MyGUI_LogManager.h>
@@ -29,6 +32,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -132,10 +136,10 @@ namespace MWGui
         class ControlsFont final : public MyGUI::IFont
         {
         public:
-            explicit ControlsFont(MyGUI::ITexture* texture)
+            explicit ControlsFont(MyGUI::ITexture* texture, const std::string& name = "MessagePositionControlsFont")
                 : mTexture(texture)
             {
-                setResourceName("MessagePositionControlsFont");
+                setResourceName(name);
             }
             const MyGUI::GlyphInfo* getGlyphInfo(MyGUI::Char codePoint) const override
             {
@@ -195,6 +199,39 @@ namespace MWGui
                     return;
                 }
                 const std::map<std::string, std::string> captions{
+                    { "Interface:On", "On" },
+                    { "Interface:Off", "Off" },
+                    { "OMWEngine:TooltipOptionsDescription",
+                        "Choose travel previews, matching-key hints and cleared-location labels. Changes apply "
+                        "immediately and are saved when you close Options." },
+                    { "OMWEngine:TravelTooltipSection", "Travel Tooltips" },
+                    { "OMWEngine:KeyTooltipSection", "If The Key Fits" },
+                    { "OMWEngine:ClearedDungeonSection", "Been There, Done That" },
+                    { "OMWEngine:TravelTooltipEnabled", "Show illustrated destination previews" },
+                    { "OMWEngine:TravelTooltipOverview", "Show the travel overview map" },
+                    { "OMWEngine:TravelTooltipGondoliers", "Show gondolier destination previews" },
+                    { "OMWEngine:TravelTooltipFallback", "Use Stuporstar art when an image is missing" },
+                    { "OMWEngine:TravelTooltipWide", "Use a wide preview layout" },
+                    { "OMWEngine:KeyTooltipEnabled", "Show when you carry the matching key" },
+                    { "OMWEngine:ClearedDungeonTooltips", "Show cleared status on entrance tooltips" },
+                    { "OMWEngine:ClearedDungeonMapTitle", "Show cleared status in the map title" },
+                    { "OMWEngine:TravelTooltipPack", "Destination art pack" },
+                    { "OMWEngine:TravelTooltipOverviewMap", "Overview map" },
+                    { "OMWEngine:TravelTooltipColour", "Artwork tint" },
+                    { "OMWEngine:TravelTooltipTitleFont", "Destination title font" },
+                    { "OMWEngine:TravelTooltipTextFont", "Description font" },
+                    { "OMWEngine:TravelTooltipRoutes", "Travel routes" },
+                    { "OMWEngine:TravelTooltipVvardenfell", "Vvardenfell map" },
+                    { "OMWEngine:TravelTooltipBookMap", "Book map" },
+                    { "OMWEngine:TravelTooltipDefaultFont", "Interface font" },
+                    { "OMWEngine:TravelTooltipMonoFont", "Monospace" },
+                    { "OMWEngine:TravelTooltipDaedricFont", "Daedric" },
+                    { "OMWEngine:TravelTooltipScale", "Preview size" },
+                    { "OMWEngine:TooltipOptionsReset", "Reset tooltip options" },
+                    { "OMWEngine:TooltipOptionsHint",
+                        "Travel previews require the Travel Tooltips data folder. Cleared status tracks hostiles in each "
+                        "visited interior, rather than quests or loot. Tracking starts with visits in this build; hiding "
+                        "the labels keeps your history. Reset changes only the options on this page." },
                     { "OMWEngine:MapIconsTab", "Map icons" },
                     { "OMWEngine:MapIconsDescription", "Use location symbols on the built-in world map. Advanced World Map is not required." },
                     { "OMWEngine:MapIconsEnabled", "Enable location icons" },
@@ -556,6 +593,389 @@ namespace MWGui
             EXPECT_LE(controls.mCategoryToggle->getRight(), controls.mContent->getWidth());
             EXPECT_LE(controls.mCategoryToggle->getTextSize().width, controls.mCategoryToggle->getTextRegion().width);
             expectWrappedTextFits(controls.mCategoryToggleLabel);
+        }
+
+        class TooltipControlsTest : public MessagePositionControlsTest
+        {
+        protected:
+            TooltipControls mTooltip;
+
+            void createTooltipPanel(MyGUI::IntSize size)
+            {
+                mPanel = mGui.createWidget<MyGUI::Widget>(
+                    "", { 0, 0, size.width, size.height }, MyGUI::Align::Default, "Settings");
+                mTooltip = createTooltipControls(mPanel, "TooltipTest");
+            }
+
+            std::vector<std::vector<MyGUI::Widget*>> tooltipRows() const
+            {
+                std::vector<std::vector<MyGUI::Widget*>> result{
+                    { mTooltip.mDescription }, { mTooltip.mSections[0] } };
+                for (size_t i = 0; i < 5; ++i)
+                    result.push_back({ mTooltip.mToggleLabels[i], mTooltip.mToggles[i] });
+                for (size_t i = 0; i < mTooltip.mChoices.size(); ++i)
+                {
+                    result.push_back({ mTooltip.mChoiceLabels[i] });
+                    result.push_back({ mTooltip.mChoices[i] });
+                }
+                result.push_back({ mTooltip.mScaleLabel, mTooltip.mScaleValue });
+                result.push_back({ mTooltip.mScale });
+                result.push_back({ mTooltip.mSections[1] });
+                result.push_back({ mTooltip.mToggleLabels[5], mTooltip.mToggles[5] });
+                result.push_back({ mTooltip.mSections[2] });
+                for (size_t i = 6; i < mTooltip.mToggles.size(); ++i)
+                    result.push_back({ mTooltip.mToggleLabels[i], mTooltip.mToggles[i] });
+                result.push_back({ mTooltip.mReset });
+                result.push_back({ mTooltip.mHint });
+                return result;
+            }
+
+            std::vector<MyGUI::EditBox*> tooltipWrappedTexts() const
+            {
+                std::vector<MyGUI::EditBox*> result{ mTooltip.mDescription, mTooltip.mScaleLabel, mTooltip.mHint };
+                result.insert(result.end(), mTooltip.mSections.begin(), mTooltip.mSections.end());
+                result.insert(result.end(), mTooltip.mToggleLabels.begin(), mTooltip.mToggleLabels.end());
+                result.insert(result.end(), mTooltip.mChoiceLabels.begin(), mTooltip.mChoiceLabels.end());
+                return result;
+            }
+
+            void expectTooltipRowsSeparated() const
+            {
+                int bottom = 0;
+                for (const auto& row : tooltipRows())
+                {
+                    int rowBottom = bottom;
+                    int right = 0;
+                    for (const auto* widget : row)
+                    {
+                        SCOPED_TRACE(widget->getTypeName());
+                        EXPECT_GE(widget->getTop(), bottom);
+                        EXPECT_EQ(widget->getTop(), row.front()->getTop());
+                        EXPECT_GE(widget->getLeft(), right);
+                        EXPECT_GT(widget->getWidth(), 0);
+                        EXPECT_GT(widget->getHeight(), 0);
+                        EXPECT_LE(widget->getRight(), mTooltip.mContent->getWidth());
+                        EXPECT_LE(widget->getBottom(), mTooltip.mContent->getHeight());
+                        rowBottom = std::max(rowBottom, widget->getBottom());
+                        right = widget->getRight();
+                    }
+                    bottom = rowBottom;
+                }
+                EXPECT_EQ(mTooltip.mView->getCanvasSize(), mTooltip.mContent->getSize());
+            }
+
+            void expectTooltipTextFits() const
+            {
+                for (auto* label : tooltipWrappedTexts())
+                    expectWrappedTextFits(label);
+                const auto fits = [](const MyGUI::TextBox* text) {
+                    EXPECT_FALSE(text->getCaption().empty());
+                    EXPECT_LE(text->getTextSize().width, text->getTextRegion().width);
+                    EXPECT_LE(text->getTextSize().height, text->getTextRegion().height);
+                };
+                for (const auto* toggle : mTooltip.mToggles)
+                    fits(toggle);
+                for (const auto* choice : mTooltip.mChoices)
+                    fits(choice);
+                fits(mTooltip.mScaleValue);
+                fits(mTooltip.mReset);
+            }
+
+            void expectEveryTooltipRowReachable() const
+            {
+                const auto view = mTooltip.mView->getViewCoord();
+                const auto canvas = mTooltip.mView->getCanvasSize();
+                const int minLeft = std::min(0, view.width - canvas.width);
+                const int minTop = std::min(0, view.height - canvas.height);
+                for (const auto& row : tooltipRows())
+                    for (const auto* widget : row)
+                    {
+                        // Exercise MyGUI's actual canvas clamping, including
+                        // horizontal scrolling for an oversized translated row.
+                        mTooltip.mView->setViewOffset({ std::clamp(view.width - widget->getRight(), minLeft, 0),
+                            std::clamp(view.height - widget->getBottom(), minTop, 0) });
+                        const auto offset = mTooltip.mView->getViewOffset();
+                        EXPECT_GT(widget->getBottom() + offset.top, 0);
+                        EXPECT_LE(widget->getBottom() + offset.top, view.height);
+                        EXPECT_GT(widget->getRight() + offset.left, 0);
+                        EXPECT_LE(widget->getRight() + offset.left, view.width);
+                        if (widget->getHeight() <= view.height)
+                            EXPECT_GE(widget->getTop() + offset.top, 0);
+                        if (widget->getWidth() <= view.width)
+                            EXPECT_GE(widget->getLeft() + offset.left, 0);
+                    }
+            }
+        };
+
+        TEST_F(TooltipControlsTest, AllFourteenControlsStaySeparatedAndReachableAcrossParentSizes)
+        {
+            createTooltipPanel({ 600, 500 });
+            EXPECT_EQ(mTooltip.mToggles.size() + mTooltip.mChoices.size() + 1, 14u);
+            for (const auto size : { MyGUI::IntSize(600, 500), MyGUI::IntSize(280, 220),
+                     MyGUI::IntSize(1100, 900), MyGUI::IntSize(1100, 1800) })
+            {
+                SCOPED_TRACE(::testing::Message() << size.width << 'x' << size.height);
+                mPanel->setSize(size);
+                layoutTooltipControls(mTooltip);
+                expectTooltipRowsSeparated();
+                expectTooltipTextFits();
+                expectEveryTooltipRowReachable();
+                std::vector<std::pair<MyGUI::Widget*, MyGUI::IntCoord>> positions;
+                for (const auto& row : tooltipRows())
+                    for (auto* widget : row)
+                        positions.emplace_back(widget, widget->getCoord());
+                const auto contentSize = mTooltip.mContent->getSize();
+                mTooltip.mContent->setSize(contentSize.width, contentSize.height + 100);
+                mTooltip.mContent->setSize(contentSize);
+                for (const auto& [widget, position] : positions)
+                    EXPECT_EQ(widget->getCoord(), position);
+            }
+            // A large viewport removes both scroll offsets after the narrow
+            // form has scrolled to the end of its final help text.
+            EXPECT_EQ(mTooltip.mView->getViewOffset(), MyGUI::IntPoint());
+            EXPECT_EQ(mTooltip.mView->getCanvasSize().width, mTooltip.mView->getViewCoord().width);
+            EXPECT_LE(mTooltip.mView->getCanvasSize().height, mTooltip.mView->getViewCoord().height);
+        }
+
+        TEST_F(TooltipControlsTest, EveryChoiceRetainsItsSelectionAndCaptionAfterRelayout)
+        {
+            createTooltipPanel({ 360, 240 });
+            const std::array<size_t, 5> counts{ 3, 3, 11, 3, 3 };
+            const std::array<size_t, 5> defaults{ 2, 0, 0, 2, 0 };
+            for (size_t c = 0; c < mTooltip.mChoices.size(); ++c)
+            {
+                auto* choice = mTooltip.mChoices[c];
+                SCOPED_TRACE(c);
+                ASSERT_EQ(choice->getItemCount(), counts[c]);
+                EXPECT_EQ(choice->getIndexSelected(), defaults[c]);
+                for (size_t i = 0; i < choice->getItemCount(); ++i)
+                {
+                    choice->setIndexSelected(i);
+                    const auto caption = choice->getCaption();
+                    EXPECT_EQ(caption, choice->getItemNameAt(i));
+                    for (const auto size : { MyGUI::IntSize(280, 220), MyGUI::IntSize(1100, 900) })
+                    {
+                        mPanel->setSize(size);
+                        layoutTooltipControls(mTooltip);
+                        EXPECT_EQ(choice->getIndexSelected(), i);
+                        EXPECT_EQ(choice->getCaption(), caption);
+                        expectTooltipRowsSeparated();
+                        expectTooltipTextFits();
+                    }
+                }
+            }
+        }
+
+        TEST_F(TooltipControlsTest, ScaleAndToggleValuesSurviveRelayoutAndScroll)
+        {
+            createTooltipPanel({ 360, 240 });
+            EXPECT_EQ(mTooltip.mScale->getScrollRange(), 151u);
+            EXPECT_EQ(mTooltip.mScale->getScrollPosition(), 50u);
+            EXPECT_EQ(mTooltip.mScaleValue->getCaption(), MyGUI::UString("100%"));
+            for (size_t i = 0; i < mTooltip.mToggles.size(); ++i)
+            {
+                mTooltip.mToggles[i]->setStateSelected(i % 2 != 0);
+                mTooltip.mToggles[i]->setCaption(i % 2 ? "On" : "Off");
+            }
+            for (size_t position : { size_t(0), size_t(50), size_t(149), size_t(150) })
+            {
+                mTooltip.mScale->setScrollPosition(position);
+                mTooltip.mScaleValue->setCaption(std::to_string(position + 50) + "%");
+                for (const auto size : { MyGUI::IntSize(280, 220), MyGUI::IntSize(1100, 900) })
+                {
+                    mPanel->setSize(size);
+                    layoutTooltipControls(mTooltip);
+                    expectEveryTooltipRowReachable();
+                    layoutTooltipControls(mTooltip);
+                    EXPECT_EQ(mTooltip.mScale->getScrollPosition(), position);
+                    EXPECT_EQ(mTooltip.mScaleValue->getCaption(), MyGUI::UString(std::to_string(position + 50) + "%"));
+                    for (size_t i = 0; i < mTooltip.mToggles.size(); ++i)
+                    {
+                        EXPECT_EQ(mTooltip.mToggles[i]->getStateSelected(), i % 2 != 0);
+                        EXPECT_EQ(mTooltip.mToggles[i]->getCaption(), MyGUI::UString(i % 2 ? "On" : "Off"));
+                    }
+                    expectTooltipRowsSeparated();
+                    expectTooltipTextFits();
+                }
+            }
+        }
+
+        TEST_F(TooltipControlsTest, LargeFontsAndLongTranslationsFitAndRemainReachable)
+        {
+            createTooltipPanel({ 360, 240 });
+            const int before = mTooltip.mContent->getHeight();
+            for (auto* label : tooltipWrappedTexts())
+                label->setFontHeight(32);
+            for (auto* toggle : mTooltip.mToggles)
+            {
+                toggle->setFontHeight(32);
+                toggle->setCaption("This option is enabled");
+            }
+            for (auto* label : mTooltip.mToggleLabels)
+                label->setCaption("Show this extra hint when it applies to the place or item in view");
+            mTooltip.mReset->setFontHeight(32);
+            mTooltip.mReset->setCaption("Restore the default tooltip options");
+            mTooltip.mScaleValue->setFontHeight(32);
+            mTooltip.mScaleValue->setCaption("200%");
+            mTooltip.mScale->setScrollPosition(150);
+            for (auto* choice : mTooltip.mChoices)
+            {
+                choice->setFontHeight(32);
+                choice->setItemNameAt(0, "A long translated name for this artwork or font choice");
+                choice->setIndexSelected(0);
+            }
+            for (const auto size : { MyGUI::IntSize(280, 220), MyGUI::IntSize(1100, 900) })
+            {
+                mPanel->setSize(size);
+                layoutTooltipControls(mTooltip);
+                EXPECT_GT(mTooltip.mContent->getHeight(), before);
+                expectTooltipRowsSeparated();
+                expectTooltipTextFits();
+                expectEveryTooltipRowReachable();
+                for (const auto* choice : mTooltip.mChoices)
+                {
+                    EXPECT_EQ(choice->getIndexSelected(), 0u);
+                    EXPECT_EQ(choice->getCaption(), choice->getItemNameAt(0));
+                }
+                EXPECT_EQ(mTooltip.mScale->getScrollPosition(), 150u);
+            }
+        }
+
+        class TravelTooltipViewTest : public MessagePositionControlsTest
+        {
+        protected:
+            void SetUp() override
+            {
+                MessagePositionControlsTest::SetUp();
+                auto& resources = MyGUI::ResourceManager::getInstance();
+                ASSERT_TRUE(resources.load("openmw_hud_box.skin.xml"));
+                // These aliases exercise the real font-selection and wrapping
+                // paths; their glyph metrics are substitutes, not game fonts.
+                for (const auto* name : { "DefaultFont", "MonoFont", "ScrollFont" })
+                    resources.addResource(new ControlsFont(mRenderer.getTexture("TestFont"), name));
+                mPanel = mGui.createWidget<MyGUI::Widget>(
+                    "", { 0, 0, 1280, 720 }, MyGUI::Align::Default, "Settings");
+            }
+
+            static std::string longDescription()
+            {
+                std::string result;
+                for (int i = 0; i < 8; ++i)
+                    result += "The road leads past old stone walls to a busy port. Travellers can rest at the inn, "
+                              "visit the market, or find a guide for the next stage of their journey. ";
+                return result;
+            }
+
+            void expectTravelGeometry(MyGUI::IntSize size, const TravelTooltipStyle& style, bool overview) const
+            {
+                auto* panel = mPanel->findWidget("TravelTooltipPanel");
+                auto* title = panel->findWidget("TravelTooltipTitle")->castType<MyGUI::EditBox>();
+                auto* description = panel->findWidget("TravelTooltipDescription")->castType<MyGUI::EditBox>();
+                auto* image = panel->findWidget("TravelTooltipImage")->castType<MyGUI::ImageBox>();
+                EXPECT_EQ(panel->getSize(), size);
+                EXPECT_GT(size.width, 0);
+                EXPECT_GT(size.height, 0);
+                EXPECT_LE(size.width, style.mViewWidth - 16);
+                EXPECT_LE(size.height, style.mViewHeight - 16);
+                EXPECT_GE(image->getLeft(), 0);
+                EXPECT_GE(image->getTop(), 0);
+                EXPECT_GT(image->getWidth(), 0);
+                EXPECT_GT(image->getHeight(), 0);
+                EXPECT_LE(image->getRight(), size.width);
+                EXPECT_LE(image->getBottom(), size.height);
+                EXPECT_EQ(title->getVisible(), !overview);
+                EXPECT_EQ(description->getVisible(), !overview);
+                if (overview)
+                    return;
+                EXPECT_LE(title->getBottom(), image->getTop());
+                EXPECT_LE(image->getBottom(), description->getTop());
+                for (auto* text : { title, description })
+                {
+                    EXPECT_GE(text->getLeft(), 0);
+                    EXPECT_GE(text->getTop(), 0);
+                    EXPECT_LE(text->getRight(), size.width);
+                    EXPECT_LE(text->getBottom(), size.height);
+                    if (!text->getCaption().empty())
+                        expectWrappedTextFits(text);
+                }
+            }
+        };
+
+        TEST_F(TravelTooltipViewTest, LongDestinationDescriptionsFitWithoutClippingOrOverlap)
+        {
+            TravelTooltipView view(mPanel);
+            const TravelTooltips::Image image{ 0, "", "textures/example.tga", 800, 400 };
+            const std::string title = "A long destination name, the traveller's guild and market square";
+            const std::string description = longDescription();
+            for (const auto viewport : { MyGUI::IntSize(480, 360), MyGUI::IntSize(640, 480),
+                     MyGUI::IntSize(1280, 720) })
+                for (bool wide : { false, true })
+                    for (int scale : { 50, 100, 200 })
+                        for (int font : { 0, 1, 2 })
+                        {
+                            SCOPED_TRACE(::testing::Message() << viewport.width << 'x' << viewport.height
+                                << " wide=" << wide << " scale=" << scale << " font=" << font);
+                            TravelTooltipStyle style;
+                            style.mViewWidth = viewport.width;
+                            style.mViewHeight = viewport.height;
+                            style.mWide = wide;
+                            style.mScale = scale;
+                            style.mTitleFont = font;
+                            style.mTextFont = (font + 1) % 3;
+                            style.mFontSize = 32;
+                            MyGUI::IntSize size;
+                            ASSERT_NO_THROW(size = view.render(image, title, description, false, style));
+                            view.setVisible(true);
+                            expectTravelGeometry(size, style, false);
+                            auto* panel = mPanel->findWidget("TravelTooltipPanel");
+                            auto* text = panel->findWidget("TravelTooltipDescription")->castType<MyGUI::EditBox>();
+                            EXPECT_EQ(text->getCaption(), MyGUI::UString(description));
+                            auto* art = panel->findWidget("TravelTooltipImage")->castType<MyGUI::ImageBox>();
+                            EXPECT_NEAR(static_cast<double>(art->getWidth()) / art->getHeight(), 2.0, .01);
+                        }
+        }
+
+        TEST_F(TravelTooltipViewTest, OverviewAndDestinationTransitionsResetTextVisibility)
+        {
+            TravelTooltipView view(mPanel);
+            const TravelTooltips::Image image{ 0, "", "textures/example.tga", 800, 400 };
+            const TravelTooltips::Image overview{ 0, "", "textures/overview.tga", 512, 512 };
+            TravelTooltipStyle style;
+            style.mViewWidth = 480;
+            style.mViewHeight = 360;
+            style.mScale = 200;
+            auto size = view.render(image, "Balmora", "A short destination description.", false, style);
+            view.setVisible(true);
+            expectTravelGeometry(size, style, false);
+            size = view.render(overview, "Unused title", "Unused description", true, style);
+            expectTravelGeometry(size, style, true);
+            auto* panel = mPanel->findWidget("TravelTooltipPanel");
+            auto* art = panel->findWidget("TravelTooltipImage")->castType<MyGUI::ImageBox>();
+            EXPECT_EQ(art->getWidth(), art->getHeight());
+            size = view.render(image, "An unknown destination", "", false, style);
+            expectTravelGeometry(size, style, false);
+            EXPECT_TRUE(panel->findWidget("TravelTooltipDescription")->castType<MyGUI::EditBox>()->getCaption().empty());
+            view.setVisible(false);
+            EXPECT_FALSE(panel->getVisible());
+            view.setVisible(true);
+            EXPECT_TRUE(panel->getVisible());
+        }
+
+        TEST_F(TravelTooltipViewTest, TooSmallViewportRejectsThePreviewInsteadOfClippingItsBody)
+        {
+            TravelTooltipView view(mPanel);
+            const TravelTooltips::Image image{ 0, "", "textures/example.tga", 800, 400 };
+            TravelTooltipStyle style;
+            style.mViewWidth = 80;
+            style.mViewHeight = 80;
+            EXPECT_THROW(view.render(image, "A distant port", longDescription(), false, style), std::runtime_error);
+            // Failure is recoverable when the logical viewport becomes larger.
+            style.mViewWidth = 640;
+            style.mViewHeight = 480;
+            MyGUI::IntSize size;
+            ASSERT_NO_THROW(size = view.render(image, "A distant port", longDescription(), false, style));
+            view.setVisible(true);
+            expectTravelGeometry(size, style, false);
         }
     }
 }

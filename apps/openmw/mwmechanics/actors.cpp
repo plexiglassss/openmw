@@ -1788,6 +1788,8 @@ namespace MWMechanics
         ++mDeathCount[actor.getCellRef().getRefId()];
 
         MWBase::Environment::get().getLuaManager()->actorDied(actor);
+        if (actor.isInCell())
+            MWBase::Environment::get().getMechanicsManager()->queueDungeonStatusUpdate(actor.getCell());
     }
 
     void Actors::resurrect(const MWWorld::Ptr& ptr) const

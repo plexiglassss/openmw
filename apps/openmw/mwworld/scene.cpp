@@ -1092,6 +1092,7 @@ namespace MWWorld
         if (useFading)
             MWBase::Environment::get().getWindowManager()->fadeScreenIn(0.5);
 
+        MWBase::Environment::get().getMechanicsManager()->updateDungeonStatus(mCurrentCell);
         MWBase::Environment::get().getWindowManager()->changeCell(mCurrentCell);
 
         MWBase::Environment::get().getWorld()->getPostProcessor()->setExteriorFlag(cell.getCell()->isQuasiExterior());

@@ -57,6 +57,26 @@ namespace Settings
         SettingValue<float> mMenuTransparency{ mIndex, "GUI", "menu transparency", makeClampSanitizerFloat(0, 1) };
         SettingValue<float> mTooltipDelay{ mIndex, "GUI", "tooltip delay", makeMaxSanitizerFloat(0) };
         SettingValue<bool> mEnhancedWorldTooltips{ mIndex, "GUI", "enhanced world tooltips" };
+        SettingValue<bool> mKeyTooltips{ mIndex, "GUI", "key tooltips", true };
+        SettingValue<bool> mClearedDungeonTooltips{ mIndex, "GUI", "cleared dungeon tooltips", true };
+        SettingValue<bool> mClearedDungeonMapTitle{ mIndex, "GUI", "cleared dungeon map title", true };
+        SettingValue<bool> mTravelEnabled{ mIndex, "GUI", "travel tooltips", true };
+        SettingValue<bool> mTravelOverview{ mIndex, "GUI", "travel tooltip overview", true };
+        SettingValue<bool> mTravelGondoliers{ mIndex, "GUI", "travel tooltip gondoliers", true };
+        SettingValue<bool> mTravelFallback{ mIndex, "GUI", "travel tooltip fallback", false };
+        SettingValue<bool> mTravelWide{ mIndex, "GUI", "travel tooltip wide", true };
+        SettingValue<int> mTravelPack{ mIndex, "GUI", "travel tooltip pack", 2,
+            makeClampSanitizerInt(0, 2) };
+        SettingValue<int> mTravelOverviewMap{ mIndex, "GUI", "travel tooltip overview map", 0,
+            makeClampSanitizerInt(0, 2) };
+        SettingValue<int> mTravelScale{ mIndex, "GUI", "travel tooltip scale", 100,
+            makeClampSanitizerInt(50, 200) };
+        SettingValue<int> mTravelColour{ mIndex, "GUI", "travel tooltip colour", 0,
+            makeClampSanitizerInt(0, 10) };
+        SettingValue<int> mTravelTitleFont{ mIndex, "GUI", "travel tooltip title font", 2,
+            makeClampSanitizerInt(0, 2) };
+        SettingValue<int> mTravelTextFont{ mIndex, "GUI", "travel tooltip text font", 0,
+            makeClampSanitizerInt(0, 2) };
         SettingValue<bool> mWindowSnapping{ mIndex, "GUI", "window snapping" };
         SettingValue<bool> mStretchMenuBackground{ mIndex, "GUI", "stretch menu background" };
         SettingValue<bool> mControllerMenus{ mIndex, "GUI", "controller menus" };
