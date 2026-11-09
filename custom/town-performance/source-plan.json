@@ -683,10 +683,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6ea2b9ba1ee5572e00b92ec90628abd3601b86d8"
+        "blob": "13c5c2b5bea5d7f9086986831a47728d2009e5c0"
       },
-      "bytes": 41515,
-      "sha256": "9d02e525ec3e7d4aee0f2a73c48f2aebf8a6d8eb3d650fbc41151391499f044a",
+      "bytes": 41583,
+      "sha256": "93d3488e246b78d1fca48c3bc978054a784c25df9e57aa6b0300592a853f3723",
       "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "apps/openmw_tests/mwworld/testcelllookup.cpp": {

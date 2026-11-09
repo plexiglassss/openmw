@@ -662,7 +662,11 @@ namespace MWLua
                 assert(not pcall(function() effects:createMagnitudeQuery({'not_a_record'}) end))
             )",
                 sol::script_pass_on_error);
-            ASSERT_TRUE(result.valid()) << (result.valid() ? "" : sol::error(result).what());
+            if (!result.valid())
+            {
+                const auto error = result.get<sol::error>();
+                FAIL() << error.what();
+            }
             if (Misc::useCombinedPerformance())
             {
                 const sol::table casters = lua["sourceCasters"];
