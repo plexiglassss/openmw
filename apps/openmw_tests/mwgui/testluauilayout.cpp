@@ -578,13 +578,20 @@ namespace LuaUi
                     templateReads=templateReads+1; return template[key]
                 end})
                 refresh(root); snapshot('dynamic-template-reads-'..templateReads)
+                plain=element {name='plain',props={size=vec2(10,10)}}
                 other=element {name='other',type='LuaFlex',layer='LuaUiTest',
-                    props={horizontal=true,autoSize=false,size=vec2(150,40)},content=content {}}
+                    props={horizontal=true,autoSize=false,size=vec2(150,40)},content=content {plain}}
                 roots={root,other}; refresh(other)
                 other.layout.content:add(child); externalReads=0
             )");
             collectLayoutUpdateStatistics(true);
-            run("refresh(other); snapshot('moved-dynamic-external-reads-'..externalReads)");
+            run(R"(
+                refresh(other)
+                -- Moving a plain child back must also preserve dynamic reads
+                -- on siblings left in its previous parent.
+                root.layout.template=nil; root.layout.content=content {plain}
+                refresh(root); snapshot('moved-dynamic-external-reads-'..externalReads)
+            )");
             const auto movedStats = takeLayoutUpdateStatistics();
             collectLayoutUpdateStatistics(false);
             EXPECT_EQ(movedStats.reused, 0u);

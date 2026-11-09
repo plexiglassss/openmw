@@ -145,6 +145,8 @@ namespace LuaUi
         // Geometry changes invalidate ancestors because containers and flex
         // layouts can derive their own size/arrangement from a descendant.
         void invalidateLayout();
+        void invalidateLayoutMeasurement();
+        std::uint64_t layoutMeasurementRevision() const { return mLayoutMeasurementRevision; }
         bool reuseLayout();
         void rememberLayout(std::uint64_t revision);
 
@@ -240,6 +242,7 @@ namespace LuaUi
         void preserveRetainedExternalReads() const;
         bool mLayoutDirty = true;
         std::uint64_t mLayoutRevision = 0;
+        std::uint64_t mLayoutMeasurementRevision = 0;
         std::uint64_t mLayoutEpoch = 0;
         MyGUI::IntSize mLayoutParentSize;
         MyGUI::IntCoord mLayoutCoord;

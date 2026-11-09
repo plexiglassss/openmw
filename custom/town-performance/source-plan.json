@@ -650,10 +650,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "9760cb8e49fa3343b0c597b8dd5cfba2d259b63d"
+        "blob": "e8b5003b843c5a813159b76ab6d282c421ba5f53"
       },
-      "bytes": 60219,
-      "sha256": "b53238b64ba530e61fdcc3f0dcbf4dc5407152dcbca3e3060daa398053682f67",
+      "bytes": 60573,
+      "sha256": "6a6408d7a1d5d36ead54d481d5a5a331e30523e57921ff8c6bc3dfc4806475c3",
       "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
@@ -794,10 +794,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "dbbc84b412b4c922490e6167f7eca95627ec2b26"
+        "blob": "100f0a9ce7fa42b0fb3e5e60a33b6d2feb57d690"
       },
-      "bytes": 1449,
-      "sha256": "6073ef3d8d3607e0cfd4f69f249cd7a4f2e9509ba131d667c8a5c1e060f45671",
+      "bytes": 1722,
+      "sha256": "dec9ac35b629944b4a426b05e171e74dd9078d00556d28a1fa9495aff73881a7",
       "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
     },
     "components/lua_ui/content.cpp": {
@@ -846,10 +846,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2380bee5151927d5b6be4e1e500d2d5a9f2d9982"
+        "blob": "7ddf6f4f12a9e77aea0f56d39941e23d0db90868"
       },
-      "bytes": 7104,
-      "sha256": "291e11ef16d2ac09894262405a875885e72b0980eed34d0fecc315bac245cbf7",
+      "bytes": 7667,
+      "sha256": "2de3aca4172f83322604357861570921fa2bd0ec4258be7d6890b6a449fad083",
       "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
     },
     "components/lua_ui/properties.hpp": {
@@ -911,10 +911,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fce6c0bc3e0420e04965cf1826f8167a4fa9ab0b"
+        "blob": "164a014012dcad649e8ef1c39d6f2a9d738358f1"
       },
-      "bytes": 27323,
-      "sha256": "9bdefcecdc5f59b01b272e83fbc39c714dcc0bc9eae70c54a8fa4f1996adfe1a",
+      "bytes": 28083,
+      "sha256": "525100de1f319b2485d3d0f2ee1f215fe5d34f636ff07722d1dfc7795d1bc2d1",
       "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
     },
     "components/lua_ui/widget.hpp": {
@@ -924,10 +924,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "90623f2ddba25b106381dc0f60eddaa0a3e3f2b4"
+        "blob": "e1025a930feeea82a2b4da80cfd89bef80488e50"
       },
-      "bytes": 11459,
-      "sha256": "fb934273a5b02a4a01e3d3c36c721d91f75520538d616f7c8a9c18e1a7c36a28",
+      "bytes": 11652,
+      "sha256": "c64189422c5055326d9f47798b8472efde50ed58f1a738b23246b49d9c60d814",
       "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
     },
     "components/mapmarkers/classification.cpp": {

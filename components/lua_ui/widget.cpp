@@ -131,6 +131,18 @@ namespace LuaUi
         return true;
     }
 
+    void WidgetExtension::invalidateLayoutMeasurement()
+    {
+        if (!layoutReuseInProgress())
+            return;
+        for (WidgetExtension* current = this; current; current = current->mParent)
+        {
+            current->mLayoutDirty = true;
+            ++current->mLayoutRevision;
+            ++current->mLayoutMeasurementRevision;
+        }
+    }
+
     void WidgetExtension::rememberLayout(std::uint64_t revision)
     {
         if (sCollectLayoutStatistics)
@@ -266,6 +278,12 @@ namespace LuaUi
             ext->preserveRetainedExternalReads();
             if (ext->mParent)
             {
+                // Immediate relayout can also visit the previous hierarchy's
+                // remaining children, outside the destination's initial scan.
+                WidgetExtension* previousRoot = ext->mParent;
+                while (previousRoot->mParent)
+                    previousRoot = previousRoot->mParent;
+                previousRoot->preserveRetainedExternalReads();
                 auto children = ext->mParent->children();
                 std::erase(children, ext);
                 ext->mParent->setChildren(children);
@@ -464,7 +482,7 @@ namespace LuaUi
         {
             mWidget->setCoord(newCoord);
             if (mParent)
-                mParent->invalidateLayout();
+                mParent->invalidateLayoutMeasurement();
         }
 
         if (mContentWidget)
