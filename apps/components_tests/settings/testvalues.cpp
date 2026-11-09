@@ -437,11 +437,14 @@ namespace Settings
 
         TEST_F(SettingsValuesTest, mapIconsDefaultWithoutAwmAndClampExternalValues)
         {
+            // Match Manager::load: capture defaults before applying user values.
+            Index index;
+            Values defaultValues(index);
+            EXPECT_EQ(defaultValues.mMap.mLocationIconSize.get(), 24);
             Manager::mUserSettings[{ "Map", "location icon size" }] = "999";
             Manager::mUserSettings[{ "Map", "location icon colours" }] = "-10";
             Manager::mUserSettings[{ "Map", "location icon categories" }] = "999999";
-            Index index;
-            Values values(index);
+            Values values(std::move(defaultValues));
             EXPECT_TRUE(values.mMap.mLocationIcons.get());
             EXPECT_TRUE(values.mMap.mLocationEntranceIcons.get());
             EXPECT_TRUE(values.mMap.mLocationIconTooltips.get());

@@ -284,6 +284,26 @@ jobs:
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
           -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
+      - name: Run actual native options forms before engine linking
+        shell: pwsh
+        run: |
+          cmake --build build --target openmw-controls-tests
+          if ($LASTEXITCODE) { throw 'Standalone native controls build failed' }
+          $deps = 'deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/bin'
+          Copy-Item "$deps/Release/MyGUIEngine.dll" build/
+          Copy-Item "$deps/*.dll" build/
+          ./build/openmw-controls-tests.exe --gtest_output=xml:map-icon-controls-early.xml
+          if ($LASTEXITCODE) { throw 'Actual native controls regressions failed' }
+          [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
+          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest')) {
+            $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
+            if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne 4) {
+              throw "Missing required actual controls cases: $suiteName"
+            }
+            if (@($controlSuites[0].testcase | Where-Object { $_.status -ne 'run' -or $_.result -ne 'completed' }).Count) {
+              throw "Actual controls cases did not execute: $suiteName"
+            }
+          }
       - name: Compile Lua UI images and native regressions first
         shell: pwsh
         run: >
@@ -359,8 +379,6 @@ jobs:
           apps/components_tests/CMakeFiles/components-tests.dir/esm3/testlocationmarkers.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testclassification.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
-      - name: Build engine and regression tests
-        run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
       - name: Prepare test DLLs
         shell: pwsh
         run: |
@@ -376,14 +394,24 @@ jobs:
             New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
             Copy-Item "$qt/plugins/$plugin" "build/$plugin"
           }
+      - name: Run component regressions before full engine linking
+        shell: pwsh
+        run: |
+          cmake --build build --target components-tests
+          if ($LASTEXITCODE) { throw 'Component regression build failed' }
+          ./build/components-tests.exe --gtest_output=xml:components-tests-early.xml
+          if ($LASTEXITCODE) { throw 'Early component regressions failed' }
+      - name: Build engine and regression tests
+        run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
       - name: All engine tests, both UI modes and four lookup configurations before packaging
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
-          if ($LASTEXITCODE) { throw 'Component regressions failed' }
+          $componentTestExit = $LASTEXITCODE
           Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
+          if ($componentTestExit) { throw 'Component regressions failed' }
           try {
             $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
             ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
@@ -435,6 +463,7 @@ jobs:
           python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-package.json --resources install/resources/vfs
           if ($LASTEXITCODE) { throw 'Installed map icon resource verification failed' }
           Copy-Item map-icons-classification.json,map-icons-package.json install/
+          Copy-Item map-icon-controls-early.xml,components-tests-early.xml install/
           Copy-Item lua-ui-legacy-tests.xml,lua-ui-layout-parity.json install/
           New-Item -ItemType Directory -Force install/tools/town-performance/capture | Out-Null
           Copy-Item custom/town-performance/Start-Comparison.ps1,custom/town-performance/Compare-Optimized.cmd,custom/town-performance/Compare-Legacy-Layout.cmd install/tools/town-performance/
@@ -480,6 +509,8 @@ jobs:
             message-position-tests.txt
             map-icons-classification.json
             map-icons-package.json
+            map-icon-controls-early.xml
+            components-tests-early.xml
             lookup-*.xml
             install/UPGRADE-PRESERVATION.json
             install/verification/CI-PACKAGE-SHA256.json

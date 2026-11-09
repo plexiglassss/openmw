@@ -19,10 +19,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d1e9d4455f034a7ceaf9d1d2066d38969d6f9d30"
+        "blob": "81023a3ecf5d5a3985fa88bb06da540e041bde06"
       },
-      "bytes": 45891,
-      "sha256": "712f4f5f3ac75af4135fbca8bfda8f8c1724501577a5898895288c9127c2c741",
+      "bytes": 47787,
+      "sha256": "b83dcd87a6977a279e57f482f09620212cf60b518ad2fdba72d58b69e396177d",
       "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -98,10 +98,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2758b8c8052e75c2abd7dd3560b7a8ac9aedca5b"
+        "blob": "866cd4323a525346dee858e76766f309789af5c5"
       },
-      "bytes": 23462,
-      "sha256": "70f05ea4d98cbc0ade55dbeb2f196705e5f01f73c4f389a51d31c3323a27196a",
+      "bytes": 23675,
+      "sha256": "0d3970c16ec2a7f355b9a242964079e73e4e27783a729c5c1515d9547daceec3",
       "reason": "Native world-map icon feature: apps/components_tests/settings/testvalues.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "apps/openmw/CMakeLists.txt": {
@@ -258,11 +258,21 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f93e7f7d10d8a9d9df6e42c0f1eeac7fa83c53e6"
+        "blob": "7beb061bb4a7f4e1474c6630ff7a1e772a050ba3"
       },
-      "bytes": 2651,
-      "sha256": "e5560ecd0da06906efaa6117a688735aecb71fff6bacd665104ec0cfe535bde2",
+      "bytes": 3440,
+      "sha256": "dfa87927745a960d88f6087af50136a8f67f5bff561111568f834087addc71c7",
       "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test."
+    },
+    "apps/openmw_tests/controls-test-main.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e1a8e67397045cd662888ab5261b349250847a13"
+      },
+      "reason": "Validation-only native controls target: execute the same actual form fixtures before the full engine link; keep production Release/LTO and all final gates unchanged.",
+      "bytes": 133,
+      "sha256": "e2268bc9534e1d505a5827f19c7ea4665d45e72ad155630a5449bc9d4633c52f"
     },
     "apps/openmw_tests/mwgui/testluauilayout.cpp": {
       "before": null,
@@ -440,6 +450,32 @@
       "bytes": 15180,
       "sha256": "cb0c658b75ab4de2efae90cae5af226e4cf1bf401fc49d6f28bdf8fac7f24e4e",
       "reason": "Validate current town and exact historical combined manifests, all retained feature tests/resources/defaults/runtime, and recompute native two-mode layout parity before packaging."
+    },
+    "custom/loading-repair/apply.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "ad8806002918ec0a201a2d985923f12368e79d81"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "168c26c9f34a204010257303dc4fa7ffbe5025c7"
+      },
+      "bytes": 4992,
+      "sha256": "7f64ca405c992a3eef4d22a62aebd05a842ba7e47aa27717d4ea35ea4445ebcd",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
+    },
+    "custom/loading-repair/check-integration.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "f8e690f5834c6eaaed5e655905dba402eee1a60d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f42916388341044a9fdff983f2b9a0d35410df7a"
+      },
+      "bytes": 2812,
+      "sha256": "9376ecdc40cea2ad3310d91ea0039be66aa924770238a5fa9de861006b984c2d",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
     },
     "custom/map-icons/PROVENANCE.md": {
       "before": null,
@@ -1048,32 +1084,6 @@
       "bytes": 49831,
       "sha256": "3234f85be423ee3e4d428b8e3987f682e880af2bf4be64d537caf02d6dd4fa18",
       "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
-    },
-    "custom/loading-repair/apply.py": {
-      "before": {
-        "mode": "100644",
-        "blob": "ad8806002918ec0a201a2d985923f12368e79d81"
-      },
-      "after": {
-        "mode": "100644",
-        "blob": "168c26c9f34a204010257303dc4fa7ffbe5025c7"
-      },
-      "bytes": 4992,
-      "sha256": "7f64ca405c992a3eef4d22a62aebd05a842ba7e47aa27717d4ea35ea4445ebcd",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
-    },
-    "custom/loading-repair/check-integration.py": {
-      "before": {
-        "mode": "100644",
-        "blob": "f8e690f5834c6eaaed5e655905dba402eee1a60d"
-      },
-      "after": {
-        "mode": "100644",
-        "blob": "f42916388341044a9fdff983f2b9a0d35410df7a"
-      },
-      "bytes": 2812,
-      "sha256": "9376ecdc40cea2ad3310d91ea0039be66aa924770238a5fa9de861006b984c2d",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
     }
   }
 }

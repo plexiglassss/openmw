@@ -79,6 +79,23 @@ target_compile_definitions(openmw-tests
     PRIVATE OPENMW_DATA_DIR=u8"${CMAKE_CURRENT_BINARY_DIR}/data"
             OPENMW_PROJECT_SOURCE_DIR=u8"${PROJECT_SOURCE_DIR}")
 
+# Execute the same real widget fixtures before the full engine LTO link.
+# This target has no game/component-library dependency and is not installed.
+openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
+    controls-test-main.cpp
+    mwgui/testmessagepositioncontrols.cpp
+    ../openmw/mwgui/mapiconcontrols.cpp
+    ../openmw/mwgui/messagepositioncontrols.cpp
+    ../openmw/mwgui/resourceskin.cpp
+    ${PROJECT_SOURCE_DIR}/components/mapmarkers/classification.cpp
+)
+target_link_libraries(openmw-controls-tests GTest::GTest ${MyGUI_LIBRARIES})
+target_compile_definitions(openmw-controls-tests
+    PRIVATE OPENMW_PROJECT_SOURCE_DIR=u8"${PROJECT_SOURCE_DIR}")
+if (WIN32)
+    target_sources(openmw-controls-tests PRIVATE ${CMAKE_SOURCE_DIR}/files/windows/other-apps.manifest)
+endif()
+
 if (MSVC AND PRECOMPILE_HEADERS_WITH_MSVC)
     target_precompile_headers(openmw-tests PRIVATE
         <boost/program_options/options_description.hpp>
