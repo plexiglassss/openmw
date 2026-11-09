@@ -258,11 +258,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "7beb061bb4a7f4e1474c6630ff7a1e772a050ba3"
+        "blob": "5e97643b4ea23eeadfa28815d1bd9832cb49dbdd"
       },
-      "bytes": 3440,
-      "sha256": "dfa87927745a960d88f6087af50136a8f67f5bff561111568f834087addc71c7",
-      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test."
+      "bytes": 3551,
+      "sha256": "0ceee200b81b1ec629d740368a308483b767528b0b6d4f35c781e7603332f5b2",
+      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test; run the same form fixtures early with the production MyGUI ABI definition."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
