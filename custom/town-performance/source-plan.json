@@ -1048,6 +1048,32 @@
       "bytes": 49831,
       "sha256": "3234f85be423ee3e4d428b8e3987f682e880af2bf4be64d537caf02d6dd4fa18",
       "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/loading-repair/apply.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "ad8806002918ec0a201a2d985923f12368e79d81"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "168c26c9f34a204010257303dc4fa7ffbe5025c7"
+      },
+      "bytes": 4992,
+      "sha256": "7f64ca405c992a3eef4d22a62aebd05a842ba7e47aa27717d4ea35ea4445ebcd",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
+    },
+    "custom/loading-repair/check-integration.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "f8e690f5834c6eaaed5e655905dba402eee1a60d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f42916388341044a9fdff983f2b9a0d35410df7a"
+      },
+      "bytes": 2812,
+      "sha256": "9376ecdc40cea2ad3310d91ea0039be66aa924770238a5fa9de861006b984c2d",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
     }
   }
 }

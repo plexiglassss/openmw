@@ -16,13 +16,15 @@ def blob(text):
     data = text.encode('utf-8')
     return hashlib.sha1(b'blob ' + str(len(data)).encode('ascii') + b'\0' + data).hexdigest()
 
-# These complete native files must be byte-identical to the pre-handoff baseline.
-# This verifies behavior restoration rather than just removal of the label.
+# These complete native files must match the reviewed no-handoff baseline.
+# StateManager additionally dispatches REC_LMRK beside REC_GMAP; that single
+# reviewed save-record case is included in its exact hash. No loading, input
+# or simulation behavior changed.
 unchanged = {
     'apps/openmw/engine.cpp': '569b7ea2871e6e756d3ce16a80b9e6cdf8b65964',
     'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
-    'apps/openmw/mwstate/statemanagerimp.cpp': '9c8621e46bce58a84e2c8501d93fad6e02e6bcf4',
+    'apps/openmw/mwstate/statemanagerimp.cpp': '026eaf0b580c46f2559b3b6d24a298a3322d5f55',
 }
 for name, expected in unchanged.items():
     check(blob(get(name)) == expected, 'Original loading/input/simulation behavior changed: ' + name)
