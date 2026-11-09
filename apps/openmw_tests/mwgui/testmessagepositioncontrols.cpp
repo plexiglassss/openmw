@@ -1,4 +1,6 @@
 #include "apps/openmw/mwgui/messagepositioncontrols.hpp"
+#include "apps/openmw/mwgui/mapiconcontrols.hpp"
+#include "components/mapmarkers/classification.hpp"
 #include "apps/openmw/mwgui/resourceskin.hpp"
 
 #include <MyGUI_Button.h>
@@ -193,6 +195,20 @@ namespace MWGui
                     return;
                 }
                 const std::map<std::string, std::string> captions{
+                    { "OMWEngine:MapIconsTab", "Map icons" },
+                    { "OMWEngine:MapIconsDescription", "Use location symbols on the built-in world map. Advanced World Map is not required." },
+                    { "OMWEngine:MapIconsEnabled", "Enable location icons" },
+                    { "OMWEngine:MapIconsEntrances", "Show discovered entrance icons" },
+                    { "OMWEngine:MapIconsTooltips", "Show location type in tooltips" },
+                    { "OMWEngine:MapIconsSize", "Icon size" },
+                    { "OMWEngine:MapIconsColours", "Icon colours" },
+                    { "OMWEngine:MapIconsMapColours", "Map colours" },
+                    { "OMWEngine:MapIconsWhite", "White" },
+                    { "OMWEngine:MapIconsCategoryColours", "Category colours" },
+                    { "OMWEngine:MapIconsCategory", "Location type" },
+                    { "OMWEngine:MapIconsCategoryEnabled", "Use an icon for this type" },
+                    { "OMWEngine:MapIconsReset", "Reset icon options" },
+                    { "OMWEngine:MapIconsHint", "Entrance markers are discovered in exterior cells you enter. Turning off a type restores a square marker. Sizes follow interface scaling. Changes apply immediately and are saved when you close Options." },
                     { "OMWEngine:MessagePositionDescription",
                         "Choose where brief game messages appear, including item pickups and lockpicking notices." },
                     { "OMWEngine:MessagePositionAnchor", "Screen position" },
@@ -421,6 +437,125 @@ namespace MWGui
             EXPECT_EQ(mControls.mView->getViewOffset(), MyGUI::IntPoint());
             EXPECT_EQ(mControls.mView->getCanvasSize().width, mControls.mView->getViewCoord().width);
             EXPECT_LE(mControls.mView->getCanvasSize().height, mControls.mView->getViewCoord().height);
+        }
+
+        using MapIconControlsTest = MessagePositionControlsTest;
+
+        TEST_F(MapIconControlsTest, NativeFormKeepsAllControlsReachableAtSmallAndLargeSizes)
+        {
+            mPanel = mGui.createWidget<MyGUI::Widget>(
+                "", { 0, 0, 600, 500 }, MyGUI::Align::Default, "Settings");
+            auto controls = createMapIconControls(mPanel, "MapTest");
+            for (const auto size : { MyGUI::IntSize(600, 500), MyGUI::IntSize(280, 220), MyGUI::IntSize(1100, 900) })
+            {
+                SCOPED_TRACE(::testing::Message() << size.width << 'x' << size.height);
+                mPanel->setSize(size);
+                layoutMapIconControls(controls);
+                const std::vector<MyGUI::Widget*> rows{ controls.mDescription,
+                    controls.mToggleLabels[0], controls.mToggleLabels[1], controls.mToggleLabels[2],
+                    controls.mSizeLabel, controls.mSize, controls.mColourLabel, controls.mColours,
+                    controls.mCategoryLabel, controls.mCategory, controls.mCategoryToggleLabel,
+                    controls.mReset, controls.mHint };
+                int bottom = 0;
+                for (const auto* row : rows)
+                {
+                    EXPECT_GE(row->getTop(), bottom);
+                    EXPECT_GT(row->getWidth(), 0);
+                    EXPECT_LE(row->getRight(), controls.mContent->getWidth());
+                    bottom = row->getBottom();
+                }
+                for (size_t i = 0; i < controls.mToggles.size(); ++i)
+                {
+                    EXPECT_EQ(controls.mToggles[i]->getTop(), controls.mToggleLabels[i]->getTop());
+                    EXPECT_LT(controls.mToggleLabels[i]->getRight(), controls.mToggles[i]->getLeft());
+                    EXPECT_LE(controls.mToggles[i]->getRight(), controls.mContent->getWidth());
+                }
+                for (auto* label : { controls.mDescription, controls.mToggleLabels[0], controls.mToggleLabels[1],
+                         controls.mToggleLabels[2], controls.mSizeLabel, controls.mColourLabel,
+                         controls.mCategoryLabel, controls.mCategoryToggleLabel, controls.mHint })
+                    expectWrappedTextFits(label);
+                EXPECT_EQ(controls.mView->getCanvasSize(), controls.mContent->getSize());
+                const auto view = controls.mView->getViewCoord();
+                const auto canvas = controls.mView->getCanvasSize();
+                controls.mView->setViewOffset({ std::min(0, view.width - canvas.width),
+                    std::min(0, view.height - canvas.height) });
+                const auto offset = controls.mView->getViewOffset();
+                EXPECT_LE(controls.mHint->getBottom() + offset.top, view.height);
+                EXPECT_LE(controls.mHint->getRight() + offset.left, view.width);
+            }
+        }
+
+        TEST_F(MapIconControlsTest, EveryCategoryAndColourRetainsSelectionAfterRelayout)
+        {
+            mPanel = mGui.createWidget<MyGUI::Widget>(
+                "", { 0, 0, 360, 240 }, MyGUI::Align::Default, "Settings");
+            auto controls = createMapIconControls(mPanel, "MapTest");
+            ASSERT_EQ(controls.mCategory->getItemCount(), MapMarkers::categoryCount);
+            ASSERT_EQ(controls.mColours->getItemCount(), 3u);
+            EXPECT_EQ(controls.mSize->getScrollRange(), 25u);
+            EXPECT_EQ(controls.mSize->getScrollPosition(), 8u);
+            for (auto* choice : { controls.mCategory, controls.mColours })
+            {
+                for (size_t i = 0; i < choice->getItemCount(); ++i)
+                {
+                    choice->setIndexSelected(i);
+                    const auto caption = choice->getCaption();
+                    layoutMapIconControls(controls);
+                    EXPECT_EQ(choice->getIndexSelected(), i);
+                    EXPECT_EQ(choice->getCaption(), caption);
+                    EXPECT_LE(choice->getTextSize().width, choice->getTextRegion().width);
+                    EXPECT_LE(choice->getTextSize().height, choice->getTextRegion().height);
+                }
+            }
+            for (size_t position : { size_t(0), size_t(24) })
+            {
+                controls.mSize->setScrollPosition(position);
+                layoutMapIconControls(controls);
+                EXPECT_EQ(controls.mSize->getScrollPosition(), position);
+            }
+        }
+
+        TEST_F(MapIconControlsTest, LargeFontsAndLongCategoryNamesRemainReadable)
+        {
+            mPanel = mGui.createWidget<MyGUI::Widget>(
+                "", { 0, 0, 360, 240 }, MyGUI::Align::Default, "Settings");
+            auto controls = createMapIconControls(mPanel, "MapTest");
+            for (auto* label : { controls.mDescription, controls.mToggleLabels[0], controls.mToggleLabels[1],
+                     controls.mToggleLabels[2], controls.mSizeLabel, controls.mColourLabel,
+                     controls.mCategoryLabel, controls.mCategoryToggleLabel, controls.mHint })
+                label->setFontHeight(32);
+            for (auto* button : controls.mToggles)
+                button->setFontHeight(32);
+            controls.mCategoryToggle->setFontHeight(32);
+            controls.mReset->setFontHeight(32);
+            controls.mCategory->setFontHeight(32);
+            controls.mColours->setFontHeight(32);
+            controls.mCategory->setItemNameAt(0, "A long translated location category name");
+            controls.mCategory->setIndexSelected(0);
+            layoutMapIconControls(controls);
+            EXPECT_GT(controls.mView->getCanvasSize().width, controls.mView->getViewCoord().width);
+            EXPECT_LE(controls.mCategory->getTextSize().width, controls.mCategory->getTextRegion().width);
+            EXPECT_LE(controls.mCategory->getTextSize().height, controls.mCategory->getTextRegion().height);
+            EXPECT_LT(controls.mCategoryToggleLabel->getRight(), controls.mCategoryToggle->getLeft());
+            for (auto* label : { controls.mDescription, controls.mToggleLabels[0], controls.mToggleLabels[1],
+                     controls.mToggleLabels[2], controls.mHint })
+                expectWrappedTextFits(label);
+        }
+
+        TEST_F(MapIconControlsTest, LongCategoryToggleDoesNotGiveItsLabelNegativeWidth)
+        {
+            mPanel = mGui.createWidget<MyGUI::Widget>(
+                "", { 0, 0, 280, 220 }, MyGUI::Align::Default, "Settings");
+            auto controls = createMapIconControls(mPanel, "MapTest");
+            for (auto* button : controls.mToggles)
+                button->setCaption("Off");
+            controls.mCategoryToggle->setCaption("A deliberately long translated enabled caption");
+            layoutMapIconControls(controls);
+            EXPECT_GT(controls.mCategoryToggleLabel->getWidth(), 0);
+            EXPECT_LT(controls.mCategoryToggleLabel->getRight(), controls.mCategoryToggle->getLeft());
+            EXPECT_LE(controls.mCategoryToggle->getRight(), controls.mContent->getWidth());
+            EXPECT_LE(controls.mCategoryToggle->getTextSize().width, controls.mCategoryToggle->getTextRegion().width);
+            expectWrappedTextFits(controls.mCategoryToggleLabel);
         }
     }
 }

@@ -117,6 +117,7 @@ namespace ESM
         REC_PLAY = esm3Recname("PLAY"),
         REC_CSTA = esm3Recname("CSTA"),
         REC_GMAP = esm3Recname("GMAP"),
+        REC_LMRK = esm3Recname("LMRK"),
         REC_DIAS = esm3Recname("DIAS"),
         REC_WTHR = esm3Recname("WTHR"),
         REC_KEYS = esm3Recname("KEYS"),

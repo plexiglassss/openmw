@@ -42,6 +42,27 @@ set(BUILTIN_DATA_FILES
     textures/omw_xbox_button_rt.dds
     textures/omw/water_nm.png
 
+    # Original native world-map location glyphs.
+    textures/mapmarkers/city.png
+    textures/mapmarkers/town.png
+    textures/mapmarkers/settlement.png
+    textures/mapmarkers/house.png
+    textures/mapmarkers/cave.png
+    textures/mapmarkers/mine.png
+    textures/mapmarkers/tomb.png
+    textures/mapmarkers/barrow.png
+    textures/mapmarkers/dwemer.png
+    textures/mapmarkers/daedric.png
+    textures/mapmarkers/stronghold.png
+    textures/mapmarkers/fort.png
+    textures/mapmarkers/tower.png
+    textures/mapmarkers/ruin.png
+    textures/mapmarkers/camp.png
+    textures/mapmarkers/ship.png
+    textures/mapmarkers/shipwreck.png
+    textures/mapmarkers/landmark.png
+    textures/mapmarkers/misc.png
+
     fonts/DejaVuFontLicense.txt
     fonts/DejaVuLGCSansMono.ttf
     fonts/DejaVuLGCSansMono.omwfont

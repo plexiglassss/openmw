@@ -306,6 +306,37 @@ namespace MWWorld
             return true;
         }
 
+        /// Visit only already-loaded references of a type without marking the
+        /// cell modified, loading references, or rebuilding the merged list.
+        /// Includes references moved here and excludes references moved away.
+        template <class T, class Visitor>
+        bool forEachTypeConst(Visitor&& visitor, bool includeDeleted = false) const
+        {
+            if (mState != State_Loaded)
+                return false;
+
+            for (const LiveCellRefBase& base : get<T>().mList)
+            {
+                // The tracker has mutable pointer keys; the lookup is read-only.
+                if (mMovedToAnotherCell.contains(const_cast<LiveCellRefBase*>(&base)))
+                    continue;
+                if (!includeDeleted && !isAccessible(base.mData, base.mRef))
+                    continue;
+                if (!visitor(MWWorld::ConstPtr(&base, this)))
+                    return false;
+            }
+            for (const auto& [base, source] : mMovedHere)
+            {
+                if (!dynamic_cast<const LiveCellRef<T>*>(base))
+                    continue;
+                if (!includeDeleted && !isAccessible(base->mData, base->mRef))
+                    continue;
+                if (!visitor(MWWorld::ConstPtr(base, this)))
+                    return false;
+            }
+            return true;
+        }
+
         // NOTE: does not account for moved references
         // Should be phased out when we have const version of forEach
         inline const CellRefList<ESM::Door>& getReadOnlyDoors() const { return get<ESM::Door>(); }

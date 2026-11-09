@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "components/esm/defs.hpp"
+#include "components/esm/refid.hpp"
 
 namespace ESM
 {
@@ -31,6 +32,28 @@ namespace ESM
 
         typedef std::pair<int, int> CellId;
         std::set<CellId> mMarkers;
+
+        void load(ESMReader& esm);
+        void save(ESMWriter& esm) const;
+    };
+
+    // Optional save record, separate from GMAP so older engines can skip it.
+    // String record identities avoid binding discoveries to content-file slots.
+    struct LocationMarker
+    {
+        RefId mDestination;
+        RefId mDoor;
+        int32_t mSourceX = 0;
+        int32_t mSourceY = 0;
+        float mWorldX = 0;
+        float mWorldY = 0;
+    };
+
+    struct LocationMarkers
+    {
+        constexpr static RecNameInts sRecordId = REC_LMRK;
+
+        std::vector<LocationMarker> mMarkers;
 
         void load(ESMReader& esm);
         void save(ESMWriter& esm) const;
