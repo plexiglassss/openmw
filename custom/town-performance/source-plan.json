@@ -144,10 +144,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c12846af1af3c80877abd46ef4ded261e599ef92"
+        "blob": "18d9b2d584f79db08d9a539d03eb546f8085e498"
       },
-      "bytes": 80279,
-      "sha256": "ddc5fcfd99f08220b61c64ee0697ad7dad59aeb75e3d26622ce709af8f9cd426",
+      "bytes": 80319,
+      "sha256": "4b7a28aa847a0887726c7d001bd72d5098367418b865afafe687aef6d9905bce",
       "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "apps/openmw/mwgui/mapwindow.hpp": {
