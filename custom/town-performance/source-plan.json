@@ -662,11 +662,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "e8b5003b843c5a813159b76ab6d282c421ba5f53"
+        "blob": "2f7b4d1da57ae3cd1f622194d9f56d0a5ffd54bb"
       },
-      "bytes": 60573,
-      "sha256": "6a6408d7a1d5d36ead54d481d5a5a331e30523e57921ff8c6bc3dfc4806475c3",
-      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
+      "bytes": 62479,
+      "sha256": "1803fda4fe00ef9704c9c6d941746a979d17b9d38df6b92bd110ed5085130b10",
+      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements. Reproduce reparenting into a growing sibling under the same UI root; check immediate detach, pointer identity, the following sibling and normal cache reuse in the next action, alongside the existing geometry/UI cases."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -923,11 +923,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "164a014012dcad649e8ef1c39d6f2a9d738358f1"
+        "blob": "5a19d4cab4bac7584ac43a261647823076c0c99a"
       },
-      "bytes": 28083,
-      "sha256": "525100de1f319b2485d3d0f2ee1f215fe5d34f636ff07722d1dfc7795d1bc2d1",
-      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+      "bytes": 28047,
+      "sha256": "d061e563408e5f2563e9d60307969065efbfa26c611505b3df54192996142d6f",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks. Walk retained widget trees only at the stable start of an outer action. Use normal layout for live Element transfers and nested updates, including template attachments, so partial child lists are never scanned."
     },
     "components/lua_ui/widget.hpp": {
       "before": {
@@ -1617,21 +1617,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "367b25a9329ac1bbb4fcebd8bdd9f2d462573979"
+        "blob": "50b32951af865668fc51365c82f0102fa74c08a7"
       },
-      "bytes": 8234,
-      "sha256": "352ce6c38a799f50633a2f9a29fb8a9e40f32ce4dcb59b181dcc0fa1e63a7745",
-      "reason": "Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts."
+      "bytes": 8357,
+      "sha256": "16d670b5bff12299b6ab6689de4535ce30c0dc5bb70595d3de2bca44707c4c93",
+      "reason": "Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts. Require both snapshots around the same-root retained-widget transfer in normal and fallback configurations."
     },
     "custom/town-performance/verify-layout-parity.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "c1f1095ebd5c26a897237d5c396fea047275a63a"
+        "blob": "17768b7d62efb209fd0ada15d423fef6691291b0"
       },
-      "bytes": 7107,
-      "sha256": "48d3e1b05b53e4181c259b354c28d33a0be11e3ecc5f9a3495fadab919cc2a49",
-      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging. Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts."
+      "bytes": 7157,
+      "sha256": "a898622b7d000c67c94ad9bafa8213761aae333c16350fa85c6ddba7ce9c1c06",
+      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging. Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts. Require the same-root retained-widget transfer regression in both optimized and legacy UI snapshot verification."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,

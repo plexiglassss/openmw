@@ -52,11 +52,16 @@ namespace LuaUi
 
     LayoutUpdateScope::LayoutUpdateScope(WidgetExtension* root)
     {
-        if (sLayoutDepth++ == 0)
+        if (sLayoutDepth++ != 0)
         {
-            ++sLayoutEpoch;
-            sLayoutReuseAllowed = useNativeLayoutReuse();
+            // A nested update can start while its parent's child lists are being rebuilt.
+            if (root)
+                invalidateLayoutReuse();
+            return;
         }
+
+        ++sLayoutEpoch;
+        sLayoutReuseAllowed = useNativeLayoutReuse();
         if (root && sLayoutReuseAllowed)
         {
             while (root->getParent())
@@ -273,17 +278,13 @@ namespace LuaUi
     {
         if (ext->mParent != this)
         {
-            // A retained Element can arrive from another root whose live
-            // external fields were not part of this action's initial scan.
-            ext->preserveRetainedExternalReads();
+            // A retained Element can bring live reads from outside the initial scan.
+            // Neither hierarchy is safe to walk here: setChildren may have resized its
+            // vector without filling all slots, or updateContent may have destroyed old children.
+            if (ext->isRoot() || ext->mParent)
+                invalidateLayoutReuse();
             if (ext->mParent)
             {
-                // Immediate relayout can also visit the previous hierarchy's
-                // remaining children, outside the destination's initial scan.
-                WidgetExtension* previousRoot = ext->mParent;
-                while (previousRoot->mParent)
-                    previousRoot = previousRoot->mParent;
-                previousRoot->preserveRetainedExternalReads();
                 auto children = ext->mParent->children();
                 std::erase(children, ext);
                 ext->mParent->setChildren(children);
@@ -297,8 +298,8 @@ namespace LuaUi
 
     void WidgetExtension::attachTemplate(WidgetExtension* ext)
     {
-        if (ext->mParent != this)
-            ext->preserveRetainedExternalReads();
+        if (ext->mParent != this && (ext->isRoot() || ext->mParent))
+            invalidateLayoutReuse();
         ext->mParent = this;
         ext->mTemplateChild = true;
         ext->widget()->attachToWidget(widget());

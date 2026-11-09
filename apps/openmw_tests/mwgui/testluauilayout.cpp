@@ -547,6 +547,39 @@ namespace LuaUi
             )");
         }
 
+        TEST_F(LuaUiLayoutTest, ReparentIntoGrowingSiblingUnderTheSameRoot)
+        {
+            run(R"(
+                moving=element {name='moving',props={size=vec2(18,9)}}
+                old=element {name='old',type='LuaFlex',content=content {moving}}
+                dest=element {name='dest',type='LuaFlex',content=content {}}
+                root=element {name='outer',type='LuaFlex',layer='LuaUiTest',
+                    props={size=vec2(160,80),autoSize=false},content=content {dest,old}}
+                roots={root}; refresh(root)
+                -- attach() removes moving from old immediately. Both containers share outer,
+                -- and dest still has an unfilled second slot at that point.
+                dest.layout.content=content {moving,{name='tail',props={size=vec2(11,7)}}}
+                refresh(dest); snapshot('after-moving-into-growing-sibling')
+                assert(sameWidget(dest,'moving',moving))
+            )");
+            const auto dest = mLua["dest"].get<std::shared_ptr<Element>>();
+            const auto old = mLua["old"].get<std::shared_ptr<Element>>();
+            const auto moving = mLua["moving"].get<std::shared_ptr<Element>>();
+            ASSERT_EQ(dest->mRoot->children().size(), 2u);
+            EXPECT_TRUE(old->mRoot->children().empty());
+            EXPECT_EQ(dest->mRoot->children().front(), moving->mRoot);
+            EXPECT_EQ(moving->mRoot->getParent(), dest->mRoot);
+            EXPECT_EQ(dest->mRoot->children().back(), require(dest, "tail"));
+            // An ordinary update in the next action can still reuse a stable layout.
+            collectLayoutUpdateStatistics(true);
+            run("refresh(dest); snapshot('stable-after-reparent')");
+            const auto stats = takeLayoutUpdateStatistics();
+            if (useNativeLayoutReuse())
+            {
+                EXPECT_GT(stats.reused, 0u);
+            }
+        }
+
         TEST_F(LuaUiLayoutTest, LayoutReuseFallsBackForLiveMetatableReads)
         {
             run(R"(

@@ -22,6 +22,8 @@ WORKLOAD_PARAMETERS = {
     "warmup_updates": 8,
 }
 NEW_SNAPSHOTS = {
+    "ReparentIntoGrowingSiblingUnderTheSameRoot": (
+        "after-moving-into-growing-sibling", "stable-after-reparent"),
     "LayoutReuseTracksConstraintsAndMutatedRetainedExternalFields": (
         "initial-retained-growth", "mutated-external-and-parent", "retained-hidden",
         "retained-shown", "child-action-updates-outer-root", "retained-reordered"),

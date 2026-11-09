@@ -19,6 +19,7 @@ EXPECTED = {
     "StableTemplateHierarchyAndSiblingOrderRepair",
     "MutableTemplateSlotsAndReplacementKeepRetainedChild",
     "MovingRetainedElementRelayoutsThePreviousRootImmediately",
+    "ReparentIntoGrowingSiblingUnderTheSameRoot",
     "NestedAutoSizeAndRelativeGrowRespondToASingleRootResize",
     "NestedWrappingTextPaddingVisibilityAndReorderStayConsistent",
     "RepeatedHudUpdatesBenchmark",
