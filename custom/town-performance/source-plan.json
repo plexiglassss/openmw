@@ -748,11 +748,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "168c26c9f34a204010257303dc4fa7ffbe5025c7"
+        "blob": "de80525bd87dd5e51b7b4eb824692d9bd678bae7"
       },
-      "bytes": 4992,
-      "sha256": "7f64ca405c992a3eef4d22a62aebd05a842ba7e47aa27717d4ea35ea4445ebcd",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
+      "bytes": 5332,
+      "sha256": "67696b5aaab0528d01f35da3094df5933221f933307d1ea65e9a4005d99cb7dd",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged. Extend the exact state-manager hash to the reviewed REC_DCLR case and require removing that single line to reproduce the entire previous native-map state-manager blob; retain all waiting-stage and lookup-only guards."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -761,11 +761,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f42916388341044a9fdff983f2b9a0d35410df7a"
+        "blob": "d80be8ff830740d7fd4a5cd17a5e227b5f955139"
       },
-      "bytes": 2812,
-      "sha256": "9376ecdc40cea2ad3310d91ea0039be66aa924770238a5fa9de861006b984c2d",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
+      "bytes": 3176,
+      "sha256": "4602edd40e0c73cd6346c28d7d2a328950ac898c2315d754276f18a66d11a919",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged. Extend the exact state-manager hash to the reviewed REC_DCLR case and require removing that single line to reproduce the entire previous native-map state-manager blob; retain all waiting-stage and lookup-only guards."
     },
     "custom/map-icons/PROVENANCE.md": {
       "before": null,
