@@ -1,8 +1,34 @@
 #include "content.hpp"
 #include "element.hpp"
+#include "widget.hpp"
 
 namespace LuaUi
 {
+    void preserveContentLayoutReads(const sol::main_table& table)
+    {
+        if (!layoutReuseInProgress())
+            return;
+        lua_State* lua = table.lua_state();
+        table.push(lua);
+        bool dynamic = false;
+        if (lua_getmetatable(lua, -1))
+        {
+            lua_pushliteral(lua, "__len");
+            lua_rawget(lua, -2);
+            dynamic = !lua_isnil(lua, -1);
+            lua_pop(lua, 1);
+            if (lua_getmetatable(lua, -1))
+            {
+                dynamic = true;
+                lua_pop(lua, 1);
+            }
+            lua_pop(lua, 1);
+        }
+        lua_pop(lua, 1);
+        if (dynamic)
+            invalidateLayoutReuse();
+    }
+
     sol::protected_function loadContentConstructor(LuaUtil::LuaState* state)
     {
         sol::protected_function loader = state->loadInternalLib("content");

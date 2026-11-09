@@ -210,6 +210,10 @@ namespace MWWorld
         bool mayHaveReferenceOfType(uint32_t type) const;
         ///< Conservative negative-only query; does not create live references.
 
+        using ObjectIdSnapshot = std::shared_ptr<std::vector<ESM::RefNum>>;
+        ObjectIdSnapshot getObjectIdSnapshot(uint32_t type, std::size_t registryRevision) const;
+        void setObjectIdSnapshot(uint32_t type, std::size_t registryRevision, ObjectIdSnapshot ids);
+
         void preload();
         ///< Build ID list from content file.
 
@@ -337,6 +341,24 @@ namespace MWWorld
             return true;
         }
 
+        // Query the live typed lists rather than an older merged view. In
+        // particular, an undeleted reference must be visible after a prior
+        // empty query. Preserve the mutable query's save-state marking.
+        template <class T, class Visitor>
+        bool forEachTypeForQuery(Visitor&& visitor)
+        {
+            if (mState != State_Loaded)
+                return false;
+            if (mMergedRefsNeedsUpdate)
+                updateMergedRefs(false);
+            if (!mMergedRefs.empty())
+                mHasState = true;
+            return forEachTypeConst<T>([&](const ConstPtr& ptr) {
+                mHasState = true;
+                return visitor(Ptr(const_cast<LiveCellRefBase*>(ptr.mRef), this));
+            });
+        }
+
         // NOTE: does not account for moved references
         // Should be phased out when we have const version of forEach
         inline const CellRefList<ESM::Door>& getReadOnlyDoors() const { return get<ESM::Door>(); }
@@ -399,6 +421,16 @@ namespace MWWorld
         bool mHasState;
         std::vector<ESM::RefId> mIds;
         float mWaterLevel;
+
+        struct CachedObjectIds
+        {
+            std::uint64_t mReferenceRevision;
+            std::size_t mRegistryRevision;
+            ObjectIdSnapshot mIds;
+        };
+        // One current snapshot per queried type. Previously returned Lua lists
+        // keep their own shared snapshot and are never changed in place.
+        std::map<uint32_t, CachedObjectIds> mObjectIdSnapshots;
 
         MWWorld::TimeStamp mLastRespawn;
 

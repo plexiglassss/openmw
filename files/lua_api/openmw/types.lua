@@ -284,6 +284,46 @@
 -- @return openmw.core#ActiveEffect
 
 ---
+-- Return whether iteration over the active effects would yield an entry.
+-- Effects with both zero base and zero modifier are excluded, exactly as with `pairs`.
+-- This reads the current native store without constructing an iterator or effect values.
+-- @function [parent=#ActorActiveEffects] hasEffects
+-- @param self
+-- @return #boolean
+
+---
+-- Compile an ordered selection of aggregate effect magnitudes.
+-- Each selection is an effect ID string, or `{ id = effectId, argument = skillOrAttributeId }`.
+-- Effect IDs and arguments are resolved at creation; create a new query to change the selection.
+-- Duplicate selections are retained. Existing `getEffect` behaviour is unchanged.
+-- @function [parent=#ActorActiveEffects] createMagnitudeQuery
+-- @param self
+-- @param #list selections Dense array of effect IDs or selection tables.
+-- @return #ActiveEffectMagnitudeQuery
+-- @usage
+-- local query = Actor.activeEffects(self):createMagnitudeQuery({
+--     core.magic.EFFECT_TYPE.BoundLongsword,
+--     { id = core.magic.EFFECT_TYPE.FortifyAttribute, argument = 'luck' },
+-- })
+-- local magnitudes, changed = query:read()
+-- print(magnitudes[1], magnitudes[2])
+
+--- A compiled aggregate-magnitude query bound to its actor.
+-- `#query` is the number of selections. Queries are runtime objects and must be recreated after loading.
+-- @type ActiveEffectMagnitudeQuery
+
+---
+-- Read every selected magnitude from the current native store, resolving the actor once.
+-- Missing effects produce zero. The returned array is an immutable snapshot in selection order;
+-- old snapshots retain their values after subsequent reads or world mutations.
+-- An unchanged result reuses its previous snapshot. No game-state value is cached between reads.
+-- The `changed` result refers only to these magnitudes, not to other actor/game state.
+-- @function [parent=#ActiveEffectMagnitudeQuery] read
+-- @param self
+-- @return #list Read-only magnitude array.
+-- @return #boolean True on the first read or when a selected magnitude changed.
+
+---
 -- Completely removes the active effect from the actor.
 -- @function [parent=#ActorActiveEffects] remove
 -- @param self
@@ -313,6 +353,45 @@
 -- @function [parent=#Actor] activeSpells
 -- @param openmw.core#GameObject actor
 -- @return #ActorActiveSpells
+
+---
+-- Compile a compact query for the sources of applied active-spell effects.
+-- Optional filters are `temporary` (boolean), `caster` (GameObject), `casterType`
+-- (a concrete type such as `types.Player`), and `effectIds` (a dense array of effect IDs).
+-- An omitted filter accepts all values; an empty `effectIds` array accepts no effects.
+-- The query does not copy complete spell records, effect magnitudes, or ticking durations.
+-- Existing spell iteration and snapshot semantics are unchanged.
+-- @function [parent=#ActorActiveSpells] createEffectSourceQuery
+-- @param self
+-- @param #table options Optional selection filters.
+-- @return #ActiveEffectSourceQuery
+-- @usage
+-- local query = Actor.activeSpells(self):createEffectSourceQuery({
+--     temporary = true, casterType = types.Player,
+-- })
+-- local effectIds, casters, changed = query:read()
+-- for i, effectId in ipairs(effectIds) do
+--     print(effectId, casters[i])
+-- end
+
+--- A compiled effect-source query bound to its actor.
+-- Queries are runtime objects and must be recreated after loading.
+-- @type ActiveEffectSourceQuery
+
+---
+-- Inspect the current native spells and return two immutable, parallel snapshots.
+-- Effect IDs preserve spell order, effect order and duplicates. `casters[i]` is the
+-- corresponding caster, or nil if that caster is unavailable; iterate using `effectIds`.
+-- Caster objects retain the caller's local/global access context.
+-- Old snapshots retain their ID/caster pairs. An unchanged result reuses the previous snapshots.
+-- No native spell iterator or mutable effect value is retained between reads.
+-- `changed` describes only the selected IDs, order and caster identities; it does not describe
+-- magnitudes, remaining durations, settings, AI state, or other gameplay state.
+-- @function [parent=#ActiveEffectSourceQuery] read
+-- @param self
+-- @return #list Read-only effect ID array.
+-- @return #list Read-only caster array, which may have nil entries.
+-- @return #boolean True on the first read or when a selected ID/caster pair changed.
 
 --- Read-only list of spells currently affecting the actor. Can be iterated over for a list of @{openmw.core#ActiveSpell}
 -- @type ActorActiveSpells

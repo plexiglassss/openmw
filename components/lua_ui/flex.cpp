@@ -165,6 +165,8 @@ namespace LuaUi
 
     void LuaFlex::updateCoord()
     {
+        if (reuseLayout())
+            return;
         updateChildren();
         WidgetExtension::updateCoord();
     }

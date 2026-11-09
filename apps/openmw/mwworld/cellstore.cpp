@@ -1,6 +1,6 @@
-#include <components/diagnostics/postload.hpp>
 #include "cellstore.hpp"
 #include "magiceffects.hpp"
+#include <components/diagnostics/postload.hpp>
 
 #include <components/misc/transientrefindex.hpp>
 
@@ -277,13 +277,11 @@ namespace
 
         if (state.mRef.mRefNum.hasContentFile())
         {
-            const auto keyOf = [](const auto& ref) {
-                return SavedRefKey(ref.mRef.getRefNum(), ref.mRef.getRefId());
-            };
+            const auto keyOf = [](const auto& ref) { return SavedRefKey(ref.mRef.getRefNum(), ref.mRef.getRefId()); };
             // One index per record type, owned by this readReferences call.
             // Both reference identity and base ID must match, as in the old scan.
-            auto* iter = static_cast<MWWorld::LiveCellRef<T>*>(referenceIndex.find(
-                collection.mList, SavedRefKey(state.mRef.mRefNum, state.mRef.mRefID), keyOf));
+            auto* iter = static_cast<MWWorld::LiveCellRef<T>*>(
+                referenceIndex.find(collection.mList, SavedRefKey(state.mRef.mRefNum, state.mRef.mRefID), keyOf));
             if (iter != nullptr)
             {
                 // overwrite existing reference
@@ -422,8 +420,7 @@ namespace MWWorld
     struct CellRefLoadContext
     {
         std::map<ESM::RefNum, ESM::RefId> mRefNumToID;
-        std::array<Misc::TransientRefIndex<ESM::RefNum, LiveCellRefBase>,
-            std::tuple_size_v<CellStoreTuple>> mIndexes;
+        std::array<Misc::TransientRefIndex<ESM::RefNum, LiveCellRefBase>, std::tuple_size_v<CellStoreTuple>> mIndexes;
 
         template <class Record>
         auto& indexFor(const CellRefList<Record>&)
@@ -433,8 +430,8 @@ namespace MWWorld
     };
 
     template <typename X>
-    void CellRefList<X>::load(ESM::CellRef& ref, bool deleted, const MWWorld::ESMStore& esmStore,
-        LoadIndex* referenceIndex)
+    void CellRefList<X>::load(
+        ESM::CellRef& ref, bool deleted, const MWWorld::ESMStore& esmStore, LoadIndex* referenceIndex)
     {
         const MWWorld::Store<X>& store = esmStore.get<X>();
 
@@ -442,8 +439,8 @@ namespace MWWorld
         {
             LiveRef* existing = nullptr;
             if (referenceIndex)
-                existing = static_cast<LiveRef*>(referenceIndex->find(mList, ref.mRefNum,
-                    [](const auto& value) { return value.mRef.getRefNum(); }));
+                existing = static_cast<LiveRef*>(
+                    referenceIndex->find(mList, ref.mRefNum, [](const auto& value) { return value.mRef.getRefNum(); }));
             else if (const auto iter = std::find(mList.begin(), mList.end(), ref.mRefNum); iter != mList.end())
                 existing = std::addressof(*iter);
 
@@ -610,10 +607,26 @@ namespace MWWorld
 
     void CellStore::requestMergedRefsUpdate()
     {
+        mObjectIdSnapshots.clear();
         mRechargingItemsUpToDate = false;
         mMergedRefsNeedsUpdate = true;
         if (mLookupWorld != nullptr)
             mLookupWorld->invalidateCellLookup(*this);
+    }
+
+    CellStore::ObjectIdSnapshot CellStore::getObjectIdSnapshot(uint32_t type, std::size_t registryRevision) const
+    {
+        const auto it = mObjectIdSnapshots.find(type);
+        if (it == mObjectIdSnapshots.end() || it->second.mReferenceRevision != getReferenceQueryRevision()
+            || it->second.mRegistryRevision != registryRevision)
+            return {};
+        return it->second.mIds;
+    }
+
+    void CellStore::setObjectIdSnapshot(uint32_t type, std::size_t registryRevision, ObjectIdSnapshot ids)
+    {
+        mObjectIdSnapshots.insert_or_assign(
+            type, CachedObjectIds{ getReferenceQueryRevision(), registryRevision, std::move(ids) });
     }
 
     std::vector<ESM::RefId> CellStore::listLookupIds() const
@@ -710,8 +723,7 @@ namespace MWWorld
         // this conservative check for atypical state transitions.
         if (!mMovedHere.empty())
             return true;
-        return std::apply(
-            [](const auto&... refs) { return (!refs.mList.empty() || ...); }, mCellStoreImp->mRefLists);
+        return std::apply([](const auto&... refs) { return (!refs.mList.empty() || ...); }, mCellStoreImp->mRefLists);
     }
 
     bool CellStore::hasId(const ESM::RefId& id) const
@@ -866,12 +878,14 @@ namespace MWWorld
         // including inaccessible refs, without rebuilding/filtering merged refs.
         if (std::apply([](const auto&... list) { return (!list.mList.empty() || ...); }, mCellStoreImp->mRefLists))
             return true;
-        return ESM::visit([&](const auto& cell) {
-            if constexpr (std::is_same_v<std::remove_cvref_t<decltype(cell)>, ESM::Cell>)
-                return mStore.cellMayContainType(cell, type);
-            else
-                return true;
-        }, mCellVariant);
+        return ESM::visit(
+            [&](const auto& cell) {
+                if constexpr (std::is_same_v<std::remove_cvref_t<decltype(cell)>, ESM::Cell>)
+                    return mStore.cellMayContainType(cell, type);
+                else
+                    return true;
+            },
+            mCellVariant);
     }
 
     void CellStore::listRefs(const ESM::Cell& cell)
@@ -1210,8 +1224,7 @@ namespace MWWorld
             if (type != 0)
             {
                 bool foundCorrespondingStore = false;
-                Misc::tupleForEach(
-                    this->mCellStoreImp->mRefLists,
+                Misc::tupleForEach(this->mCellStoreImp->mRefLists,
                     [&reader, this, &cref, &foundCorrespondingStore, type, &referenceIndexes](auto&& x) {
                         recNameSwitcher(x, static_cast<ESM::RecNameInts>(type),
                             [&reader, this, &cref, &foundCorrespondingStore, type, &referenceIndexes](auto& store) {

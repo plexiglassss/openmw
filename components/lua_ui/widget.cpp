@@ -1,11 +1,13 @@
 #include "widget.hpp"
-#include <components/widgets/windowsnap.hpp>
 #include "components/lua/utilpackage.hpp"
 #include "components/lua_ui/util.hpp"
 #include "element.hpp"
+#include <components/misc/combinedperformance.hpp>
+#include <components/widgets/windowsnap.hpp>
 
 #include <SDL_events.h>
 #include <components/sdlutil/sdlmappings.hpp>
+#include <cstdlib>
 #include <ranges>
 
 namespace
@@ -15,10 +17,142 @@ namespace
     constexpr int sExtCalcSizeHeightCap = 10000000;
     constexpr int sExtCalcPositionLeftCap = 10000000;
     constexpr int sExtCalcPositionTopCap = 10000000;
+
+    // MyGUI/Lua UI actions run on the main thread. Thread-local state also
+    // keeps independent native test contexts isolated.
+    thread_local std::uint64_t sLayoutEpoch = 0;
+    thread_local unsigned sLayoutDepth = 0;
+    thread_local bool sLayoutReuseAllowed = false;
+    thread_local bool sCollectLayoutStatistics = false;
+    thread_local LuaUi::LayoutUpdateStatistics sLayoutStatistics;
 }
 
 namespace LuaUi
 {
+    bool useNativeLayoutReuse()
+    {
+        static const bool enabled = [] {
+            const char* legacy = std::getenv("OPENMW_LUA_UI_LEGACY_UPDATES");
+            if (!legacy)
+                legacy = std::getenv("OPENMW_LUA_UI_LEGACY_LAYOUT");
+            return Misc::useCombinedPerformance() && (legacy == nullptr || std::string_view(legacy) != "1");
+        }();
+        return enabled;
+    }
+
+    bool layoutReuseInProgress()
+    {
+        return sLayoutDepth != 0 && sLayoutReuseAllowed;
+    }
+
+    void invalidateLayoutReuse()
+    {
+        sLayoutReuseAllowed = false;
+    }
+
+    LayoutUpdateScope::LayoutUpdateScope(WidgetExtension* root)
+    {
+        if (sLayoutDepth++ == 0)
+        {
+            ++sLayoutEpoch;
+            sLayoutReuseAllowed = useNativeLayoutReuse();
+        }
+        if (root && sLayoutReuseAllowed)
+        {
+            while (root->getParent())
+                root = root->getParent();
+            root->preserveRetainedExternalReads();
+        }
+    }
+
+    LayoutUpdateScope::~LayoutUpdateScope()
+    {
+        --sLayoutDepth;
+    }
+
+    void collectLayoutUpdateStatistics(bool enabled)
+    {
+        sCollectLayoutStatistics = enabled;
+        sLayoutStatistics = {};
+    }
+
+    LayoutUpdateStatistics takeLayoutUpdateStatistics()
+    {
+        const auto result = sLayoutStatistics;
+        sLayoutStatistics = {};
+        return result;
+    }
+
+    void WidgetExtension::preserveRetainedExternalReads() const
+    {
+        if (!layoutReuseInProgress())
+            return;
+        if (!allowsLayoutReuse())
+        {
+            invalidateLayoutReuse();
+            return;
+        }
+        preserveDynamicLayoutReads(mExternal);
+        for (const WidgetExtension* child : mTemplateChildren)
+            child->preserveRetainedExternalReads();
+        for (const WidgetExtension* child : mChildren)
+            child->preserveRetainedExternalReads();
+    }
+
+    void WidgetExtension::invalidateLayout()
+    {
+        if (!layoutReuseInProgress())
+            return;
+        for (WidgetExtension* current = this; current; current = current->mParent)
+        {
+            current->mLayoutDirty = true;
+            ++current->mLayoutRevision;
+        }
+    }
+
+    bool WidgetExtension::reuseLayout()
+    {
+        if (!allowsLayoutReuse())
+        {
+            invalidateLayoutReuse();
+            return false;
+        }
+        if (!layoutReuseInProgress() || mLayoutDirty || mLayoutEpoch != sLayoutEpoch)
+            return false;
+        MyGUI::Widget* parent = mWidget->getParent();
+        const bool parentVisible = parent == nullptr || parent->getInheritedVisible();
+        if (mLayoutNativeParent != parent || mLayoutParentVisible != parentVisible || mLayoutParentSize != parentSize()
+            || mLayoutCoord != mWidget->getCoord() || mLayoutForcePosition != mForcePosition
+            || mLayoutForceSize != mForceSize || (mForcePosition && mLayoutForcedCoord.point() != mForcedCoord.point())
+            || (mForceSize && mLayoutForcedCoord.size() != mForcedCoord.size()))
+            return false;
+        if (sCollectLayoutStatistics)
+            ++sLayoutStatistics.reused;
+        return true;
+    }
+
+    void WidgetExtension::rememberLayout(std::uint64_t revision)
+    {
+        if (sCollectLayoutStatistics)
+            ++sLayoutStatistics.calculated;
+        if (!layoutReuseInProgress())
+            return;
+        mLayoutEpoch = sLayoutEpoch;
+        mLayoutParentSize = parentSize();
+        mLayoutCoord = mWidget->getCoord();
+        mLayoutForcedCoord = mForcedCoord;
+        mLayoutForcePosition = mForcePosition;
+        mLayoutForceSize = mForceSize;
+        mLayoutNativeParent = mWidget->getParent();
+        mLayoutParentVisible = mLayoutNativeParent == nullptr || mLayoutNativeParent->getInheritedVisible();
+        // A child can change its measured size while its parent is applying
+        // constraints (notably wrapped text). Keep the next pass when that
+        // dependency changed during this traversal; it is not redundant.
+        mLayoutDirty = revision != mLayoutRevision || calculateCoord() != mLayoutCoord;
+        if (mLayoutDirty && mParent)
+            mParent->invalidateLayout();
+    }
+
     WidgetExtension::WidgetExtension()
         : mForcePosition(false)
         , mForceSize(false)
@@ -127,6 +261,9 @@ namespace LuaUi
     {
         if (ext->mParent != this)
         {
+            // A retained Element can arrive from another root whose live
+            // external fields were not part of this action's initial scan.
+            ext->preserveRetainedExternalReads();
             if (ext->mParent)
             {
                 auto children = ext->mParent->children();
@@ -142,6 +279,8 @@ namespace LuaUi
 
     void WidgetExtension::attachTemplate(WidgetExtension* ext)
     {
+        if (ext->mParent != this)
+            ext->preserveRetainedExternalReads();
         ext->mParent = this;
         ext->mTemplateChild = true;
         ext->widget()->attachToWidget(widget());
@@ -149,6 +288,7 @@ namespace LuaUi
 
     void WidgetExtension::detachFromParent()
     {
+        invalidateLayout();
         mParent = nullptr;
         widget()->detachFromWidget();
         widget()->detachFromLayer();
@@ -221,6 +361,7 @@ namespace LuaUi
 
     void WidgetExtension::setChildren(const std::vector<WidgetExtension*>& children)
     {
+        invalidateLayout();
         mChildren.resize(children.size());
         for (size_t i = 0; i < children.size(); ++i)
         {
@@ -232,6 +373,7 @@ namespace LuaUi
 
     void WidgetExtension::setTemplateChildren(const std::vector<WidgetExtension*>& children)
     {
+        invalidateLayout();
         mTemplateChildren.resize(children.size());
         for (size_t i = 0; i < children.size(); ++i)
         {
@@ -273,6 +415,8 @@ namespace LuaUi
 
     void WidgetExtension::forceCoord(const MyGUI::IntCoord& offset)
     {
+        if (mParent && (!mForcePosition || !mForceSize || mForcedCoord != offset))
+            mParent->invalidateLayout();
         mForcePosition = true;
         mForceSize = true;
         mForcedCoord = offset;
@@ -280,42 +424,66 @@ namespace LuaUi
 
     void WidgetExtension::forcePosition(const MyGUI::IntPoint& pos)
     {
+        if (mParent && (!mForcePosition || mForcedCoord.point() != pos))
+            mParent->invalidateLayout();
         mForcePosition = true;
         mForcedCoord = pos;
     }
 
     void WidgetExtension::forceSize(const MyGUI::IntSize& size)
     {
+        if (mParent && (!mForceSize || mForcedCoord.size() != size))
+            mParent->invalidateLayout();
         mForceSize = true;
         mForcedCoord = size;
     }
 
     void WidgetExtension::clearForced()
     {
+        // Flex temporarily clears its constraints while measuring a child,
+        // then restores them before applying geometry. Compare the final
+        // constraint values in reuseLayout instead of invalidating this child
+        // merely because that temporary measurement happened.
+        if (mParent && (mForcePosition || mForceSize))
+            mParent->invalidateLayout();
         mForcePosition = false;
         mForceSize = false;
     }
 
     void WidgetExtension::updateCoord()
     {
+        if (reuseLayout())
+            return;
+        const std::uint64_t revision = mLayoutRevision;
         updateVisible();
 
         MyGUI::IntCoord oldCoord = mWidget->getCoord();
         MyGUI::IntCoord newCoord = calculateCoord();
 
         if (oldCoord != newCoord)
+        {
             mWidget->setCoord(newCoord);
+            if (mParent)
+                mParent->invalidateLayout();
+        }
 
         if (mContentWidget)
             mContentWidget->setCoord(MyGUI::IntCoord(getContentOffset(), getContentSize()));
 
         updateChildrenCoord();
+        rememberLayout(revision);
     }
 
     void WidgetExtension::setProperties(const sol::main_object& props)
     {
+        preserveDynamicLayoutReads(props);
+        invalidateLayout();
         mProperties = props;
         updateProperties();
+        // Derived setters can perform an immediate layout before later
+        // properties are applied (LuaText::setCaption is one example). That
+        // intermediate result must not hide a subsequent font/size change.
+        invalidateLayout();
     }
 
     void WidgetExtension::updateProperties()
@@ -441,6 +609,7 @@ namespace LuaUi
 
     void WidgetExtension::triggerEvent(std::string_view name, sol::object argument) const
     {
+        invalidateLayoutReuse();
         auto it = mCallbacks.find(name);
         if (it != mCallbacks.end())
             it->second.call(argument, mLayout);

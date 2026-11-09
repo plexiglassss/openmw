@@ -1,5 +1,7 @@
 #include "cellbindings.hpp"
 
+#include <cstdlib>
+
 #include <components/esm3/loadacti.hpp>
 #include <components/esm3/loadalch.hpp>
 #include <components/esm3/loadappa.hpp>
@@ -40,6 +42,7 @@
 #include <components/esm4/loadtree.hpp>
 #include <components/esm4/loadweap.hpp>
 
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/convert.hpp>
 
 #include <components/translation/translation.hpp>
@@ -70,6 +73,192 @@ namespace sol
 
 namespace MWLua
 {
+
+    ObjectIdList queryCellObjects(MWWorld::CellStore& cell, std::optional<std::uint32_t> type, bool useCache)
+    {
+        if (type && (*type == ESM::REC_DOOR || *type == ESM::REC_NPC_) && !cell.mayHaveReferenceOfType(*type))
+            return std::make_shared<std::vector<ObjectId>>();
+        if (cell.getState() != MWWorld::CellStore::State_Loaded)
+            cell.load();
+        auto& world = *MWBase::Environment::get().getWorldModel();
+        const bool combined = Misc::useCombinedPerformance();
+        const bool cacheable = combined && useCache && type && *type != ESM::REC_INTERNAL_PLAYER;
+        if (cacheable)
+            if (auto cached = cell.getObjectIdSnapshot(*type, world.getPtrRegistryRevision()))
+                return cached;
+
+        ObjectIdList res = std::make_shared<std::vector<ObjectId>>();
+        auto visitor = [&](const MWWorld::Ptr& ptr) {
+            if (ptr.mRef->isDeleted())
+                return true;
+            world.registerPtr(ptr);
+            if (getLiveCellRefType(ptr.mRef) == ptr.getType())
+                res->push_back(getId(ptr));
+            return true;
+        };
+
+        auto visitTyped = [&]<class T>() {
+            if (combined)
+                cell.forEachTypeForQuery<T>(visitor);
+            else
+                cell.forEachType<T>(visitor);
+        };
+
+        bool ok = true;
+        if (!type.has_value())
+            cell.forEach(std::move(visitor));
+        else
+        {
+            uint32_t typeId = *type;
+            switch (typeId)
+            {
+                case ESM::REC_INTERNAL_PLAYER:
+                {
+                    MWWorld::Ptr player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+                    if (player.getCell() == &cell)
+                        res->push_back(getId(player));
+                }
+                break;
+
+                case ESM::REC_CREA:
+                    visitTyped.template operator()<ESM::Creature>();
+                    break;
+                case ESM::REC_NPC_:
+                    visitTyped.template operator()<ESM::NPC>();
+                    break;
+                case ESM::REC_ACTI:
+                    visitTyped.template operator()<ESM::Activator>();
+                    break;
+                case ESM::REC_DOOR:
+                    visitTyped.template operator()<ESM::Door>();
+                    break;
+                case ESM::REC_CONT:
+                    visitTyped.template operator()<ESM::Container>();
+                    break;
+
+                case ESM::REC_ALCH:
+                    visitTyped.template operator()<ESM::Potion>();
+                    break;
+                case ESM::REC_ARMO:
+                    visitTyped.template operator()<ESM::Armor>();
+                    break;
+                case ESM::REC_BOOK:
+                    visitTyped.template operator()<ESM::Book>();
+                    break;
+                case ESM::REC_CLOT:
+                    visitTyped.template operator()<ESM::Clothing>();
+                    break;
+                case ESM::REC_INGR:
+                    visitTyped.template operator()<ESM::Ingredient>();
+                    break;
+                case ESM::REC_LIGH:
+                    visitTyped.template operator()<ESM::Light>();
+                    break;
+                case ESM::REC_MISC:
+                    visitTyped.template operator()<ESM::Miscellaneous>();
+                    break;
+                case ESM::REC_WEAP:
+                    visitTyped.template operator()<ESM::Weapon>();
+                    break;
+                case ESM::REC_APPA:
+                    visitTyped.template operator()<ESM::Apparatus>();
+                    break;
+                case ESM::REC_LOCK:
+                    visitTyped.template operator()<ESM::Lockpick>();
+                    break;
+                case ESM::REC_PROB:
+                    visitTyped.template operator()<ESM::Probe>();
+                    break;
+                case ESM::REC_REPA:
+                    visitTyped.template operator()<ESM::Repair>();
+                    break;
+                case ESM::REC_STAT:
+                    visitTyped.template operator()<ESM::Static>();
+                    break;
+                case ESM::REC_LEVC:
+                    visitTyped.template operator()<ESM::CreatureLevList>();
+                    break;
+
+                case ESM::REC_ACTI4:
+                    visitTyped.template operator()<ESM4::Activator>();
+                    break;
+                case ESM::REC_AMMO4:
+                    visitTyped.template operator()<ESM4::Ammunition>();
+                    break;
+                case ESM::REC_ARMO4:
+                    visitTyped.template operator()<ESM4::Armor>();
+                    break;
+                case ESM::REC_BOOK4:
+                    visitTyped.template operator()<ESM4::Book>();
+                    break;
+                case ESM::REC_CLOT4:
+                    visitTyped.template operator()<ESM4::Clothing>();
+                    break;
+                case ESM::REC_CONT4:
+                    visitTyped.template operator()<ESM4::Container>();
+                    break;
+                case ESM::REC_DOOR4:
+                    visitTyped.template operator()<ESM4::Door>();
+                    break;
+                case ESM::REC_FLOR4:
+                    visitTyped.template operator()<ESM4::Flora>();
+                    break;
+                case ESM::REC_FURN4:
+                    visitTyped.template operator()<ESM4::Furniture>();
+                    break;
+                case ESM::REC_IMOD4:
+                    visitTyped.template operator()<ESM4::ItemMod>();
+                    break;
+                case ESM::REC_INGR4:
+                    visitTyped.template operator()<ESM4::Ingredient>();
+                    break;
+                case ESM::REC_LIGH4:
+                    visitTyped.template operator()<ESM4::Light>();
+                    break;
+                case ESM::REC_MISC4:
+                    visitTyped.template operator()<ESM4::MiscItem>();
+                    break;
+                case ESM::REC_MSTT4:
+                    visitTyped.template operator()<ESM4::MovableStatic>();
+                    break;
+                case ESM::REC_ALCH4:
+                    visitTyped.template operator()<ESM4::Potion>();
+                    break;
+                case ESM::REC_SCOL4:
+                    visitTyped.template operator()<ESM4::StaticCollection>();
+                    break;
+                case ESM::REC_STAT4:
+                    visitTyped.template operator()<ESM4::Static>();
+                    break;
+                case ESM::REC_TREE4:
+                    visitTyped.template operator()<ESM4::Tree>();
+                    break;
+                case ESM::REC_WEAP4:
+                    visitTyped.template operator()<ESM4::Weapon>();
+                    break;
+
+                default:
+                    ok = false;
+            }
+        }
+        if (!ok)
+            return {};
+        if (cacheable)
+            cell.setObjectIdSnapshot(*type, world.getPtrRegistryRevision(), res);
+        return res;
+    }
+
+    namespace
+    {
+        bool useCellQueryCache()
+        {
+            static const bool enabled = [] {
+                const char* value = std::getenv("OPENMW_LUA_CELL_QUERY_CACHE");
+                return value == nullptr || std::string_view(value) != "0";
+            }();
+            return enabled && Misc::useCombinedPerformance();
+        }
+    }
 
     template <class CellT, class ObjectT>
     static void initCellBindings(const std::string& prefix, const Context& context)
@@ -147,170 +336,13 @@ namespace MWLua
         if constexpr (std::is_same_v<CellT, GCell>)
         { // only for global scripts
             cellT["getAll"] = [ids = getPackageToTypeTable(view)](const CellT& cell, sol::optional<sol::table> type) {
-                // Only the two ordinary record types below use the proven-empty
-                // shortcut initially. Keep Player, untyped and invalid queries
-                // on their established path, including their error behavior.
-                if (type.has_value() && ids[*type] != sol::nil)
-                {
-                    const uint32_t typeId = ids[*type];
-                    if ((typeId == ESM::REC_DOOR || typeId == ESM::REC_NPC_)
-                        && !cell.mStore->mayHaveReferenceOfType(typeId))
-                        return GObjectList{ std::make_shared<std::vector<ObjectId>>() };
-                }
-                if (cell.mStore->getState() != MWWorld::CellStore::State_Loaded)
-                    cell.mStore->load();
-                ObjectIdList res = std::make_shared<std::vector<ObjectId>>();
-                auto visitor = [&](const MWWorld::Ptr& ptr) {
-                    if (ptr.mRef->isDeleted())
-                        return true;
-                    MWBase::Environment::get().getWorldModel()->registerPtr(ptr);
-                    if (getLiveCellRefType(ptr.mRef) == ptr.getType())
-                        res->push_back(getId(ptr));
-                    return true;
-                };
-
-                bool ok = true;
-                if (!type.has_value())
-                    cell.mStore->forEach(std::move(visitor));
-                else if (ids[*type] == sol::nil)
-                    ok = false;
-                else
-                {
-                    uint32_t typeId = ids[*type];
-                    switch (typeId)
-                    {
-                        case ESM::REC_INTERNAL_PLAYER:
-                        {
-                            MWWorld::Ptr player = MWBase::Environment::get().getWorld()->getPlayerPtr();
-                            if (player.getCell() == cell.mStore)
-                                res->push_back(getId(player));
-                        }
-                        break;
-
-                        case ESM::REC_CREA:
-                            cell.mStore->template forEachType<ESM::Creature>(visitor);
-                            break;
-                        case ESM::REC_NPC_:
-                            cell.mStore->template forEachType<ESM::NPC>(visitor);
-                            break;
-                        case ESM::REC_ACTI:
-                            cell.mStore->template forEachType<ESM::Activator>(visitor);
-                            break;
-                        case ESM::REC_DOOR:
-                            cell.mStore->template forEachType<ESM::Door>(visitor);
-                            break;
-                        case ESM::REC_CONT:
-                            cell.mStore->template forEachType<ESM::Container>(visitor);
-                            break;
-
-                        case ESM::REC_ALCH:
-                            cell.mStore->template forEachType<ESM::Potion>(visitor);
-                            break;
-                        case ESM::REC_ARMO:
-                            cell.mStore->template forEachType<ESM::Armor>(visitor);
-                            break;
-                        case ESM::REC_BOOK:
-                            cell.mStore->template forEachType<ESM::Book>(visitor);
-                            break;
-                        case ESM::REC_CLOT:
-                            cell.mStore->template forEachType<ESM::Clothing>(visitor);
-                            break;
-                        case ESM::REC_INGR:
-                            cell.mStore->template forEachType<ESM::Ingredient>(visitor);
-                            break;
-                        case ESM::REC_LIGH:
-                            cell.mStore->template forEachType<ESM::Light>(visitor);
-                            break;
-                        case ESM::REC_MISC:
-                            cell.mStore->template forEachType<ESM::Miscellaneous>(visitor);
-                            break;
-                        case ESM::REC_WEAP:
-                            cell.mStore->template forEachType<ESM::Weapon>(visitor);
-                            break;
-                        case ESM::REC_APPA:
-                            cell.mStore->template forEachType<ESM::Apparatus>(visitor);
-                            break;
-                        case ESM::REC_LOCK:
-                            cell.mStore->template forEachType<ESM::Lockpick>(visitor);
-                            break;
-                        case ESM::REC_PROB:
-                            cell.mStore->template forEachType<ESM::Probe>(visitor);
-                            break;
-                        case ESM::REC_REPA:
-                            cell.mStore->template forEachType<ESM::Repair>(visitor);
-                            break;
-                        case ESM::REC_STAT:
-                            cell.mStore->template forEachType<ESM::Static>(visitor);
-                            break;
-                        case ESM::REC_LEVC:
-                            cell.mStore->template forEachType<ESM::CreatureLevList>(visitor);
-                            break;
-
-                        case ESM::REC_ACTI4:
-                            cell.mStore->template forEachType<ESM4::Activator>(visitor);
-                            break;
-                        case ESM::REC_AMMO4:
-                            cell.mStore->template forEachType<ESM4::Ammunition>(visitor);
-                            break;
-                        case ESM::REC_ARMO4:
-                            cell.mStore->template forEachType<ESM4::Armor>(visitor);
-                            break;
-                        case ESM::REC_BOOK4:
-                            cell.mStore->template forEachType<ESM4::Book>(visitor);
-                            break;
-                        case ESM::REC_CLOT4:
-                            cell.mStore->template forEachType<ESM4::Clothing>(visitor);
-                            break;
-                        case ESM::REC_CONT4:
-                            cell.mStore->template forEachType<ESM4::Container>(visitor);
-                            break;
-                        case ESM::REC_DOOR4:
-                            cell.mStore->template forEachType<ESM4::Door>(visitor);
-                            break;
-                        case ESM::REC_FLOR4:
-                            cell.mStore->template forEachType<ESM4::Flora>(visitor);
-                            break;
-                        case ESM::REC_FURN4:
-                            cell.mStore->template forEachType<ESM4::Furniture>(visitor);
-                            break;
-                        case ESM::REC_IMOD4:
-                            cell.mStore->template forEachType<ESM4::ItemMod>(visitor);
-                            break;
-                        case ESM::REC_INGR4:
-                            cell.mStore->template forEachType<ESM4::Ingredient>(visitor);
-                            break;
-                        case ESM::REC_LIGH4:
-                            cell.mStore->template forEachType<ESM4::Light>(visitor);
-                            break;
-                        case ESM::REC_MISC4:
-                            cell.mStore->template forEachType<ESM4::MiscItem>(visitor);
-                            break;
-                        case ESM::REC_MSTT4:
-                            cell.mStore->template forEachType<ESM4::MovableStatic>(visitor);
-                            break;
-                        case ESM::REC_ALCH4:
-                            cell.mStore->template forEachType<ESM4::Potion>(visitor);
-                            break;
-                        case ESM::REC_SCOL4:
-                            cell.mStore->template forEachType<ESM4::StaticCollection>(visitor);
-                            break;
-                        case ESM::REC_STAT4:
-                            cell.mStore->template forEachType<ESM4::Static>(visitor);
-                            break;
-                        case ESM::REC_TREE4:
-                            cell.mStore->template forEachType<ESM4::Tree>(visitor);
-                            break;
-                        case ESM::REC_WEAP4:
-                            cell.mStore->template forEachType<ESM4::Weapon>(visitor);
-                            break;
-
-                        default:
-                            ok = false;
-                    }
-                }
-                if (!ok)
+                std::optional<std::uint32_t> typeId;
+                if (type)
+                    typeId = ids[*type] == sol::nil ? 0u : ids[*type].template get<std::uint32_t>();
+                ObjectIdList res = queryCellObjects(*cell.mStore, typeId, useCellQueryCache());
+                if (!res)
                     throw std::runtime_error(
-                        std::string("Incorrect type argument in cell:getAll: " + LuaUtil::toString(*type)));
+                        std::string("Incorrect type argument in cell:getAll: ") + LuaUtil::toString(*type));
                 return GObjectList{ std::move(res) };
             };
         }

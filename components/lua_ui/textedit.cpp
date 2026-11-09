@@ -53,6 +53,8 @@ namespace LuaUi
 
     void LuaTextEdit::updateCoord()
     {
+        if (reuseLayout())
+            return;
         WidgetExtension::updateCoord();
         mEditBox->setPosition(getContentOffset());
         mEditBox->setSize(getContentSize());

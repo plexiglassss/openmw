@@ -47,6 +47,8 @@ namespace LuaUi
 
     void LuaContainer::updateCoord()
     {
+        if (reuseLayout())
+            return;
         updateSizeToFit();
         WidgetExtension::updateCoord();
     }

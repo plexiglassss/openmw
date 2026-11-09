@@ -1,6 +1,7 @@
 #include "magicbindings.hpp"
 
 #include <format>
+#include <tuple>
 
 #include <components/esm3/activespells.hpp>
 #include <components/esm3/loadalch.hpp>
@@ -15,6 +16,7 @@
 #include <components/lua/luastate.hpp>
 #include <components/lua/util.hpp>
 #include <components/misc/color.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/strings/format.hpp>
 #include <components/resource/resourcesystem.hpp>
@@ -37,10 +39,12 @@
 #include "localscripts.hpp"
 #include "luamanagerimp.hpp"
 #include "magicbindingshelper.hpp"
+#include "magicqueries.hpp"
 #include "magictypebindings.hpp"
 #include "object.hpp"
 #include "objectvariant.hpp"
 #include "recordstore.hpp"
+#include "types/types.hpp"
 
 namespace MWLua
 {
@@ -145,10 +149,79 @@ namespace sol
     struct is_automagical<MWLua::ActiveSpell> : std::false_type
     {
     };
+    template <>
+    struct is_automagical<MWLua::EffectSourceQuery> : std::false_type
+    {
+    };
+    template <>
+    struct is_automagical<MWLua::EffectMagnitudeQuery> : std::false_type
+    {
+    };
 }
 
 namespace MWLua
 {
+    std::tuple<sol::table, sol::table, bool> EffectSourceQuery::read(sol::this_state ts)
+    {
+        auto& query = *this;
+        const bool changed = MagicBindings::readEffectSources(query.mActor, query.mData, [](ESM::RefNum id) {
+            if (!id.isSet())
+                return MagicBindings::EffectCaster{};
+            const auto ptr = MWBase::Environment::get().getWorldModel()->getPtr(id);
+            if (ptr.isEmpty())
+                return MagicBindings::EffectCaster{};
+            return MagicBindings::EffectCaster{ id, getLiveCellRefType(ptr.mRef) };
+        });
+        if (changed)
+            query.mSnapshotCurrent = false;
+        const bool snapshotChanged = !query.mSnapshotCurrent;
+        if (snapshotChanged)
+        {
+            sol::state_view lua(ts);
+            sol::table ids(lua, sol::create);
+            sol::table casters(lua, sol::create);
+            std::size_t index = 0;
+            for (const auto& source : query.mData.values())
+            {
+                ++index;
+                ids[index] = source.mEffectId;
+                if (source.mCaster.isSet())
+                {
+                    if (query.mActor.isGObject())
+                        casters[index] = GObject(source.mCaster);
+                    else
+                        casters[index] = LObject(source.mCaster);
+                }
+            }
+            auto readOnlyIds = LuaUtil::makeReadOnly(ids);
+            auto readOnlyCasters = LuaUtil::makeReadOnly(casters);
+            query.mEffectIds = std::move(readOnlyIds);
+            query.mCasters = std::move(readOnlyCasters);
+            query.mSnapshotCurrent = true;
+        }
+        return std::tuple<sol::table, sol::table, bool>{ *query.mEffectIds, *query.mCasters, snapshotChanged };
+    }
+
+    std::tuple<sol::table, bool> EffectMagnitudeQuery::read(sol::this_state ts)
+    {
+        auto& query = *this;
+        const bool changed = MagicBindings::readEffectMagnitudes(query.mActor, query.mData);
+        if (changed)
+            query.mSnapshotCurrent = false;
+        const bool snapshotChanged = !query.mSnapshotCurrent;
+        if (snapshotChanged)
+        {
+            sol::state_view lua(ts);
+            sol::table values(lua, sol::create);
+            std::size_t index = 0;
+            for (const float magnitude : query.mData.values())
+                values[++index] = magnitude;
+            query.mMagnitudes = LuaUtil::makeReadOnly(values);
+            query.mSnapshotCurrent = true;
+        }
+        return std::tuple<sol::table, bool>{ *query.mMagnitudes, snapshotChanged };
+    }
+
     static ESM::RefId toSpellId(const sol::object& spellOrId)
     {
         if (spellOrId.is<ESM::Spell>())
@@ -245,7 +318,7 @@ namespace MWLua
         sol::table magicEffects(state, sol::create);
         addRecordFunctionBinding<ESM::MagicEffect>(magicEffects, context);
         magicApi["effects"] = LuaUtil::makeReadOnly(magicEffects);
-        const auto* magicEffectStore = &MWBase::Environment::get().getWorld()->getStore().get<ESM::MagicEffect>();
+        const auto* magicEffectStore = &MWBase::Environment::get().getESMStore()->get<ESM::MagicEffect>();
 
         // Spell record
         addSpellBindings(state);
@@ -500,8 +573,7 @@ namespace MWLua
     void addActorMagicBindings(sol::table& actor, const Context& context)
     {
         sol::state_view state = context.sol();
-        const MWWorld::Store<ESM::Spell>* spellStore
-            = &MWBase::Environment::get().getWorld()->getStore().get<ESM::Spell>();
+        const MWWorld::Store<ESM::Spell>* spellStore = &MWBase::Environment::get().getESMStore()->get<ESM::Spell>();
 
         // types.Actor.spells(o)
         actor["spells"] = [](const sol::object& object) { return ActorSpells{ object }; };
@@ -520,6 +592,61 @@ namespace MWLua
         activeEffectsT[sol::meta_function::to_string] = [](const ActorActiveEffects& effects) {
             return "ActorActiveEffects[" + effects.mActor.object().toString() + "]";
         };
+
+        auto sourceQueryT = state.new_usertype<EffectSourceQuery>("ActiveEffectSourceQuery");
+        sourceQueryT["read"] = &EffectSourceQuery::read;
+
+        // Compile the selection once. Every read still inspects the current
+        // native spell store; unchanged compact results reuse immutable Lua
+        // snapshots, including the empty result, without copying spell records.
+        if (Misc::useCombinedPerformance())
+        {
+            activeSpellsT["createEffectSourceQuery"]
+                = [ids = getPackageToTypeTable(state)](
+                      const ActorActiveSpells& spells, sol::optional<sol::table> options) {
+                      MagicBindings::EffectSourceFilter filter;
+                      if (options)
+                      {
+                          const auto temporary = options->get<sol::optional<bool>>("temporary");
+                          if (temporary)
+                              filter.mTemporary = *temporary;
+                          const sol::object caster = options->get<sol::object>("caster");
+                          if (caster != sol::nil)
+                              filter.mCaster = getId(ObjectVariant(caster).ptr());
+                          const sol::object casterType = options->get<sol::object>("casterType");
+                          if (casterType != sol::nil)
+                          {
+                              const sol::object typeId = ids[casterType];
+                              if (typeId == sol::nil)
+                                  throw std::runtime_error(
+                                      "createEffectSourceQuery: casterType must be a concrete object type");
+                              filter.mCasterType = typeId.as<unsigned int>();
+                          }
+                          const auto effectIds = options->get<sol::optional<sol::table>>("effectIds");
+                          if (effectIds)
+                          {
+                              filter.mEffectIds.emplace();
+                              const auto& store = MWBase::Environment::get().getESMStore()->get<ESM::MagicEffect>();
+                              for (std::size_t i = 1; i <= effectIds->size(); ++i)
+                              {
+                                  const auto id = ESM::RefId::deserializeText(effectIds->get<std::string_view>(i));
+                                  store.find(id);
+                                  filter.mEffectIds->push_back(id);
+                              }
+                          }
+                      }
+                      return EffectSourceQuery{ spells.mActor, MagicBindings::EffectSourceQueryData(std::move(filter)),
+                          {}, {} };
+                  };
+        }
+
+        auto magnitudeQueryT = state.new_usertype<EffectMagnitudeQuery>("ActiveEffectMagnitudeQuery");
+        magnitudeQueryT["read"] = &EffectMagnitudeQuery::read;
+        magnitudeQueryT[sol::meta_function::length]
+            = [](const EffectMagnitudeQuery& query) { return query.mData.size(); };
+        if (Misc::useCombinedPerformance())
+            activeEffectsT["hasEffects"]
+                = [](const ActorActiveEffects& effects) { return MagicBindings::hasActiveEffects(effects.mActor); };
 
         actor["getSelectedSpell"] = [spellStore](const Object& o) -> sol::optional<const ESM::Spell*> {
             const MWWorld::Ptr& ptr = o.ptr();
@@ -851,7 +978,7 @@ namespace MWLua
         auto getEffectKey
             = [](std::string_view idStr, sol::optional<std::string_view> argStr) -> MWMechanics::EffectKey {
             auto id = ESM::RefId::deserializeText(idStr);
-            auto* rec = MWBase::Environment::get().getWorld()->getStore().get<ESM::MagicEffect>().find(id);
+            auto* rec = MWBase::Environment::get().getESMStore()->get<ESM::MagicEffect>().find(id);
 
             MWMechanics::EffectKey key = MWMechanics::EffectKey(id);
 
@@ -880,6 +1007,29 @@ namespace MWLua
                                           sol::optional<std::string_view> argStr) -> sol::optional<ActiveEffect> {
             return MagicBindings::getActiveEffect(effects.mActor, [&] { return getEffectKey(idStr, argStr); });
         };
+
+        if (Misc::useCombinedPerformance())
+        {
+            activeEffectsT["createMagnitudeQuery"]
+                = [getEffectKey](const ActorActiveEffects& effects, const sol::table& selections) {
+                      std::vector<MWMechanics::EffectKey> keys;
+                      keys.reserve(selections.size());
+                      for (std::size_t i = 1; i <= selections.size(); ++i)
+                      {
+                          const sol::object selection = selections[i];
+                          if (selection.is<std::string>())
+                              keys.push_back(getEffectKey(selection.as<std::string_view>(), sol::nullopt));
+                          else
+                          {
+                              const auto entry = LuaUtil::cast<sol::table>(selection);
+                              keys.push_back(getEffectKey(entry.get<std::string_view>("id"),
+                                  entry.get<sol::optional<std::string_view>>("argument")));
+                          }
+                      }
+                      return EffectMagnitudeQuery{ effects.mActor,
+                          MagicBindings::EffectMagnitudeQueryData(std::move(keys)), {} };
+                  };
+        }
 
         // types.Actor.activeEffects(o):removeEffect(id, ?arg)
         activeEffectsT["remove"] = [getEffectKey, context](const ActorActiveEffects& effects, std::string_view idStr,

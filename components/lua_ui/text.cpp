@@ -41,6 +41,7 @@ namespace LuaUi
 
     void LuaText::setCaption(const MyGUI::UString& caption)
     {
+        invalidateLayout();
         MyGUI::TextBox::setCaption(caption);
         if (mAutoSized)
             updateCoord();

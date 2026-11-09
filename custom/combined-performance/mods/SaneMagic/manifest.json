@@ -1,0 +1,28 @@
+{
+  "id": "sanemagic-native-queries",
+  "name": "Sane Magic native-query adapters",
+  "expected_revision": "85b3384dd0",
+  "allowed_revisions": [
+    "85b3384dd0",
+    "85b3384dd06528914e090f5fb39aad415e808a0b",
+    "016577e6e3",
+    "016577e6e33b16080e9c6828b38a3879526714d7"
+  ],
+  "expected_data_order_sha256": "9d5dbeafe1f1f154edd7f43d4373f24d63c1b0c9563071ed64cdd6da7e74e1a1",
+  "expected_config_sha256": [
+    "2291eb4e130b803938b26be461475bef76e9f9035e6889e5d778a5b52423ea66",
+    "4fe1803bd7319288d0a21c423f33cae4d15704f9fbb1ac477676b21eb30913a6"
+  ],
+  "files": [
+    {
+      "path": "scripts/SaneMagic/npc.lua",
+      "expected_sha256": "f9a3e0e338f8b34319ece5106ed189f79a575fdc5c3874dbb2c5e7502a57a7be",
+      "installed_sha256": "5f7785eef9520cfae21308601ba8f919d772508a014c5e47c311e32aceec32e8"
+    },
+    {
+      "path": "scripts/SaneMagic/daesumm_pn.lua",
+      "expected_sha256": "a5d741551d4fac3b62f46fe6ed2b3480e62aa7c47b079e9e14ec6dd611c7e12c",
+      "installed_sha256": "552f1af488ec4aa2004efd4f8e3c1f4cfae37c0765d8f40886dfab89d674ad5d"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Native Travel Tooltips, If The Key Fits and Been There, Done That, added to verified native map-icons head ca144536f3dd813f9fb13c832b7396d1554d71f5. Native configurable UI, optional private travel asset catalogue, existing-key inventory hint and current-interior lifecycle/save metadata. Preserve native world-map icons and every earlier cumulative engine change. No plugins, placement/terrain edits, MWSE execution, distant-interior loads or whole-world/per-frame actor scans.",
+  "scope": "Combined native performance candidate on 016577e6e33b16080e9c6828b38a3879526714d7: action-scoped dependency-aware Lua UI geometry reuse; compiled live native magic/effect queries and SaneMagic adapters; immutable typed cell query snapshots and idempotent pointer registration. Preserve native map icons, native travel/key/cleared-cell tooltips and every prior cumulative feature and build-time loading-repair gate. One complete engine package, prepared adapters and same-executable inherited fallback. No plugin, terrain, placement or modlist changes; no claimed gameplay FPS gain before user capture.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -10,7 +10,8 @@
     "1e2191f221079d89e46c15331ba6911b44f28b53",
     "85b3384dd06528914e090f5fb39aad415e808a0b",
     "5992e061519b62853197e3f60c1e597e3593e4eb",
-    "ca144536f3dd813f9fb13c832b7396d1554d71f5"
+    "ca144536f3dd813f9fb13c832b7396d1554d71f5",
+    "016577e6e33b16080e9c6828b38a3879526714d7"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -20,11 +21,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c47ea9592adcc1f7c5addadafc1bb9444c8a5b46"
+        "blob": "0fa8c0ab0166bfd0cce0d30f146b5627c2868c36"
       },
-      "bytes": 49793,
-      "sha256": "2a5648cf555d953e2d2b63801728438e99f8d07644984c436e7b32a020e17233",
-      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: .github/workflows/push.yml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 52996,
+      "sha256": "f9ba92913360f3ba579e17b753ea5703c314771ab96c4f0c23fc151cba1f85fb",
+      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: .github/workflows/push.yml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Combined performance candidate: Build one combined Windows candidate with all inherited source/test gates, adapter parity, three native UI modes, prepared tools and complete packaging."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -397,6 +398,32 @@
       "sha256": "28bff61a849a2932fa1fc679ea1a560a87c565ff593f6bf45442f6a64d0e19dd",
       "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
+    "apps/openmw/mwlua/cellbindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ade94d3928b93fb49f4188366208c61064f75bc0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "b0708327249b5663b1bddca960e28c71ea85cbbb"
+      },
+      "bytes": 16091,
+      "sha256": "b8b36af6161466d9a9a0174e485c8af5f227b3a3a168c698aabfb79b8c27bb32",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwlua/cellbindings.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "70255d8d7fd179a1e0dc4854754bb145b6367a43"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2ed701915f48dc739039f6a42eb516c67b28486f"
+      },
+      "bytes": 602,
+      "sha256": "014d740a36de8ac105f5062e61f886fa2c5084fc83446378d62527e7404cac2e",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
         "mode": "100644",
@@ -404,11 +431,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ae2f88d76ef289d716fd4f17f056ef53f72315c6"
+        "blob": "eb2c5be070758425cd780be591e6b7fd8c63f06b"
       },
-      "bytes": 44278,
-      "sha256": "1481b1c0c9219c667f0a2e2236c33ed3878080065e81249b745e2c888e24949a",
-      "reason": "Resolve each query actor once through scoped native helpers while preserving current values, contexts, effect-key error ordering and existing iteration boundaries."
+      "bytes": 51628,
+      "sha256": "9e9d7c60b1e085f23a81045ce3115a7fb7c7a78b2dde24b914fe2d648b11f1c3",
+      "reason": "Resolve each query actor once through scoped native helpers while preserving current values, contexts, effect-key error ordering and existing iteration boundaries. Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
     },
     "apps/openmw/mwlua/magicbindingshelper.hpp": {
       "before": null,
@@ -419,6 +446,16 @@
       "bytes": 1859,
       "sha256": "a484eb16c309d1b3a48fbe0e8e9e4710db3547a77582e3c7cff28cf213606b70",
       "reason": "Share the actual per-call actor/stats/effect lookup implementation with native regression fixtures; no persistent pointer or effect cache."
+    },
+    "apps/openmw/mwlua/magicqueries.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1ce1900a1db2589880e599db9c444adcc4d9e22b"
+      },
+      "bytes": 6796,
+      "sha256": "b2f845e8058e3e9d3c5b225a1a7bfffc276828fc89c5dbf954eb7465054601c4",
+      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
     },
     "apps/openmw/mwmechanics/actors.cpp": {
       "before": {
@@ -472,6 +509,45 @@
       "sha256": "98fef726a1b875a400d2f722193935dbfaa81ed0f84259fb5faaec6a78708a1a",
       "reason": "Native world-map icon feature: apps/openmw/mwstate/statemanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwstate/statemanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
+    "apps/openmw/mwworld/cellref.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "82270f327626364f2a62cf5df88540dd8c176c6a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4c9e0c97ed0aa3b04fb8b737ea8f745d62a50998"
+      },
+      "bytes": 14482,
+      "sha256": "424dd3731d1dbdeaf316a521d5fff261b5c3432340ab85ac26a097b69f5db231",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/cellref.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c290e2733cf0927471482c5ecdb8cca621fd9f58"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5dbc0fcccf8a45f1425fe090635282972365fbcb"
+      },
+      "bytes": 11084,
+      "sha256": "1698e93967c631907e68c4a1edcd0958def16353f7ace1177ab6672ff9429db3",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/cellstore.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "6576a8af891f68cdd82db1bf51ff9397e18ec03e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "563eb588d1425becfff6fdfc899784145ae07b96"
+      },
+      "bytes": 56181,
+      "sha256": "93af3969b400847b9b39b92e3c2d5c419a224e61015a702b6f00fe01b8aa4b09",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
     "apps/openmw/mwworld/cellstore.hpp": {
       "before": {
         "mode": "100644",
@@ -479,11 +555,60 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "06675b25a7ed8724cb93250af688b008fe770443"
+        "blob": "4a83ce7664f8c5bc5c9340af25304b900dae9c29"
       },
-      "bytes": 18279,
-      "sha256": "3cbd9f75036fdc1f709189a7058ebbc9555e459658030bc22dd174782a46b412",
-      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 19710,
+      "sha256": "14af64bed0219db5301259384a2eff116a34215b9cf774a47483477f0b1fc16b",
+      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/ptrregistry.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "897945133efeee8805f0c92b2448d9f21b83b265"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c6d9646bd3e3edf912e77c4cb000eca6d52d0639"
+      },
+      "bytes": 2934,
+      "sha256": "01ccaa87c90835653b5234c3d069e2d4bdef88be6d92207ab5d3bc72769eed28",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/queryrevision.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "128243a827c4f880005a01f4fd61c81fe4607620"
+      },
+      "bytes": 1567,
+      "sha256": "d84ab6922b145ec1e93b006f765fdddef28e6943d8c676a86f784f4558251825",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/refdata.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "0311aef95596ca5e15a4b2a2c0f74f849426e731"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e23402f655f8654e5e78b87a2b4cc194c9c65f85"
+      },
+      "bytes": 8114,
+      "sha256": "18a875720219d19ae42ce52c33d9a77f2f5092bf4344246896d77ed8294336d2",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/refdata.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3b9421f2e4119547cfc297d3e2faec051fe7da93"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2136f908063554f46df09b99d88cb7c00d9edb73"
+      },
+      "bytes": 4570,
+      "sha256": "1701bf5be6651ee6e20288bcf254644942bff9c117a469fe4888422d094ff474",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
     },
     "apps/openmw/mwworld/scene.cpp": {
       "before": {
@@ -517,19 +642,19 @@
         "mode": "100644",
         "blob": "e1a8e67397045cd662888ab5261b349250847a13"
       },
-      "reason": "Validation-only native controls target: execute the same actual form fixtures before the full engine link; keep production Release/LTO and all final gates unchanged.",
       "bytes": 133,
-      "sha256": "e2268bc9534e1d505a5827f19c7ea4665d45e72ad155630a5449bc9d4633c52f"
+      "sha256": "e2268bc9534e1d505a5827f19c7ea4665d45e72ad155630a5449bc9d4633c52f",
+      "reason": "Validation-only native controls target: execute the same actual form fixtures before the full engine link; keep production Release/LTO and all final gates unchanged."
     },
     "apps/openmw_tests/mwgui/testluauilayout.cpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "a5bb235b2e2040cfb95c4fdc2bb9a87f4e102ae5"
+        "blob": "9760cb8e49fa3343b0c597b8dd5cfba2d259b63d"
       },
-      "bytes": 47516,
-      "sha256": "d8328181509c417b8d8b1afacd41b3dc16e301c64ec783bbe2c0267890857aab",
-      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage."
+      "bytes": 60219,
+      "sha256": "b53238b64ba530e61fdcc3f0dcbf4dc5407152dcbca3e3060daa398053682f67",
+      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -558,11 +683,24 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2abc180b5b93b9fca2fce5bb01fd7422ad3fd445"
+        "blob": "6ea2b9ba1ee5572e00b92ec90628abd3601b86d8"
       },
-      "bytes": 19012,
-      "sha256": "61f2e56a62980313dbb2e8b8e4fe5e4a0de1ef922eab315a1da3319833b7ccdf",
-      "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim."
+      "bytes": 41515,
+      "sha256": "9d02e525ec3e7d4aee0f2a73c48f2aebf8a6d8eb3d650fbc41151391499f044a",
+      "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
+    },
+    "apps/openmw_tests/mwworld/testcelllookup.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c762e3c4149d6c5752671131aa5103e4892c987b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "94cbbd7bd6c18724d3dcf625656587d620cb84d1"
+      },
+      "bytes": 37846,
+      "sha256": "1bcd3f082d3754a857e2b8bc04c4aa5b987aeb7dfa4444a85f83f2cdebddd841",
+      "reason": "Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "components/CMakeLists.txt": {
       "before": {
@@ -649,6 +787,71 @@
       "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10",
       "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths."
     },
+    "components/lua_ui/container.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1999be816944c102f5852793e019cbe2b8f21b9e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "dbbc84b412b4c922490e6167f7eca95627ec2b26"
+      },
+      "bytes": 1449,
+      "sha256": "6073ef3d8d3607e0cfd4f69f249cd7a4f2e9509ba131d667c8a5c1e060f45671",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/content.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "101cfc75d1d45cb3412d3a60783cf32c4e300e28"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c88e854ab0b72126473e530a0619934338c5a0eb"
+      },
+      "bytes": 1636,
+      "sha256": "515c651bd19fc0d6d47142dc679efad7b0db0262ed89f75369da4240886f7873",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/content.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e80bc2923fa0cb8b0d0623db1bc7bc813daa5780"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e5a3887abcfbbdb5b982895b7d4bb9f68468893c"
+      },
+      "bytes": 2073,
+      "sha256": "2bebd98df179c63e78acaa5f46e1ca53c96a8a1f0788ddbb4268547223515024",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/element.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "351c4c7c7fbdba9f73eb1939990a65d90b145810"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ee5b100a853da947e6d3933900e5033bcc292e0b"
+      },
+      "bytes": 15733,
+      "sha256": "fa241d7f5b58d7ddeeaa4e2609c74d0c0d9a7319690fba696a52e5bcbf4d66a4",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/flex.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7c639a2a5cb1d707fdcbdaf82bde7583adfac9f0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2380bee5151927d5b6be4e1e500d2d5a9f2d9982"
+      },
+      "bytes": 7104,
+      "sha256": "291e11ef16d2ac09894262405a875885e72b0980eed34d0fecc315bac245cbf7",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
     "components/lua_ui/properties.hpp": {
       "before": {
         "mode": "100644",
@@ -661,6 +864,71 @@
       "bytes": 8193,
       "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3",
       "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration."
+    },
+    "components/lua_ui/text.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4623d715c1e8834e1d81792a7df0fc264362e5e1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "266b474d476e58d712817a4b46c6026e96c2284f"
+      },
+      "bytes": 2511,
+      "sha256": "dc090d3315f7e09423b7a279ccf246143e1233a417a860984b3f4578063900ee",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/textedit.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1e4117e56cc22cfdeb3131d5e6192c107754d6e7"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "91d02602185465eb123083a084e35bbeb6370654"
+      },
+      "bytes": 3569,
+      "sha256": "c1b64393b532cc457fe0bab8bfe5ac4fa4aa91792b52959be04ec737e2ebfc8e",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/textedit.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "2b8425f22ed60821b1cb07d878e30994d913126f"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c4c32b741cfc808696f32159cfec3825377bcf5b"
+      },
+      "bytes": 1131,
+      "sha256": "afcf80b2c7d692dc7d1e5c2cf99278497d846365e59ba6296213034b7952265a",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/widget.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "87fbd25835d16beef6175b02f2d52b4d2515c5f2"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fce6c0bc3e0420e04965cf1826f8167a4fa9ab0b"
+      },
+      "bytes": 27323,
+      "sha256": "9bdefcecdc5f59b01b272e83fbc39c714dcc0bc9eae70c54a8fa4f1996adfe1a",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/widget.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a058f7021a845a781bcb66c51ec7015c0641550e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "90623f2ddba25b106381dc0f60eddaa0a3e3f2b4"
+      },
+      "bytes": 11459,
+      "sha256": "fb934273a5b02a4a01e3d3c36c721d91f75520538d616f7c8a9c18e1a7c36a28",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
     },
     "components/mapmarkers/classification.cpp": {
       "before": null,
@@ -702,6 +970,16 @@
       "sha256": "cda43af5a846eb2abcbf20a7703bb215f85f38f0615c2076ce40f05273305844",
       "reason": "Native world-map icon feature: components/mapmarkers/spatialindex.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "components/misc/combinedperformance.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1d9a71e884f0ed5261e10fa8976b3656d66e7505"
+      },
+      "bytes": 613,
+      "sha256": "1b2bb253877d9bd87f5cff6d873e0b4e4934ade1a3567790c1e8ba8b0b8dda3f",
+      "reason": "Combined performance candidate: Provide a default-on combined candidate and one process-scoped same-executable master fallback."
+    },
     "components/settings/categories/gui.hpp": {
       "before": {
         "mode": "100644",
@@ -727,6 +1005,196 @@
       "bytes": 1867,
       "sha256": "99702fb38072bb3ef7ee5a216a4b300274d5c15010257db10b380d2a2c422e37",
       "reason": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/combined-performance/.gitattributes": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2a5a91528e811e597aac5340c73a6f526f426e4a"
+      },
+      "bytes": 101,
+      "sha256": "7b5578f747107618757c2bac2eec61a51360c9393efcb8e936ea3310f875a4f5",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2ad27c3ec0c8c4a449bd722cf1e25b0e2ef45c41"
+      },
+      "bytes": 5744,
+      "sha256": "871fe1050782206e0b632ce295aad4cb05c73ce89674bdbef9cd9055aae9c18b",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Run-Combined.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "60e2cab605c660f54c8953a7b6efafdb34173d23"
+      },
+      "bytes": 132,
+      "sha256": "b7e2318d6edf008747c723c6be25a37fb7ee20dc8bb4a917234c4a8e6ed0140c",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Run-Inherited.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7317dc6a8209d1229605167ebd06730514a31939"
+      },
+      "bytes": 133,
+      "sha256": "ba96c854c870c0384585f23fc11cf5c069b354a52373516d2f891a122d826201",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Start-Combined.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6274f0c23b33d9ec80a11471d2d388a564328d46"
+      },
+      "bytes": 2408,
+      "sha256": "506e60265a67e8c51cf14fb771a80489ef8c97f6679da0185a927f670ea145be",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Test-Launcher.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4c42fc597ecc6aec2c72cd2ff9553b8b68e2f181"
+      },
+      "bytes": 4860,
+      "sha256": "37159246a70ac51a45cc14d4f13e3141e4a22e4d04e72cb2a4d36eaa042e49f9",
+      "reason": "Verify combined/inherited process modes, recorded arguments and environment restoration after success/failure in Windows PowerShell 5.1 and PowerShell 7."
+    },
+    "custom/combined-performance/mods/SaneMagic/Install.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b8d1dfe8e1109a8be7ea1d9ea3a7a2945bdd4aa8"
+      },
+      "bytes": 204,
+      "sha256": "67577cb6d331a6c08776291ff4825be53f04ce96fd4df28352e9142ca5dc8dca",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "734e4d7fa34aa4df13ef13d35a732cb10a9c0a7a"
+      },
+      "bytes": 4546,
+      "sha256": "5e5ace90cb69bf3dbce9be9db529e1a7a4689fa7cb476a35b5ab1cbcfb0f3907",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/Restore.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "47aeb06e726fd90cc05eb7464a64a1608e838972"
+      },
+      "bytes": 219,
+      "sha256": "4cc8edff3fb10fa4e8678f4e56711798736d7c6ce456b644399896dfcdd1bdac",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/manifest.json": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ca5ad0c850305650ef169d740fddccd8f9772202"
+      },
+      "bytes": 1069,
+      "sha256": "4bd71db78b5064b01c397369e68157db39f7f8f91ded7e82415fde2abc8b58b8",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/scripts/SaneMagic/daesumm_pn.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4ef3a012d798b43d8d7b13bbf91092d4b2ecea82"
+      },
+      "bytes": 8147,
+      "sha256": "552f1af488ec4aa2004efd4f8e3c1f4cfae37c0765d8f40886dfab89d674ad5d",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/scripts/SaneMagic/npc.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3d5077040aa5937f1d5d4ec8e048b2b4fbad855c"
+      },
+      "bytes": 7960,
+      "sha256": "5f7785eef9520cfae21308601ba8f919d772508a014c5e47c311e32aceec32e8",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/prepare-package.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "81cde7bfcc04774edc1868b89d3071d69e35f5e3"
+      },
+      "bytes": 7311,
+      "sha256": "8c7a96f0cebb4d560adbb0ac51b59407dd67bcdbefb42c6a3f45ad22b1f11087",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/tests/fixtures/SaneMagic/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a6f49454a6617ded3f3819b336102d5522df22c7"
+      },
+      "bytes": 1218,
+      "sha256": "50f262bc762c988356ae8f0bae731835f3c4ae6502ffc3269813abdfdd1317ec",
+      "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/tests/fixtures/SaneMagic/daesumm_pn.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1130bf566a6d33633dbe19d21af6d7ee8c7d0cf8"
+      },
+      "bytes": 1970,
+      "sha256": "928054d6dd672f6aaf97b8e74233a589451abbe19d954034ceb3291a55666b2c",
+      "reason": "Preserve the exact captured SaneMagic golden source bytes as deterministic gzip for hash-bound cross-runtime behavioral parity."
+    },
+    "custom/combined-performance/tests/fixtures/SaneMagic/npc.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ead6552f9369c306369ed79c75ded52be2c65f3e"
+      },
+      "bytes": 1972,
+      "sha256": "b614895d3703ed8bfae3db0308bf484bc2be7d462b053463e109d267854e4635",
+      "reason": "Preserve the exact captured SaneMagic golden source bytes as deterministic gzip for hash-bound cross-runtime behavioral parity."
+    },
+    "custom/combined-performance/tests/requirements.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8091158c892414f5a260bee94946916a44348335"
+      },
+      "bytes": 10,
+      "sha256": "c355c313ec4744320b1e0d22e7e70465d899a48e8c62293578ddff95d0672c6b",
+      "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/tests/test_sanemagic_adapters.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "60096fdb8e6712f277162b91f0082c768a93078e"
+      },
+      "bytes": 15445,
+      "sha256": "b54c227afaa50880cc513e3ed103ae26843eb0ab60f08cd4b15454b9cc646396",
+      "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/verify-native.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "5ec350e55b6b2c6a1d548a5b6cc6e1edd10308c8"
+      },
+      "bytes": 6212,
+      "sha256": "51a7d518e82428eb803d0fc440460ca2fa8a5472d1b92643db2a5fc48270e00d",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
     },
     "custom/cumulative/prepare-upgrade.py": {
       "before": {
@@ -1064,11 +1532,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6441fe1163452f141f3b0a2d965b70428b28543e"
+        "blob": "595c489e833ca3df7972fef32f3bb8525f3dc900"
       },
-      "bytes": 52576,
-      "sha256": "a6b29171f07452419ca8ddc2a04ba2f75a37ff4b75f140428aa7f89aadaaf024",
-      "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls."
+      "bytes": 52676,
+      "sha256": "50b56b07daab80e9666a722ce8bce804710b6798af6348a38182df71cc289f2a",
+      "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls. Combined performance candidate: Record combined performance, native UI and cell-cache environment switches in capture provenance."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -1133,15 +1601,25 @@
       "sha256": "c60f28a87a8e524330cf5d776395800e18d50ac4b8095705a7f696867c8bfdf2",
       "reason": "Exercise actual comparison wrapper invocation using a controlled collector boundary to verify FrameOnly selection, flag/argument forwarding and environment restoration on success and error."
     },
+    "custom/town-performance/verify-combined-layout.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "367b25a9329ac1bbb4fcebd8bdd9f2d462573979"
+      },
+      "bytes": 8234,
+      "sha256": "352ce6c38a799f50633a2f9a29fb8a9e40f32ce4dcb59b181dcc0fa1e63a7745",
+      "reason": "Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts."
+    },
     "custom/town-performance/verify-layout-parity.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "fc3cde72f191c1b85f59bd92fa170761c2e48ee8"
+        "blob": "c1f1095ebd5c26a897237d5c396fea047275a63a"
       },
-      "bytes": 6577,
-      "sha256": "de33c444ce761e4b57641c2382ce49c1fbf38b1c1f18d0870366cc2d95a52655",
-      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging."
+      "bytes": 7107,
+      "sha256": "48d3e1b05b53e4181c259b354c28d33a0be11e3ecc5f9a3495fadab919cc2a49",
+      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging. Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,
@@ -1381,6 +1859,19 @@
       "bytes": 2097,
       "sha256": "fe380bd3be03fcfeff31de7e7c498cbbe6e18d1f25177b8823433cdd1b6e13f8",
       "reason": "Native world-map icon feature: files/data/textures/mapmarkers/town.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/lua_api/openmw/types.lua": {
+      "before": {
+        "mode": "100644",
+        "blob": "97be3195027308cc2acc965bd9414b8596befc06"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6516480ab9440629a78c387e48f74008138a0aad"
+      },
+      "bytes": 107516,
+      "sha256": "c11e40c0cbc617692afd6d8abfec3627ab83f7ab934063927ff984c974781cf4",
+      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
     },
     "files/settings-default.cfg": {
       "before": {
