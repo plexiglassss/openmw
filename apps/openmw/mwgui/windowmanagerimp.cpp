@@ -121,6 +121,7 @@
 #include "spellwindow.hpp"
 #include "statswindow.hpp"
 #include "tradewindow.hpp"
+#include "tooltipvisibility.hpp"
 #include "trainingwindow.hpp"
 #include "travelwindow.hpp"
 #include "videowidget.hpp"
@@ -647,10 +648,10 @@ namespace MWGui
         if (!mMap)
             return; // UI not created yet
 
-        mHud->setVisible(mHudEnabled && !loading);
-        mToolTips->setVisible(mHudEnabled && !loading);
-
         bool gameMode = !isGuiMode();
+
+        mHud->setVisible(mHudEnabled && !loading);
+        mToolTips->setVisible(isTooltipRootVisible(mHudEnabled, !gameMode, loading));
 
         MWBase::Environment::get().getInputManager()->changeInputMode(!gameMode);
 
@@ -1166,7 +1167,7 @@ namespace MWGui
 
         std::string name{ MWBase::Environment::get().getWorld()->getCellName(cell) };
 
-        mMap->setCellName(name);
+        mMap->setCellName(name, cell->isExterior() ? ESM::RefId() : cell->getCell()->getId());
         mHud->setCellName(name);
         auto cellCommon = cell->getCell();
 

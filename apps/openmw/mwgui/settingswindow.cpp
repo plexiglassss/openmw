@@ -90,6 +90,19 @@ namespace
         "#{OMWEngine:DialogueColourSampleNarration}", "#{OMWEngine:DialogueColourSampleJournal}",
         "#{OMWEngine:DialogueColourSampleJournalNarration}", "#{OMWEngine:DialogueColourSampleTopic}" };
 
+    std::array<Settings::SettingValue<bool>*, 8> tooltipToggleSettings()
+    {
+        auto& s = Settings::gui();
+        return { &s.mTravelEnabled, &s.mTravelOverview, &s.mTravelGondoliers, &s.mTravelFallback, &s.mTravelWide,
+            &s.mKeyTooltips, &s.mClearedDungeonTooltips, &s.mClearedDungeonMapTitle };
+    }
+
+    std::array<Settings::SettingValue<int>*, 5> tooltipChoiceSettings()
+    {
+        auto& s = Settings::gui();
+        return { &s.mTravelPack, &s.mTravelOverviewMap, &s.mTravelColour, &s.mTravelTitleFont, &s.mTravelTextFont };
+    }
+
     size_t colourChannelPosition(float value)
     {
         if (!std::isfinite(value))
@@ -422,6 +435,7 @@ namespace MWGui
         initialiseDialogueColourControls();
         initialiseMessagePositionControls();
         initialiseMapIconControls();
+        initialiseTooltipControls();
 
         computeMinimumWindowSize();
 
@@ -547,6 +561,7 @@ namespace MWGui
         layoutDialogueColourControls();
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
         resetScrollbars();
     }
 
@@ -1070,6 +1085,7 @@ namespace MWGui
         mUpdatingMessagePosition = false;
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
     }
 
     void SettingsWindow::onMessagePositionChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
@@ -1158,6 +1174,7 @@ namespace MWGui
         mMapIconControls.mCategoryToggle->setCaptionWithReplacing(categoryEnabled ? "#{Interface:On}" : "#{Interface:Off}");
         mUpdatingMapIcons = false;
         layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
     }
 
     void SettingsWindow::onMapIconToggled(MyGUI::Widget* sender)
@@ -1228,6 +1245,88 @@ namespace MWGui
         apply();
     }
 
+    void SettingsWindow::initialiseTooltipControls()
+    {
+        mTooltipTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:TooltipOptionsTab}"));
+        mTooltipTab->setUserString("AllowTabOverflow", "true");
+        mTooltipControls = createTooltipControls(mTooltipTab, mPrefix);
+        for (auto* button : mTooltipControls.mToggles)
+            button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onTooltipToggled);
+        for (auto* choice : mTooltipControls.mChoices)
+            choice->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTooltipChoiceChanged);
+        mTooltipControls.mScale->eventScrollChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onTooltipScaleChanged);
+        mTooltipControls.mReset->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onTooltipReset);
+        updateTooltipSettings();
+    }
+
+    void SettingsWindow::updateTooltipSettings()
+    {
+        if (!mTooltipControls.mContent)
+            return;
+        mUpdatingTooltips = true;
+        const auto toggles = tooltipToggleSettings();
+        for (size_t i = 0; i < toggles.size(); ++i)
+            mTooltipControls.mToggles[i]->setCaptionWithReplacing(
+                toggles[i]->get() ? "#{Interface:On}" : "#{Interface:Off}");
+        const auto choices = tooltipChoiceSettings();
+        for (size_t i = 0; i < choices.size(); ++i)
+            mTooltipControls.mChoices[i]->setIndexSelected(static_cast<size_t>(choices[i]->get()));
+        const int scale = Settings::gui().mTravelScale.get();
+        mTooltipControls.mScale->setScrollPosition(static_cast<size_t>(scale - 50));
+        mTooltipControls.mScaleValue->setCaption(std::to_string(scale) + "%");
+        mUpdatingTooltips = false;
+        layoutTooltipControls(mTooltipControls);
+    }
+
+    void SettingsWindow::onTooltipToggled(MyGUI::Widget* sender)
+    {
+        if (mUpdatingTooltips)
+            return;
+        const auto& buttons = mTooltipControls.mToggles;
+        const auto found = std::find(buttons.begin(), buttons.end(), sender);
+        if (found == buttons.end())
+            return;
+        auto* setting = tooltipToggleSettings()[static_cast<size_t>(found - buttons.begin())];
+        setting->set(!setting->get());
+        updateTooltipSettings();
+        apply();
+    }
+
+    void SettingsWindow::onTooltipChoiceChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (mUpdatingTooltips || pos >= sender->getItemCount())
+            return;
+        const auto& choices = mTooltipControls.mChoices;
+        const auto found = std::find(choices.begin(), choices.end(), sender);
+        if (found == choices.end())
+            return;
+        tooltipChoiceSettings()[static_cast<size_t>(found - choices.begin())]->set(static_cast<int>(pos));
+        updateTooltipSettings();
+        apply();
+    }
+
+    void SettingsWindow::onTooltipScaleChanged(MyGUI::ScrollBar* /*sender*/, size_t pos)
+    {
+        if (mUpdatingTooltips)
+            return;
+        Settings::gui().mTravelScale.set(50 + static_cast<int>(std::min(pos, size_t(150))));
+        updateTooltipSettings();
+        apply();
+    }
+
+    void SettingsWindow::onTooltipReset(MyGUI::Widget* /*sender*/)
+    {
+        for (auto* setting : tooltipToggleSettings())
+            setting->reset();
+        for (auto* setting : tooltipChoiceSettings())
+            setting->reset();
+        Settings::gui().mTravelScale.reset();
+        updateTooltipSettings();
+        apply();
+    }
+
     void SettingsWindow::onShadowsButtonClicked(MyGUI::Widget* /*sender*/)
     {
         auto& shadowSettings = Settings::shadows();
@@ -1277,6 +1376,7 @@ namespace MWGui
         layoutDialogueColourControls();
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
         highlightCurrentResolution();
     }
 
@@ -1616,6 +1716,7 @@ namespace MWGui
         updateMessagePositionSettings();
         resetScrollbars();
         updateMapIconSettings();
+        updateTooltipSettings();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
     }
@@ -1634,6 +1735,7 @@ namespace MWGui
         layoutDialogueColourControls();
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
     }
 
     void SettingsWindow::computeMinimumWindowSize()
@@ -1676,6 +1778,8 @@ namespace MWGui
             mMessagePositionControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mMapIconControls.mView)
             mMapIconControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mTooltipControls.mView)
+            mTooltipControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
     }
 
     bool SettingsWindow::onControllerButtonEvent(const SDL_ControllerButtonEvent& arg)

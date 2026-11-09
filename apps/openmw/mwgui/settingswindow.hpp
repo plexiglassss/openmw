@@ -9,6 +9,7 @@
 #include "dialoguecolourcontrols.hpp"
 #include "messagepositioncontrols.hpp"
 #include "mapiconcontrols.hpp"
+#include "tooltipcontrols.hpp"
 #include "windowbase.hpp"
 
 namespace MWGui
@@ -87,6 +88,10 @@ namespace MWGui
         MapIconControls mMapIconControls;
         bool mUpdatingMapIcons = false;
 
+        MyGUI::TabItem* mTooltipTab = nullptr;
+        TooltipControls mTooltipControls;
+        bool mUpdatingTooltips = false;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
@@ -160,6 +165,13 @@ namespace MWGui
         void onMapIconCategoryChanged(MyGUI::ComboBox* sender, size_t pos);
         void onMapIconCategoryToggled(MyGUI::Widget* sender);
         void onMapIconReset(MyGUI::Widget* sender);
+
+        void initialiseTooltipControls();
+        void updateTooltipSettings();
+        void onTooltipToggled(MyGUI::Widget* sender);
+        void onTooltipChoiceChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onTooltipScaleChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onTooltipReset(MyGUI::Widget* sender);
 
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);

@@ -237,7 +237,7 @@ namespace MWGui
             SceneUtil::WorkQueue* workQueue);
         virtual ~MapWindow();
 
-        void setCellName(const std::string& cellName);
+        void setCellName(const std::string& cellName, const ESM::RefId& interiorCellId);
 
         void setAlpha(float alpha) override;
         void setVisible(bool visible) override;
@@ -334,6 +334,12 @@ namespace MWGui
         void clearEntranceWidgets();
         void insertEntrance(LocationEntrance entrance);
         void eraseEntrance(const ESM::RefId& destination);
+
+        void refreshDungeonTitle(bool force = false);
+        std::string mCellName;
+        ESM::RefId mCellNameId;
+        std::uint64_t mDungeonStatusRevision = 0;
+        bool mDungeonTitleEnabled = false;
 
         MyGUI::ScrollView* mGlobalMap;
         std::unique_ptr<MyGUI::ITexture> mGlobalMapTexture;

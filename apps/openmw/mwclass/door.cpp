@@ -7,8 +7,10 @@
 #include <components/esm3/loaddoor.hpp>
 #include <components/esm3/loadmgef.hpp>
 #include <components/sceneutil/positionattitudetransform.hpp>
+#include <components/settings/values.hpp>
 
 #include "../mwbase/environment.hpp"
+#include "../mwbase/mechanicsmanager.hpp"
 #include "../mwbase/soundmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
 #include "../mwbase/world.hpp"
@@ -273,13 +275,29 @@ namespace MWClass
         {
             text += "\n#{sTo}";
             text += "\n" + getDestination(*ref);
+            if (Settings::gui().mClearedDungeonTooltips && !ptr.getCellRef().getDestCell().empty()
+                && MWBase::Environment::get().getMechanicsManager()->isDungeonCleared(ptr.getCellRef().getDestCell()))
+                text += " #{OMWEngine:ClearedDungeonSuffix}";
+        }
+
+        bool canUseKey = false;
+        if (Settings::gui().mKeyTooltips && ptr.getCellRef().isLocked() && !ptr.getCellRef().getKey().empty())
+        {
+            const MWWorld::Ptr player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+            // Match activation's assigned-key lookup, including RefId case handling.
+            if (!player.isEmpty())
+                canUseKey = !player.getClass().getContainerStore(player).search(ptr.getCellRef().getKey()).isEmpty();
         }
 
         int lockLevel = ptr.getCellRef().getLockLevel();
-        if (lockLevel)
+        if (lockLevel || canUseKey)
         {
             if (ptr.getCellRef().isLocked())
+            {
                 text += "\n#{sLockLevel}: " + MWGui::ToolTips::toString(lockLevel);
+                if (canUseKey)
+                    text += " #{OMWEngine:KeyTooltipUseKey}";
+            }
             else
                 text += "\n#{sUnlocked}";
         }

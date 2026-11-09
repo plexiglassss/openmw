@@ -34,7 +34,7 @@ add_openmw_dir (mwinput
 
 add_openmw_dir (mwgui
     layout textinput widgets race class birth review windowmanagerimp console dialogue dialogueformatting dialoguecolourcontrols
-    windowbase statswindow messagebox messagepositioncontrols mapiconcontrols journalwindow charactercreation
+    windowbase statswindow messagebox messagepositioncontrols mapiconcontrols tooltipcontrols traveltooltip traveltooltipdata traveltooltipview journalwindow charactercreation
     mapwindow windowpinnablebase tooltips scrollwindow bookwindow resourceskin
     formatting inventorywindow luapaperdoll container hud countdialog tradewindow settingswindow
     confirmationdialog alchemywindow referenceinterface spellwindow mainmenu mainmenutextbutton quickkeysmenu
