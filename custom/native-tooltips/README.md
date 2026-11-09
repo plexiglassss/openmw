@@ -1,5 +1,18 @@
 # Native Travel Tooltips, If The Key Fits and Been There, Done That
 
+## 1.0.1: travel previews with a hidden HUD
+
+Native menu tooltips now remain visible when a dialogue camera mod hides the
+gameplay HUD. This fixes the interaction with Dynamic Actors' default
+"Disable HUD during Dialogue" option, which also applies to the Travel menu.
+The previous engine loaded the catalogue but hid the tooltip's parent widget,
+making both the description and artwork invisible.
+
+The HUD can stay hidden during cinematic dialogue. Returning to gameplay with
+the HUD hidden hides world-object tooltips as before, and loading screens
+continue to suppress all native tooltips. The existing travel data package and
+Tooltips settings remain valid.
+
 These features are part of the cumulative OpenMW engine. They build on
 `ca144536f3dd813f9fb13c832b7396d1554d71f5`, the verified native world-map-icons
 build, and retain its earlier engine fixes and settings. They do not require
@@ -110,6 +123,11 @@ the preserved source gates, full Windows linking, complete-package inventory
 and startup probes before publishing the engine artifact. Test receipts are
 included in the package. These checks do not claim a live in-game play test
 or full installed-modlist compatibility test.
+
+The hidden-HUD regression renders the real MyGUI travel panel through menu,
+gameplay and loading transitions and checks submitted image/text geometry.
+It uses substitute platform textures/fonts and does not claim GPU or live
+gameplay verification. An isolated old-policy mutation must fail this check.
 
 To roll back, close the game and launch the retained previous complete engine
 directory. The extra save record is optional and can be skipped by older

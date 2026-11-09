@@ -10,7 +10,8 @@
     "1e2191f221079d89e46c15331ba6911b44f28b53",
     "85b3384dd06528914e090f5fb39aad415e808a0b",
     "5992e061519b62853197e3f60c1e597e3593e4eb",
-    "ca144536f3dd813f9fb13c832b7396d1554d71f5"
+    "ca144536f3dd813f9fb13c832b7396d1554d71f5",
+    "016577e6e33b16080e9c6828b38a3879526714d7"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -298,6 +299,16 @@
       "sha256": "07bdd1084ad69409d14d92511e0ebfc37f53d15a02def15c27e66b62d938c745",
       "reason": "Native tooltip integration: apps/openmw/mwgui/tooltips.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
+    "apps/openmw/mwgui/tooltipvisibility.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3b5941f756faad9abe9089a414cbe75a91e1278e"
+      },
+      "bytes": 424,
+      "sha256": "bf8eeb6d7c756c599d4e2ddbeaae7441979caa99ca373f701181d03a24946497",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltipvisibility.hpp Keep native GUI tooltips visible when a cinematic dialogue mod hides the gameplay HUD; retain hidden-world and loading suppression."
+    },
     "apps/openmw/mwgui/traveltooltip.cpp": {
       "before": null,
       "after": {
@@ -391,11 +402,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f3ba46cbd660f6340236b8e94e66956e5f9bf47b"
+        "blob": "c21a3dff7e45dd10996cae379f9514c8c25e763f"
       },
-      "bytes": 99597,
-      "sha256": "28bff61a849a2932fa1fc679ea1a560a87c565ff593f6bf45442f6a64d0e19dd",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 99660,
+      "sha256": "d6d5237a09632f01884fd27eda7a2fe6e4c5a4696a7e85beb00d44a0258eb7f6",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -538,11 +549,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9e0d78337524f6ea3e2fe923298f4a892babc602"
+        "blob": "88d5dc9741813050a1d2c070cf520e1a03cedae0"
       },
-      "bytes": 58091,
-      "sha256": "1a371a4e759271b19cfcb1b9229793f490411ece615ee1c81cbb45f71c40d7fb",
-      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 63071,
+      "sha256": "b6a34348252fa0f9fa16a43db2beb56ac3b435a8cb832fae7ae629a0bd39ffde",
+      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy."
     },
     "apps/openmw_tests/mwgui/testtraveltooltipdata.cpp": {
       "before": null,
@@ -1041,21 +1052,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6a3d4a1b46a559b27a86d409b4e7cc29996706c8"
+        "blob": "50137186a45f539d2019fe0b5f6a19f797d7e5a5"
       },
-      "bytes": 6823,
-      "sha256": "0569f5b76ee4edbf752841228727fe9257f8fcc6ae87fa74cc08c7b0a849f2ab",
-      "reason": "Native tooltip integration: custom/native-tooltips/README.md; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 7789,
+      "sha256": "56796f359c9a3d7c22f4e57793f21fce4609937415006eda086c19068e65b81a",
+      "reason": "Native tooltip integration: custom/native-tooltips/README.md; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Document the reproduced cinematic HUD interaction and the native visibility correction in version 1.0.1."
     },
     "custom/native-tooltips/verify-tests.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "b7ec240ea8eed617f8bda0b845327f7d8de265d1"
+        "blob": "9eab8d82f67e4a1c2adc992c96f3badcab833434"
       },
-      "bytes": 2120,
-      "sha256": "4421585504c987edeaf36ca891602bcde5207211267544d81a32880eb6f0e0b8",
-      "reason": "Native tooltip integration: custom/native-tooltips/verify-tests.py; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 2447,
+      "sha256": "1b43c3c6a12147874710a8a754c7ea1a31d3fda1cad6bd98d592bcc370e144f7",
+      "reason": "Native tooltip integration: custom/native-tooltips/verify-tests.py; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Require the exact hidden-HUD visibility regression in both early-controls and full-engine test receipts."
     },
     "custom/performance-capture-followup/Start-Capture.ps1": {
       "before": {
