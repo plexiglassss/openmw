@@ -133,11 +133,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "d80a0213a26735785c3739b3d1e91aece4236aa4"
+        "blob": "3b0695df51d00387192919000b7078bbe18a00c2"
       },
-      "bytes": 11729,
-      "sha256": "8811986ebb76b535f338a3dc46f2301c6b9afe857d5cbe56979babd0d0b81cba",
-      "reason": "Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code. Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code."
+      "bytes": 11728,
+      "sha256": "68b23876a3f59a7b84990570978f6a6ab9b96e90da1040175a2d94bbcb4c0ff9",
+      "reason": "Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code."
     },
     "apps/components_tests/shader/shadervisitor.cpp": {
       "before": null,
@@ -821,11 +821,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "9467b75f0089598248e17e54d9cbe82b83d391e9"
+        "blob": "fdead42dcf951d9f7fbf0bd1b6ae49791737cf4a"
       },
-      "bytes": 18945,
-      "sha256": "f4f4d69300614fba30c8fb5931548ad0501d0d043f11e167b8fb9e53bd2bf2eb",
-      "reason": "Horror interior renderer profile: Execute strict profile parsing, active-content gating, exact-cell lookup, shared/exterior exclusions and actual scene-uniform transition/reset tests. Horror interior renderer profile: Execute strict profile parsing, active-content gating, exact-cell lookup, shared/exterior exclusions and actual scene-uniform transition/reset tests."
+      "bytes": 18944,
+      "sha256": "9a1b7c9d48df43f75d378e55cff710bda51d6ba30531dc9bc685fdc1717e1db0",
+      "reason": "Horror interior renderer profile: Execute strict profile parsing, active-content gating, exact-cell lookup, shared/exterior exclusions and actual scene-uniform transition/reset tests."
     },
     "apps/openmw_tests/mwworld/testcelllookup.cpp": {
       "before": {
