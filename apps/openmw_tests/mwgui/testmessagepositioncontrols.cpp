@@ -75,10 +75,15 @@ namespace MWGui
             {
                 mSize = { width, height };
             }
-            void loadFromFile(const std::string&) override {}
+            void loadFromFile(const std::string& name) override
+            {
+                ++mLoadCount;
+                mSource = name;
+                mSize = { 16, 16 };
+            }
             void saveToFile(const std::string&) override {}
             void setShader(const std::string&) override {}
-            void destroy() override {}
+            void destroy() override { mSource.clear(); }
             void* lock(MyGUI::TextureUsage) override { return nullptr; }
             void unlock() override {}
             bool isLocked() const override { return false; }
@@ -87,10 +92,14 @@ namespace MWGui
             MyGUI::PixelFormat getFormat() const override { return MyGUI::PixelFormat::R8G8B8A8; }
             MyGUI::TextureUsage getUsage() const override { return MyGUI::TextureUsage::Static; }
             size_t getNumElemBytes() const override { return 4; }
+            size_t getLoadCount() const { return mLoadCount; }
+            const std::string& getSource() const { return mSource; }
 
         private:
             std::string mName;
             MyGUI::IntSize mSize{ 16, 16 };
+            size_t mLoadCount = 0;
+            std::string mSource;
         };
 
         class ControlsVertexBuffer final : public MyGUI::IVertexBuffer
@@ -118,7 +127,38 @@ namespace MWGui
                 return texture.get();
             }
             void destroyTexture(MyGUI::ITexture* texture) override { mTextures.erase(texture->getName()); }
-            MyGUI::ITexture* getTexture(const std::string& name) override { return createTexture(name); }
+            MyGUI::ITexture* getTexture(const std::string& name) override
+            {
+                // Match the native manager's null detach and first-access
+                // loading behavior, while substituting the texture data.
+                if (name.empty())
+                    return nullptr;
+                if (const auto it = mTextures.find(name); it != mTextures.end())
+                    return it->second.get();
+                auto* texture = createTexture(name);
+                texture->loadFromFile(name);
+                return texture;
+            }
+            size_t textureCount() const { return mTextures.size(); }
+            const ControlsTexture* findTexture(const std::string& name) const
+            {
+                const auto it = mTextures.find(name);
+                return it != mTextures.end() ? it->second.get() : nullptr;
+            }
+            const ControlsTexture* findTextureBySource(const std::string& source) const
+            {
+                for (const auto& entry : mTextures)
+                    if (entry.second->getSource() == source)
+                        return entry.second.get();
+                return nullptr;
+            }
+            std::vector<std::string> textureNames() const
+            {
+                std::vector<std::string> result;
+                for (const auto& entry : mTextures)
+                    result.push_back(entry.first);
+                return result;
+            }
             const MyGUI::IntSize& getViewSize() const override { return mSize; }
             MyGUI::VertexColourType getVertexFormat() const override { return MyGUI::VertexColourType::ColourABGR; }
             void setViewSize(int width, int height) override
@@ -976,6 +1016,62 @@ namespace MWGui
             ASSERT_NO_THROW(size = view.render(image, "A distant port", longDescription(), false, style));
             view.setVisible(true);
             expectTravelGeometry(size, style, false);
+        }
+
+        TEST_F(TravelTooltipViewTest, DestinationChangesReuseOneTextureAndReleaseItWithTheView)
+        {
+            std::vector<std::string> persistentTextures;
+            std::string ownedName;
+            {
+                TravelTooltipView view(mPanel);
+                // Skin and font textures are created by the real widgets. The
+                // optional destination image should add only one owned texture.
+                persistentTextures = mRenderer.textureNames();
+                TravelTooltips::Image image{ 0, "", "textures/first_destination.tga", 800, 400 };
+                TravelTooltipStyle style;
+                ASSERT_NO_THROW(view.render(image, "First port", "A short description.", false, style));
+                const auto* owned = mRenderer.findTextureBySource(image.mPath);
+                ASSERT_NE(owned, nullptr);
+                ownedName = owned->getName();
+                EXPECT_NE(ownedName, image.mPath);
+                EXPECT_EQ(mRenderer.textureCount(), persistentTextures.size() + 1);
+                EXPECT_EQ(owned->getLoadCount(), 1u);
+
+                for (size_t i = 0; i < 64; ++i)
+                {
+                    SCOPED_TRACE(i);
+                    image.mPath = "textures/destination_" + std::to_string(i) + ".tga";
+                    ASSERT_NO_THROW(view.render(image, "Another port", "A short description.", false, style));
+                    ASSERT_EQ(mRenderer.findTextureBySource(image.mPath), owned);
+                    ASSERT_EQ(mRenderer.findTexture(ownedName), owned);
+                    EXPECT_EQ(mRenderer.textureCount(), persistentTextures.size() + 1);
+                    EXPECT_EQ(owned->getLoadCount(), i + 2);
+
+                    // Geometry, colour, font and overview changes with the same
+                    // source must not decode or register the image again.
+                    style.mScale = std::array{ 50, 100, 200 }[i % 3];
+                    style.mWide = i % 2 != 0;
+                    style.mColour = static_cast<int>(i % 11);
+                    style.mTitleFont = static_cast<int>(i % 3);
+                    style.mTextFont = static_cast<int>((i + 1) % 3);
+                    style.mViewWidth = i % 2 ? 640 : 1280;
+                    style.mViewHeight = i % 2 ? 480 : 720;
+                    ASSERT_NO_THROW(view.render(image, "Another port", "A short description.", false, style));
+                    ASSERT_NO_THROW(view.render(image, "", "", true, style));
+                    EXPECT_EQ(mRenderer.findTextureBySource(image.mPath), owned);
+                    EXPECT_EQ(owned->getLoadCount(), i + 2);
+                    EXPECT_EQ(mRenderer.textureCount(), persistentTextures.size() + 1);
+                }
+                for (const auto& name : persistentTextures)
+                    EXPECT_NE(mRenderer.findTexture(name), nullptr);
+            }
+            EXPECT_EQ(mRenderer.findTexture(ownedName), nullptr);
+            EXPECT_EQ(mRenderer.textureNames(), persistentTextures);
+            // Parent-owned widgets are still alive here; destroying them after
+            // the view's image release must remain a normal MyGUI teardown.
+            mGui.destroyWidget(mPanel);
+            mPanel = nullptr;
+            EXPECT_EQ(mRenderer.textureNames(), persistentTextures);
         }
     }
 }

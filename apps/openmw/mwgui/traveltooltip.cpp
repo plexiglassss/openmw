@@ -32,7 +32,8 @@ namespace MWGui
         try
         {
             const auto* vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
-            const auto stream = vfs->find(VFS::Path::NormalizedView(TravelTooltips::manifestPath));
+            const VFS::Path::Normalized path(TravelTooltips::manifestPath);
+            const auto stream = vfs->find(path);
             if (!stream)
             {
                 Log(Debug::Warning) << "Illustrated travel tooltips: missing " << TravelTooltips::manifestPath

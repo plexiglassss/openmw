@@ -78,6 +78,8 @@ and creates a native illustrated panel. It preserves the current travel
 destinations, prices and travel actions. A missing/invalid optional art pack
 falls back to normal travel UI and records a diagnostic in the OpenMW log.
 Images remain stable during a hover and can vary when reopening travel.
+The preview reuses one owned GUI texture as destinations change; viewing
+more illustrations does not retain the entire catalogue in the GUI cache.
 
 ## Data format and attribution
 

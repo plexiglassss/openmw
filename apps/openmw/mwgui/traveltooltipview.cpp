@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 
 #include <MyGUI_EditBox.h>
 #include <MyGUI_ImageBox.h>
+#include <MyGUI_ITexture.h>
+#include <MyGUI_RenderManager.h>
 #include <MyGUI_TextIterator.h>
 #include <MyGUI_Widget.h>
 
@@ -47,6 +50,17 @@ namespace MWGui
         mPanel->setVisible(false);
     }
 
+    TravelTooltipView::~TravelTooltipView()
+    {
+        // The view is destroyed before its parent widgets and before MyGUI shuts down.
+        // Remove the widget's render reference before releasing the owned texture.
+        if (mTexture)
+        {
+            mImage->setImageTexture("");
+            MyGUI::RenderManager::getInstance().destroyTexture(mTexture);
+        }
+    }
+
     MyGUI::IntSize TravelTooltipView::render(const TravelTooltips::Image& image, std::string_view title,
         std::string_view description, bool overview, const TravelTooltipStyle& style)
     {
@@ -59,7 +73,21 @@ namespace MWGui
         const int maxWidth = std::max(1, style.mViewWidth - 16);
         const int maxHeight = std::max(1, style.mViewHeight - 16);
 
-        mImage->setImageTexture(image.mPath);
+        if (mLoadedImage != image.mPath)
+        {
+            if (!mTexture)
+                mTexture = MyGUI::RenderManager::getInstance().createTexture(
+                    "OpenMW_TravelTooltip_" + std::to_string(reinterpret_cast<std::uintptr_t>(this)));
+
+            // A path passed directly to setImageTexture is cached by the GUI renderer
+            // for its entire lifetime. Reuse one owned texture for the large art pack.
+            mImage->setImageTexture("");
+            mLoadedImage.clear();
+            mTexture->destroy();
+            mTexture->loadFromFile(image.mPath);
+            mImage->setImageTexture(mTexture->getName());
+            mLoadedImage = image.mPath;
+        }
         mImage->setColour(colours[std::clamp(style.mColour, 0, 10)]);
         mTitle->setVisible(!overview);
         mDescription->setVisible(!overview);

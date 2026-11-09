@@ -5,6 +5,7 @@
 
 #include <MyGUI_Types.h>
 
+#include <string>
 #include <string_view>
 
 namespace MyGUI
@@ -12,6 +13,7 @@ namespace MyGUI
     class Widget;
     class ImageBox;
     class EditBox;
+    class ITexture;
 }
 
 namespace MWGui
@@ -34,6 +36,12 @@ namespace MWGui
     {
     public:
         explicit TravelTooltipView(MyGUI::Widget* parent);
+        ~TravelTooltipView();
+        TravelTooltipView(const TravelTooltipView&) = delete;
+        TravelTooltipView& operator=(const TravelTooltipView&) = delete;
+        TravelTooltipView(TravelTooltipView&&) = delete;
+        TravelTooltipView& operator=(TravelTooltipView&&) = delete;
+
         MyGUI::IntSize render(const TravelTooltips::Image& image, std::string_view title,
             std::string_view description, bool overview, const TravelTooltipStyle& style);
         void setVisible(bool visible);
@@ -43,6 +51,8 @@ namespace MWGui
         MyGUI::ImageBox* mImage = nullptr;
         MyGUI::EditBox* mTitle = nullptr;
         MyGUI::EditBox* mDescription = nullptr;
+        MyGUI::ITexture* mTexture = nullptr;
+        std::string mLoadedImage;
     };
 }
 

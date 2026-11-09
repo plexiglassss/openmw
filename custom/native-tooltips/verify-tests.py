@@ -7,9 +7,9 @@ import xml.etree.ElementTree as ET
 
 
 REQUIRED = {
-    "controls": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 3, "TravelTooltips": 6},
+    "controls": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 4, "TravelTooltips": 6},
     "components": {"Esm3DungeonStatesTest": 19},
-    "engine": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 3, "TravelTooltips": 6},
+    "engine": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 4, "TravelTooltips": 6},
 }
 
 
