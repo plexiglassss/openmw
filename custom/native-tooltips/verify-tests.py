@@ -7,9 +7,13 @@ import xml.etree.ElementTree as ET
 
 
 REQUIRED = {
-    "controls": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 4, "TravelTooltips": 6},
+    "controls": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 5, "TravelTooltips": 6},
     "components": {"Esm3DungeonStatesTest": 19},
-    "engine": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 4, "TravelTooltips": 6},
+    "engine": {"TooltipControlsTest": 4, "TravelTooltipViewTest": 5, "TravelTooltips": 6},
+}
+
+REQUIRED_CASES = {
+    "TravelTooltipViewTest": {"HiddenHudMenuTooltipsRenderAcrossVisibilityTransitions"},
 }
 
 
@@ -24,6 +28,9 @@ def inspect(path, suites):
         cases = found[0].findall("testcase")
         if len(cases) < minimum:
             raise ValueError(f"Required regression cases missing: {name}")
+        missing = REQUIRED_CASES.get(name, set()) - {case.get("name") for case in cases}
+        if missing:
+            raise ValueError(f"Required named regressions missing: {name}: {sorted(missing)}")
         for case in cases:
             if (case.get("status") != "run" or case.get("result") != "completed"
                     or case.find("failure") is not None or case.find("skipped") is not None
@@ -43,7 +50,7 @@ def main():
     for phase, suites in REQUIRED.items():
         result["receipts"][phase] = inspect(getattr(args, phase), suites)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    print("PASS: required native tooltip form, selection and save tests executed successfully.")
+    print("PASS: required native tooltip form, visibility, selection and save tests executed successfully.")
 
 
 if __name__ == "__main__":

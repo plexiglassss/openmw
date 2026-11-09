@@ -1,6 +1,7 @@
 #include "apps/openmw/mwgui/messagepositioncontrols.hpp"
 #include "apps/openmw/mwgui/mapiconcontrols.hpp"
 #include "apps/openmw/mwgui/tooltipcontrols.hpp"
+#include "apps/openmw/mwgui/tooltipvisibility.hpp"
 #include "apps/openmw/mwgui/traveltooltipview.hpp"
 #include "components/mapmarkers/classification.hpp"
 #include "apps/openmw/mwgui/resourceskin.hpp"
@@ -15,6 +16,7 @@
 #include <MyGUI_FontManager.h>
 #include <MyGUI_Gui.h>
 #include <MyGUI_ImageBox.h>
+#include <MyGUI_IRenderTarget.h>
 #include <MyGUI_LanguageManager.h>
 #include <MyGUI_LayerManager.h>
 #include <MyGUI_LogManager.h>
@@ -192,6 +194,34 @@ namespace MWGui
             MyGUI::ITexture* mTexture;
             MyGUI::GlyphInfo mLetter{ 0, 8.f, 16.f, 8.f };
             MyGUI::GlyphInfo mSpace{ ' ', 4.f, 16.f, 4.f };
+        };
+
+        class ControlsRenderTarget final : public MyGUI::IRenderTarget
+        {
+        public:
+            explicit ControlsRenderTarget(MyGUI::IntSize size)
+            {
+                mInfo.maximumDepth = 1.f;
+                mInfo.pixScaleX = 1.f / size.width;
+                mInfo.pixScaleY = 1.f / size.height;
+                mInfo.aspectCoef = static_cast<float>(size.height) / size.width;
+            }
+            void begin() override {}
+            void end() override {}
+            const MyGUI::RenderTargetInfo& getInfo() const override { return mInfo; }
+            void doRender(MyGUI::IVertexBuffer*, MyGUI::ITexture* texture, size_t count) override
+            {
+                mVertices[texture] += count;
+            }
+            size_t verticesFor(const MyGUI::ITexture* texture) const
+            {
+                const auto found = mVertices.find(texture);
+                return found == mVertices.end() ? 0 : found->second;
+            }
+
+        private:
+            MyGUI::RenderTargetInfo mInfo{};
+            std::map<const MyGUI::ITexture*, size_t> mVertices;
         };
 
         class MessagePositionControlsTest : public testing::Test
@@ -999,6 +1029,69 @@ namespace MWGui
             EXPECT_FALSE(panel->getVisible());
             view.setVisible(true);
             EXPECT_TRUE(panel->getVisible());
+        }
+
+        TEST_F(TravelTooltipViewTest, HiddenHudMenuTooltipsRenderAcrossVisibilityTransitions)
+        {
+            // Use the native tooltip's Popup parent and its production visibility
+            // policy. A locally visible preview can still be entirely suppressed
+            // by this ancestor when a dialogue mod hides the gameplay HUD.
+            mGui.destroyWidget(mPanel);
+            mPanel = mGui.createWidget<MyGUI::Widget>(
+                "", { 0, 0, 300, 300 }, MyGUI::Align::Default, "Popup");
+            mPanel->setNeedMouseFocus(false);
+            mRenderer.setViewSize(1280, 720);
+            TravelTooltipView view(mPanel);
+            const TravelTooltips::Image image{ 0, "", "textures/destination.tga", 800, 400 };
+            const auto size = view.render(
+                image, "Balmora", "A destination description that must remain visible.", false, TravelTooltipStyle{});
+            auto* panel = mPanel->findWidget("TravelTooltipPanel");
+            auto* title = panel->findWidget("TravelTooltipTitle");
+            auto* description = panel->findWidget("TravelTooltipDescription");
+            auto* art = panel->findWidget("TravelTooltipImage");
+            const auto* imageTexture = mRenderer.findTextureBySource(image.mPath);
+            ASSERT_NE(imageTexture, nullptr);
+            const auto* fontTexture = mRenderer.findTexture("TestFont");
+            ASSERT_NE(fontTexture, nullptr);
+
+            const auto transition = [&](const char* state, bool hudEnabled, bool guiMode, bool loading,
+                                        bool expectedVisible) {
+                SCOPED_TRACE(state);
+                mPanel->setVisible(isTooltipRootVisible(hudEnabled, guiMode, loading));
+                // ToolTips::update hides its children before showing the current
+                // hover preview. Keep reusing the same loaded image across modes.
+                for (size_t i = 0; i < mPanel->getChildCount(); ++i)
+                    mPanel->getChildAt(i)->setVisible(false);
+                view.setVisible(true);
+                mPanel->setCoord(60, 80, size.width, size.height);
+
+                ControlsRenderTarget target(mRenderer.getViewSize());
+                MyGUI::LayerManager::getInstance().renderToTarget(&target, false);
+                EXPECT_TRUE(panel->getVisible());
+                for (const auto* widget : { mPanel, panel, title, description, art })
+                    EXPECT_EQ(widget->getInheritedVisible(), expectedVisible);
+                if (expectedVisible)
+                {
+                    EXPECT_EQ(target.verticesFor(imageTexture), 6u);
+                    EXPECT_GT(target.verticesFor(fontTexture), 0u);
+                }
+                else
+                {
+                    EXPECT_EQ(target.verticesFor(imageTexture), 0u);
+                    EXPECT_EQ(target.verticesFor(fontTexture), 0u);
+                }
+            };
+
+            transition("HUD hidden during gameplay", false, false, false, false);
+            transition("Dialogue entered while HUD stays hidden", false, true, false, true);
+            transition("Travel opened over Dialogue", false, true, false, true);
+            transition("Travel closed back to Dialogue", false, true, false, true);
+            transition("All menus closed while HUD stays hidden", false, false, false, false);
+            transition("Ordinary gameplay with HUD enabled", true, false, false, true);
+            transition("Loading with HUD enabled", true, true, true, false);
+            transition("Loading wallpaper with HUD hidden", false, true, true, false);
+            transition("Travel resumed with HUD hidden", false, true, false, true);
+            transition("Travel and Dialogue closed again", false, false, false, false);
         }
 
         TEST_F(TravelTooltipViewTest, TooSmallViewportRejectsThePreviewInsteadOfClippingItsBody)
