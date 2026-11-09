@@ -10,6 +10,8 @@
 #include <components/debug/debuglog.hpp>
 #include <components/resource/scenemanager.hpp>
 
+#include "vertexattributes.hpp"
+
 namespace SceneUtil
 {
 
@@ -146,6 +148,23 @@ namespace SceneUtil
                     = static_cast<osg::Array*>(tangents->clone(osg::CopyOp::DEEP_COPY_ALL));
                 tangentArray->setVertexBufferObject(vbo);
                 to.setTexCoordArray(7, tangentArray, osg::Array::BIND_PER_VERTEX);
+            }
+            bool classicTangent = false;
+            const auto* classicTangents = from.getVertexAttribArray(ClassicTangentAttribute);
+            if (classicTangents)
+                classicTangents->getUserValue(ClassicTangentUserValue, classicTangent);
+            if (classicTangent)
+            {
+                if (const auto* tangents
+                    = dynamic_cast<const osg::Vec4Array*>(from.getVertexAttribArray(ClassicTangentAttribute)))
+                {
+                    // Match the existing osgAnimation tangent path: isolate both draw buffers without
+                    // changing the established external RigTransform implementation.
+                    osg::ref_ptr<osg::Array> tangentArray
+                        = static_cast<osg::Array*>(tangents->clone(osg::CopyOp::DEEP_COPY_ALL));
+                    tangentArray->setVertexBufferObject(vbo);
+                    to.setVertexAttribArray(ClassicTangentAttribute, tangentArray, osg::Array::BIND_PER_VERTEX);
+                }
             }
         }
     }

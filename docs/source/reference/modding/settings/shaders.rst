@@ -34,6 +34,33 @@ Shaders Settings
    Prevents overly bright or shifted colors but can dull lighting.
 
 .. omw-setting::
+   :title: interior lighting profiles
+   :type: boolean
+   :range: true, false
+   :default: true
+
+   Enable installed classic lighting profiles from ``shader_profiles/`` in the virtual file system.
+   A profile applies only in its exact interior allowlist, while all of its required content files are active.
+   It clamps combined lighting, disables forced per-pixel lighting, and suppresses automatically discovered
+   object normal and specular maps. Explicitly assigned maps retain their normal behavior.
+   The saved global settings remain the ordinary settings outside the profile. Inventory previews,
+   post-processing and terrain-map preferences are unchanged. Profiles are selected on cell transitions,
+   including direct save loads, without reloading shaders or rebuilding model templates.
+
+   Each YAML or JSON file defines one profile. Names match whole interior IDs case-insensitively;
+   exterior cells, prefix patterns and record-writer plugins never select a profile.
+
+   .. code-block:: yaml
+
+      format: 1
+      name: Example classic interiors
+      mode: classic
+      required-content:
+        - Example.esp
+      interiors:
+        - Example, Cave
+
+.. omw-setting::
    :title: auto use object normal maps
    :type: boolean
    :range: true, false

@@ -1,7 +1,7 @@
 name: OpenMW - combined native performance
 on:
   pull_request:
-    branches: [perf/gameplay-activation-20261106]
+    branches: [perf/gameplay-activation-20261106, perf/combined-native-20261109]
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 env:
@@ -15,6 +15,7 @@ concurrency:
 jobs:
   Windows:
     if: github.head_ref != 'fix/windows-package-20261106'
+    needs: GLRegression
     runs-on: windows-2022
     env:
       # Keep tracked bytes identical to the verified source on Windows too.
@@ -410,6 +411,22 @@ jobs:
           components/CMakeFiles/components.dir/esm3/dungeonstates.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/esm3/testdungeonstates.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testtraveltooltipdata.cpp.obj
+      - name: Compile interior lighting profiles and shader provenance tests first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/interiorlighting.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/renderingmanager.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/stateupdater.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/riggeometryosgaextension.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/optimizer.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwrender/testinteriorlighting.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/shader/shadervisitor.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/shader/classicbindings.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/shader/classicgeometry.cpp.obj
       - name: Prepare test DLLs
         shell: pwsh
         run: |
@@ -487,6 +504,112 @@ jobs:
         run: |
           python custom/native-tooltips/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Required tooltip forms, selection or save regressions did not execute successfully' }
+      - uses: actions/download-artifact@v5
+        with:
+          name: horror-shader-render-evidence-${{ env.CUMULATIVE_COMMIT }}
+          path: .
+      - name: Require executed interior profile and shader provenance regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $required = @(
+            @{ Path = 'openmw-tests.xml'; Suite = 'InteriorLightingProfileTest'; Cases = @(
+              'parsesExplicitClassicAllowlistWithoutChangingNames',
+              'rejectsMissingUnknownAndRepeatedFields',
+              'rejectsMalformedRootsAndUnsupportedFormatsOrModes',
+              'rejectsEmptyNamesAndWronglyTypedLists',
+              'rejectsContentPathsAndEmbeddedLineBreaks',
+              'matchesOnlyExactConfiguredInteriorsWithAsciiCaseFolding',
+              'requiresEveryContentFileAndAcceptsActiveBasenamesAcrossPlatforms',
+              'inactiveContentCannotPartiallyInstallOrRemoveAProfile',
+              'excludesExteriorsObsoleteNamesAndUnlistedSharedVenues',
+              'doesNotInterpretWildcardOrRegularExpressionCellNames',
+              'foldsAsciiWithoutChangingNonAsciiNameBytes',
+              'sameNamedProfilesMergeAndRepeatedCellsAreIdempotent',
+              'overlappingDifferentProfilesAreRejectedAtomically',
+              'invalidDirectProfilesCannotPartiallyRegisterCells',
+              'clearRemovesAllBindingsAndAllowsFreshContentSelection',
+              'parseFailureLeavesPreviouslyRegisteredProfilesIntact',
+              'shippedHorrorProfileRequiresItsContentAndOnlySelectsDedicatedInteriors',
+              'stateUpdaterPublishesClassicUniformAcrossOnOffOnAndReset'
+            ) },
+            @{ Path = 'components-tests.xml'; Suite = 'ShaderVisitorTest'; Cases = @(
+              'discovered_maps_keep_provenance_after_revisit_and_clone',
+              'same_texture_has_independent_explicit_and_automatic_bindings',
+              'explicit_child_binding_replaces_inherited_automatic_provenance',
+              'last_normal_binding_supplies_its_own_provenance',
+              'explicit_maps_are_not_reclassified_when_automatic_files_exist',
+              'automatic_higher_units_do_not_hide_explicit_normal_or_specular',
+              'physically_shadowed_binding_survives_deep_userdata_copy',
+              'authored_edit_removes_stale_fallback_across_repeated_visits',
+              'fallback_uses_low_free_unit_below_reserved_slots',
+              'exhausted_units_preserve_ordinary_material_without_overwriting_reserved_slot'
+            ) },
+            @{ Path = 'components-tests.xml'; Suite = 'ClassicBindingTest'; Cases = @(
+              'equalUvsWithDifferentFallbackSamplerUnitsDoNotAliasPrograms',
+              'inheritedExplicitFallbackSurvivesTemplateOptimizationAndRecreation',
+              'deepClonedResolvedMaterialRetainsItsExplicitAlternativeAfterRecreation',
+              'cachedFallbackDoesNotOverrideCurrentExplicitAncestor'
+            ) },
+            @{ Path = 'components-tests.xml'; Suite = 'ClassicInteriorGeometryTest'; Cases = @(
+              'nif_skinning_rotates_both_tangents_and_isolates_draw_buffers',
+              'shallow_rig_clones_keep_template_and_draw_arrays_independent',
+              'osga_draw_buffers_do_not_share_marked_tangent_arrays',
+              'static_flatten_rotates_marked_tangents_without_mutating_source',
+              'static_flatten_preserves_unmarked_attribute_six'
+            ) }
+          )
+          $proof = @()
+          foreach ($requirement in $required) {
+            [xml]$document = Get-Content -Raw -LiteralPath $requirement.Path
+            $cases = @($document.SelectNodes('/testsuites/testsuite/testcase'))
+            foreach ($caseName in $requirement.Cases) {
+              $matched = @($cases | Where-Object { $_.classname -eq $requirement.Suite -and $_.name -eq $caseName })
+              if ($matched.Count -ne 1 -or $matched[0].status -ne 'run' -or
+                  $matched[0].result -ne 'completed' -or
+                  $matched[0].SelectNodes('failure|error|skipped').Count -ne 0) {
+                throw "Required interior lighting regression did not pass: $($requirement.Suite).$caseName"
+              }
+            }
+            $proof += @{
+              suite = $requirement.Suite
+              xml_path = $requirement.Path
+              xml_sha256 = (Get-FileHash -LiteralPath $requirement.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+              required_cases = $requirement.Cases
+              executed_required_cases = $requirement.Cases.Count
+            }
+          }
+          $head = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -or $head -ne $env:CUMULATIVE_COMMIT) { throw 'Interior lighting source commit mismatch' }
+          $shader = Get-Content -Raw horror-shader-render-tests.json | ConvertFrom-Json
+          if ($shader.status -ne 'PASS' -or $shader.git_commit -ne $head -or
+              $shader.base_commit -ne '8bd0d90b2727b8d654288d5c42e45a3edefc7146' -or
+              $shader.lighting_method_count -ne 2 -or $shader.executed_total -lt 54 -or
+              @($shader.shadow_compile_cases).Count -ne 6 -or
+              $shader.executed_total -ne ($shader.material_case_count * $shader.lighting_method_count) -or
+              @($shader.cases).Count -ne $shader.executed_total -or
+              $shader.counts.programs_linked -lt ($shader.executed_total * 3) -or
+              $shader.counts.shaders_compiled -lt ($shader.counts.programs_linked * 2) -or
+              $shader.counts.render_passes -lt ($shader.executed_total * 5)) {
+            throw 'Shader compile/render evidence is missing, incomplete, or belongs to another source'
+          }
+          $shaderSources = @($shader.source_sha256.PSObject.Properties)
+          if ($shaderSources.Count -lt 4) { throw 'Shader render evidence has no bound shader sources' }
+          foreach ($source in $shaderSources) {
+            if ($source.Name -notmatch '^files/shaders/[a-zA-Z0-9_./-]+$' -or $source.Name -match '(^|/)\.\.(/|$)' -or
+                (Get-FileHash -LiteralPath $source.Name -Algorithm SHA256).Hash.ToLowerInvariant() -ne $source.Value) {
+              throw "Shader render evidence does not bind current shader bytes: $($source.Name)"
+            }
+          }
+          @{
+            schema_version = 1
+            result = 'PASS'
+            git_commit = $head
+            suites = $proof
+            profile_sha256 = (Get-FileHash custom/horror-lighting/profile/shader_profiles/horror_mod.yaml -Algorithm SHA256).Hash.ToLowerInvariant()
+            shader_report_sha256 = (Get-FileHash horror-shader-render-tests.json -Algorithm SHA256).Hash.ToLowerInvariant()
+            in_game_tested = $false
+          } | ConvertTo-Json -Depth 10 | Set-Content horror-lighting-native-tests.json -Encoding utf8
       - name: Package only after test success
         id: package
         shell: pwsh
@@ -527,7 +650,47 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nSaneMagic adapters and same-executable launch modes included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          New-Item -ItemType Directory -Force install/resources/vfs/shader_profiles,install/tools/horror-lighting,install/verification/horror-lighting | Out-Null
+          Copy-Item custom/horror-lighting/profile/shader_profiles/horror_mod.yaml install/resources/vfs/shader_profiles/horror_mod.yaml
+          Copy-Item custom/horror-lighting/README.md install/tools/horror-lighting/README.md
+          Copy-Item horror-lighting-native-tests.json,horror-shader-render-tests.json install/verification/horror-lighting/
+          $shaderList = [regex]::Match((Get-Content -Raw files/shaders/CMakeLists.txt), '(?ms)^set\(SHADER_FILES\s*(.*?)^\)')
+          if (-not $shaderList.Success) { throw 'Cannot identify the declared engine shader resource list' }
+          $shaderPaths = @($shaderList.Groups[1].Value -split '\r?\n' |
+            ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+          if ($shaderPaths.Count -eq 0) { throw 'No declared shader resources were found' }
+          $resourceProof = @()
+          foreach ($relative in $shaderPaths) {
+            if ($relative -notmatch '^[a-zA-Z0-9_./-]+$' -or $relative -match '(^|/)\.\.(/|$)') {
+              throw "Unexpected shader resource path: $relative"
+            }
+            $source = Join-Path 'files/shaders' $relative
+            $destination = Join-Path 'install/resources/shaders' $relative
+            $expected = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
+              throw "Packaged shader differs from current source: $relative"
+            }
+            $resourceProof += @{ source = $source; package = "resources/shaders/$relative"; sha256 = $expected;
+                                 bytes = (Get-Item -LiteralPath $destination).Length }
+          }
+          $profileSource = 'custom/horror-lighting/profile/shader_profiles/horror_mod.yaml'
+          $profileDestination = 'install/resources/vfs/shader_profiles/horror_mod.yaml'
+          $profileHash = (Get-FileHash -LiteralPath $profileSource -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ((Get-FileHash -LiteralPath $profileDestination -Algorithm SHA256).Hash.ToLowerInvariant() -ne $profileHash) {
+            throw 'Packaged Horror profile differs from the tested source'
+          }
+          @{
+            schema_version = 1
+            result = 'PASS'
+            git_commit = $env:CUMULATIVE_COMMIT
+            shader_resources = $resourceProof
+            profile = @{ source = $profileSource; package = 'resources/vfs/shader_profiles/horror_mod.yaml'; sha256 = $profileHash }
+            runtime_discovery = 'Engine::setDataDirs adds the resources/vfs directory before profile discovery'
+            native_report_sha256 = (Get-FileHash horror-lighting-native-tests.json -Algorithm SHA256).Hash.ToLowerInvariant()
+            shader_report_sha256 = (Get-FileHash horror-shader-render-tests.json -Algorithm SHA256).Hash.ToLowerInvariant()
+            in_game_tested = $false
+          } | ConvertTo-Json -Depth 10 | Set-Content install/verification/horror-lighting/horror-lighting-package.json -Encoding utf8
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nHorror interior lighting profiles; automatic exact-cell profile and shader render verification; see tools/horror-lighting/README.md`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nSaneMagic adapters and same-executable launch modes included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/combined-performance/prepare-package.py install
           if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
           python custom/cumulative/prepare-upgrade.py install --town-performance
@@ -589,6 +752,9 @@ jobs:
             lua-ui-legacy-updates-tests.xml
             combined-performance-off-tests.xml
             install/COMBINED-PACKAGE.json
+            horror-lighting-native-tests.json
+            horror-shader-render-tests.json
+            install/verification/horror-lighting/**
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json
             loading-repair-applied.patch
@@ -603,10 +769,23 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ env.CUMULATIVE_COMMIT }}
+          fetch-depth: 100
       - name: Install headless GL test dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl1 libgl1-mesa-dri g++
+        run: sudo apt-get update && sudo apt-get install -y libgl-dev libgl1 libegl1 libgl1-mesa-dri g++
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
+      - name: Compile and render both interior lighting modes with original-source references
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 'true'
+          PYTHONOPTIMIZE: '0'
+        run: |
+          git fetch --no-tags --depth=1 origin 8bd0d90b2727b8d654288d5c42e45a3edefc7146
+          python3 scripts/test_classic_interior_shaders.py --output horror-shader-render-tests.json
+      - uses: actions/upload-artifact@v6
+        with:
+          name: horror-shader-render-evidence-${{ env.CUMULATIVE_COMMIT }}
+          path: horror-shader-render-tests.json
+          if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'
     needs: GLRegression

@@ -32,6 +32,8 @@ set(SHADER_FILES
     lib/light/bindings.glsl
     lib/light/bindings-legacy.glsl
     lib/light/clamp.glsl
+    lib/light/classicinterior.glsl
+    lib/light/objectlighting.glsl
     lib/light/util.glsl
     lib/light/struct.glsl
     lib/sky/passes.glsl

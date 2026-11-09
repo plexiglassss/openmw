@@ -21,6 +21,10 @@ varying vec2 emissiveMapUV;
 uniform sampler2D normalMap;
 varying vec2 normalMapUV;
 #endif
+#if @classicNormalMap
+uniform sampler2D classicNormalMap;
+varying vec2 classicNormalMapUV;
+#endif
 
 varying float euclideanDepth;
 varying float linearDepth;
@@ -73,17 +77,31 @@ void main()
     gl_FragData[0].a = alphaTest(gl_FragData[0].a, alphaRef);
 
     vec3 specularColor = getSpecularColor(material, passColor).xyz;
-#if @normalMap
-    vec4 normalTex = texture2D(normalMap, normalMapUV);
-    vec3 normal = normalTex.xyz * 2.0 - 1.0;
-#if @reconstructNormalZ
-    normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
-#endif
-    vec3 viewNormal = normalToView(normal);
-    specularColor *= normalTex.a;
-#else
     vec3 viewNormal = normalize(gl_NormalMatrix * passNormal);
+    if (CLASSIC_INTERIOR_LIGHTING)
+    {
+#if @classicNormalMap
+        vec4 normalTex = texture2D(classicNormalMap, classicNormalMapUV);
+        vec3 normal = normalTex.xyz * 2.0 - 1.0;
+#if @classicReconstructNormalZ
+        normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 #endif
+        viewNormal = normalToView(normal);
+        specularColor *= normalTex.a;
+#endif
+    }
+    else
+    {
+#if @normalMap
+        vec4 normalTex = texture2D(normalMap, normalMapUV);
+        vec3 normal = normalTex.xyz * 2.0 - 1.0;
+#if @reconstructNormalZ
+        normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+#endif
+        viewNormal = normalToView(normal);
+        specularColor *= normalTex.a;
+#endif
+    }
 
     float shadowing = unshadowedLightRatio(linearDepth);
     vec3 diffuseLight, ambientLight, specularLight;

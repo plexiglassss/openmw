@@ -6,11 +6,22 @@
 
 #define PER_PIXEL_LIGHTING 1
 
+#include "lib/light/classicinterior.glsl"
 #include "lib/core/vertex.h.glsl"
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
 uniform mat4 texMat@diffuseMapUV;
+#endif
+
+#if @classicNormalMap
+varying vec2 classicNormalMapUV;
+#if (!@diffuseMap || @diffuseMapUV != @classicNormalMapUV) && (!@emissiveMap || @emissiveMapUV != @classicNormalMapUV) && (!@normalMap || @normalMapUV != @classicNormalMapUV)
+uniform mat4 texMat@classicNormalMapUV;
+#endif
+#endif
+#if @classicTangent
+attribute vec4 classicTangent;
 #endif
 
 #if @emissiveMap
@@ -51,8 +62,13 @@ void main(void)
     passNormal = gl_Normal.xyz;
     normalToViewMatrix = gl_NormalMatrix;
 
-#if @normalMap
-    normalToViewMatrix *= generateTangentSpace(gl_MultiTexCoord7.xyzw, passNormal);
+#if @normalMap || @classicNormalMap
+    vec4 tangent = gl_MultiTexCoord7.xyzw;
+#if @classicTangent
+    if (CLASSIC_INTERIOR_LIGHTING)
+        tangent = classicTangent;
+#endif
+    normalToViewMatrix *= generateTangentSpace(tangent, passNormal);
 #endif
 
 #if @diffuseMap
@@ -65,6 +81,9 @@ void main(void)
 
 #if @normalMap
     normalMapUV = (texMat@normalMapUV * gl_MultiTexCoord@normalMapUV).xy;
+#endif
+#if @classicNormalMap
+    classicNormalMapUV = (texMat@classicNormalMapUV * gl_MultiTexCoord@classicNormalMapUV).xy;
 #endif
 
 

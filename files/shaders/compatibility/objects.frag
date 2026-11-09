@@ -47,6 +47,15 @@ uniform sampler2D specularMap;
 varying vec2 specularMapUV;
 #endif
 
+#if @classicNormalMap
+uniform sampler2D classicNormalMap;
+varying vec2 classicNormalMapUV;
+#endif
+#if @classicSpecularMap
+uniform sampler2D classicSpecularMap;
+varying vec2 classicSpecularMapUV;
+#endif
+
 #if @bumpMap
 uniform sampler2D bumpMap;
 varying vec2 bumpMapUV;
@@ -67,21 +76,22 @@ uniform float distortionStrength;
 uniform float alpha;
 uniform float actorFade;
 
-#define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
+#include "lib/light/objectlighting.glsl"
 
 centroid varying vec4 passColor;
 
-#if !PER_PIXEL_LIGHTING
+#if HAS_VERTEX_LIGHTING
 centroid varying vec3 shadedLighting;
 centroid varying vec3 shadedSpecular;
 centroid varying vec3 passLighting;
 centroid varying vec3 passSpecular;
-#else
+#endif
+#if HAS_PIXEL_LIGHTING
 #include "lib/light/clamp.glsl"
 #endif
 varying vec3 passViewPos;
 varying vec3 passNormal;
-#if @normalMap || @diffuseParallax
+#if @normalMap || @classicNormalMap || @diffuseParallax
 varying vec4 passTangent;
 #endif
 
@@ -124,13 +134,31 @@ void main()
     // only offset diffuse and normal maps for now, other textures are more likely to be using a completely different UV set
     vec2 offset = vec2(0.0);
 
-#if @parallax || @diffuseParallax
-#if @parallax
-    float height = texture2D(normalMap, normalMapUV).a;
-#else
-    float height = texture2D(diffuseMap, diffuseMapUV).a;
+#if @parallax || @classicParallax || @diffuseParallax
+    bool useParallax = false;
+    float height = 0.0;
+    if (CLASSIC_INTERIOR_LIGHTING)
+    {
+#if @classicParallax && @classicNormalMap
+        height = texture2D(classicNormalMap, classicNormalMapUV).a;
+        useParallax = true;
+#elif @diffuseParallax
+        height = texture2D(diffuseMap, diffuseMapUV).a;
+        useParallax = true;
 #endif
-    offset = getParallaxOffset(transpose(normalToViewMatrix) * normalize(-passViewPos), height);
+    }
+    else
+    {
+#if @parallax
+        height = texture2D(normalMap, normalMapUV).a;
+        useParallax = true;
+#elif @diffuseParallax
+        height = texture2D(diffuseMap, diffuseMapUV).a;
+        useParallax = true;
+#endif
+    }
+    if (useParallax)
+        offset = getParallaxOffset(transpose(normalToViewMatrix) * normalize(-passViewPos), height);
 #endif
 
 vec2 screenCoords = gl_FragCoord.xy / screenRes;
@@ -163,16 +191,29 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
 
     gl_FragData[0].a = alphaTest(gl_FragData[0].a, alphaRef);
 
-#if @normalMap
-    vec4 normalTex = texture2D(normalMap, normalMapUV + offset);
-    vec3 normal = normalTex.xyz * 2.0 - 1.0;
-#if @reconstructNormalZ
-    normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
-#endif
-    vec3 viewNormal = normalToView(normal);
-#else
     vec3 viewNormal = normalize(gl_NormalMatrix * passNormal);
+    if (CLASSIC_INTERIOR_LIGHTING)
+    {
+#if @classicNormalMap
+        vec4 normalTex = texture2D(classicNormalMap, classicNormalMapUV + offset);
+        vec3 normal = normalTex.xyz * 2.0 - 1.0;
+#if @classicReconstructNormalZ
+        normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
 #endif
+        viewNormal = normalToView(normal);
+#endif
+    }
+    else
+    {
+#if @normalMap
+        vec4 normalTex = texture2D(normalMap, normalMapUV + offset);
+        vec3 normal = normalTex.xyz * 2.0 - 1.0;
+#if @reconstructNormalZ
+        normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+#endif
+        viewNormal = normalToView(normal);
+#endif
+    }
 
     vec3 viewVec = normalize(passViewPos);
 
@@ -190,11 +231,14 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
     vec2 envTexCoordGen = envMapUV;
     float envLuma = 1.0;
 
-#if @normalMap
+#if @normalMap || @classicNormalMap
     // if using normal map + env map, take advantage of per-pixel normals for envTexCoordGen
-    vec3 r = reflect( viewVec, viewNormal );
-    float m = 2.0 * sqrt( r.x*r.x + r.y*r.y + (r.z+1.0)*(r.z+1.0) );
-    envTexCoordGen = vec2(r.x/m + 0.5, r.y/m + 0.5);
+    if (useObjectNormalMap())
+    {
+        vec3 r = reflect( viewVec, viewNormal );
+        float m = 2.0 * sqrt( r.x*r.x + r.y*r.y + (r.z+1.0)*(r.z+1.0) );
+        envTexCoordGen = vec2(r.x/m + 0.5, r.y/m + 0.5);
+    }
 #endif
 
 #if @bumpMap
@@ -217,25 +261,44 @@ vec2 screenCoords = gl_FragCoord.xy / screenRes;
 
     float shadowing = unshadowedLightRatio(-passViewPos.z);
     vec3 lighting, specular;
-#if !PER_PIXEL_LIGHTING
-    lighting = mix(shadedLighting, passLighting, shadowing);
-    specular = mix(shadedSpecular, passSpecular, shadowing);
-#else
-#if @specularMap
-    vec4 specTex = texture2D(specularMap, specularMapUV);
-    float shininess = specTex.a * 255.0;
-    vec3 specularColor = specTex.xyz;
-#else
-    float shininess = material.shininess;
-    vec3 specularColor = getSpecularColor(material, passColor).xyz;
+#if HAS_VERTEX_LIGHTING
+    if (!useObjectPerPixelLighting())
+    {
+        lighting = mix(shadedLighting, passLighting, shadowing);
+        specular = mix(shadedSpecular, passSpecular, shadowing);
+    }
+#if HAS_PIXEL_LIGHTING
+    else
 #endif
-    vec3 diffuseLight, ambientLight, specularLight;
+#endif
+#if HAS_PIXEL_LIGHTING
+    {
+        float shininess = material.shininess;
+        vec3 specularColor = getSpecularColor(material, passColor).xyz;
+        if (CLASSIC_INTERIOR_LIGHTING)
+        {
+#if @classicSpecularMap
+            vec4 specTex = texture2D(classicSpecularMap, classicSpecularMapUV);
+            shininess = specTex.a * 255.0;
+            specularColor = specTex.xyz;
+#endif
+        }
+        else
+        {
+#if @specularMap
+            vec4 specTex = texture2D(specularMap, specularMapUV);
+            shininess = specTex.a * 255.0;
+            specularColor = specTex.xyz;
+#endif
+        }
+        vec3 diffuseLight, ambientLight, specularLight;
 
-    doLighting(gl_FragCoord.xy, passViewPos, viewNormal, shininess, shadowing, diffuseLight, ambientLight, specularLight);
+        doLighting(gl_FragCoord.xy, passViewPos, viewNormal, shininess, shadowing, diffuseLight, ambientLight, specularLight);
 
-    lighting = diffuseColor.xyz * diffuseLight + getAmbientColor(material, passColor).xyz * ambientLight + getEmissionColor(material, passColor).xyz * material.emissiveMult;
-    specular = specularColor * specularLight * material.specStrength;
-    clampLighting(lighting);
+        lighting = diffuseColor.xyz * diffuseLight + getAmbientColor(material, passColor).xyz * ambientLight + getEmissionColor(material, passColor).xyz * material.emissiveMult;
+        specular = specularColor * specularLight * material.specStrength;
+        clampLighting(lighting);
+    }
 #endif
 
     gl_FragData[0].xyz = gl_FragData[0].xyz * lighting + specular;
