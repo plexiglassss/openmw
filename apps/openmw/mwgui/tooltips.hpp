@@ -21,6 +21,8 @@ namespace ESM
 
 namespace MWGui
 {
+    class TravelTooltip;
+
     // Info about tooltip that is supplied by the MWWorld::Class object
     struct ToolTipInfo
     {
@@ -114,6 +116,7 @@ namespace MWGui
         /// Returns True if taking mFocusObject would be crime
 
     private:
+        std::unique_ptr<TravelTooltip> mTravelTooltip;
         MyGUI::Widget* mDynamicToolTipBox;
         MyGUI::Widget* mLuaTooltipBox = nullptr;
         bool mLuaTooltipOwned = false;

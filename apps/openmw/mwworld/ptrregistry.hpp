@@ -4,6 +4,7 @@
 #include "ptr.hpp"
 
 #include "components/esm3/cellref.hpp"
+#include "components/misc/combinedperformance.hpp"
 
 #include <unordered_map>
 
@@ -39,7 +40,23 @@ namespace MWWorld
 
         void insert(const Ptr& ptr)
         {
-            mIndex[ptr.getCellRef().getOrAssignRefNum(mLastGenerated)] = ptr;
+            const auto id = ptr.getCellRef().getOrAssignRefNum(mLastGenerated);
+            if (!Misc::useCombinedPerformance())
+            {
+                mIndex[id] = ptr;
+                ++mRevision;
+                return;
+            }
+            const auto [it, inserted] = mIndex.try_emplace(id, ptr);
+            // Ptr::operator== intentionally compares only the reference. A
+            // change of cell/container must still invalidate cached SafePtrs.
+            if (!inserted)
+            {
+                const Ptr& old = it->second;
+                if (old.mRef == ptr.mRef && old.mCell == ptr.mCell && old.mContainerStore == ptr.mContainerStore)
+                    return;
+                it->second = ptr;
+            }
             ++mRevision;
         }
 

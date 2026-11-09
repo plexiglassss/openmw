@@ -25,6 +25,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testdialoguecolourcontrols.cpp
     mwgui/testmessageboxstate.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
     mwgui/testresttime.cpp
     mwgui/testcontinuegame.cpp
     mwgui/testmainmenubutton.cpp
@@ -84,8 +85,12 @@ target_compile_definitions(openmw-tests
 openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
     controls-test-main.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
     ../openmw/mwgui/mapiconcontrols.cpp
     ../openmw/mwgui/messagepositioncontrols.cpp
+    ../openmw/mwgui/tooltipcontrols.cpp
+    ../openmw/mwgui/traveltooltipdata.cpp
+    ../openmw/mwgui/traveltooltipview.cpp
     ../openmw/mwgui/resourceskin.cpp
     ${PROJECT_SOURCE_DIR}/components/mapmarkers/classification.cpp
 )

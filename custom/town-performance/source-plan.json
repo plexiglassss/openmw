@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Native world-map location icons only, with bounded entered-cell discovery, viewport-limited entrance widgets, native Options and separate optional LMRK save metadata. Preserve all earlier cumulative Continue, deleveler, Lua UI, performance and runtime changes. No AWM dependency, plugin changes, Lua scans, interior loads, migration bridge or other AWM features. User authorization: only map icons, resource-light.",
+  "scope": "Combined native performance candidate on 016577e6e33b16080e9c6828b38a3879526714d7: action-scoped dependency-aware Lua UI geometry reuse; compiled live native magic/effect queries and SaneMagic adapters; immutable typed cell query snapshots and idempotent pointer registration. Preserve native map icons, native travel/key/cleared-cell tooltips and every prior cumulative feature and build-time loading-repair gate. One complete engine package, prepared adapters and same-executable inherited fallback. No plugin, terrain, placement or modlist changes; no claimed gameplay FPS gain before user capture.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -9,7 +9,11 @@
     "41b969ecf663a53d8f95c779313458bbd37ad264",
     "1e2191f221079d89e46c15331ba6911b44f28b53",
     "85b3384dd06528914e090f5fb39aad415e808a0b",
-    "5992e061519b62853197e3f60c1e597e3593e4eb"
+    "5992e061519b62853197e3f60c1e597e3593e4eb",
+    "ca144536f3dd813f9fb13c832b7396d1554d71f5",
+    "016577e6e33b16080e9c6828b38a3879526714d7",
+    "6182d81e985763b2fed194d297db601fe1a56dfb",
+    "7024d00c79fb0a88a97ff0b636096a5f3fd316d0"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -19,11 +23,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "81023a3ecf5d5a3985fa88bb06da540e041bde06"
+        "blob": "0fa8c0ab0166bfd0cce0d30f146b5627c2868c36"
       },
-      "bytes": 47787,
-      "sha256": "b83dcd87a6977a279e57f482f09620212cf60b518ad2fdba72d58b69e396177d",
-      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 52996,
+      "sha256": "f9ba92913360f3ba579e17b753ea5703c314771ab96c4f0c23fc151cba1f85fb",
+      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: .github/workflows/push.yml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Combined performance candidate: Build one combined Windows candidate with all inherited source/test gates, adapter parity, three native UI modes, prepared tools and complete packaging."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -32,11 +36,21 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6cfe988d84da074efc6c1d1048f6abb89bce3342"
+        "blob": "00413fb7b55c115bce7b88eb16f32fbe60bb9013"
       },
-      "bytes": 4086,
-      "sha256": "2b5f96efdcca9228ae777fdd9517aa5e96a91bc8e5e15b08a023fde4d49427e8",
-      "reason": "Native world-map icon feature: apps/components_tests/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 4117,
+      "sha256": "20dd43db9a746a08f99b4f9339064d2e0632518fbfc43d56331d7cec368776ea",
+      "reason": "Native world-map icon feature: apps/components_tests/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/components_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/components_tests/esm3/testdungeonstates.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "77c59e645102b596018f4c971c2903fe46cb9714"
+      },
+      "bytes": 14315,
+      "sha256": "ad672d8cb8dc53b9c517be4466ba37f0cc93e4a091bbc4683cd79837abd88fe7",
+      "reason": "Native tooltip integration: apps/components_tests/esm3/testdungeonstates.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/components_tests/esm3/testlocationmarkers.cpp": {
       "before": null,
@@ -111,11 +125,63 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3d24a569a3f3fa1f837e97be57ed58c7716c4b85"
+        "blob": "56817c69d91becb283c8660c3b32c87752a7f554"
       },
-      "bytes": 11831,
-      "sha256": "387c8df0e9aec143ef2a461f75e9c2818239d93231af2a6d25db091fcb1e5cd1",
-      "reason": "Native world-map icon feature: apps/openmw/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 11897,
+      "sha256": "5afcfcbce1a3c332dcce5bdebb59c0b268a3023e8ac0886609c39565fa72e0db",
+      "reason": "Native world-map icon feature: apps/openmw/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwbase/mechanicsmanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "bdf13c087c8d0b4a10be914a637493d60afd5030"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "59a45bd2bbc2e2f323ae7f015c40802b9e4f218a"
+      },
+      "bytes": 14630,
+      "sha256": "72e383b73eb87dfa6d57df65ea2ff8dbafbf9210086475b12af7e8b1ef901fb3",
+      "reason": "Native tooltip integration: apps/openmw/mwbase/mechanicsmanager.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwclass/container.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e92c1f6d07fb86e354ed718a802dfd250549840f"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "b348e38953aaff1bdf668c42a737e768c981360e"
+      },
+      "bytes": 12394,
+      "sha256": "00db0f51f9742ece4a586bd6d15b92139a58cb642ff3fc44a49e2aa1ba89a6b6",
+      "reason": "Native tooltip integration: apps/openmw/mwclass/container.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwclass/door.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "96dfa6913fb2da307f201b807c9b7e3e3aa53fd4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5e1845496896d126ae9707e64eebe66e35187d62"
+      },
+      "bytes": 14305,
+      "sha256": "2486280133feb8d7f30e5d90cb9cbe55f1a4a9c565e035914b02cd98edb43370",
+      "reason": "Native tooltip integration: apps/openmw/mwclass/door.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/dialogue.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "10b5385449920d1d40b95b3cff0845da426a2558"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e6090de4891c320595b6cdf49b99e10f6af20c3e"
+      },
+      "bytes": 46656,
+      "sha256": "4dd5bae54fbf7a8fc19ba6a40329c5a49dc431874f0eca738f4d0103456e2f0a",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/dialogue.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw/mwgui/mapiconcontrols.cpp": {
       "before": null,
@@ -144,11 +210,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "18d9b2d584f79db08d9a539d03eb546f8085e498"
+        "blob": "32a191201f6c059f0b811b05c8319da99502db01"
       },
-      "bytes": 80319,
-      "sha256": "4b7a28aa847a0887726c7d001bd72d5098367418b865afafe687aef6d9905bce",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 81749,
+      "sha256": "6eb7f2718acc9bacb50cc936a541ef3133f6a63974a6455f27707b0142429045",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw/mwgui/mapwindow.hpp": {
       "before": {
@@ -157,11 +223,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f857063f1ab5c6ba665534d7b084895f662418c9"
+        "blob": "697bc774500fe6eab46e5f40c69a0a1cabe96d7f"
       },
-      "bytes": 12926,
-      "sha256": "ea1ada117358084aec7ddfd651c542bbb0f46b9d1f425fb3a65e8686e63491d6",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 13171,
+      "sha256": "0caa8d3621c543839e5efe2ea641fdf4dcd3dde30c674e1fa2ae2341a72413ca",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw/mwgui/settingswindow.cpp": {
       "before": {
@@ -170,11 +236,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1291cd7827ec707a6b2303560252703a47e5645c"
+        "blob": "3232c199db9fd3064305e7c9791862a831a4386f"
       },
-      "bytes": 71313,
-      "sha256": "77540666ef8b511545434630af27fc29b8e8d481bc5d0f97aeba6838ed872b4b",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 75859,
+      "sha256": "ae1dd26086674c4bfaba0c5a3276b7ae2d99d0a03bf0bade69f6b34d3bcde6f5",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw/mwgui/settingswindow.hpp": {
       "before": {
@@ -183,11 +249,153 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2f24f1346d7ebd07c87a4443f202c07fe27a00f0"
+        "blob": "db5f14c77289d3c0decba5191be43852206c206b"
       },
-      "bytes": 7551,
-      "sha256": "66f6826f22da122a86f7bcd24fc86e5f00625a3fdd085d07a4fe398690c7d092",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 8047,
+      "sha256": "d49f7f824da450b005e2cf3df7d7843999409996ae52864920de9675daa291a9",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/tooltipcontrols.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4b13682fda0d860c0e16edeb543ab702eb505d66"
+      },
+      "bytes": 9892,
+      "sha256": "da2fff3b76c8dbd336c30b513178cdbc12e2dac2a13d4a8310e7ad0e7bb0e194",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltipcontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/tooltipcontrols.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "fe0f325067d7666686ee54463d029b8720fe05a9"
+      },
+      "bytes": 1338,
+      "sha256": "0e595f23efc69b1817eabd77526acd0916e1dd6844d8941a420b8a37415d135e",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltipcontrols.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/tooltips.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "dbd096e2f7071f7a691aab541da4b2dbe0fbddff"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5f90284ea2d312692dd240e13680af7ad789c8cf"
+      },
+      "bytes": 44188,
+      "sha256": "ab46470c6eb99db78250d09931f3d6bcbef051f07d125b080abe69588241a841",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltips.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/tooltips.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "07039a7878d62ab9bb571958bfb866147e262c7b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2d54e9a3da33000248b7978409dfe8cf8caa96ba"
+      },
+      "bytes": 5391,
+      "sha256": "07bdd1084ad69409d14d92511e0ebfc37f53d15a02def15c27e66b62d938c745",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltips.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/tooltipvisibility.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3b5941f756faad9abe9089a414cbe75a91e1278e"
+      },
+      "bytes": 424,
+      "sha256": "bf8eeb6d7c756c599d4e2ddbeaae7441979caa99ca373f701181d03a24946497",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltipvisibility.hpp Keep native GUI tooltips visible when a cinematic dialogue mod hides the gameplay HUD; retain hidden-world and loading suppression."
+    },
+    "apps/openmw/mwgui/traveltooltip.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3b576abd6026f2c992d81e7a71a4e9d97a3dc7c7"
+      },
+      "bytes": 5289,
+      "sha256": "0c6cd2a0a536eb3f5666e72d5c248472be5965b7bba0139951bf17cb27038375",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/traveltooltip.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/traveltooltip.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "76a05e877c8e353995a89f87873fdffd07ae60b4"
+      },
+      "bytes": 1650,
+      "sha256": "e81a01314d84f06af7e4982bded3176b298a9203acbb50936f6e7781e2355fca",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/traveltooltip.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/traveltooltipdata.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f2df61887be757e0b77ac5e8793e48591c6f346c"
+      },
+      "bytes": 9905,
+      "sha256": "9a5c7b2d19fe4c01979035b001bafbc8c1c9f1b40dd8cc136275871c68366a90",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/traveltooltipdata.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/traveltooltipdata.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2098a2b29e49fde7cde7702c9b1da5e745ce8e17"
+      },
+      "bytes": 2026,
+      "sha256": "ad8252f2f48b3e78d207d073c4e8f43a5803fb96cf3658b11a329fe314c672e6",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/traveltooltipdata.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/traveltooltipview.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "54776b54527a1dd7c5a36c0a7dbee9493631d327"
+      },
+      "bytes": 8125,
+      "sha256": "77e2a1a49307846d1a8880a8aa2a358d7d74678c632954779b522c5a05e7acf3",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/traveltooltipview.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/traveltooltipview.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "68ee9225a019b7f0035f52a3ea2ca4c0f4018b1d"
+      },
+      "bytes": 1643,
+      "sha256": "90f4c7f1729b1f8dbaea9b5aef51ef91db94c0904984b534b78205649b179060",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/traveltooltipview.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/travelwindow.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c97d392ff6870ca83482d2b9ae429bb9ba30b3b3"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3d690ca704bc9b372421d71c3c2b0b8a9f6cea92"
+      },
+      "bytes": 13300,
+      "sha256": "080d0b8ac9f524f2b31dd4fc6fa6ca897c1f280ac2e87ffdd1d4d2ac7c3d82f0",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/travelwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwgui/travelwindow.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f917b25834c750efa359e25dcbc2710135cfa735"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "506ec0ce2e46023c97464aac22fcf87ac1f51b90"
+      },
+      "bytes": 1262,
+      "sha256": "a72acfed35fcf854bb0314c5dcf75efd72214251c1648fb8876c71477f9bead7",
+      "reason": "Native tooltip integration: apps/openmw/mwgui/travelwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw/mwgui/windowmanagerimp.cpp": {
       "before": {
@@ -196,11 +404,37 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b7f4b3d181737bee4bbdac22ddd0f9b642e39b92"
+        "blob": "c21a3dff7e45dd10996cae379f9514c8c25e763f"
       },
-      "bytes": 99535,
-      "sha256": "9865f9c3911c65ab381918ba8cc62c4833bbfb8b634ddca84da4bd52dec20e7c",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 99660,
+      "sha256": "d6d5237a09632f01884fd27eda7a2fe6e4c5a4696a7e85beb00d44a0258eb7f6",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression."
+    },
+    "apps/openmw/mwlua/cellbindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ade94d3928b93fb49f4188366208c61064f75bc0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "badf72466202a7360499dcab7d9b5a5077c0d946"
+      },
+      "bytes": 16602,
+      "sha256": "ae1e171c20bde1cbdbd391f2261654d4ca465cfe10a39e54015501ad9787d530",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwlua/cellbindings.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "70255d8d7fd179a1e0dc4854754bb145b6367a43"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2ed701915f48dc739039f6a42eb516c67b28486f"
+      },
+      "bytes": 602,
+      "sha256": "014d740a36de8ac105f5062e61f886fa2c5084fc83446378d62527e7404cac2e",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -209,11 +443,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ae2f88d76ef289d716fd4f17f056ef53f72315c6"
+        "blob": "eb2c5be070758425cd780be591e6b7fd8c63f06b"
       },
-      "bytes": 44278,
-      "sha256": "1481b1c0c9219c667f0a2e2236c33ed3878080065e81249b745e2c888e24949a",
-      "reason": "Resolve each query actor once through scoped native helpers while preserving current values, contexts, effect-key error ordering and existing iteration boundaries."
+      "bytes": 51628,
+      "sha256": "9e9d7c60b1e085f23a81045ce3115a7fb7c7a78b2dde24b914fe2d648b11f1c3",
+      "reason": "Resolve each query actor once through scoped native helpers while preserving current values, contexts, effect-key error ordering and existing iteration boundaries. Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
     },
     "apps/openmw/mwlua/magicbindingshelper.hpp": {
       "before": null,
@@ -225,6 +459,55 @@
       "sha256": "a484eb16c309d1b3a48fbe0e8e9e4710db3547a77582e3c7cff28cf213606b70",
       "reason": "Share the actual per-call actor/stats/effect lookup implementation with native regression fixtures; no persistent pointer or effect cache."
     },
+    "apps/openmw/mwlua/magicqueries.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1ce1900a1db2589880e599db9c444adcc4d9e22b"
+      },
+      "bytes": 6796,
+      "sha256": "b2f845e8058e3e9d3c5b225a1a7bfffc276828fc89c5dbf954eb7465054601c4",
+      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
+    },
+    "apps/openmw/mwmechanics/actors.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "32c53f2f7408d6a58b95906b01b3f5be57661918"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "72955da3513d62d32bbe41f240a9d2fa334e8f06"
+      },
+      "bytes": 106791,
+      "sha256": "58705298f7aae83eee1c0b7dbd9420851c4a45bd49e2ce9e4dfbd5a8e088f870",
+      "reason": "Native tooltip integration: apps/openmw/mwmechanics/actors.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwmechanics/mechanicsmanagerimp.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "03a368653af68ed74f6aaecdd3173ca01c2420bb"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3bc0da13dc36a91320490ce06100212a91d311c5"
+      },
+      "bytes": 82377,
+      "sha256": "375697bc695c840b68d1ba7b82b8f514210efa2b85c08c75c8f6a6bbdac93b39",
+      "reason": "Native tooltip integration: apps/openmw/mwmechanics/mechanicsmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwmechanics/mechanicsmanagerimp.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7efb1a9a5f19a57cda25f1661dda666f6f62e3a6"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "417332c590db30011bdc4f0b3c0495c4bad6403e"
+      },
+      "bytes": 12302,
+      "sha256": "3390da27c14193625538b08ba756585d76697b688c017a0a575f840cd8c72a78",
+      "reason": "Native tooltip integration: apps/openmw/mwmechanics/mechanicsmanagerimp.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
         "mode": "100644",
@@ -232,11 +515,50 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "026eaf0b580c46f2559b3b6d24a298a3322d5f55"
+        "blob": "102b9e0c99229d0e096f47671ff4da350381cc2a"
       },
-      "bytes": 37098,
-      "sha256": "dfd98644ca80d9b655fc318930b0b20e8aa8fdcc154ae96fc260ba3dba3eb6d6",
-      "reason": "Native world-map icon feature: apps/openmw/mwstate/statemanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 37134,
+      "sha256": "98fef726a1b875a400d2f722193935dbfaa81ed0f84259fb5faaec6a78708a1a",
+      "reason": "Native world-map icon feature: apps/openmw/mwstate/statemanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwstate/statemanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwworld/cellref.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "82270f327626364f2a62cf5df88540dd8c176c6a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4c9e0c97ed0aa3b04fb8b737ea8f745d62a50998"
+      },
+      "bytes": 14482,
+      "sha256": "424dd3731d1dbdeaf316a521d5fff261b5c3432340ab85ac26a097b69f5db231",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/cellref.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c290e2733cf0927471482c5ecdb8cca621fd9f58"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5dbc0fcccf8a45f1425fe090635282972365fbcb"
+      },
+      "bytes": 11084,
+      "sha256": "1698e93967c631907e68c4a1edcd0958def16353f7ace1177ab6672ff9429db3",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/cellstore.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "6576a8af891f68cdd82db1bf51ff9397e18ec03e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "563eb588d1425becfff6fdfc899784145ae07b96"
+      },
+      "bytes": 56181,
+      "sha256": "93af3969b400847b9b39b92e3c2d5c419a224e61015a702b6f00fe01b8aa4b09",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
     },
     "apps/openmw/mwworld/cellstore.hpp": {
       "before": {
@@ -245,11 +567,73 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "06675b25a7ed8724cb93250af688b008fe770443"
+        "blob": "4a83ce7664f8c5bc5c9340af25304b900dae9c29"
       },
-      "bytes": 18279,
-      "sha256": "3cbd9f75036fdc1f709189a7058ebbc9555e459658030bc22dd174782a46b412",
-      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 19710,
+      "sha256": "14af64bed0219db5301259384a2eff116a34215b9cf774a47483477f0b1fc16b",
+      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/ptrregistry.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "897945133efeee8805f0c92b2448d9f21b83b265"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c6d9646bd3e3edf912e77c4cb000eca6d52d0639"
+      },
+      "bytes": 2934,
+      "sha256": "01ccaa87c90835653b5234c3d069e2d4bdef88be6d92207ab5d3bc72769eed28",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/queryrevision.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "128243a827c4f880005a01f4fd61c81fe4607620"
+      },
+      "bytes": 1567,
+      "sha256": "d84ab6922b145ec1e93b006f765fdddef28e6943d8c676a86f784f4558251825",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/refdata.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "0311aef95596ca5e15a4b2a2c0f74f849426e731"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e23402f655f8654e5e78b87a2b4cc194c9c65f85"
+      },
+      "bytes": 8114,
+      "sha256": "18a875720219d19ae42ce52c33d9a77f2f5092bf4344246896d77ed8294336d2",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/refdata.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3b9421f2e4119547cfc297d3e2faec051fe7da93"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2136f908063554f46df09b99d88cb7c00d9edb73"
+      },
+      "bytes": 4570,
+      "sha256": "1701bf5be6651ee6e20288bcf254644942bff9c117a469fe4888422d094ff474",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+    },
+    "apps/openmw/mwworld/scene.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "d85521f050e5813f0d5dcf2bde237561cad97499"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8aaa7fe5e0e6ce56dfd59fb70317b72de85e2aad"
+      },
+      "bytes": 60868,
+      "sha256": "9d6ed609523d608b68e5d39406cda92db1821862005968dba624daeec693324d",
+      "reason": "Native tooltip integration: apps/openmw/mwworld/scene.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
@@ -258,11 +642,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5e97643b4ea23eeadfa28815d1bd9832cb49dbdd"
+        "blob": "b01c961f8798369c8a904f434ad35e49223fd0ef"
       },
-      "bytes": 3551,
-      "sha256": "0ceee200b81b1ec629d740368a308483b767528b0b6d4f35c781e7603332f5b2",
-      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test; run the same form fixtures early with the production MyGUI ABI definition."
+      "bytes": 3747,
+      "sha256": "999ea63c64d6b6463ebc881e43669f517d2297f8a6eb7d4a77f0e502fc0cbf75",
+      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test; run the same form fixtures early with the production MyGUI ABI definition. Native tooltip integration: apps/openmw_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -270,19 +654,19 @@
         "mode": "100644",
         "blob": "e1a8e67397045cd662888ab5261b349250847a13"
       },
-      "reason": "Validation-only native controls target: execute the same actual form fixtures before the full engine link; keep production Release/LTO and all final gates unchanged.",
       "bytes": 133,
-      "sha256": "e2268bc9534e1d505a5827f19c7ea4665d45e72ad155630a5449bc9d4633c52f"
+      "sha256": "e2268bc9534e1d505a5827f19c7ea4665d45e72ad155630a5449bc9d4633c52f",
+      "reason": "Validation-only native controls target: execute the same actual form fixtures before the full engine link; keep production Release/LTO and all final gates unchanged."
     },
     "apps/openmw_tests/mwgui/testluauilayout.cpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "a5bb235b2e2040cfb95c4fdc2bb9a87f4e102ae5"
+        "blob": "2f7b4d1da57ae3cd1f622194d9f56d0a5ffd54bb"
       },
-      "bytes": 47516,
-      "sha256": "d8328181509c417b8d8b1afacd41b3dc16e301c64ec783bbe2c0267890857aab",
-      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage."
+      "bytes": 62479,
+      "sha256": "1803fda4fe00ef9704c9c6d941746a979d17b9d38df6b92bd110ed5085130b10",
+      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements. Reproduce reparenting into a growing sibling under the same UI root; check immediate detach, pointer identity, the following sibling and normal cache reuse in the next action, alongside the existing geometry/UI cases."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -291,21 +675,44 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "86d9a2afa236320ee3d89fe036ce1713d5d2512a"
+        "blob": "88d5dc9741813050a1d2c070cf520e1a03cedae0"
       },
-      "bytes": 29821,
-      "sha256": "a5818392c99c9f1d67dd737e0b745b163203978039b6f06f16d1eb2418671543",
-      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 63071,
+      "sha256": "b6a34348252fa0f9fa16a43db2beb56ac3b435a8cb832fae7ae629a0bd39ffde",
+      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy."
+    },
+    "apps/openmw_tests/mwgui/testtraveltooltipdata.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "392072600bba109292abb320f92cb592f19b2603"
+      },
+      "bytes": 5516,
+      "sha256": "388a24c12beb79ca4de483bf4ff2a519823cf951a5d798cdf281a795c464a5d0",
+      "reason": "Native tooltip integration: apps/openmw_tests/mwgui/testtraveltooltipdata.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "apps/openmw_tests/mwlua/testmagicbindings.cpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2abc180b5b93b9fca2fce5bb01fd7422ad3fd445"
+        "blob": "ab78ee6ce0b1b9f4cd0c7dc45d78692cedf8904d"
       },
-      "bytes": 19012,
-      "sha256": "61f2e56a62980313dbb2e8b8e4fe5e4a0de1ef922eab315a1da3319833b7ccdf",
-      "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim."
+      "bytes": 42280,
+      "sha256": "1200ce0569587ebb072e1e211a2cc53088f786fecfff3afa60baf49c312b2e6b",
+      "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
+    },
+    "apps/openmw_tests/mwworld/testcelllookup.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c762e3c4149d6c5752671131aa5103e4892c987b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "dd34e6212fc3f7e36bd4435f20afb97ecd89911e"
+      },
+      "bytes": 40952,
+      "sha256": "ac4d8b27a7ec9ad2cfd9b410693129f8d7bfc88a2e78964a49a2feb0e7c88d55",
+      "reason": "Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
     "components/CMakeLists.txt": {
       "before": {
@@ -314,11 +721,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5295fe9efbb3ac6804fa75ce02e05b4773fd51b4"
+        "blob": "b90fba38dd4483119d5a2b6aff44f912bb881534"
       },
-      "bytes": 20663,
-      "sha256": "f1aae67d8997a75cf9939af0bf6ff04004506b6aeb16d58dc426347c124065b2",
-      "reason": "Native world-map icon feature: components/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 20677,
+      "sha256": "e33b759d6716daa5de56224fcfd03fafa29dc7ead57ee236fcb67c1c0847d9fd",
+      "reason": "Native world-map icon feature: components/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: components/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "components/esm/defs.hpp": {
       "before": {
@@ -327,11 +734,31 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1d89c2a10e6b1d8920dfdf6445ef20f1621c2e7c"
+        "blob": "1bd9bac3a2db342197598bc0399e04fa8a01f6ac"
       },
-      "bytes": 15264,
-      "sha256": "507ca5b189eab341a6b6ec21deb36c67415ee6c691b30f645335e297a32098ce",
-      "reason": "Native world-map icon feature: components/esm/defs.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 15304,
+      "sha256": "39967cd5e1c4cf6115f0f144e2107b732408bb9d7a632b1ae1f088c07916a15b",
+      "reason": "Native world-map icon feature: components/esm/defs.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: components/esm/defs.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "components/esm3/dungeonstates.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9e756f67e1efbeb45f66013edea58dedfa3043ab"
+      },
+      "bytes": 2559,
+      "sha256": "69688d45dd9456b5518a50d036151da46b061822937c4c1b7fbcede7bd95eeb0",
+      "reason": "Native tooltip integration: components/esm3/dungeonstates.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "components/esm3/dungeonstates.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "480e037b05a2f7365e0b303fd9f0ef82369f5f6c"
+      },
+      "bytes": 1038,
+      "sha256": "ee7580ecfe9e04d2bcf67f15efc40653966651bb72322fec4ff23ba86981b4f2",
+      "reason": "Native tooltip integration: components/esm3/dungeonstates.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "components/esm3/globalmap.cpp": {
       "before": {
@@ -372,6 +799,71 @@
       "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10",
       "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths."
     },
+    "components/lua_ui/container.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1999be816944c102f5852793e019cbe2b8f21b9e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "100f0a9ce7fa42b0fb3e5e60a33b6d2feb57d690"
+      },
+      "bytes": 1722,
+      "sha256": "dec9ac35b629944b4a426b05e171e74dd9078d00556d28a1fa9495aff73881a7",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/content.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "101cfc75d1d45cb3412d3a60783cf32c4e300e28"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c88e854ab0b72126473e530a0619934338c5a0eb"
+      },
+      "bytes": 1636,
+      "sha256": "515c651bd19fc0d6d47142dc679efad7b0db0262ed89f75369da4240886f7873",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/content.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e80bc2923fa0cb8b0d0623db1bc7bc813daa5780"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e5a3887abcfbbdb5b982895b7d4bb9f68468893c"
+      },
+      "bytes": 2073,
+      "sha256": "2bebd98df179c63e78acaa5f46e1ca53c96a8a1f0788ddbb4268547223515024",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/element.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "351c4c7c7fbdba9f73eb1939990a65d90b145810"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ee5b100a853da947e6d3933900e5033bcc292e0b"
+      },
+      "bytes": 15733,
+      "sha256": "fa241d7f5b58d7ddeeaa4e2609c74d0c0d9a7319690fba696a52e5bcbf4d66a4",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/flex.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7c639a2a5cb1d707fdcbdaf82bde7583adfac9f0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7ddf6f4f12a9e77aea0f56d39941e23d0db90868"
+      },
+      "bytes": 7667,
+      "sha256": "2de3aca4172f83322604357861570921fa2bd0ec4258be7d6890b6a449fad083",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
     "components/lua_ui/properties.hpp": {
       "before": {
         "mode": "100644",
@@ -384,6 +876,71 @@
       "bytes": 8193,
       "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3",
       "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration."
+    },
+    "components/lua_ui/text.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4623d715c1e8834e1d81792a7df0fc264362e5e1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "266b474d476e58d712817a4b46c6026e96c2284f"
+      },
+      "bytes": 2511,
+      "sha256": "dc090d3315f7e09423b7a279ccf246143e1233a417a860984b3f4578063900ee",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/textedit.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1e4117e56cc22cfdeb3131d5e6192c107754d6e7"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "91d02602185465eb123083a084e35bbeb6370654"
+      },
+      "bytes": 3569,
+      "sha256": "c1b64393b532cc457fe0bab8bfe5ac4fa4aa91792b52959be04ec737e2ebfc8e",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/textedit.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "2b8425f22ed60821b1cb07d878e30994d913126f"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c4c32b741cfc808696f32159cfec3825377bcf5b"
+      },
+      "bytes": 1131,
+      "sha256": "afcf80b2c7d692dc7d1e5c2cf99278497d846365e59ba6296213034b7952265a",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+    },
+    "components/lua_ui/widget.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "87fbd25835d16beef6175b02f2d52b4d2515c5f2"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5a19d4cab4bac7584ac43a261647823076c0c99a"
+      },
+      "bytes": 28047,
+      "sha256": "d061e563408e5f2563e9d60307969065efbfa26c611505b3df54192996142d6f",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks. Walk retained widget trees only at the stable start of an outer action. Use normal layout for live Element transfers and nested updates, including template attachments, so partial child lists are never scanned."
+    },
+    "components/lua_ui/widget.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a058f7021a845a781bcb66c51ec7015c0641550e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e1025a930feeea82a2b4da80cfd89bef80488e50"
+      },
+      "bytes": 11652,
+      "sha256": "c64189422c5055326d9f47798b8472efde50ed58f1a738b23246b49d9c60d814",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
     },
     "components/mapmarkers/classification.cpp": {
       "before": null,
@@ -425,6 +982,29 @@
       "sha256": "cda43af5a846eb2abcbf20a7703bb215f85f38f0615c2076ce40f05273305844",
       "reason": "Native world-map icon feature: components/mapmarkers/spatialindex.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "components/misc/combinedperformance.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1d9a71e884f0ed5261e10fa8976b3656d66e7505"
+      },
+      "bytes": 613,
+      "sha256": "1b2bb253877d9bd87f5cff6d873e0b4e4934ade1a3567790c1e8ba8b0b8dda3f",
+      "reason": "Combined performance candidate: Provide a default-on combined candidate and one process-scoped same-executable master fallback."
+    },
+    "components/settings/categories/gui.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "16b4c357c8727d59c50cecc24420935094f7bf48"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "19cef23901e94e1467df13ef2555c3f8b11eab22"
+      },
+      "bytes": 6887,
+      "sha256": "88eb538109b69d92f0d3ad940a94ca2b065cbfa288bc8094e1372ed83771594b",
+      "reason": "Native tooltip integration: components/settings/categories/gui.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
     "components/settings/categories/map.hpp": {
       "before": {
         "mode": "100644",
@@ -437,6 +1017,196 @@
       "bytes": 1867,
       "sha256": "99702fb38072bb3ef7ee5a216a4b300274d5c15010257db10b380d2a2c422e37",
       "reason": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/combined-performance/.gitattributes": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2a5a91528e811e597aac5340c73a6f526f426e4a"
+      },
+      "bytes": 101,
+      "sha256": "7b5578f747107618757c2bac2eec61a51360c9393efcb8e936ea3310f875a4f5",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2ad27c3ec0c8c4a449bd722cf1e25b0e2ef45c41"
+      },
+      "bytes": 5744,
+      "sha256": "871fe1050782206e0b632ce295aad4cb05c73ce89674bdbef9cd9055aae9c18b",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Run-Combined.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "60e2cab605c660f54c8953a7b6efafdb34173d23"
+      },
+      "bytes": 132,
+      "sha256": "b7e2318d6edf008747c723c6be25a37fb7ee20dc8bb4a917234c4a8e6ed0140c",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Run-Inherited.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7317dc6a8209d1229605167ebd06730514a31939"
+      },
+      "bytes": 133,
+      "sha256": "ba96c854c870c0384585f23fc11cf5c069b354a52373516d2f891a122d826201",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Start-Combined.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6274f0c23b33d9ec80a11471d2d388a564328d46"
+      },
+      "bytes": 2408,
+      "sha256": "506e60265a67e8c51cf14fb771a80489ef8c97f6679da0185a927f670ea145be",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/Test-Launcher.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4c42fc597ecc6aec2c72cd2ff9553b8b68e2f181"
+      },
+      "bytes": 4860,
+      "sha256": "37159246a70ac51a45cc14d4f13e3141e4a22e4d04e72cb2a4d36eaa042e49f9",
+      "reason": "Verify combined/inherited process modes, recorded arguments and environment restoration after success/failure in Windows PowerShell 5.1 and PowerShell 7."
+    },
+    "custom/combined-performance/mods/SaneMagic/Install.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b8d1dfe8e1109a8be7ea1d9ea3a7a2945bdd4aa8"
+      },
+      "bytes": 204,
+      "sha256": "67577cb6d331a6c08776291ff4825be53f04ce96fd4df28352e9142ca5dc8dca",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "734e4d7fa34aa4df13ef13d35a732cb10a9c0a7a"
+      },
+      "bytes": 4546,
+      "sha256": "5e5ace90cb69bf3dbce9be9db529e1a7a4689fa7cb476a35b5ab1cbcfb0f3907",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/Restore.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "47aeb06e726fd90cc05eb7464a64a1608e838972"
+      },
+      "bytes": 219,
+      "sha256": "4cc8edff3fb10fa4e8678f4e56711798736d7c6ce456b644399896dfcdd1bdac",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/manifest.json": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8ec8c70d0b6b7bf1a82b82badb2d35de8d305e68"
+      },
+      "bytes": 1201,
+      "sha256": "8157c3c80000bc1866cf0fe320d99a650907d840e7350b9a0cd86bed917adca0",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer. Permit upgrades whose last log is from either exact merged parent (combined performance 6182d81e or hidden-HUD tooltips 7024d00c); retain existing script, configuration and data-order hash checks."
+    },
+    "custom/combined-performance/mods/SaneMagic/scripts/SaneMagic/daesumm_pn.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4ef3a012d798b43d8d7b13bbf91092d4b2ecea82"
+      },
+      "bytes": 8147,
+      "sha256": "552f1af488ec4aa2004efd4f8e3c1f4cfae37c0765d8f40886dfab89d674ad5d",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/mods/SaneMagic/scripts/SaneMagic/npc.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3d5077040aa5937f1d5d4ec8e048b2b4fbad855c"
+      },
+      "bytes": 7960,
+      "sha256": "5f7785eef9520cfae21308601ba8f919d772508a014c5e47c311e32aceec32e8",
+      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer."
+    },
+    "custom/combined-performance/prepare-package.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "81cde7bfcc04774edc1868b89d3071d69e35f5e3"
+      },
+      "bytes": 7311,
+      "sha256": "8c7a96f0cebb4d560adbb0ac51b59407dd67bcdbefb42c6a3f45ad22b1f11087",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+    },
+    "custom/combined-performance/tests/fixtures/SaneMagic/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a6f49454a6617ded3f3819b336102d5522df22c7"
+      },
+      "bytes": 1218,
+      "sha256": "50f262bc762c988356ae8f0bae731835f3c4ae6502ffc3269813abdfdd1317ec",
+      "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/tests/fixtures/SaneMagic/daesumm_pn.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1130bf566a6d33633dbe19d21af6d7ee8c7d0cf8"
+      },
+      "bytes": 1970,
+      "sha256": "928054d6dd672f6aaf97b8e74233a589451abbe19d954034ceb3291a55666b2c",
+      "reason": "Preserve the exact captured SaneMagic golden source bytes as deterministic gzip for hash-bound cross-runtime behavioral parity."
+    },
+    "custom/combined-performance/tests/fixtures/SaneMagic/npc.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ead6552f9369c306369ed79c75ded52be2c65f3e"
+      },
+      "bytes": 1972,
+      "sha256": "b614895d3703ed8bfae3db0308bf484bc2be7d462b053463e109d267854e4635",
+      "reason": "Preserve the exact captured SaneMagic golden source bytes as deterministic gzip for hash-bound cross-runtime behavioral parity."
+    },
+    "custom/combined-performance/tests/requirements.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8091158c892414f5a260bee94946916a44348335"
+      },
+      "bytes": 10,
+      "sha256": "c355c313ec4744320b1e0d22e7e70465d899a48e8c62293578ddff95d0672c6b",
+      "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/tests/test_sanemagic_adapters.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "60096fdb8e6712f277162b91f0082c768a93078e"
+      },
+      "bytes": 15445,
+      "sha256": "b54c227afaa50880cc513e3ed103ae26843eb0ab60f08cd4b15454b9cc646396",
+      "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/verify-native.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7c046c2582a333cd7190a63672ae46e68750afe8"
+      },
+      "bytes": 6258,
+      "sha256": "c179738cbf4906a092d231fe8d79f002b01c3ec723d472a5aa395a695e1e378e",
+      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
     },
     "custom/cumulative/prepare-upgrade.py": {
       "before": {
@@ -458,11 +1228,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "168c26c9f34a204010257303dc4fa7ffbe5025c7"
+        "blob": "de80525bd87dd5e51b7b4eb824692d9bd678bae7"
       },
-      "bytes": 4992,
-      "sha256": "7f64ca405c992a3eef4d22a62aebd05a842ba7e47aa27717d4ea35ea4445ebcd",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
+      "bytes": 5332,
+      "sha256": "67696b5aaab0528d01f35da3094df5933221f933307d1ea65e9a4005d99cb7dd",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged. Extend the exact state-manager hash to the reviewed REC_DCLR case and require removing that single line to reproduce the entire previous native-map state-manager blob; retain all waiting-stage and lookup-only guards."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -471,11 +1241,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f42916388341044a9fdff983f2b9a0d35410df7a"
+        "blob": "d80be8ff830740d7fd4a5cd17a5e227b5f955139"
       },
-      "bytes": 2812,
-      "sha256": "9376ecdc40cea2ad3310d91ea0039be66aa924770238a5fa9de861006b984c2d",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged."
+      "bytes": 3176,
+      "sha256": "4602edd40e0c73cd6346c28d7d2a328950ac898c2315d754276f18a66d11a919",
+      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged. Extend the exact state-manager hash to the reviewed REC_DCLR case and require removing that single line to reproduce the entire previous native-map state-manager blob; retain all waiting-stage and lookup-only guards."
     },
     "custom/map-icons/PROVENANCE.md": {
       "before": null,
@@ -747,6 +1517,26 @@
       "sha256": "4d3fea3ff72b4e47c8e32625c4ef1e4b5658f8983c256ce998e5af8dbd529c8b",
       "reason": "Native world-map icon feature: custom/map-icons/verify-classification.py; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "custom/native-tooltips/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "50137186a45f539d2019fe0b5f6a19f797d7e5a5"
+      },
+      "bytes": 7789,
+      "sha256": "56796f359c9a3d7c22f4e57793f21fce4609937415006eda086c19068e65b81a",
+      "reason": "Native tooltip integration: custom/native-tooltips/README.md; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Document the reproduced cinematic HUD interaction and the native visibility correction in version 1.0.1."
+    },
+    "custom/native-tooltips/verify-tests.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9eab8d82f67e4a1c2adc992c96f3badcab833434"
+      },
+      "bytes": 2447,
+      "sha256": "1b43c3c6a12147874710a8a754c7ea1a31d3fda1cad6bd98d592bcc370e144f7",
+      "reason": "Native tooltip integration: custom/native-tooltips/verify-tests.py; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Require the exact hidden-HUD visibility regression in both early-controls and full-engine test receipts."
+    },
     "custom/performance-capture-followup/Start-Capture.ps1": {
       "before": {
         "mode": "100644",
@@ -754,11 +1544,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6441fe1163452f141f3b0a2d965b70428b28543e"
+        "blob": "595c489e833ca3df7972fef32f3bb8525f3dc900"
       },
-      "bytes": 52576,
-      "sha256": "a6b29171f07452419ca8ddc2a04ba2f75a37ff4b75f140428aa7f89aadaaf024",
-      "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls."
+      "bytes": 52676,
+      "sha256": "50b56b07daab80e9666a722ce8bce804710b6798af6348a38182df71cc289f2a",
+      "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls. Combined performance candidate: Record combined performance, native UI and cell-cache environment switches in capture provenance."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -767,10 +1557,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fdc1890b5c9ef2271b5d05e79d39945a057d38fd"
+        "blob": "d52b02a0c6d9421087409764af8df0bd4b10a3d4"
       },
-      "bytes": 20498,
-      "sha256": "2d06055619f482c22e4fa50548b30beb4eb15363362b34b9ba530e5f012ae2ea",
+      "bytes": 20625,
+      "sha256": "0559019e1df6a211d6b85a61c8c773a903ccc125eca7a9eca44977cbeb20fb26",
       "reason": "Require the one new inherited layout-mode inventory line exactly once and remove only it before the original byte-exact released-v1.0 collector preservation check; retain both historical digests and all prior assertions."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
@@ -823,15 +1613,25 @@
       "sha256": "c60f28a87a8e524330cf5d776395800e18d50ac4b8095705a7f696867c8bfdf2",
       "reason": "Exercise actual comparison wrapper invocation using a controlled collector boundary to verify FrameOnly selection, flag/argument forwarding and environment restoration on success and error."
     },
+    "custom/town-performance/verify-combined-layout.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "50b32951af865668fc51365c82f0102fa74c08a7"
+      },
+      "bytes": 8357,
+      "sha256": "16d670b5bff12299b6ab6689de4535ce30c0dc5bb70595d3de2bca44707c4c93",
+      "reason": "Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts. Require both snapshots around the same-root retained-widget transfer in normal and fallback configurations."
+    },
     "custom/town-performance/verify-layout-parity.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "fc3cde72f191c1b85f59bd92fa170761c2e48ee8"
+        "blob": "17768b7d62efb209fd0ada15d423fef6691291b0"
       },
-      "bytes": 6577,
-      "sha256": "de33c444ce761e4b57641c2382ce49c1fbf38b1c1f18d0870366cc2d95a52655",
-      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging."
+      "bytes": 7157,
+      "sha256": "a898622b7d000c67c94ad9bafa8213761aae333c16350fa85c6ddba7ce9c1c06",
+      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging. Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts. Require the same-root retained-widget transfer regression in both optimized and legacy UI snapshot verification."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,
@@ -876,11 +1676,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e26faec1efb5b57b18ff9f384060b4c1f16d7eb8"
+        "blob": "14bc4d5eeffd7c373e5d96b2ad8316ea08b9b7d6"
       },
-      "bytes": 16894,
-      "sha256": "d5d9fe9ff71d2864cc584a43881cd2b0dba2c6907667c4c7c0b55be18b799fa4",
-      "reason": "Native world-map icon feature: files/data/l10n/OMWEngine/en.yaml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 18637,
+      "sha256": "218226edd2de81fd72296163d49bc7f41aa822ae85747cef7b1f5b3824f82015",
+      "reason": "Native world-map icon feature: files/data/l10n/OMWEngine/en.yaml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: files/data/l10n/OMWEngine/en.yaml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
     "files/data/textures/mapmarkers/barrow.png": {
       "before": null,
@@ -1072,6 +1872,19 @@
       "sha256": "fe380bd3be03fcfeff31de7e7c498cbbe6e18d1f25177b8823433cdd1b6e13f8",
       "reason": "Native world-map icon feature: files/data/textures/mapmarkers/town.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "files/lua_api/openmw/types.lua": {
+      "before": {
+        "mode": "100644",
+        "blob": "97be3195027308cc2acc965bd9414b8596befc06"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6516480ab9440629a78c387e48f74008138a0aad"
+      },
+      "bytes": 107516,
+      "sha256": "c11e40c0cbc617692afd6d8abfec3627ab83f7ab934063927ff984c974781cf4",
+      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
+    },
     "files/settings-default.cfg": {
       "before": {
         "mode": "100644",
@@ -1079,11 +1892,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c0ccded86fbdacececf937853e6dec711825a8c8"
+        "blob": "1ea98e90a889b454daf6cff0fb0a83a8abd279b4"
       },
-      "bytes": 49831,
-      "sha256": "3234f85be423ee3e4d428b8e3987f682e880af2bf4be64d537caf02d6dd4fa18",
-      "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 50712,
+      "sha256": "4de6bf1b4a3bcc132aab743762b57baa82f5e0b0c385de98e3e23ec3628e8c76",
+      "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: files/settings-default.cfg; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     }
   }
 }

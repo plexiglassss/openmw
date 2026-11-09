@@ -36,6 +36,8 @@ namespace LuaUi
             outerSize.width = std::max(outerSize.width, coord.left + coord.width);
             outerSize.height = std::max(outerSize.height, coord.top + coord.height);
         }
+        if (mInnerSize != innerSize || mOuterSize != outerSize)
+            invalidateLayoutMeasurement();
         mInnerSize = innerSize;
         mOuterSize = outerSize;
     }
@@ -47,7 +49,12 @@ namespace LuaUi
 
     void LuaContainer::updateCoord()
     {
+        if (reuseLayout())
+            return;
+        const auto measurementRevision = layoutMeasurementRevision();
         updateSizeToFit();
         WidgetExtension::updateCoord();
+        if (measurementRevision != layoutMeasurementRevision())
+            invalidateLayout();
     }
 }

@@ -33,10 +33,14 @@ namespace LuaUi
 
         std::string widgetType(const sol::table& layout)
         {
+            preserveDynamicLayoutReads(layout);
             sol::object typeField = LuaUtil::getFieldOrNil(layout, LayoutKeys::type);
             std::string type = LuaUtil::getValueOrDefault(typeField, defaultWidgetType);
-            sol::object templateTypeField
-                = LuaUtil::getFieldOrNil(layout, LayoutKeys::templateLayout, LayoutKeys::type);
+            sol::object templateTypeField = [&] {
+                sol::object templateLayout = LuaUtil::getFieldOrNil(layout, LayoutKeys::templateLayout);
+                preserveDynamicLayoutReads(templateLayout);
+                return LuaUtil::getFieldOrNil(templateLayout, LayoutKeys::type);
+            }();
             if (templateTypeField != sol::nil)
             {
                 std::string templateType = LuaUtil::getValueOrDefault(templateTypeField, defaultWidgetType);
@@ -167,6 +171,7 @@ namespace LuaUi
         void setTemplate(WidgetExtension* ext, const sol::object& templateLayout, uint64_t depth)
         {
             ++depth;
+            preserveDynamicLayoutReads(templateLayout);
             sol::object props = LuaUtil::getFieldOrNil(templateLayout, LayoutKeys::props);
             ext->setTemplateProperties(props);
             sol::object content = LuaUtil::getFieldOrNil(templateLayout, LayoutKeys::content);
@@ -282,6 +287,7 @@ namespace LuaUi
     {
         if (mState == New)
         {
+            LayoutUpdateScope layoutUpdate(mRoot);
             assert(!mRoot);
             mRoot = createWidget(layout(), true, depth);
             mLayer = setLayer(mRoot, layout());
@@ -295,6 +301,7 @@ namespace LuaUi
     {
         if (mState == Update)
         {
+            LayoutUpdateScope layoutUpdate(mRoot);
             assert(mRoot);
             if (mRoot->widget()->getTypeName() != widgetType(layout()))
             {

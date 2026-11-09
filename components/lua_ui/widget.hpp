@@ -1,6 +1,7 @@
 #ifndef OPENMW_LUAUI_WIDGET
 #define OPENMW_LUAUI_WIDGET
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <vector>
@@ -15,6 +16,47 @@
 
 namespace LuaUi
 {
+    class WidgetExtension;
+
+    // A layout cache is valid only while one Element action is being applied.
+    // Lua tables may be mutated in-place between actions, including the
+    // external fields of retained child Elements. Never reuse a result across
+    // that boundary merely because its table or widget identity is unchanged.
+    class LayoutUpdateScope
+    {
+    public:
+        explicit LayoutUpdateScope(WidgetExtension* root);
+        ~LayoutUpdateScope();
+        LayoutUpdateScope(const LayoutUpdateScope&) = delete;
+        LayoutUpdateScope& operator=(const LayoutUpdateScope&) = delete;
+    };
+
+    bool useNativeLayoutReuse();
+    bool layoutReuseInProgress();
+    void invalidateLayoutReuse();
+
+    template <class Object>
+    void preserveDynamicLayoutReads(const Object& value)
+    {
+        if (!layoutReuseInProgress() || !value.valid() || value.get_type() != sol::type::table)
+            return;
+        lua_State* lua = value.lua_state();
+        value.push(lua);
+        const bool hasMetatable = lua_getmetatable(lua, -1) != 0;
+        lua_pop(lua, hasMetatable ? 2 : 1);
+        if (hasMetatable)
+            invalidateLayoutReuse();
+    }
+
+    struct LayoutUpdateStatistics
+    {
+        std::uint64_t calculated = 0;
+        std::uint64_t reused = 0;
+    };
+    // Disabled during normal play; used by native regression/benchmark tests.
+    void collectLayoutUpdateStatistics(bool enabled);
+    LayoutUpdateStatistics takeLayoutUpdateStatistics();
+
     /*
      * extends MyGUI::Widget and its child classes
      * memory ownership is controlled by MyGUI
@@ -54,9 +96,19 @@ namespace LuaUi
         void clearCallbacks();
 
         void setProperties(const sol::main_object& props);
-        void setTemplateProperties(const sol::main_object& props) { mTemplateProperties = props; }
+        void setTemplateProperties(const sol::main_object& props)
+        {
+            preserveDynamicLayoutReads(props);
+            invalidateLayout();
+            mTemplateProperties = props;
+        }
 
-        void setExternal(const sol::main_object& external) { mExternal = external; }
+        void setExternal(const sol::main_object& external)
+        {
+            preserveDynamicLayoutReads(external);
+            invalidateLayout();
+            mExternal = external;
+        }
 
         MyGUI::IntCoord forcedCoord();
         void forceCoord(const MyGUI::IntCoord& offset);
@@ -67,7 +119,11 @@ namespace LuaUi
         virtual void updateCoord();
 
         const sol::main_table& getLayout() { return mLayout; }
-        void setLayout(const sol::table& layout) { mLayout = layout; }
+        void setLayout(const sol::table& layout)
+        {
+            preserveDynamicLayoutReads(layout);
+            mLayout = layout;
+        }
 
         template <typename T>
         T externalValue(std::string_view name, const T& defaultValue) const
@@ -81,10 +137,19 @@ namespace LuaUi
         void mouseWheel(MyGUI::Widget*, float, float, float, float);
 
         virtual bool isTextInput() { return false; }
+        virtual bool allowsLayoutReuse() const { return true; }
         bool collectWarnings(Warnings& warnings, int depth, bool generateWarningStrings) const;
         std::string diagnosticName() const;
 
     protected:
+        // Geometry changes invalidate ancestors because containers and flex
+        // layouts can derive their own size/arrangement from a descendant.
+        void invalidateLayout();
+        void invalidateLayoutMeasurement();
+        std::uint64_t layoutMeasurementRevision() const { return mLayoutMeasurementRevision; }
+        bool reuseLayout();
+        void rememberLayout(std::uint64_t revision);
+
         virtual void initialize();
         void registerEvents(MyGUI::Widget* w);
         void clearEvents(MyGUI::Widget* w);
@@ -117,6 +182,7 @@ namespace LuaUi
         template <class Lambda>
         void protectedCall(Lambda&& f) const
         {
+            invalidateLayoutReuse();
             LuaUtil::protectedCall(mLua, std::forward<Lambda>(f));
         }
 
@@ -124,6 +190,7 @@ namespace LuaUi
         template <class ArgFactory>
         void propagateEvent(std::string_view name, const ArgFactory& argumentFactory) const
         {
+            invalidateLayoutReuse();
             const WidgetExtension* w = this;
             while (w)
             {
@@ -171,6 +238,20 @@ namespace LuaUi
         bool mVisible; // used to implement updateVisible
 
     private:
+        friend class LayoutUpdateScope;
+        void preserveRetainedExternalReads() const;
+        bool mLayoutDirty = true;
+        std::uint64_t mLayoutRevision = 0;
+        std::uint64_t mLayoutMeasurementRevision = 0;
+        std::uint64_t mLayoutEpoch = 0;
+        MyGUI::IntSize mLayoutParentSize;
+        MyGUI::IntCoord mLayoutCoord;
+        MyGUI::IntCoord mLayoutForcedCoord;
+        bool mLayoutForcePosition = false;
+        bool mLayoutForceSize = false;
+        MyGUI::Widget* mLayoutNativeParent = nullptr;
+        bool mLayoutParentVisible = true;
+
         // use lua_State* instead of sol::state_view because MyGUI requires a default constructor
         lua_State* mLua;
         MyGUI::Widget* mWidget;
@@ -215,6 +296,7 @@ namespace LuaUi
             {
                 if (predicate(*it))
                 {
+                    invalidateLayout();
                     (*it)->detachFromParent();
                     it = children.erase(it);
                 }

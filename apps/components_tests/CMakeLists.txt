@@ -84,6 +84,7 @@ file(GLOB UNITTEST_SRC_FILES
     esm3/testinfoorder.cpp
     esm3/testcstringids.cpp
     esm3/testlocationmarkers.cpp
+    esm3/testdungeonstates.cpp
 
     nifosg/testnifloader.cpp
 

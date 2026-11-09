@@ -6,9 +6,11 @@
 #include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 #include <components/lua_ui/widget.hpp>
+#include <components/misc/combinedperformance.hpp>
 
 #include <MyGUI_DataFileStream.h>
 #include <MyGUI_DataManager.h>
+#include <MyGUI_EditBox.h>
 #include <MyGUI_FactoryManager.h>
 #include <MyGUI_FontManager.h>
 #include <MyGUI_Gui.h>
@@ -64,8 +66,7 @@ namespace LuaUi
             std::string getDataPath(const std::string& name) const override { return (mRoot / name).string(); }
 
         private:
-            const std::filesystem::path mRoot
-                = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR } / "files/data/mygui";
+            const std::filesystem::path mRoot = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR } / "files/data/mygui";
             const MyGUI::VectorString mNames;
         };
 
@@ -160,7 +161,6 @@ namespace LuaUi
             MyGUI::GlyphInfo mSpace{ ' ', 4.f, 16.f, 4.f };
         };
 
-
         class LuaUiLayoutTest : public testing::Test
         {
         protected:
@@ -216,6 +216,11 @@ namespace LuaUi
                     << widget->getNeedMouseFocus();
                 if (auto* text = dynamic_cast<MyGUI::TextBox*>(widget))
                     out << ':' << text->getCaption().asUTF8();
+                if (auto* edit = dynamic_cast<MyGUI::EditBox*>(widget))
+                    out << ":edit=" << edit->getTextCursor() << ',' << edit->getTextSelectionStart() << ','
+                        << edit->getTextSelectionEnd() << ',' << edit->getHScrollPosition() << ','
+                        << edit->getVScrollPosition() << ',' << edit->getHScrollRange() << ','
+                        << edit->getVScrollRange();
                 if (auto* image = dynamic_cast<LuaImage*>(widget))
                     out << ":image=" << image->_getTextureName() << ":alpha=" << image->getAlpha()
                         << ",inherit=" << image->getInheritsAlpha();
@@ -252,15 +257,14 @@ namespace LuaUi
                 mLua["vec4"] = [](float x, float y, float z, float w) { return osg::Vec4f(x, y, z, w); };
                 mLua["colour"] = [](float r, float g, float b, float a) { return Misc::Color(r, g, b, a); };
                 registerTextureResources(mLua, mResources);
-                const auto contentPath = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }
-                    / "components/lua_ui/content.lua";
+                const auto contentPath
+                    = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR } / "components/lua_ui/content.lua";
                 sol::table contentModule = mLua.safe_script_file(contentPath.string());
                 mLua["content"] = contentModule["new"];
                 auto elementType = mLua.new_usertype<Element>("UiElement", sol::no_constructor);
                 elementType["layout"] = sol::property([](Element& element) { return element.mLayout; });
-                elementType["name"] = sol::property([](Element& element) {
-                    return element.mLayout.as<sol::table>().get_or("name", std::string());
-                });
+                elementType["name"] = sol::property(
+                    [](Element& element) { return element.mLayout.as<sol::table>().get_or("name", std::string()); });
                 mLua["element"] = [this](sol::table layout) {
                     sol::table options = mLua.create_table_with("noWarnUnused", true);
                     auto element = Element::make(layout, false, options);
@@ -276,19 +280,22 @@ namespace LuaUi
                     const auto coord = require(root, name)->widget()->getCoord();
                     return std::make_tuple(coord.left, coord.top, coord.width, coord.height);
                 };
-                mLua["sameWidget"] = [](const std::shared_ptr<Element>& root, const std::string& name,
-                                          const std::shared_ptr<Element>& child) {
-                    return require(root, name) == child->mRoot;
-                };
+                mLua["sameWidget"]
+                    = [](const std::shared_ptr<Element>& root, const std::string& name,
+                          const std::shared_ptr<Element>& child) { return require(root, name) == child->mRoot; };
                 mLua["snapshot"] = [this](const std::string& label) { snapshot(label); };
             }
 
             void TearDown() override
             {
+                collectLayoutUpdateStatistics(false);
                 // Full snapshots are compared between the diagnostic legacy
                 // path and the normal path by the CI differential check.
                 const char* legacy = std::getenv("OPENMW_LUA_UI_LEGACY_LAYOUT");
-                RecordProperty("layout_mode", legacy != nullptr && std::string_view(legacy) == "1" ? "legacy" : "optimized");
+                RecordProperty(
+                    "layout_mode", legacy != nullptr && std::string_view(legacy) == "1" ? "legacy" : "optimized");
+                RecordProperty("native_update_mode", useNativeLayoutReuse() ? "reuse" : "legacy");
+                RecordProperty("combined_performance_mode", Misc::useCombinedPerformance() ? "enabled" : "disabled");
                 RecordProperty("layout_snapshots", mSnapshots);
                 clearGameInterface();
                 mElements.clear();
@@ -306,13 +313,13 @@ namespace LuaUi
                 {
                     EXPECT_EQ(root->widget()->getChildAt(i), children[i]->widget());
                     EXPECT_EQ(children[i]->getParent(), root);
-                EXPECT_EQ(children[i]->widget()->getWidgetStyle(), MyGUI::WidgetStyle::Child);
-                EXPECT_EQ(children[i]->widget()->getLayer(), nullptr);
-                EXPECT_EQ(children[i]->widget()->getLayerNode(), root->widget()->getLayerNode());
+                    EXPECT_EQ(children[i]->widget()->getWidgetStyle(), MyGUI::WidgetStyle::Child);
+                    EXPECT_EQ(children[i]->widget()->getLayer(), nullptr);
+                    EXPECT_EQ(children[i]->widget()->getLayerNode(), root->widget()->getLayerNode());
                 }
                 EXPECT_NE(root->widget()->getChildAt(children.size()), nullptr);
-            EXPECT_EQ(root->widget()->getChildAt(children.size())->getWidgetStyle(), MyGUI::WidgetStyle::Child);
-            EXPECT_EQ(root->widget()->getChildAt(children.size())->getLayerNode(), root->widget()->getLayerNode());
+                EXPECT_EQ(root->widget()->getChildAt(children.size())->getWidgetStyle(), MyGUI::WidgetStyle::Child);
+                EXPECT_EQ(root->widget()->getChildAt(children.size())->getLayerNode(), root->widget()->getLayerNode());
             }
         };
 
@@ -498,8 +505,9 @@ namespace LuaUi
                 const auto start = std::chrono::steady_clock::now();
                 for (int i = 0; i < iterations; ++i)
                     refresh(root);
-                duration = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now() - start).count();
+                duration
+                    = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start)
+                          .count();
             }
             std::sort(durations.begin(), durations.end());
             RecordProperty("median_update_ns", std::to_string(durations[durations.size() / 2] / iterations));
@@ -508,6 +516,251 @@ namespace LuaUi
             snapshot("after-updates");
             // Timings are evidence, not pass/fail thresholds. Correctness is
             // checked by full native hierarchy snapshots in both modes.
+        }
+
+        TEST_F(LuaUiLayoutTest, LayoutReuseTracksConstraintsAndMutatedRetainedExternalFields)
+        {
+            run(R"(
+                left=element {name='retained-left',type='LuaFlex',
+                    props={horizontal=true,autoSize=false,size=vec2(20,24)},external={grow=1},
+                    content=content {{name='relative-leaf',props={relativeSize=vec2(.5,1)}}}}
+                right=element {name='retained-right',props={size=vec2(20,24)},external={grow=1}}
+                root=element {name='root',type='LuaFlex',layer='LuaUiTest',
+                    props={horizontal=true,autoSize=false,size=vec2(200,60)},
+                    content=content {left,right}}
+                roots={root}; refresh(root); snapshot('initial-retained-growth')
+                -- External fields are live layout inputs even when the child
+                -- Element itself is not refreshed.
+                left.layout.external.grow=3
+                root.layout.props.size=vec2(140,60)
+                refresh(root); snapshot('mutated-external-and-parent')
+                local _,_,leftWidth=rect(root,'retained-left')
+                local _,_,rightWidth=rect(root,'retained-right')
+                assert(leftWidth==95 and rightWidth==45)
+                local _,_,leafWidth=rect(root,'relative-leaf')
+                assert(leafWidth==47)
+                root.layout.props.visible=false; refresh(root); snapshot('retained-hidden')
+                root.layout.props.visible=true; refresh(root); snapshot('retained-shown')
+                left.layout.props.size=vec2(30,24); refresh(left)
+                snapshot('child-action-updates-outer-root')
+                root.layout.content=content {right,left}; refresh(root); snapshot('retained-reordered')
+            )");
+        }
+
+        TEST_F(LuaUiLayoutTest, ReparentIntoGrowingSiblingUnderTheSameRoot)
+        {
+            run(R"(
+                moving=element {name='moving',props={size=vec2(18,9)}}
+                old=element {name='old',type='LuaFlex',content=content {moving}}
+                dest=element {name='dest',type='LuaFlex',content=content {}}
+                root=element {name='outer',type='LuaFlex',layer='LuaUiTest',
+                    props={size=vec2(160,80),autoSize=false},content=content {dest,old}}
+                roots={root}; refresh(root)
+                -- attach() removes moving from old immediately. Both containers share outer,
+                -- and dest still has an unfilled second slot at that point.
+                dest.layout.content=content {moving,{name='tail',props={size=vec2(11,7)}}}
+                refresh(dest); snapshot('after-moving-into-growing-sibling')
+                assert(sameWidget(dest,'moving',moving))
+            )");
+            const auto dest = mLua["dest"].get<std::shared_ptr<Element>>();
+            const auto old = mLua["old"].get<std::shared_ptr<Element>>();
+            const auto moving = mLua["moving"].get<std::shared_ptr<Element>>();
+            ASSERT_EQ(dest->mRoot->children().size(), 2u);
+            EXPECT_TRUE(old->mRoot->children().empty());
+            EXPECT_EQ(dest->mRoot->children().front(), moving->mRoot);
+            EXPECT_EQ(moving->mRoot->getParent(), dest->mRoot);
+            EXPECT_EQ(dest->mRoot->children().back(), require(dest, "tail"));
+            // An ordinary update in the next action can still reuse a stable layout.
+            collectLayoutUpdateStatistics(true);
+            run("refresh(dest); snapshot('stable-after-reparent')");
+            const auto stats = takeLayoutUpdateStatistics();
+            if (useNativeLayoutReuse())
+            {
+                EXPECT_GT(stats.reused, 0u);
+            }
+        }
+
+        TEST_F(LuaUiLayoutTest, LayoutReuseFallsBackForLiveMetatableReads)
+        {
+            run(R"(
+                child=element {name='dynamic',props={size=vec2(20,10)},external={grow=1}}
+                root=element {name='root',type='LuaFlex',layer='LuaUiTest',
+                    props={horizontal=true,autoSize=false,size=vec2(120,30)},content=content {child}}
+                roots={root}; refresh(root)
+                externalReads=0
+                setmetatable(child.layout.external,{__index=function(_,key)
+                    externalReads=externalReads+1
+                    if key=='grow' then return 1 end
+                    if key=='stretch' then return 0 end
+                end})
+            )");
+            collectLayoutUpdateStatistics(true);
+            run("refresh(root); snapshot('dynamic-external-reads-'..externalReads)");
+            const auto stats = takeLayoutUpdateStatistics();
+            EXPECT_EQ(stats.reused, 0u);
+            EXPECT_GT(stats.calculated, 0u);
+            RecordProperty("fallback_layout_calculations", std::to_string(stats.calculated));
+            RecordProperty("fallback_layout_reuses", std::to_string(stats.reused));
+            collectLayoutUpdateStatistics(false);
+            run(R"(
+                -- A template lookup can execute Lua before its children are
+                -- processed; this is another deliberately conservative fallback.
+                local template={props={padding=vec4(1,2,3,4)}}
+                templateReads=0
+                root.layout.template=setmetatable({}, {__index=function(_,key)
+                    templateReads=templateReads+1; return template[key]
+                end})
+                refresh(root); snapshot('dynamic-template-reads-'..templateReads)
+                plain=element {name='plain',props={size=vec2(10,10)}}
+                other=element {name='other',type='LuaFlex',layer='LuaUiTest',
+                    props={horizontal=true,autoSize=false,size=vec2(150,40)},content=content {plain}}
+                roots={root,other}; refresh(other)
+                other.layout.content:add(child); externalReads=0
+            )");
+            collectLayoutUpdateStatistics(true);
+            run(R"(
+                refresh(other)
+                -- Moving a plain child back must also preserve dynamic reads
+                -- on siblings left in its previous parent.
+                root.layout.template=nil; root.layout.content=content {plain}
+                refresh(root); snapshot('moved-dynamic-external-reads-'..externalReads)
+            )");
+            const auto movedStats = takeLayoutUpdateStatistics();
+            collectLayoutUpdateStatistics(false);
+            EXPECT_EQ(movedStats.reused, 0u);
+            EXPECT_GT(movedStats.calculated, 0u);
+            RecordProperty("moved_layout_calculations", std::to_string(movedStats.calculated));
+            RecordProperty("moved_layout_reuses", std::to_string(movedStats.reused));
+        }
+
+        TEST_F(LuaUiLayoutTest, RetainedTextEditorsKeepCaretSelectionAndScrollPasses)
+        {
+            run(R"(
+                text='First wrapped line with more words\nSecond wrapped line with more words\nThird long line'
+                readonly=element {name='readonly',type='LuaTextEdit',props={text=text,textSize=16,
+                    readOnly=true,multiline=true,wordWrap=true,autoSize=true,relativeSize=vec2(1,0)}}
+                editable=element {name='editable',type='LuaTextEdit',props={text=text,textSize=16,
+                    multiline=true,size=vec2(0,25),relativeSize=vec2(1,0)}}
+                root=element {name='root',type='LuaFlex',layer='LuaUiTest',
+                    props={size=vec2(180,240),autoSize=false,gap=4},content=content {readonly,editable}}
+                roots={root}; refresh(root); snapshot('editors-created')
+            )");
+            const auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            const auto nativeEdit = [&](const std::string& name) {
+                MyGUI::Widget* wrapper = require(root, name)->widget();
+                for (size_t i = 0; i < wrapper->getChildCount(); ++i)
+                    if (auto* edit = dynamic_cast<MyGUI::EditBox*>(wrapper->getChildAt(i)))
+                        return edit;
+                throw std::runtime_error("Missing native editor: " + name);
+            };
+            auto* edit = nativeEdit("editable");
+            edit->setTextCursor(42);
+            edit->setTextSelection(7, 18);
+            edit->setHScrollPosition(std::min<size_t>(24, edit->getHScrollRange()));
+            edit->setVScrollPosition(std::min<size_t>(12, edit->getVScrollRange()));
+            snapshot("editors-caret-and-scroll");
+            collectLayoutUpdateStatistics(true);
+            refresh(root);
+            const auto stats = takeLayoutUpdateStatistics();
+            collectLayoutUpdateStatistics(false);
+            EXPECT_EQ(stats.reused, 0u);
+            EXPECT_GT(stats.calculated, 0u);
+            RecordProperty("fallback_layout_calculations", std::to_string(stats.calculated));
+            RecordProperty("fallback_layout_reuses", std::to_string(stats.reused));
+            snapshot("editors-retained-refresh");
+            run(R"(
+                root.layout.props.size=vec2(90,240); refresh(root); snapshot('editors-narrow')
+                root.layout.props.size=vec2(220,240); refresh(root); snapshot('editors-wide')
+                readonly.layout.props.textSize=20; refresh(readonly); snapshot('editor-font-change')
+            )");
+        }
+
+        TEST_F(LuaUiLayoutTest, NestedRetainedHudSparseAndFullUpdatesBenchmark)
+        {
+            run(R"(
+                rows={}; distances={}; arrows={}; labels={}
+                for i=1,32 do
+                    local label=element {name='label'..i,type='LuaText',
+                        props={text='A retained quest objective '..i,textSize=16}}
+                    local detail=element {name='detail'..i,type='LuaText',
+                        props={text='A static secondary description',textSize=12}}
+                    labels[i]=label
+                    distances[i]={name='distance'..i,type='LuaText',props={text='120 m',textSize=16}}
+                    arrows[i]={name='arrow'..i,type='LuaImage',
+                        props={resource=texture('textures/layout_arrow.dds'),size=vec2(14,14)}}
+                    rows[i]={name='row'..i,type='LuaFlex',props={horizontal=true,gap=4},
+                        template={content=content {{name='background'..i,type='LuaImage',
+                            props={resource=texture('textures/layout_row.dds'),relativeSize=vec2(1,1)}}}},
+                        content=content {
+                            {name='labels'..i,type='LuaFlex',props={gap=1},content=content {label,detail}},
+                            {name='values'..i,type='LuaFlex',props={horizontal=true,gap=2},
+                                content=content {distances[i],arrows[i]}}
+                        }}
+                end
+                root=element {name='nested-hud',type='LuaFlex',layer='LuaUiTest',
+                    props={gap=3},content=content(rows)}
+                roots={root}; refresh(root); snapshot('nested-created')
+                function mutateHud(kind,iteration)
+                    if kind=='sparse' then
+                        local i=iteration%32+1
+                        distances[i].props.text=tostring(100+iteration%19)..' m'
+                        arrows[i].props.alpha=.5+.05*(iteration%9)
+                    elseif kind=='full' then
+                        for i=1,32 do
+                            distances[i].props.text=tostring(100+(iteration+i)%19)..' m'
+                            arrows[i].props.alpha=.5+.05*((iteration+i)%9)
+                        end
+                    elseif kind=='retained' then
+                        labels[iteration%32+1].layout.props.text='Changed retained objective '..iteration
+                    end
+                end
+            )");
+            const auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            const sol::protected_function mutate = mLua["mutateHud"];
+            std::vector<std::shared_ptr<Element>> retained;
+            const sol::table labels = mLua["labels"];
+            for (size_t i = 1; i <= labels.size(); ++i)
+                retained.push_back(labels.get<std::shared_ptr<Element>>(i));
+            constexpr int iterations = 24;
+            RecordProperty("hud_rows", 32);
+            RecordProperty("timed_batches", 5);
+            RecordProperty("updates_per_batch", iterations);
+            RecordProperty("warmup_updates", 8);
+            for (const std::string kind : { "unchanged", "sparse", "full", "retained" })
+            {
+                const auto update = [&](int i) { refresh(kind == "retained" ? retained[i % retained.size()] : root); };
+                for (int i = 0; i < 8; ++i)
+                {
+                    ASSERT_TRUE(mutate(kind, i).valid());
+                    update(i);
+                }
+                std::array<long long, 5> durations;
+                for (auto& duration : durations)
+                {
+                    const auto start = std::chrono::steady_clock::now();
+                    for (int i = 0; i < iterations; ++i)
+                    {
+                        ASSERT_TRUE(mutate(kind, i).valid());
+                        update(i);
+                    }
+                    duration
+                        = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start)
+                              .count();
+                }
+                std::sort(durations.begin(), durations.end());
+                RecordProperty(kind + "_median_update_ns", std::to_string(durations[2] / iterations));
+                collectLayoutUpdateStatistics(true);
+                update(0);
+                const auto stats = takeLayoutUpdateStatistics();
+                collectLayoutUpdateStatistics(false);
+                RecordProperty(kind + "_layout_calculations", std::to_string(stats.calculated));
+                RecordProperty(kind + "_layout_reuses", std::to_string(stats.reused));
+                if (useNativeLayoutReuse())
+                    EXPECT_GT(stats.reused, 0u);
+                else
+                    EXPECT_EQ(stats.reused, 0u);
+                snapshot("nested-" + kind);
+            }
         }
 
         TEST_F(LuaUiLayoutTest, ImageTemplatesInheritResourcesAcrossOverridesAndUpdates)
@@ -592,19 +845,20 @@ namespace LuaUi
             void TearDown() override
             {
                 const char* legacy = std::getenv("OPENMW_LUA_UI_LEGACY_LAYOUT");
-                RecordProperty("layout_mode", legacy != nullptr && std::string_view(legacy) == "1" ? "legacy" : "optimized");
+                RecordProperty(
+                    "layout_mode", legacy != nullptr && std::string_view(legacy) == "1" ? "legacy" : "optimized");
             }
 
             template <typename T>
-            void compare(const sol::main_object& props, const sol::main_object& fallback,
-                std::string_view field, const T& defaultValue)
+            void compare(const sol::main_object& props, const sol::main_object& fallback, std::string_view field,
+                const T& defaultValue)
             {
                 const int top = lua_gettop(mLua);
                 EXPECT_EQ(parseProperty(props, fallback, field, defaultValue),
                     parseProperty(sol::object(props), sol::object(fallback), field, defaultValue));
                 EXPECT_EQ(lua_gettop(mLua), top);
-                EXPECT_EQ(parseExternal(props, field, defaultValue),
-                    parseExternal(sol::object(props), field, defaultValue));
+                EXPECT_EQ(
+                    parseExternal(props, field, defaultValue), parseExternal(sol::object(props), field, defaultValue));
                 EXPECT_EQ(lua_gettop(mLua), top);
             }
 
@@ -799,12 +1053,16 @@ namespace LuaUi
             EXPECT_EQ(parseProperty(props, fallback, "value", 0), 1);
             EXPECT_EQ(parseProperty(props, fallback, "value", 0), 2);
             EXPECT_EQ(parseExternal(props, "value", 0), 3);
-            mLua.safe_script("assert(table.concat(calls,',')=='property:value,template:value,property:value,template:value,property:value')");
+            mLua.safe_script(
+                "assert(table.concat(calls,',')=='property:value,template:value,property:value,template:value,property:"
+                "value')");
             mLua.safe_script("calls={}; nextValue=0");
             EXPECT_EQ(parseProperty(sol::object(props), sol::object(fallback), "value", 0), 1);
             EXPECT_EQ(parseProperty(sol::object(props), sol::object(fallback), "value", 0), 2);
             EXPECT_EQ(parseExternal(sol::object(props), "value", 0), 3);
-            mLua.safe_script("assert(table.concat(calls,',')=='property:value,template:value,property:value,template:value,property:value')");
+            mLua.safe_script(
+                "assert(table.concat(calls,',')=='property:value,template:value,property:value,template:value,property:"
+                "value')");
             mLua.safe_script("getmetatable(fallback).__index=function() error('lookup failure') end");
             EXPECT_EQ(error([&] { parseProperty(props, fallback, "value", 0); }),
                 error([&] { parseProperty(sol::object(props), sol::object(fallback), "value", 0); }));

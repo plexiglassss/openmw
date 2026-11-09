@@ -612,6 +612,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                     break;
 
                 case ESM::REC_DCOU:
+                case ESM::REC_DCLR:
                 case ESM::REC_STLN:
 
                     MWBase::Environment::get().getMechanicsManager()->readRecord(reader, n.toInt());

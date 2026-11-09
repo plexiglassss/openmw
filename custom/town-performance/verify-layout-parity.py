@@ -19,9 +19,14 @@ EXPECTED = {
     "StableTemplateHierarchyAndSiblingOrderRepair",
     "MutableTemplateSlotsAndReplacementKeepRetainedChild",
     "MovingRetainedElementRelayoutsThePreviousRootImmediately",
+    "ReparentIntoGrowingSiblingUnderTheSameRoot",
     "NestedAutoSizeAndRelativeGrowRespondToASingleRootResize",
     "NestedWrappingTextPaddingVisibilityAndReorderStayConsistent",
     "RepeatedHudUpdatesBenchmark",
+    "LayoutReuseTracksConstraintsAndMutatedRetainedExternalFields",
+    "LayoutReuseFallsBackForLiveMetatableReads",
+    "RetainedTextEditorsKeepCaretSelectionAndScrollPasses",
+    "NestedRetainedHudSparseAndFullUpdatesBenchmark",
     IMAGE_INHERITANCE_CASE,
 }
 EXPECTED_PROPERTIES = {
@@ -87,6 +92,9 @@ def compare(optimized, legacy):
     current, previous = read_cases(optimized, "optimized"), read_cases(legacy, "legacy")
     verify_property_cases(optimized, "optimized")
     verify_property_cases(legacy, "legacy")
+    for label, values, expected in (("optimized", current, "reuse"), ("legacy", previous, "legacy")):
+        if any(case.get("native_update_mode") != expected for case in values.values()):
+            raise ValueError("Native geometry reuse mode differs from the requested process mode: " + label)
     cases = {}
     for name in sorted(EXPECTED):
         left, right = current[name]["layout_snapshots"], previous[name]["layout_snapshots"]

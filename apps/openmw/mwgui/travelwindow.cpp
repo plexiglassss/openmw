@@ -99,6 +99,12 @@ namespace MWGui
         toAdd->setSize(mDestinationsView->getWidth(), lineHeight);
         toAdd->eventMouseWheel += MyGUI::newDelegate(this, &TravelWindow::onMouseWheel);
         toAdd->setUserString("Destination", nameString);
+        toAdd->setUserString("ToolTipType", "TravelDestination");
+        toAdd->setUserString("TravelProvider", mPtr.getCellRef().getRefId().serializeText());
+        toAdd->setUserString("TravelVariant", std::to_string(mPreviewVariant));
+        toAdd->setUserString("TravelGondolier", mPtr.getType() == ESM::NPC::sRecordId
+                    && mPtr.get<ESM::NPC>()->mBase->mClass == ESM::RefId::stringRefId("Gondolier")
+                ? "y" : "n");
         toAdd->setUserData(pos);
         toAdd->eventMouseButtonClick += MyGUI::newDelegate(this, &TravelWindow::onTravelButtonClick);
         if (price <= playerGold)
@@ -121,6 +127,7 @@ namespace MWGui
 
         center();
         mPtr = actor;
+        ++mPreviewVariant;
         clearDestinations();
 
         std::vector<ESM::Transport::Dest> transport;

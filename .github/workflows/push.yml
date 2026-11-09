@@ -1,4 +1,4 @@
-name: OpenMW - native world map icons
+name: OpenMW - combined native performance
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -131,6 +131,19 @@ jobs:
         run: |
           ./custom/gameplay-responsiveness/Test-Installer.ps1 -InstallerScript ./custom/gameplay-responsiveness/Install-Fix.ps1 -WrapperScript ./custom/gameplay-responsiveness/Install-All.ps1 -TestRoot ./installer-fixtures -ReportPath ./gameplay-installer-tests.json
           if ($LASTEXITCODE) { throw 'Script installer regression tests failed' }
+      - name: Compare SaneMagic adapters with captured originals in both Lua runtimes
+        shell: pwsh
+        run: |
+          python -m pip install -r custom/combined-performance/tests/requirements.txt
+          if ($LASTEXITCODE) { throw 'Lua adapter test runtime installation failed' }
+          python custom/combined-performance/tests/test_sanemagic_adapters.py --output sanemagic-adapter-parity.json
+          if ($LASTEXITCODE) { throw 'SaneMagic native/fallback adapter behavior differs from the captured originals' }
+      - name: Test combined launcher in Windows PowerShell
+        shell: powershell
+        run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-windows-powershell.json
+      - name: Test combined launcher in PowerShell 7
+        shell: pwsh
+        run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-pwsh.json
       - name: Test settings editing and rollback in Windows PowerShell
         shell: powershell
         run: |
@@ -295,7 +308,7 @@ jobs:
           ./build/openmw-controls-tests.exe --gtest_output=xml:map-icon-controls-early.xml
           if ($LASTEXITCODE) { throw 'Actual native controls regressions failed' }
           [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
-          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest')) {
+          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest')) {
             $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
             if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne 4) {
               throw "Missing required actual controls cases: $suiteName"
@@ -379,6 +392,24 @@ jobs:
           apps/components_tests/CMakeFiles/components-tests.dir/esm3/testlocationmarkers.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testclassification.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
+      - name: Compile native travel, key and cleared-dungeon integration first
+        run: >-
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltip.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltipdata.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltipview.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/tooltipcontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/travelwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/tooltips.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwclass/door.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwclass/container.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/mechanicsmanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwstate/statemanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/scene.cpp.obj
+          components/CMakeFiles/components.dir/esm3/dungeonstates.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/esm3/testdungeonstates.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testtraveltooltipdata.cpp.obj
       - name: Prepare test DLLs
         shell: pwsh
         run: |
@@ -403,12 +434,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Early component regressions failed' }
       - name: Build engine and regression tests
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
-      - name: All engine tests, both UI modes and four lookup configurations before packaging
+      - name: All engine tests, UI fallback modes and four lookup configurations before packaging
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
           $componentTestExit = $LASTEXITCODE
-          Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
+          Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT,Env:OPENMW_LUA_UI_LEGACY_UPDATES,Env:OPENMW_COMBINED_PERFORMANCE,Env:OPENMW_LUA_CELL_QUERY_CACHE -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
           if ($componentTestExit) { throw 'Component regressions failed' }
@@ -422,6 +453,24 @@ jobs:
           python custom/town-performance/verify-layout-parity.py openmw-tests.xml lua-ui-legacy-tests.xml lua-ui-layout-parity.json
           if ($LASTEXITCODE) { throw 'Required native UI regressions or layout/Image parity verification failed' }
           try {
+            $env:OPENMW_LUA_UI_LEGACY_UPDATES = '1'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-updates-tests.xml
+            if ($LASTEXITCODE) { throw 'Inherited native update traversal regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_UI_LEGACY_UPDATES -ErrorAction SilentlyContinue
+          }
+          try {
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:MWLuaMagicBindingsTest.nativeQueryFactoriesMatchLuaAdapterCallsAndMasterMode --gtest_output=xml:combined-performance-off-tests.xml
+            if ($LASTEXITCODE) { throw 'Same-executable inherited fallback regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/town-performance/verify-combined-layout.py openmw-tests.xml lua-ui-legacy-updates-tests.xml combined-performance-off-tests.xml combined-layout-parity.json
+          if ($LASTEXITCODE) { throw 'Combined native UI state or fallback parity failed' }
+          python custom/combined-performance/verify-native.py openmw-tests.xml combined-performance-off-tests.xml combined-native-tests.json
+          if ($LASTEXITCODE) { throw 'Required combined query regressions or fallback factory behavior did not execute' }
+          try {
             foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
               $env:OPENMW_CELL_ID_INDEX = $mode[0]
               $env:OPENMW_WORLD_CELL_INDEX = $mode[1]
@@ -433,6 +482,11 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Require executed native tooltip tests
+        shell: pwsh
+        run: |
+          python custom/native-tooltips/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
+          if ($LASTEXITCODE) { throw 'Required tooltip forms, selection or save regressions did not execute successfully' }
       - name: Package only after test success
         id: package
         shell: pwsh
@@ -460,6 +514,8 @@ jobs:
           Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
           Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
           Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
+          Copy-Item custom/native-tooltips/README.md install/NATIVE-TOOLTIPS.md
+          Copy-Item native-tooltip-tests.json install/
           python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-package.json --resources install/resources/vfs
           if ($LASTEXITCODE) { throw 'Installed map icon resource verification failed' }
           Copy-Item map-icons-classification.json,map-icons-package.json install/
@@ -471,7 +527,9 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nNative world map location icons; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nSaneMagic adapters and same-executable launch modes included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          python custom/combined-performance/prepare-package.py install
+          if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
           python custom/cumulative/prepare-upgrade.py install --town-performance
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
@@ -480,7 +538,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-native-map-icons-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-combined-performance-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
@@ -507,6 +565,7 @@ jobs:
             town-performance-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
+            native-tooltip-tests.json
             map-icons-classification.json
             map-icons-package.json
             map-icon-controls-early.xml
@@ -522,6 +581,14 @@ jobs:
             openmw-tests.xml
             lua-ui-legacy-tests.xml
             lua-ui-layout-parity.json
+            sanemagic-adapter-parity.json
+            combined-launcher-windows-powershell.json
+            combined-launcher-pwsh.json
+            combined-native-tests.json
+            combined-layout-parity.json
+            lua-ui-legacy-updates-tests.xml
+            combined-performance-off-tests.xml
+            install/COMBINED-PACKAGE.json
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json
             loading-repair-applied.patch

@@ -15,6 +15,7 @@
 
 #include <components/sceneutil/positionattitudetransform.hpp>
 
+#include "../mwworld/cellstore.hpp"
 #include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
 #include "../mwworld/globals.hpp"
@@ -247,7 +248,11 @@ namespace MWMechanics
     void MechanicsManager::add(const MWWorld::Ptr& ptr)
     {
         if (ptr.getClass().isActor())
+        {
             mActors.addActor(ptr);
+            if (ptr.isInCell())
+                queueDungeonStatusUpdate(ptr.getCell());
+        }
         else
             mObjects.addObject(ptr);
     }
@@ -264,6 +269,8 @@ namespace MWMechanics
             MWBase::Environment::get().getWindowManager()->watchActor(MWWorld::Ptr());
         mActors.removeActor(ptr, keepActive);
         mObjects.removeObject(ptr);
+        if (ptr.getClass().isActor() && ptr.isInCell())
+            queueDungeonStatusUpdate(ptr.getCell());
     }
 
     void MechanicsManager::updateCell(const MWWorld::Ptr& old, const MWWorld::Ptr& ptr)
@@ -272,7 +279,13 @@ namespace MWMechanics
             MWBase::Environment::get().getWindowManager()->watchActor(ptr);
 
         if (ptr.getClass().isActor())
+        {
             mActors.updateActor(old, ptr);
+            if (old.isInCell())
+                queueDungeonStatusUpdate(old.getCell());
+            if (ptr.isInCell())
+                queueDungeonStatusUpdate(ptr.getCell());
+        }
         else
             mObjects.updateObject(old, ptr);
     }
@@ -281,6 +294,49 @@ namespace MWMechanics
     {
         mActors.dropActors(cellStore, getPlayer());
         mObjects.dropObjects(cellStore);
+    }
+
+    void MechanicsManager::queueDungeonStatusUpdate(const MWWorld::CellStore* cell)
+    {
+        const MWWorld::Ptr player = getPlayer();
+        if (cell && !cell->isExterior() && player.isInCell() && player.getCell() == cell)
+            mDungeonStatusDirty = true;
+    }
+
+    void MechanicsManager::updateDungeonStatus(const MWWorld::CellStore* cell)
+    {
+        const MWWorld::Ptr player = getPlayer();
+        if (!cell || cell->isExterior() || !player.isInCell() || player.getCell() != cell)
+            return;
+
+        bool hasLivingHostiles = false;
+        // These actors already have active runtime state. Do not enumerate or
+        // load any destination cell, and do not walk the installed world data.
+        for (const Actor& actor : mActors)
+        {
+            if (actor.isInvalid())
+                continue;
+            const MWWorld::Ptr& ptr = actor.getPtr();
+            if (ptr == player || !ptr.isInCell() || ptr.getCell() != cell || !ptr.getRefData().isEnabled()
+                || ptr.getCellRef().getCount() <= 0)
+                continue;
+            const CreatureStats& stats = ptr.getClass().getCreatureStats(ptr);
+            // Preserve the original mod's criterion, not a quest/loot/combat
+            // completion claim. High-Fight actors count even when not fighting.
+            if (!stats.isDead() && stats.getAiSetting(AiSetting::Fight).getModified() >= 82)
+            {
+                hasLivingHostiles = true;
+                break;
+            }
+        }
+        if (mDungeonStates.observe(cell->getCell()->getId(), hasLivingHostiles))
+            ++mDungeonStatusRevision;
+        mDungeonStatusDirty = false;
+    }
+
+    bool MechanicsManager::isDungeonCleared(const ESM::RefId& cellId) const
+    {
+        return mDungeonStates.isCleared(cellId);
     }
 
     void MechanicsManager::update(float duration, bool paused)
@@ -323,6 +379,14 @@ namespace MWMechanics
 
         mActors.update(duration, paused);
         mObjects.update(duration, paused);
+        if (mDungeonStatusDirty)
+        {
+            // An event queued before leaving an interior has no work in the
+            // exterior. Entry will take a fresh snapshot of the next room.
+            mDungeonStatusDirty = false;
+            if (ptr.isInCell())
+                updateDungeonStatus(ptr.getCell());
+        }
     }
 
     void MechanicsManager::processChangedSettings(const Settings::CategorySettingVector& changed)
@@ -1816,7 +1880,8 @@ namespace MWMechanics
     size_t MechanicsManager::countSavedGameRecords() const
     {
         return 1 // Death counter
-            + 1; // Stolen items
+            + 1 // Stolen items
+            + 1; // Per-interior cleared-dungeon history
     }
 
     void MechanicsManager::write(ESM::ESMWriter& writer, Loading::Listener& listener) const
@@ -1828,6 +1893,10 @@ namespace MWMechanics
         writer.startRecord(ESM::REC_STLN);
         items.write(writer);
         writer.endRecord(ESM::REC_STLN);
+
+        writer.startRecord(ESM::REC_DCLR);
+        mDungeonStates.save(writer);
+        writer.endRecord(ESM::REC_DCLR);
     }
 
     void MechanicsManager::readRecord(ESM::ESMReader& reader, uint32_t type)
@@ -1838,6 +1907,11 @@ namespace MWMechanics
             items.load(reader);
             mStolenItems = items.mStolenItems;
         }
+        else if (type == ESM::REC_DCLR)
+        {
+            mDungeonStates.load(reader);
+            ++mDungeonStatusRevision;
+        }
         else
             mActors.readRecord(reader, type);
     }
@@ -1846,6 +1920,9 @@ namespace MWMechanics
     {
         mActors.clear();
         mStolenItems.clear();
+        mDungeonStates.mStates.clear();
+        mDungeonStatusDirty = false;
+        ++mDungeonStatusRevision;
         mClassSelected = false;
         mRaceSelected = false;
     }
@@ -1857,6 +1934,8 @@ namespace MWMechanics
         {
             stats.resurrect();
             mActors.resurrect(ptr);
+            if (ptr.isInCell())
+                queueDungeonStatusUpdate(ptr.getCell());
         }
     }
 

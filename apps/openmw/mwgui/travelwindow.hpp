@@ -4,6 +4,8 @@
 #include "referenceinterface.hpp"
 #include "windowbase.hpp"
 
+#include <cstdint>
+
 namespace MyGUI
 {
     class Gui;
@@ -43,6 +45,7 @@ namespace MWGui
     private:
         bool onControllerButtonEvent(const SDL_ControllerButtonEvent& arg) override;
         size_t mControllerFocus = 0;
+        std::uint64_t mPreviewVariant = 0;
     };
 }
 

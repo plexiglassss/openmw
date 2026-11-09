@@ -1,4 +1,8 @@
+#include "apps/openmw/mwlua/context.hpp"
+#include "apps/openmw/mwlua/magicbindings.hpp"
 #include "apps/openmw/mwlua/magicbindingshelper.hpp"
+#include "apps/openmw/mwlua/magicqueries.hpp"
+#include "apps/openmw/mwlua/types/types.hpp"
 
 #include "apps/openmw/mwbase/environment.hpp"
 #include "apps/openmw/mwclass/npc.hpp"
@@ -9,6 +13,10 @@
 
 #include <components/esm3/loadnpc.hpp>
 #include <components/esm3/readerscache.hpp>
+#include <components/misc/combinedperformance.hpp>
+#include <components/resource/resourcesystem.hpp>
+#include <components/toutf8/toutf8.hpp>
+#include <components/vfs/manager.hpp>
 
 #include <gtest/gtest.h>
 
@@ -114,6 +122,9 @@ namespace MWLua
             MWWorld::ESMStore mStore;
             ESM::ReadersCache mReaders;
             MWWorld::WorldModel mWorld{ mStore, mReaders };
+            VFS::Manager mVfs;
+            ToUTF8::Utf8Encoder mEncoder{ ToUTF8::WINDOWS_1252 };
+            std::unique_ptr<Resource::ResourceSystem> mResources;
             LuaUtil::LuaState mLua{ nullptr, nullptr };
             ESM::NPC mNpc;
             Observations mObservations;
@@ -133,15 +144,15 @@ namespace MWLua
                 mObservedClass.mObservations = &mObservations;
             }
 
-            MWWorld::Ptr actor(bool observed = true, ESM::RefNum id = {})
+            MWWorld::Ptr actor(bool observed = true, ESM::RefNum id = {}, ESM::RefId recordId = {})
             {
                 ESM::CellRef ref;
                 ref.blank();
-                ref.mRefID = mNpc.mId;
+                ref.mRefID = recordId.empty() ? mNpc.mId : recordId;
                 ref.mRefNum = id.isSet() ? id : ESM::RefNum{ mNextRef++, 0 };
                 auto live = std::make_unique<MWWorld::LiveCellRef<ESM::NPC>>(ref, &mNpc);
                 live->mClass = observed ? static_cast<MWWorld::Class*>(&mObservedClass)
-                                       : static_cast<MWWorld::Class*>(&mPlainClass);
+                                        : static_cast<MWWorld::Class*>(&mPlainClass);
                 live->mData.setCustomData(std::make_unique<TestActorData>());
                 MWWorld::Ptr ptr(live.get());
                 mWorld.registerPtr(ptr);
@@ -173,6 +184,37 @@ namespace MWLua
             {
                 return MWMechanics::EffectKey(
                     ESM::RefId::stringRefId(id), arg.empty() ? ESM::RefId{} : ESM::RefId::stringRefId(arg));
+            }
+
+            static ESM::ActiveEffect applied(std::string_view id, bool isApplied = true)
+            {
+                ESM::ActiveEffect result{};
+                result.mEffectId = ESM::RefId::stringRefId(id);
+                result.mMagnitude = 10.f;
+                result.mDuration = 30.f;
+                result.mTimeLeft = 20.f;
+                result.mFlags = isApplied ? ESM::ActiveEffect::Flag_Applied : ESM::ActiveEffect::Flag_None;
+                return result;
+            }
+
+            static ESM::ActiveSpells::ActiveSpellParams spell(
+                ESM::RefNum caster, std::string_view id, std::vector<ESM::ActiveEffect> effects, bool temporary = true)
+            {
+                ESM::ActiveSpells::ActiveSpellParams result{};
+                result.mActiveSpellId = ESM::RefId::stringRefId(id);
+                result.mSourceSpellId = result.mActiveSpellId;
+                result.mCaster = caster;
+                result.mDisplayName = "Native query fixture spell with an owned display-name string";
+                result.mFlags = temporary ? ESM::ActiveSpells::Flag_Temporary : ESM::ActiveSpells::Flag_SpellStore;
+                result.mEffects = std::move(effects);
+                return result;
+            }
+
+            static void setSpells(const MWWorld::Ptr& ptr, const ESM::ActiveSpells& state)
+            {
+                auto& spells = stats(ptr).getActiveSpells();
+                spells = MWMechanics::ActiveSpells();
+                spells.readState(state);
             }
 
             static void equal(const sol::optional<ActiveEffect>& lhs, const sol::optional<ActiveEffect>& rhs)
@@ -357,6 +399,379 @@ namespace MWLua
             EXPECT_EQ(&actual->getMagicEffects(), &stats(ptr).getMagicEffects());
         }
 
+        TEST_F(MWLuaMagicBindingsTest, effectSourceQueryPreservesOrderDuplicatesAndImmutableSnapshots)
+        {
+            const auto caster = actor(true, {}, ESM::RefId::stringRefId("Player"));
+            const auto other = actor();
+            const auto victim = actor();
+            ESM::ActiveSpells state;
+            state.mSpells = {
+                spell(getId(caster), "first",
+                    { applied("charm"), applied("unapplied", false), applied("frenzyhumanoid") }),
+                spell(getId(other), "other", { applied("other_effect") }),
+                spell(getId(caster), "permanent", { applied("permanent_effect") }, false),
+                spell(getId(caster), "last", { applied("charm") }),
+            };
+            setSpells(victim, state);
+            MagicBindings::EffectSourceFilter filter;
+            filter.mTemporary = true;
+            filter.mCasterType = ESM::REC_INTERNAL_PLAYER;
+            EffectSourceQuery query{ object(victim), MagicBindings::EffectSourceQueryData(filter), {}, {} };
+            auto [ids, casters, changed] = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_TRUE(changed);
+            EXPECT_EQ(ids.get<std::string>(1), "charm");
+            EXPECT_EQ(ids.get<std::string>(2), "frenzyhumanoid");
+            EXPECT_EQ(ids.get<std::string>(3), "charm");
+            EXPECT_EQ(casters.get<LObject>(1).id(), getId(caster));
+            EXPECT_EQ(query.mData.values().size(), 3);
+            auto [sameIds, sameCasters, sameChanged] = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_FALSE(sameChanged);
+            EXPECT_TRUE(ids == sameIds);
+            EXPECT_TRUE(casters == sameCasters);
+
+            // A source query deliberately does not expose ticking durations or
+            // magnitudes. They cannot make an ID/caster snapshot stale.
+            state.mSpells[0].mEffects[0].mTimeLeft = 3.f;
+            state.mSpells[0].mEffects[0].mMagnitude = 17.f;
+            setSpells(victim, state);
+            EXPECT_FALSE(std::get<2>(query.read(sol::this_state{ mLua.unsafeState() })));
+
+            state.mSpells.erase(state.mSpells.begin());
+            setSpells(victim, state);
+            auto [newIds, newCasters, newChanged] = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_TRUE(newChanged);
+            EXPECT_EQ(query.mData.values().size(), 1);
+            EXPECT_EQ(newIds.get<std::string>(1), "charm");
+            EXPECT_EQ(ids.get<std::string>(2), "frenzyhumanoid");
+            EXPECT_TRUE(ids != newIds);
+            sol::state_view lua(mLua.unsafeState());
+            lua["oldEffectIds"] = ids;
+            const auto result = lua.safe_script(
+                "assert(not pcall(function() oldEffectIds[1] = 'changed' end))", sol::script_pass_on_error);
+            EXPECT_TRUE(result.valid());
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, effectSourceQueryObservesCasterAvailabilityAndAccessContext)
+        {
+            const auto caster = actor();
+            const auto victim = actor();
+            ESM::ActiveSpells state;
+            state.mSpells = { spell(getId(caster), "source", { applied("charm") }) };
+            setSpells(victim, state);
+            for (int context = 0; context < 3; ++context)
+            {
+                EffectSourceQuery query{ object(victim, context), MagicBindings::EffectSourceQueryData({}), {}, {} };
+                const auto result = query.read(sol::this_state{ mLua.unsafeState() });
+                const auto& casters = std::get<1>(result);
+                EXPECT_EQ(casters.get<sol::object>(1).is<GObject>(), context == 1);
+                EXPECT_EQ(casters.get<sol::object>(1).is<LObject>(), context != 1);
+            }
+            EffectSourceQuery query{ object(victim), MagicBindings::EffectSourceQueryData({}), {}, {} };
+            auto [ids, casters, changed] = query.read(sol::this_state{ mLua.unsafeState() });
+            ASSERT_TRUE(changed);
+            mWorld.deregisterLiveCellRef(*caster.mRef);
+            const auto result = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_TRUE(std::get<2>(result));
+            EXPECT_EQ(std::get<0>(result).get<std::string>(1), "charm");
+            EXPECT_TRUE(std::get<1>(result).get<sol::object>(1) == sol::nil);
+            EXPECT_TRUE(casters.get<LObject>(1).ptrOrEmpty().isEmpty());
+            mWorld.registerPtr(caster);
+            EXPECT_TRUE(std::get<2>(query.read(sol::this_state{ mLua.unsafeState() })));
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, effectSourceQuerySelectionDoesNotReorderOrDeduplicateResults)
+        {
+            const auto caster = actor();
+            const auto victim = actor();
+            ESM::ActiveSpells state;
+            state.mSpells = {
+                spell(getId(caster), "temporary", { applied("z"), applied("a"), applied("z") }),
+                spell(getId(caster), "permanent", { applied("a") }, false),
+            };
+            setSpells(victim, state);
+            MagicBindings::EffectSourceFilter filter;
+            filter.mCaster = getId(caster);
+            filter.mTemporary = true;
+            filter.mEffectIds = std::vector{ ESM::RefId::stringRefId("z"), ESM::RefId::stringRefId("z") };
+            EffectSourceQuery query{ object(victim), MagicBindings::EffectSourceQueryData(filter), {}, {} };
+            const auto result = query.read(sol::this_state{ mLua.unsafeState() });
+            ASSERT_EQ(query.mData.values().size(), 2);
+            EXPECT_EQ(std::get<0>(result).get<std::string>(1), "z");
+            EXPECT_EQ(std::get<0>(result).get<std::string>(2), "z");
+            filter.mEffectIds = std::vector<ESM::RefId>{};
+            EffectSourceQuery empty{ object(victim), MagicBindings::EffectSourceQueryData(filter), {}, {} };
+            EXPECT_TRUE(std::get<2>(empty.read(sol::this_state{ mLua.unsafeState() })));
+            EXPECT_TRUE(empty.mData.values().empty());
+            EXPECT_FALSE(std::get<2>(empty.read(sol::this_state{ mLua.unsafeState() })));
+            filter.mEffectIds.reset();
+            filter.mTemporary = false;
+            EffectSourceQuery permanent{ object(victim), MagicBindings::EffectSourceQueryData(filter), {}, {} };
+            const auto permanentResult = permanent.read(sol::this_state{ mLua.unsafeState() });
+            ASSERT_EQ(permanent.mData.values().size(), 1);
+            EXPECT_EQ(std::get<0>(permanentResult).get<std::string>(1), "a");
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, magnitudeQueryResolvesActorOnceAndObservesSameFrameMutations)
+        {
+            const auto ptr = actor();
+            auto& effects = stats(ptr).getMagicEffects();
+            effects.modifyBase(key("bound"), 7);
+            effects.modifyBase(key("attribute", "luck"), 2);
+            EffectMagnitudeQuery query{ object(ptr),
+                MagicBindings::EffectMagnitudeQueryData(
+                    { key("bound"), key("missing"), key("attribute", "luck"), key("bound") }),
+                {} };
+            mObservations = {};
+            auto [values, changed] = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_TRUE(changed);
+            EXPECT_EQ(mObservations.mActorChecks, 1);
+            EXPECT_EQ(mObservations.mStatsReads, 1);
+            EXPECT_FLOAT_EQ(values.get<float>(1), 7.f);
+            EXPECT_FLOAT_EQ(values.get<float>(2), 0.f);
+            EXPECT_FLOAT_EQ(values.get<float>(3), 2.f);
+            EXPECT_FLOAT_EQ(values.get<float>(4), 7.f);
+            const auto unchanged = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_FALSE(std::get<1>(unchanged));
+            EXPECT_TRUE(values == std::get<0>(unchanged));
+            effects.modifyBase(key("bound"), 5);
+            auto [updated, updateChanged] = query.read(sol::this_state{ mLua.unsafeState() });
+            EXPECT_TRUE(updateChanged);
+            EXPECT_FLOAT_EQ(updated.get<float>(1), 12.f);
+            EXPECT_FLOAT_EQ(values.get<float>(1), 7.f);
+
+            const auto replacement = actor(true, getId(ptr));
+            stats(replacement).getMagicEffects().modifyBase(key("bound"), 31);
+            EXPECT_FLOAT_EQ(std::get<0>(query.read(sol::this_state{ mLua.unsafeState() })).get<float>(1), 31.f);
+            mWorld.deregisterLiveCellRef(*replacement.mRef);
+            EXPECT_FALSE(exception([&] { query.read(sol::this_state{ mLua.unsafeState() }); }).empty());
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, nativeEffectPresenceMatchesLegacyIterationRatherThanTotalMagnitude)
+        {
+            const auto ptr = actor();
+            const auto obj = object(ptr);
+            auto& effects = stats(ptr).getMagicEffects();
+            EXPECT_FALSE(MagicBindings::hasActiveEffects(obj));
+            effects.modifyBase(key(), 0);
+            EXPECT_FALSE(MagicBindings::hasActiveEffects(obj));
+            effects.modifyBase(key(), 5);
+            effects.add(key(), MWMechanics::EffectParam(-5.f));
+            EXPECT_EQ(effects.getOrDefault(key()).getMagnitude(), 0.f);
+            EXPECT_TRUE(MagicBindings::hasActiveEffects(obj));
+            EffectMagnitudeQuery empty{ obj, MagicBindings::EffectMagnitudeQueryData({}), {} };
+            EXPECT_TRUE(std::get<1>(empty.read(sol::this_state{ mLua.unsafeState() })));
+            EXPECT_TRUE(empty.mData.values().empty());
+            EXPECT_FALSE(std::get<1>(empty.read(sol::this_state{ mLua.unsafeState() })));
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, nativeQueryFactoriesMatchLuaAdapterCallsAndMasterMode)
+        {
+            RecordProperty("combined_performance_mode", Misc::useCombinedPerformance() ? "enabled" : "disabled");
+            const auto caster = actor(true, {}, ESM::RefId::stringRefId("Player"));
+            const auto other = actor();
+            const auto victim = actor();
+            ESM::ActiveSpells state;
+            state.mSpells = {
+                spell(getId(caster), "first",
+                    { applied("charm"), applied("unapplied", false), applied("frenzyhumanoid") }),
+                spell(getId(other), "other", { applied("charm") }),
+                spell(getId(caster), "permanent", { applied("charm") }, false),
+            };
+            setSpells(victim, state);
+            stats(victim).getMagicEffects().modifyBase(key("bound"), 7);
+            stats(victim).getMagicEffects().modifyBase(key("attribute", "luck"), 4);
+            for (const auto id : { "charm", "frenzyhumanoid", "bound", "attribute", "missing" })
+            {
+                ESM::MagicEffect effect;
+                effect.blank();
+                effect.mId = ESM::RefId::stringRefId(id);
+                if (effect.mId == "attribute")
+                    effect.mData.mFlags = ESM::MagicEffect::TargetAttribute;
+                mStore.insertStatic(effect);
+            }
+
+            Context context{ Context::Local };
+            context.mLua = &mLua;
+            sol::state_view lua = mLua.unsafeState();
+            // Core magic registration also binds record icon properties. They
+            // capture the resource VFS even though this test never loads an
+            // image. Keep these real services alive until after Lua teardown.
+            mResources = std::make_unique<Resource::ResourceSystem>(&mVfs, 1.0, &mEncoder.getStatelessEncoder());
+            mEnvironment.setResourceSystem(*mResources);
+            // These are the production registration functions, including
+            // ActorStore userdata, not a mock of the new methods. The only
+            // reduced service boundary is the type-package inventory: populate
+            // its Player token after actor registration, as initTypesPackage
+            // does, without constructing unrelated UI/journal services.
+            lua["magic"] = initCoreMagicBindings(context);
+            sol::table actorPackage(lua, sol::create);
+            addActorMagicBindings(actorPackage, context);
+            sol::table playerPackage = LuaUtil::makeReadOnly(sol::table(lua, sol::create));
+            sol::table types(lua, sol::create);
+            types["Actor"] = LuaUtil::makeReadOnly(actorPackage);
+            types["Player"] = playerPackage;
+            getPackageToTypeTable(lua)[playerPackage] = ESM::REC_INTERNAL_PLAYER;
+            lua["types"] = LuaUtil::makeReadOnly(types);
+            const auto self = object(victim, 2);
+            lua["actorObject"] = self.asSelfObject();
+            lua["casterObject"] = LObject(caster);
+            lua["combinedEnabled"] = Misc::useCombinedPerformance();
+            const auto result = lua.safe_script(R"(
+                local spells = types.Actor.activeSpells(actorObject)
+                local effects = types.Actor.activeEffects(actorObject)
+                local supported, createSource = pcall(function() return spells.createEffectSourceQuery end)
+                local hasMagnitude, createMagnitude = pcall(function() return effects.createMagnitudeQuery end)
+                local hasPresence, presence = pcall(function() return effects.hasEffects end)
+                assert(effects:getEffect('bound').magnitude == 7)
+                local spellCount = 0
+                for _, spell in pairs(spells) do
+                    spellCount = spellCount + 1
+                    assert(spell.effects[1].id == 'charm')
+                end
+                assert(spellCount == 3)
+                if not combinedEnabled then
+                    assert(not (supported and type(createSource) == 'function'))
+                    assert(not (hasMagnitude and type(createMagnitude) == 'function'))
+                    assert(not (hasPresence and type(presence) == 'function'))
+                    return
+                end
+                assert(supported and type(createSource) == 'function')
+                assert(hasMagnitude and type(createMagnitude) == 'function')
+                assert(hasPresence and type(presence) == 'function')
+                assert(effects:hasEffects())
+                local source = createSource(spells, {temporary=true, casterType=types.Player})
+                local ids, casters, changed = source:read()
+                assert(changed)
+                local count = 0
+                for i, id in ipairs(ids) do
+                    count = count + 1
+                    assert(id == ({'charm', 'frenzyhumanoid'})[i])
+                    assert(casters[i] ~= nil)
+                end
+                assert(count == 2)
+                sourceCasters = casters
+                local sameIds, sameCasters, sameChanged = source:read()
+                assert(not sameChanged and sameIds == ids and sameCasters == casters)
+                assert(not pcall(function() ids[1] = 'altered' end))
+                local filtered = spells:createEffectSourceQuery({
+                    temporary=true, caster=casterObject, effectIds={'frenzyhumanoid'}
+                })
+                local selected = filtered:read()
+                assert(selected[1] == 'frenzyhumanoid' and selected[2] == nil)
+                local magnitude = effects:createMagnitudeQuery({
+                    'bound', 'missing', {id='attribute', argument='luck'}, 'bound'
+                })
+                assert(#magnitude == 4)
+                local values, valuesChanged = magnitude:read()
+                assert(valuesChanged and values[1] == 7 and values[2] == 0
+                    and values[3] == 4 and values[4] == 7)
+                local sameValues, changedAgain = magnitude:read()
+                assert(not changedAgain and sameValues == values)
+                assert(not pcall(function() values[1] = 999 end))
+                assert(not pcall(function() spells:createEffectSourceQuery({casterType={}}) end))
+                assert(not pcall(function() spells:createEffectSourceQuery({effectIds={'not_a_record'}}) end))
+                assert(not pcall(function() effects:createMagnitudeQuery({'not_a_record'}) end))
+            )",
+                sol::script_pass_on_error);
+            if (!result.valid())
+            {
+                const auto error = result.get<sol::error>();
+                FAIL() << error.what();
+            }
+            if (Misc::useCombinedPerformance())
+            {
+                const sol::table casters = lua["sourceCasters"];
+                EXPECT_EQ(casters.get<LObject>(1).id(), getId(caster));
+                EXPECT_EQ(casters.get<LObject>(2).id(), getId(caster));
+            }
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, nativeEffectSourceQueryBenchmark)
+        {
+            // SaneMagic-shaped native/Lua materialization workload. The legacy
+            // model copies spell params and builds the applied-effect tables,
+            // but omits Lua dispatch/property access: it is not a whole-engine
+            // or FPS benchmark, and no timing threshold decides correctness.
+            constexpr int actorCount = 72;
+            constexpr int rounds = 5;
+            constexpr int cycles = 64;
+            const auto player = actor(false, {}, ESM::RefId::stringRefId("Player"));
+            const auto other = actor(false);
+            std::vector<MWWorld::Ptr> victims;
+            std::vector<EffectSourceQuery> queries;
+            MagicBindings::EffectSourceFilter filter;
+            filter.mTemporary = true;
+            filter.mCasterType = ESM::REC_INTERNAL_PLAYER;
+            for (int i = 0; i < actorCount; ++i)
+            {
+                const auto victim = actor(false);
+                ESM::ActiveSpells state;
+                for (int j = 0; j < 6; ++j)
+                    state.mSpells.push_back(spell(getId(j % 2 == 0 ? player : other), "spell_" + std::to_string(j),
+                        { applied("charm"), applied("frenzyhumanoid"), applied("unapplied", false), applied("other") },
+                        j % 3 != 0));
+                setSpells(victim, state);
+                victims.push_back(victim);
+                queries.push_back({ object(victim), MagicBindings::EffectSourceQueryData(filter), {}, {} });
+            }
+            sol::state_view lua(mLua.unsafeState());
+            const auto run = [&](bool candidate, int iterations) {
+                std::uint64_t count = 0;
+                const auto start = std::chrono::steady_clock::now();
+                for (int cycle = 0; cycle < iterations; ++cycle)
+                    for (int i = 0; i < actorCount; ++i)
+                    {
+                        if (candidate)
+                        {
+                            const auto snapshot = queries[i].read(sol::this_state{ mLua.unsafeState() });
+                            count += queries[i].mData.values().size();
+                        }
+                        else
+                        {
+                            for (const auto& current : stats(victims[i]).getActiveSpells())
+                            {
+                                const auto params = current;
+                                if (!params.hasFlag(ESM::ActiveSpells::Flag_Temporary)
+                                    || params.getCaster() != getId(player))
+                                    continue;
+                                sol::table effects(lua, sol::create);
+                                std::size_t index = 0;
+                                for (const auto& effect : params.getEffects())
+                                    if (effect.mFlags & ESM::ActiveEffect::Flag_Applied)
+                                        effects[++index] = effect;
+                                count += index;
+                            }
+                        }
+                    }
+                const double ns
+                    = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start).count();
+                lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
+                return std::pair{ ns / (actorCount * iterations), count };
+            };
+            EXPECT_EQ(run(false, 2).second, run(true, 2).second);
+            std::vector<double> before, after;
+            for (int round = 0; round < rounds; ++round)
+                for (int step = 0; step < 2; ++step)
+                {
+                    const bool candidate = (round + step) % 2 != 0;
+                    const auto [ns, count] = run(candidate, cycles);
+                    EXPECT_EQ(count, static_cast<std::uint64_t>(6 * actorCount * cycles));
+                    (candidate ? after : before).push_back(ns);
+                }
+            const auto record = [&](const char* name, std::vector<double> values) {
+                std::ostringstream samples;
+                for (std::size_t i = 0; i < values.size(); ++i)
+                    samples << (i ? "," : "") << values[i];
+                RecordProperty(std::string(name) + "_samples_ns_per_actor", samples.str());
+                std::sort(values.begin(), values.end());
+                RecordProperty(std::string(name) + "_median_ns_per_actor", std::to_string(values[values.size() / 2]));
+            };
+            record("legacy_materialization_model", before);
+            record("compiled_query", after);
+            RecordProperty(
+                "scope", "72 actors x six spells x four effects; unchanged result; no Lua callback dispatch or FPS");
+        }
+
         TEST_F(MWLuaMagicBindingsTest, nativeHelperBenchmark)
         {
             // Native helper microbenchmark, not an engine/FPS benchmark. The
@@ -386,12 +801,12 @@ namespace MWLua
                 for (int cycle = 0; cycle < count; ++cycle)
                     for (const auto& obj : objects)
                     {
-                        const auto value = candidate ? MagicBindings::getActiveEffect(obj, lookup)
-                                                     : baselineEffect(obj, lookup);
+                        const auto value
+                            = candidate ? MagicBindings::getActiveEffect(obj, lookup) : baselineEffect(obj, lookup);
                         sum += value->param.getBase();
                     }
-                const auto duration = std::chrono::duration<double, std::nano>(
-                    std::chrono::steady_clock::now() - start);
+                const auto duration
+                    = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start);
                 return std::pair{ duration.count() / (count * actorCount), sum };
             };
             const auto expected = static_cast<std::uint64_t>(actorCount * (actorCount + 1) / 2) * cycles;
