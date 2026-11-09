@@ -1545,10 +1545,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fdc1890b5c9ef2271b5d05e79d39945a057d38fd"
+        "blob": "d52b02a0c6d9421087409764af8df0bd4b10a3d4"
       },
-      "bytes": 20498,
-      "sha256": "2d06055619f482c22e4fa50548b30beb4eb15363362b34b9ba530e5f012ae2ea",
+      "bytes": 20625,
+      "sha256": "0559019e1df6a211d6b85a61c8c773a903ccc125eca7a9eca44977cbeb20fb26",
       "reason": "Require the one new inherited layout-mode inventory line exactly once and remove only it before the original byte-exact released-v1.0 collector preservation check; retain both historical digests and all prior assertions."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
