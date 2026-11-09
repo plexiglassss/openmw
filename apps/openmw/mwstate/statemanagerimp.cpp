@@ -603,6 +603,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                     break;
 
                 case ESM::REC_GMAP:
+                case ESM::REC_LMRK:
                 case ESM::REC_KEYS:
                 case ESM::REC_ASPL:
                 case ESM::REC_MARK:

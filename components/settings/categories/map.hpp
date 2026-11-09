@@ -25,6 +25,13 @@ namespace Settings
         SettingValue<int> mLocalMapWidgetSize{ mIndex, "Map", "local map widget size", makeMaxSanitizerInt(1) };
         SettingValue<bool> mGlobal{ mIndex, "Map", "global" };
         SettingValue<bool> mAllowZooming{ mIndex, "Map", "allow zooming" };
+        SettingValue<bool> mLocationIcons{ mIndex, "Map", "location icons" };
+        SettingValue<bool> mLocationEntranceIcons{ mIndex, "Map", "location entrance icons" };
+        SettingValue<bool> mLocationIconTooltips{ mIndex, "Map", "location icon tooltips" };
+        SettingValue<int> mLocationIconSize{ mIndex, "Map", "location icon size", makeClampSanitizerInt(16, 40) };
+        SettingValue<int> mLocationIconColours{ mIndex, "Map", "location icon colours", makeClampSanitizerInt(0, 2) };
+        SettingValue<int> mLocationIconCategories{
+            mIndex, "Map", "location icon categories", makeClampSanitizerInt(0, (1 << 19) - 1) };
         SettingValue<int> mMaxLocalViewingDistance{ mIndex, "Map", "max local viewing distance",
             makeMaxSanitizerInt(Constants::CellGridRadius) };
     };

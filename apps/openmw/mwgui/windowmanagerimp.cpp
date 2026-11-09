@@ -1176,6 +1176,7 @@ namespace MWGui
                 mMap->addVisitedLocation(name, cellCommon->getGridX(), cellCommon->getGridY());
 
             mMap->cellExplored(cellCommon->getGridX(), cellCommon->getGridY());
+            mMap->discoverLocationEntrances(*cell);
         }
         else
         {
@@ -1352,6 +1353,7 @@ namespace MWGui
     {
         bool changeRes = false;
         bool changeDialogueColours = false;
+        bool changeLocationIcons = false;
         for (const auto& setting : changed)
         {
             if (setting.first == "GUI" && setting.second == "menu transparency")
@@ -1359,6 +1361,8 @@ namespace MWGui
             else if (setting.first == "GUI"
                 && (setting.second.starts_with("dialogue ") || setting.second.starts_with("color dialogue ")))
                 changeDialogueColours = true;
+            else if (setting.first == "Map" && setting.second.starts_with("location "))
+                changeLocationIcons = true;
             else if (setting.first == "Video"
                 && (setting.second == "resolution x" || setting.second == "resolution y"
                     || setting.second == "window mode" || setting.second == "window border"))
@@ -1377,6 +1381,8 @@ namespace MWGui
         }
         if (changeDialogueColours && mDialogueWindow)
             mDialogueWindow->refreshTextColours();
+        if (changeLocationIcons && mMap)
+            mMap->refreshLocationIcons();
     }
 
     void WindowManager::windowResized(int x, int y)
@@ -2124,7 +2130,7 @@ namespace MWGui
 
     void WindowManager::readRecord(ESM::ESMReader& reader, uint32_t type)
     {
-        if (type == ESM::REC_GMAP)
+        if (type == ESM::REC_GMAP || type == ESM::REC_LMRK)
             mMap->readRecord(reader, type);
         else if (type == ESM::REC_KEYS)
             mQuickKeysMenu->readRecord(reader, type);
@@ -2145,7 +2151,7 @@ namespace MWGui
 
     size_t WindowManager::countSavedGameRecords() const
     {
-        return 1 // Global map
+        return mMap->countSavedGameRecords() // Global map and optional discovered entrances
             + 1 // QuickKeysMenu
             + mCustomMarkers.size() + (!mSelectedSpell.empty() ? 1 : 0);
     }

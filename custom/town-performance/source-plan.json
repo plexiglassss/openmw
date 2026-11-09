@@ -1,13 +1,15 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Bounded repair of inherited Lua UI image textures in the installed native performance candidate. Preserve the complete combined deleveler, Continue/menu, rest/wait, lookup, actor-query, timer, capture and installer changes, both accepted histories, and every other installed source path. Native correctness and package verification remain distinct from unverified user-game rendering, custom Lua runtime and gameplay performance; no ZHI, game plugin, load-order or save changes.",
+  "scope": "Native world-map location icons only, with bounded entered-cell discovery, viewport-limited entrance widgets, native Options and separate optional LMRK save metadata. Preserve all earlier cumulative Continue, deleveler, Lua UI, performance and runtime changes. No AWM dependency, plugin changes, Lua scans, interior loads, migration bridge or other AWM features. User authorization: only map icons, resource-light.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
     "8737a9ca9c3fb1eb0210fff62731c9c5cab43654",
     "41b969ecf663a53d8f95c779313458bbd37ad264",
-    "1e2191f221079d89e46c15331ba6911b44f28b53"
+    "1e2191f221079d89e46c15331ba6911b44f28b53",
+    "85b3384dd06528914e090f5fb39aad415e808a0b",
+    "5992e061519b62853197e3f60c1e597e3593e4eb"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -17,24 +19,188 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9167cff419d43e344196dbfb7cd7d1b04e62f0f3"
+        "blob": "d1e9d4455f034a7ceaf9d1d2066d38969d6f9d30"
       },
-      "bytes": 44092,
-      "sha256": "b7eae3b81ca46171a96f5488b432d12c27cb18d72db909f264da695497c307ce",
-      "reason": "Preserve the complete combined engine and historical gates; compile actual LuaImage and run all native tests in optimized mode plus the exact 14 UI regressions in legacy mode; require five Image inheritance phases and package parity before delivering the full runtime."
+      "bytes": 45891,
+      "sha256": "712f4f5f3ac75af4135fbca8bfda8f8c1724501577a5898895288c9127c2c741",
+      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/components_tests/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "eabdf8746c4eb5e4b1767e0b5762394c3d5f96b1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6cfe988d84da074efc6c1d1048f6abb89bce3342"
+      },
+      "bytes": 4086,
+      "sha256": "2b5f96efdcca9228ae777fdd9517aa5e96a91bc8e5e15b08a023fde4d49427e8",
+      "reason": "Native world-map icon feature: apps/components_tests/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/components_tests/esm3/testlocationmarkers.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "72c1e825ef956da03b4087e107fb6a973e5501c5"
+      },
+      "bytes": 15246,
+      "sha256": "354ac8823930edd231672caf74ae79e06db68082bca705b451c270ec6b43f5de",
+      "reason": "Native world-map icon feature: apps/components_tests/esm3/testlocationmarkers.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "apps/components_tests/lua/testscriptscontainer.cpp": {
       "before": {
         "mode": "100644",
         "blob": "29405ed9fd77b506d3fcc67eaa53d15714fb1618"
       },
-      "reason": "Add actual native timer scheduling, reentrancy, tracker/unload, initialization/load and 24 boundary/clock regressions plus a bounded benchmark with anti-hoisting barrier and separate Lua-call probe.",
       "after": {
         "mode": "100644",
         "blob": "3d07dedff4fac72ed5ffcdd74b6b20e755946a0f"
       },
       "bytes": 50614,
-      "sha256": "68aef186f5c5d211d3edec1f10aa311a63a878e36915dcfd4715174eebb5a2dc"
+      "sha256": "68aef186f5c5d211d3edec1f10aa311a63a878e36915dcfd4715174eebb5a2dc",
+      "reason": "Add actual native timer scheduling, reentrancy, tracker/unload, initialization/load and 24 boundary/clock regressions plus a bounded benchmark with anti-hoisting barrier and separate Lua-call probe."
+    },
+    "apps/components_tests/mapmarkers/cases.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "dccf3b6dc6c792eb2ab4d992b13dd9083a8d9605"
+      },
+      "bytes": 5990,
+      "sha256": "37b80f095dcbe69c12a9effc57299c480d9b981e52e3a7e2ffbb4693a83d2008",
+      "reason": "Native world-map icon feature: apps/components_tests/mapmarkers/cases.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/components_tests/mapmarkers/testclassification.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "cb43abba1776f99b86bd5e0c845809154e3a3130"
+      },
+      "bytes": 3388,
+      "sha256": "eea5a522e233039822e6fd43518f34cf587c6da7d38e0bc64609ade39f00d462",
+      "reason": "Native world-map icon feature: apps/components_tests/mapmarkers/testclassification.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/components_tests/mapmarkers/testspatialindex.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9b801261dc6a88e8aa5bf0d2657cc51008f4be40"
+      },
+      "bytes": 3375,
+      "sha256": "edacb3dc322a9d5a8c5a5e3bfeee010c12f695c8f97c24b7b38b58e035018c21",
+      "reason": "Native world-map icon feature: apps/components_tests/mapmarkers/testspatialindex.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/components_tests/settings/testvalues.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ecd78a55be9ad0ec33eaff84da9c3c882297726e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2758b8c8052e75c2abd7dd3560b7a8ac9aedca5b"
+      },
+      "bytes": 23462,
+      "sha256": "70f05ea4d98cbc0ade55dbeb2f196705e5f01f73c4f389a51d31c3323a27196a",
+      "reason": "Native world-map icon feature: apps/components_tests/settings/testvalues.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "2eb7d1bb0feddbb8acdd152067c990ca8d5b9067"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3d24a569a3f3fa1f837e97be57ed58c7716c4b85"
+      },
+      "bytes": 11831,
+      "sha256": "387c8df0e9aec143ef2a461f75e9c2818239d93231af2a6d25db091fcb1e5cd1",
+      "reason": "Native world-map icon feature: apps/openmw/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/mapiconcontrols.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e498a42a6dbb9e92bf3ed04bed1177b5f9a7dadb"
+      },
+      "bytes": 9249,
+      "sha256": "d5804b7df57de2e3d955175c285629a7b1a750a87e56f771f6f70559acd10f96",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapiconcontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/mapiconcontrols.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2c189f293be9683244d3469fd8a92f8854ac1fca"
+      },
+      "bytes": 1324,
+      "sha256": "7c76a9895050bcb16a8b6e831379965cc7dc0aeac6d216c4da52eab810fae200",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapiconcontrols.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/mapwindow.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "9432fe9de51afd6c0a0f9b0c8633ffc4d3ddbd63"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c12846af1af3c80877abd46ef4ded261e599ef92"
+      },
+      "bytes": 80279,
+      "sha256": "ddc5fcfd99f08220b61c64ee0697ad7dad59aeb75e3d26622ce709af8f9cd426",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/mapwindow.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "50894b267b8374d06f24286abadb0de094e29b95"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f857063f1ab5c6ba665534d7b084895f662418c9"
+      },
+      "bytes": 12926,
+      "sha256": "ea1ada117358084aec7ddfd651c542bbb0f46b9d1f425fb3a65e8686e63491d6",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/settingswindow.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "039ad09e28c6f13a33a7bd3326baaa3b4c929590"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "1291cd7827ec707a6b2303560252703a47e5645c"
+      },
+      "bytes": 71313,
+      "sha256": "77540666ef8b511545434630af27fc29b8e8d481bc5d0f97aeba6838ed872b4b",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/settingswindow.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "0b7699e5b983ed3dc7e870ff74ea7fd5f9fad7fc"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2f24f1346d7ebd07c87a4443f202c07fe27a00f0"
+      },
+      "bytes": 7551,
+      "sha256": "66f6826f22da122a86f7bcd24fc86e5f00625a3fdd085d07a4fe398690c7d092",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwgui/windowmanagerimp.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "985de74f371b4797b50b31a1d0f413a7e728d0e6"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "b7f4b3d181737bee4bbdac22ddd0f9b642e39b92"
+      },
+      "bytes": 99535,
+      "sha256": "9865f9c3911c65ab381918ba8cc62c4833bbfb8b634ddca84da4bd52dec20e7c",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -59,6 +225,32 @@
       "sha256": "a484eb16c309d1b3a48fbe0e8e9e4710db3547a77582e3c7cff28cf213606b70",
       "reason": "Share the actual per-call actor/stats/effect lookup implementation with native regression fixtures; no persistent pointer or effect cache."
     },
+    "apps/openmw/mwstate/statemanagerimp.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "9c8621e46bce58a84e2c8501d93fad6e02e6bcf4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "026eaf0b580c46f2559b3b6d24a298a3322d5f55"
+      },
+      "bytes": 37098,
+      "sha256": "dfd98644ca80d9b655fc318930b0b20e8aa8fdcc154ae96fc260ba3dba3eb6d6",
+      "reason": "Native world-map icon feature: apps/openmw/mwstate/statemanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "apps/openmw/mwworld/cellstore.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "2ed6964fbed0162d894ebc4f9e4690d55362b857"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "06675b25a7ed8724cb93250af688b008fe770443"
+      },
+      "bytes": 18279,
+      "sha256": "3cbd9f75036fdc1f709189a7058ebbc9555e459658030bc22dd174782a46b412",
+      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
         "mode": "100644",
@@ -82,6 +274,19 @@
       "sha256": "d8328181509c417b8d8b1afacd41b3dc16e301c64ec783bbe2c0267890857aab",
       "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage."
     },
+    "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a8fa70cc4f05e8dad85aa89829533cd29f51cb9c"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "86d9a2afa236320ee3d89fe036ce1713d5d2512a"
+      },
+      "bytes": 29821,
+      "sha256": "a5818392c99c9f1d67dd737e0b745b163203978039b6f06f16d1eb2418671543",
+      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
     "apps/openmw_tests/mwlua/testmagicbindings.cpp": {
       "before": null,
       "after": {
@@ -92,31 +297,136 @@
       "sha256": "61f2e56a62980313dbb2e8b8e4fe5e4a0de1ef922eab315a1da3319833b7ccdf",
       "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim."
     },
+    "components/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "d07e4ba4389258542747ee4ace8c09f2152a3a10"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5295fe9efbb3ac6804fa75ce02e05b4773fd51b4"
+      },
+      "bytes": 20663,
+      "sha256": "f1aae67d8997a75cf9939af0bf6ff04004506b6aeb16d58dc426347c124065b2",
+      "reason": "Native world-map icon feature: components/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/esm/defs.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f1a38fefccdf17c4f120b37be02adaf2a2fd2fc2"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "1d89c2a10e6b1d8920dfdf6445ef20f1621c2e7c"
+      },
+      "bytes": 15264,
+      "sha256": "507ca5b189eab341a6b6ec21deb36c67415ee6c691b30f645335e297a32098ce",
+      "reason": "Native world-map icon feature: components/esm/defs.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/esm3/globalmap.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "519111d3dfb84098c107a795ab59576c12329047"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "0bc33a91a52080409443dcac5b64e5c70475d635"
+      },
+      "bytes": 2795,
+      "sha256": "221a39931a65d64e33ed7d272157017ed4afbf94e6ebaf1babbcccd45be93434",
+      "reason": "Native world-map icon feature: components/esm3/globalmap.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/esm3/globalmap.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c4125c64b0f6c88e7d9088cca973d14ec316d615"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "0eb2ffdf75399ccf2cf0ee8c7c43e94e9b3eab6b"
+      },
+      "bytes": 1433,
+      "sha256": "40a1b8b094a6ee0fecba9c94ad259f829909f637841936989a077acbb2265860",
+      "reason": "Native world-map icon feature: components/esm3/globalmap.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
     "components/lua/scriptscontainer.cpp": {
       "before": {
         "mode": "100644",
         "blob": "6f7703dbaa5f4c746c029c4af5ac957bb4f2eecc"
       },
-      "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths.",
       "after": {
         "mode": "100644",
         "blob": "ac63595ffe99c76bf3de39f4d8a4599f6d107b81"
       },
       "bytes": 34412,
-      "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10"
+      "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10",
+      "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths."
     },
     "components/lua_ui/properties.hpp": {
       "before": {
         "mode": "100644",
         "blob": "f6e81f7200fdb83822ca27a4866535d4ad6e8e5c"
       },
-      "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration.",
       "after": {
         "mode": "100644",
         "blob": "deab793d7dee19f9d1b7d95515c608fc5c50b081"
       },
       "bytes": 8193,
-      "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3"
+      "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3",
+      "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration."
+    },
+    "components/mapmarkers/classification.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b8989b3b335e87b84954e023eb4647f3878e7e83"
+      },
+      "bytes": 12282,
+      "sha256": "28afea4d676a16ea1e8f1a9b7ed3accb541aecf2f35f7b1cb353f5d0ef1de6ec",
+      "reason": "Native world-map icon feature: components/mapmarkers/classification.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/mapmarkers/classification.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4cc7b02f59bcdd474b2f1f656b3fc5a00d1fe33e"
+      },
+      "bytes": 2102,
+      "sha256": "97d6f424df25aad1910c1eac680ba92a7edfb408cf98545d8a31d75d0210cd3b",
+      "reason": "Native world-map icon feature: components/mapmarkers/classification.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/mapmarkers/knownlocations.inc": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8280419b939176aa117d7d2259bfd2d47c1f6339"
+      },
+      "bytes": 202450,
+      "sha256": "665890c091488b1272031a491c67065a33bb2a3725119354393fb8f2ecbc3be4",
+      "reason": "Native world-map icon feature: components/mapmarkers/knownlocations.inc; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/mapmarkers/spatialindex.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ecc02d055ba71511d212a68369620d41aedf0b3b"
+      },
+      "bytes": 2576,
+      "sha256": "cda43af5a846eb2abcbf20a7703bb215f85f38f0615c2076ce40f05273305844",
+      "reason": "Native world-map icon feature: components/mapmarkers/spatialindex.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/settings/categories/map.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8a80d5aa63cb1c993c4601584b8791aad6c4d819"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "dce85edc91c0ed2c661cfb909ede3dc29bfd3e8b"
+      },
+      "bytes": 1867,
+      "sha256": "99702fb38072bb3ef7ee5a216a4b300274d5c15010257db10b380d2a2c422e37",
+      "reason": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "custom/cumulative/prepare-upgrade.py": {
       "before": {
@@ -130,6 +440,276 @@
       "bytes": 15180,
       "sha256": "cb0c658b75ab4de2efae90cae5af226e4cf1bf401fc49d6f28bdf8fac7f24e4e",
       "reason": "Validate current town and exact historical combined manifests, all retained feature tests/resources/defaults/runtime, and recompute native two-mode layout parity before packaging."
+    },
+    "custom/map-icons/PROVENANCE.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a84453113fd52b9f988f9b5ed32e0da04e48a86f"
+      },
+      "bytes": 2191,
+      "sha256": "f11a691068588ed93ac53219ba2a1eff59843e31a29ec5d75b44795d73ce7ade",
+      "reason": "Native world-map icon feature: custom/map-icons/PROVENANCE.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "14d1b2ec9f02ac222ec03ff70f4d0d9c06998af3"
+      },
+      "bytes": 5265,
+      "sha256": "8238adc179bb13bf23c8e6df7c781509dd5a34a3b27053f40e8e3df604b6de72",
+      "reason": "Native world-map icon feature: custom/map-icons/README.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/VALIDATION.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "adf5af4ffc130be38a82ec8de253cb3d52673b57"
+      },
+      "bytes": 3944,
+      "sha256": "70d4374edca03f1bf01422eaad8c02a6ae6c4f1121ffdf8c67d63d8f2b1ef028",
+      "reason": "Native world-map icon feature: custom/map-icons/VALIDATION.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/assets.json": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8866d05e82bdbd5cc4a2cfa6be9f251b71ede32b"
+      },
+      "bytes": 3756,
+      "sha256": "07e8353dc8cf8b53dab170e1a532f1d563f3d4564f15046e7ed874ea72cfb715",
+      "reason": "Native world-map icon feature: custom/map-icons/assets.json; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/generate-known.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7976e218350a0a36a1835b6c6fe62ce15924dd22"
+      },
+      "bytes": 3961,
+      "sha256": "6b682856bfd0e364f5806f717b46e723b3a7d772091a9d3e889c747cfdcc0821",
+      "reason": "Native world-map icon feature: custom/map-icons/generate-known.py; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/barrow.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "41f7d3e5e09324d9a1942d827c507c2f1ef2aeae"
+      },
+      "bytes": 468,
+      "sha256": "3a3fa812a187c2c1c88bf88588741c0b6afecde4f4a323bd7ec1feef4b96b2a1",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/barrow.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/camp.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a57cf65e870d96b8d1e4f4503b024f40c6b744a3"
+      },
+      "bytes": 428,
+      "sha256": "bccf71ba4ddb1e77aceefacb364772ab5471b86214857e633392e2c6f5d4a1f0",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/camp.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/cave.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6376ed3d5c3daa97f28a0b9cb73dc83074c8d0e2"
+      },
+      "bytes": 472,
+      "sha256": "da8cb3d0e56144b26a71e53aa550f90f2e0e566a0a1167dd0f93940f0c52e420",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/cave.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/city.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ac1d77239fffd4a57955fa3c4fec42e7f00628ce"
+      },
+      "bytes": 538,
+      "sha256": "68d3350c33fdb6b34c686392547333d881fc99f2bd9de6bdd6879df5e23d40b9",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/city.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/daedric.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "938ae62a444a6a62d2853ef32eba9a68fbbd2543"
+      },
+      "bytes": 462,
+      "sha256": "881e573ef055afeb2154ebd33a4e405e9fd12ae05d74d8b4f8be1a6f36bc0464",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/daedric.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/dwemer.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "29710a38f4e152172eed235f1180e0e9e59dc588"
+      },
+      "bytes": 628,
+      "sha256": "2e2dd7a430f7b107a0e9e5ce0badfeb57b5409d54061a95b140c150c6bd32cd7",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/dwemer.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/fort.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "77c66ff8dc077ecdf23cd42603fcb93a594420f4"
+      },
+      "bytes": 456,
+      "sha256": "a5b76f1f67bdd9f9f566db4278e1b24df9449f907e2abbf0c10c6bd419735847",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/fort.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/house.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "bb5311c2cdddd55203758d3c245ce36879cf9b73"
+      },
+      "bytes": 430,
+      "sha256": "8a0e7f22028f306351884697a469bd14c70589a814adb71054ee487b8982cac5",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/house.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/landmark.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "71813236ae9bdc3d453f0facec16c6f215c24736"
+      },
+      "bytes": 410,
+      "sha256": "8049f575dd0d3b517a8a9bc2038a5d28a383995187b22ceeb4424011414b57c1",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/landmark.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/mine.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "0dc48d0e596a0ab6187a2210c0b02156f3805bd0"
+      },
+      "bytes": 454,
+      "sha256": "307158296c815ea046197c65e44adf5a891c817ebc4957e807d64cd443b12637",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/mine.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/misc.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9ed493553001673fd2574e57d7d8423ea2b4e9d1"
+      },
+      "bytes": 418,
+      "sha256": "0f1ee876b665de57ae94fdc10cbcb205e90c54997117c0984c3afa1adbff1c95",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/misc.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/ruin.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2e49c04015a13515cbf7a21f093a0a2fb1634100"
+      },
+      "bytes": 496,
+      "sha256": "61284d0a36ed9988bffc2f6a8f17e6c53aab09a36a36dd09ff140e6f2b55466b",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/ruin.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/settlement.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "237be7b4282e1442e8d62f5cd2926451421dee43"
+      },
+      "bytes": 506,
+      "sha256": "9e9664cfe0e3115edb15d10ef05f03c016febe564640ef63d1394bdf67aba9bd",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/settlement.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/ship.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "08747a8378bea41b0972bfa5d282424dd1db96b7"
+      },
+      "bytes": 440,
+      "sha256": "8d2221b3104954a202b285e5ba89023ea863d769768ec4f506ca08df5e7fad34",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/ship.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/shipwreck.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9f937364612578ceb335d79b746cbecbb481e55d"
+      },
+      "bytes": 516,
+      "sha256": "f21673e1f6b00cfe68762a9f412affbb4e4c58b874d6ee0d519865310aafae7f",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/shipwreck.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/stronghold.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "15855b34fe6cb1ce3d9917ee61524b1e0c2f91de"
+      },
+      "bytes": 470,
+      "sha256": "b9c2d43bc4c9b6c4d1b714dc8577188ecb4adbf02303c06ffc42f7bf521031ec",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/stronghold.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/tomb.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8ab6c968a760ca722b040ccf9f8eb8fbc1bc8a0c"
+      },
+      "bytes": 448,
+      "sha256": "bdcc51e32ad4260fdfb32db017cded159ade2700d176691cbb063354dbed3aee",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/tomb.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/tower.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b6eeb75138bfc3a109052be493fc595542953f4a"
+      },
+      "bytes": 468,
+      "sha256": "50677cfdfa3ff53cf4a8839f5cb3a065be63891af70387e25ee1b69eb17bdeb7",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/tower.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/icon-sources/town.svg": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d4dd4134a84894ff867119570b3d2cb0aaf2f430"
+      },
+      "bytes": 524,
+      "sha256": "0cef0605aee66275b18560ead4b9a8d60473f10a3bba1bd6121db37fa604d222",
+      "reason": "Native world-map icon feature: custom/map-icons/icon-sources/town.svg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/known-locations.tsv": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "433765484d69ce16d7e3eafad341b6c3b965ff9b"
+      },
+      "bytes": 58239,
+      "sha256": "91d51bfaeacaea8293d9b2a61a8b59f5716d30d0163e45201cca6c8488ec160c",
+      "reason": "Native world-map icon feature: custom/map-icons/known-locations.tsv; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/test-classification.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a53b04b1c6d03b63ef5046dce64cb9b63cafe177"
+      },
+      "bytes": 11894,
+      "sha256": "8d3a99bb3a10fad3573b44930679550d65a17b88559524d1805ea842902f437f",
+      "reason": "Native world-map icon feature: custom/map-icons/test-classification.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "custom/map-icons/verify-classification.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f6c4e3292532f60f8a71107e04e54e007b4c0d81"
+      },
+      "bytes": 10682,
+      "sha256": "4d3fea3ff72b4e47c8e32625c4ef1e4b5658f8983c256ce998e5af8dbd529c8b",
+      "reason": "Native world-map icon feature: custom/map-icons/verify-classification.py; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
     "custom/performance-capture-followup/Start-Capture.ps1": {
       "before": {
@@ -226,6 +806,248 @@
       "bytes": 6547,
       "sha256": "cc67c30d900c15e5caea2b9ba1289da289d2773b7630d8468730493f1aec4eb2",
       "reason": "Bind the exact reviewed changes against the immutable combined baseline, verify every declared preserved head is an ancestor, retain all other source identities and the existing lookup-only build transformation."
+    },
+    "docs/source/reference/modding/settings/map.rst": {
+      "before": {
+        "mode": "100644",
+        "blob": "b6d8bddfaa35c42ff56bae9b43c6e7abeee95977"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4d3dac594c48a7c8bd7fea5267677bf4ba43974d"
+      },
+      "bytes": 2998,
+      "sha256": "536591d00d5092ac58e0a8403286c035157d169b47ff27aa3121a5467e3150b6",
+      "reason": "Native world-map icon feature: docs/source/reference/modding/settings/map.rst; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "944328efb7444b696f64e0260a18a719ff1fd42f"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "954e29a540d55d32a79a6aec71d68a814eac1635"
+      },
+      "bytes": 9604,
+      "sha256": "c97c1d736c5850ac2c333b7010991c9a93c24d6b5444f1fa0f194a4a8602479b",
+      "reason": "Native world-map icon feature: files/data/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/l10n/OMWEngine/en.yaml": {
+      "before": {
+        "mode": "100644",
+        "blob": "331cf50920f21bfb220e70973a9f7608200769ef"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e26faec1efb5b57b18ff9f384060b4c1f16d7eb8"
+      },
+      "bytes": 16894,
+      "sha256": "d5d9fe9ff71d2864cc584a43881cd2b0dba2c6907667c4c7c0b55be18b799fa4",
+      "reason": "Native world-map icon feature: files/data/l10n/OMWEngine/en.yaml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/barrow.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "73811b3f6106bf9447d53eed4506ae42ebbe23c7"
+      },
+      "bytes": 3243,
+      "sha256": "285c4be05ad1161f556d5b0d1c6581599581220261905a3a03fc317235dbd54b",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/barrow.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/camp.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "06f69f01d8061dd84d066a3f938a21f11ed24b14"
+      },
+      "bytes": 1945,
+      "sha256": "074a1afe25326b089d17b8c3c88a7f1daae38db8bfcaa285f50558bdc436a038",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/camp.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/cave.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7ee24ff294f46b3169a9e37585c836534a3aeece"
+      },
+      "bytes": 3772,
+      "sha256": "c0994c83b84ca48cf1506fd90c811145977e108145863693990f97095a1218d7",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/cave.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/city.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8beacbae8eed223a832953b8e032e95ab8e6d885"
+      },
+      "bytes": 2063,
+      "sha256": "7eb6aa24611a645155d158c9fee86b71b92a9012af7a899449bf4e75f4cc3b54",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/city.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/daedric.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "97e813e2d494f54a05b18c2b6329534ec0d3c1b9"
+      },
+      "bytes": 3275,
+      "sha256": "3eabb9d3635c4bb8be1b91b3c673e438801fa4650b3625e62f9faa8e38a63dfd",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/daedric.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/dwemer.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "abcda86784a316eb6b5d93152b1c4b4fc642a9ff"
+      },
+      "bytes": 4443,
+      "sha256": "f77c30f08165612cc701f9567a889117d1bea1163830a4bd9ee573c822e7e243",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/dwemer.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/fort.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "5d1910a91b434df879de3bd6192e23f92e511501"
+      },
+      "bytes": 1464,
+      "sha256": "bf6b576af9b63fea4ba676cfd2008b69f8f612a521a3ed01d4657e911bf9520c",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/fort.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/house.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "63624cfeb14716669a7d9246702c82952cac7068"
+      },
+      "bytes": 2041,
+      "sha256": "8988b8435165caed9c81f85842cbbcc12b11aa67ceab2f8edaad54349b3d18e3",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/house.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/landmark.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "398df53526a2afc0ad6b3790540a6efd8f565008"
+      },
+      "bytes": 1699,
+      "sha256": "686ef21faaf2fdb865383383ba48150983ef358d6ad822a4b4d99672e942606e",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/landmark.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/mine.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f9bd780f63296e556b2bd7ba8030b29d276416c3"
+      },
+      "bytes": 2265,
+      "sha256": "45f878df68e6bc3c21cc51f78a7fbfd0cdd68c25349804284605b72bccfbe6be",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/mine.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/misc.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "629a3a20b3b829eba0fba7d04b26d58d051ace11"
+      },
+      "bytes": 1415,
+      "sha256": "c44aa8e42aa64c4b4cab4e6e0b1d8c2ee9db2127ae7811bc06da93f40e45c965",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/misc.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/ruin.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "40be75b9fe1890522f0c2f67082e344df589b57b"
+      },
+      "bytes": 2528,
+      "sha256": "89f07b866e24c2dcb591ee4b0902fc7cf452222a49aae04f90bfd75a30425fa1",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/ruin.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/settlement.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "242ee63b8d0aadb008bcef9d07f437d339a6386f"
+      },
+      "bytes": 2079,
+      "sha256": "dfa9a07e06fee8a4e337637e48a1f3daf3ca23e5dfb8cd5e3169209864b540ca",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/settlement.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/ship.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "aebbc47a73e343fa6d4e24cd64148a76b613f179"
+      },
+      "bytes": 3196,
+      "sha256": "ec6e449eb410d5fcd3ba89b76e3ab4be8a5b4d7531e69854a5a7fc6ef477fe51",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/ship.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/shipwreck.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "30ecd9571a2b1171cef4a76e20b32dce57d7d545"
+      },
+      "bytes": 3993,
+      "sha256": "b900a058a4353f555e0cacef456b981d6e7ac635ee5bad095a7ef693ec75060f",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/shipwreck.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/stronghold.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "52c467fa8306a715eb0392bf56a626c4d9c2aed0"
+      },
+      "bytes": 1193,
+      "sha256": "5a54fa64759f0c21187349cd5d6e9a690ed89be469689bbba624fc090fd3977f",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/stronghold.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/tomb.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "33abedc2db1a290f8526235e27d7e3a7b9f4241d"
+      },
+      "bytes": 2373,
+      "sha256": "1c300e1270b36dc54cd1b558dedea6c99d25419602a467adfe8d5b4528de399d",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/tomb.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/tower.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "76b987641d3d39bc926aae4cc751187a8ffaa657"
+      },
+      "bytes": 2167,
+      "sha256": "8b0845f4965a7eb7269482438f42a8db51c405cd505a635756a4b21c5605579c",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/tower.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/data/textures/mapmarkers/town.png": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "85c2a005fb79a09d1e5444992ec6746ead250f38"
+      },
+      "bytes": 2097,
+      "sha256": "fe380bd3be03fcfeff31de7e7c498cbbe6e18d1f25177b8823433cdd1b6e13f8",
+      "reason": "Native world-map icon feature: files/data/textures/mapmarkers/town.png; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "files/settings-default.cfg": {
+      "before": {
+        "mode": "100644",
+        "blob": "8fda75ab8ecf68f89b3ee9b903595979677578f8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c0ccded86fbdacececf937853e6dec711825a8c8"
+      },
+      "bytes": 49831,
+      "sha256": "3234f85be423ee3e4d428b8e3987f682e880af2bf4be64d537caf02d6dd4fa18",
+      "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     }
   }
 }

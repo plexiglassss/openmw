@@ -17,7 +17,9 @@
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/globalmap.hpp>
 #include <components/myguiplatform/myguitexture.hpp>
+#include <components/resource/resourcesystem.hpp>
 #include <components/settings/values.hpp>
+#include <components/vfs/manager.hpp>
 
 #include "../mwbase/environment.hpp"
 #include "../mwbase/windowmanager.hpp"
@@ -33,6 +35,7 @@
 
 #include "confirmationdialog.hpp"
 
+#include <limits>
 #include <numeric>
 
 namespace
@@ -40,6 +43,19 @@ namespace
 
     constexpr int cellSize = Constants::CellSizeInUnits;
     constexpr float speed = 1.08f; // the zoom speed, it should be greater than 1
+
+    bool validLocationPosition(float x, float y)
+    {
+        const double limit = static_cast<double>(std::numeric_limits<int>::max()) - 1;
+        return std::isfinite(x) && std::isfinite(y) && std::abs(static_cast<double>(x) / cellSize) < limit
+            && std::abs(static_cast<double>(y) / cellSize) < limit;
+    }
+
+    std::pair<int, int> locationBucket(float x, float y)
+    {
+        return { static_cast<int>(std::floor(static_cast<double>(x) / cellSize)),
+            static_cast<int>(std::floor(static_cast<double>(y) / cellSize)) };
+    }
 
     enum LocalMapWidgetDepth
     {
@@ -81,6 +97,27 @@ namespace MWGui
 
         void onMouseLostFocus(MyGUI::Widget* /*newWidget*/) override { setColour(mNormalColour); }
 
+        void onMouseSetFocus(MyGUI::Widget* /*oldWidget*/) override { setColour(mHoverColour); }
+    };
+
+    // Separate from local-map MarkerWidget: a world icon uses its complete
+    // texture instead of the fixed 8-pixel square in the MarkerButton skin.
+    class GlobalMapMarkerWidget final : public MyGUI::ImageBox
+    {
+        MYGUI_RTTI_DERIVED(GlobalMapMarkerWidget)
+
+    public:
+        void setNormalColour(const MyGUI::Colour& colour)
+        {
+            mNormalColour = colour;
+            setColour(colour);
+        }
+        void setHoverColour(const MyGUI::Colour& colour) { mHoverColour = colour; }
+
+    private:
+        MyGUI::Colour mNormalColour;
+        MyGUI::Colour mHoverColour;
+        void onMouseLostFocus(MyGUI::Widget* /*newWidget*/) override { setColour(mNormalColour); }
         void onMouseSetFocus(MyGUI::Widget* /*oldWidget*/) override { setColour(mHoverColour); }
     };
 
@@ -804,8 +841,14 @@ namespace MWGui
     {
         [[maybe_unused]] static const bool registered = [] {
             MyGUI::FactoryManager::getInstance().registerFactory<MarkerWidget>("Widget");
+            MyGUI::FactoryManager::getInstance().registerFactory<GlobalMapMarkerWidget>("Widget");
             return true;
         }();
+
+        const auto* vfs = MWBase::Environment::get().getResourceSystem()->getVFS();
+        for (std::size_t i = 0; i < MapMarkers::categoryCount; ++i)
+            mLocationIconTextures[i] = vfs->exists(
+                VFS::Path::Normalized(MapMarkers::definition(static_cast<MapMarkers::Category>(i)).texturePath));
 
         mEditNoteDialog.setVisible(false);
         mEditNoteDialog.eventOkClicked += MyGUI::newDelegate(this, &MapWindow::onNoteEditOk);
@@ -1005,6 +1048,8 @@ namespace MWGui
 
         map->setViewOffset(MyGUI::IntPoint(static_cast<int>(std::round(centerView.left * speedDiff) + cursor.left),
             static_cast<int>(std::round(centerView.top * speedDiff) + cursor.top)));
+        if (Settings::map().mGlobal)
+            refreshEntranceWidgets();
     }
 
     void MapWindow::updateGlobalMap()
@@ -1022,8 +1067,7 @@ namespace MWGui
 
         for (auto& [marker, col] : mGlobalMapMarkers)
         {
-            marker.widget->setCoord(
-                createMarkerCoords(marker.position.x(), marker.position.y(), static_cast<float>(col.size())));
+            marker.widget->setCoord(createMarkerCoords(marker, col.size()));
             marker.widget->setVisible(marker.widget->getHeight() >= 6);
         }
     }
@@ -1042,11 +1086,14 @@ namespace MWGui
         mGlobalMap->setViewOffset(mGlobalMap->getViewOffset() + viewPortCenterDiff);
 
         mLastScrollWindowCoordinates = currentCoordinates;
+        refreshEntranceWidgets();
     }
 
     void MapWindow::setVisible(bool visible)
     {
         WindowBase::setVisible(visible);
+        if (!isVisible())
+            clearEntranceWidgets();
         MWGui::GuiMode mode = MWBase::Environment::get().getWindowManager()->getMode();
         mButton->setVisible(visible && mode != MWGui::GM_None);
 
@@ -1076,38 +1123,103 @@ namespace MWGui
         setTitle("#{sCell=" + cellName + "}");
     }
 
-    MyGUI::IntCoord MapWindow::createMarkerCoords(float x, float y, float agregatedWeight) const
+    MyGUI::IntCoord MapWindow::createMarkerCoords(const MapMarkerType& marker, size_t aggregatedWeight) const
     {
         float worldX, worldY;
         worldPosToGlobalMapImageSpace(
-            (x + 0.5f) * Constants::CellSizeInUnits, (y + 0.5f) * Constants::CellSizeInUnits, worldX, worldY);
+            marker.entrance ? marker.position.x() : (marker.position.x() + 0.5f) * Constants::CellSizeInUnits,
+            marker.entrance ? marker.position.y() : (marker.position.y() + 0.5f) * Constants::CellSizeInUnits, worldX,
+            worldY);
 
-        const float markerSize = getMarkerSize(static_cast<size_t>(agregatedWeight));
+        const float markerSize = getMarkerSize(marker, aggregatedWeight);
         const float halfMarkerSize = markerSize / 2.0f;
         return MyGUI::IntCoord(static_cast<int>(worldX - halfMarkerSize), static_cast<int>(worldY - halfMarkerSize),
             static_cast<int>(markerSize), static_cast<int>(markerSize));
     }
 
-    MyGUI::Widget* MapWindow::createMarker(const std::string& name, float x, float y, float agregatedWeight)
+    MapWindow::MapMarkerType MapWindow::createMarker(const std::string& name, const osg::Vec2f& position,
+        size_t aggregatedWeight, MapMarkers::Category category, CellId sourceCell, bool entrance)
     {
-        MyGUI::Widget* markerWidget = mGlobalMap->createWidget<MyGUI::Widget>(
-            "MarkerButton", createMarkerCoords(x, y, agregatedWeight), MyGUI::Align::Default);
-        markerWidget->setVisible(markerWidget->getHeight() >= 6.0);
-        markerWidget->setUserString("Caption_TextOneLine", "#{sCell=" + name + "}");
-        setGlobalMapMarkerTooltip(markerWidget, static_cast<int>(x), static_cast<int>(y));
-
+        MapMarkerType marker{ position, nullptr, name, category, sourceCell, entrance };
+        auto* markerWidget = mGlobalMap->createWidget<GlobalMapMarkerWidget>(
+            "ImageBox", createMarkerCoords(marker, aggregatedWeight), MyGUI::Align::Default);
+        marker.widget = markerWidget;
         markerWidget->setUserString("ToolTipLayout", "TextToolTipOneLine");
-
         markerWidget->setNeedMouseFocus(true);
-        markerWidget->setColour(
-            MyGUI::Colour::parse(MyGUI::LanguageManager::getInstance().replaceTags("#{fontcolour=normal}")));
         markerWidget->setDepth(Global_MarkerLayer);
         markerWidget->eventMouseDrag += MyGUI::newDelegate(this, &MapWindow::onMouseDrag);
         if (Settings::map().mAllowZooming)
             markerWidget->eventMouseWheel += MyGUI::newDelegate(this, &MapWindow::onMapZoomed);
         markerWidget->eventMouseButtonPressed += MyGUI::newDelegate(this, &MapWindow::onDragStart);
 
-        return markerWidget;
+        styleMarker(marker, aggregatedWeight);
+        return marker;
+    }
+
+    bool MapWindow::usesLocationIcon(const MapMarkerType& marker) const
+    {
+        return Settings::map().mLocationIcons && MapMarkers::isValid(marker.category)
+            && (Settings::map().mLocationIconCategories.get() & MapMarkers::bit(marker.category)) != 0
+            && mLocationIconTextures[static_cast<std::size_t>(marker.category)];
+    }
+
+    void MapWindow::styleMarker(const MapMarkerType& marker, size_t aggregatedWeight)
+    {
+        auto* widget = marker.widget->castType<GlobalMapMarkerWidget>();
+        const bool icon = usesLocationIcon(marker);
+        const auto& definition = MapMarkers::definition(marker.category);
+        widget->setImageTexture(icon ? std::string(definition.texturePath) : "textures\\door_icon.dds");
+        widget->setImageCoord(MyGUI::IntCoord(0, 0, icon ? 64 : 8, icon ? 64 : 8));
+
+        MyGUI::Colour normal
+            = MyGUI::Colour::parse(MyGUI::LanguageManager::getInstance().replaceTags("#{fontcolour=normal}"));
+        MyGUI::Colour hover = normal;
+        if (icon)
+        {
+            if (Settings::map().mLocationIconColours == 1)
+            {
+                normal = MyGUI::Colour(0.82f, 0.82f, 0.82f);
+                hover = MyGUI::Colour::White;
+            }
+            else if (Settings::map().mLocationIconColours == 2)
+            {
+                normal = MyGUI::Colour(definition.color[0], definition.color[1], definition.color[2]);
+                hover = MyGUI::Colour(std::min(1.f, normal.red * 0.7f + 0.3f),
+                    std::min(1.f, normal.green * 0.7f + 0.3f), std::min(1.f, normal.blue * 0.7f + 0.3f));
+            }
+            else
+                hover = MyGUI::Colour::parse(
+                    MyGUI::LanguageManager::getInstance().replaceTags("#{fontcolour=normal_over}"));
+        }
+        widget->setNormalColour(normal);
+        widget->setHoverColour(hover);
+        std::string caption = "#{sCell=" + marker.name + "}";
+        if (icon && Settings::map().mLocationIconTooltips)
+            caption += " (" + std::string(definition.label) + ")";
+        widget->setUserString("Caption_TextOneLine", caption);
+        setGlobalMapMarkerTooltip(widget, marker.sourceCell.first, marker.sourceCell.second);
+        widget->setCoord(createMarkerCoords(marker, aggregatedWeight));
+        widget->setVisible(widget->getHeight() >= 6);
+    }
+
+    void MapWindow::refreshLocationIcons()
+    {
+        mLocationIconsDirty = true;
+        mEntranceWidgetsDirty = true;
+        if (isVisible())
+        {
+            updateLocationIconStyles();
+            refreshEntranceWidgets();
+        }
+    }
+
+    void MapWindow::updateLocationIconStyles()
+    {
+        if (!mLocationIconsDirty)
+            return;
+        for (const auto& [marker, group] : mGlobalMapMarkers)
+            styleMarker(marker, group.size());
+        mLocationIconsDirty = false;
     }
 
     void MapWindow::addVisitedLocation(const std::string& name, int x, int y)
@@ -1118,22 +1230,22 @@ namespace MWGui
         if (mMarkers.insert(cell).second)
         {
             const osg::Vec2f pos(static_cast<float>(x), static_cast<float>(y));
-            MapMarkerType mapMarkerWidget = { pos, createMarker(name, pos.x(), pos.y(), 0) };
+            const ESM::Cell* metadata = MWBase::Environment::get().getESMStore()->get<ESM::Cell>().search(x, y);
+            const auto category = MapMarkers::classify(metadata ? metadata->mName : name, name, {}, true);
+            const MapMarkerType mapMarkerWidget = createMarker(name, pos, 0, category, cell);
             mGlobalMapMarkers.emplace(mapMarkerWidget, std::vector<MapMarkerType>());
 
             const std::string markerName = name.substr(0, name.find(','));
             auto& entry = mGlobalMapMarkersByName[markerName];
             if (!entry.widget)
             {
-                entry = { pos, entry.widget }; // update the coords
-
-                entry.widget = createMarker(markerName, entry.position.x(), entry.position.y(), 1);
-                mGlobalMapMarkers.emplace(entry, std::vector<MapMarkerType>{ entry });
+                entry = createMarker(markerName, pos, 1, MapMarkers::classify(markerName, {}, {}, true), cell);
+                mGlobalMapMarkers.emplace(entry, std::vector<MapMarkerType>{ mapMarkerWidget });
             }
             else
             {
                 auto it = mGlobalMapMarkers.find(entry);
-                auto& marker = const_cast<MapMarkerType&>(it->first);
+                const auto& marker = it->first;
                 auto& elements = it->second;
                 elements.emplace_back(mapMarkerWidget);
 
@@ -1143,9 +1255,213 @@ namespace MWGui
                                       [](const auto& left, const auto& right) { return left + right.position; })
                     / float(elements.size());
 
-                marker.widget->setCoord(
-                    createMarkerCoords(marker.position.x(), marker.position.y(), static_cast<float>(elements.size())));
+                marker.sourceCell = { static_cast<int>(marker.position.x()), static_cast<int>(marker.position.y()) };
+                marker.widget->setCoord(createMarkerCoords(marker, elements.size()));
                 marker.widget->setVisible(marker.widget->getHeight() >= 6);
+            }
+        }
+    }
+
+    void MapWindow::insertEntrance(LocationEntrance entrance)
+    {
+        const auto& saved = entrance.saved;
+        const ESM::RefId destination = saved.mDestination;
+        mEntrancesBySource[{ saved.mSourceX, saved.mSourceY }].insert(destination);
+        const auto [x, y] = locationBucket(saved.mWorldX, saved.mWorldY);
+        mEntranceSpatialIndex.insert(x, y, destination);
+        mDiscoveredEntrances.emplace(destination, std::move(entrance));
+        mEntranceWidgetsDirty = true;
+    }
+
+    void MapWindow::eraseEntrance(const ESM::RefId& destination)
+    {
+        const auto found = mDiscoveredEntrances.find(destination);
+        if (found == mDiscoveredEntrances.end())
+            return;
+        const auto& saved = found->second.saved;
+        const CellId source{ saved.mSourceX, saved.mSourceY };
+        auto sourceIt = mEntrancesBySource.find(source);
+        if (sourceIt != mEntrancesBySource.end())
+        {
+            sourceIt->second.erase(destination);
+            if (sourceIt->second.empty())
+                mEntrancesBySource.erase(sourceIt);
+        }
+        const auto [x, y] = locationBucket(saved.mWorldX, saved.mWorldY);
+        mEntranceSpatialIndex.erase(x, y, destination);
+        const auto widget = mEntranceWidgets.find(destination);
+        if (widget != mEntranceWidgets.end())
+        {
+            MyGUI::Gui::getInstance().destroyWidget(widget->second.widget);
+            mEntranceWidgets.erase(widget);
+        }
+        mDiscoveredEntrances.erase(found);
+        mEntranceWidgetsDirty = true;
+    }
+
+    void MapWindow::discoverLocationEntrances(const MWWorld::CellStore& cell)
+    {
+        if (!Settings::map().mLocationIcons || !Settings::map().mLocationEntranceIcons
+            || cell.getState() != MWWorld::CellStore::State_Loaded || !cell.isExterior()
+            || cell.getCell()->getWorldSpace() != ESM::Cell::sDefaultWorldspaceId)
+            return;
+
+        const CellId source{ cell.getCell()->getGridX(), cell.getCell()->getGridY() };
+        const auto& store = *MWBase::Environment::get().getESMStore();
+        std::map<ESM::RefId, LocationEntrance> candidates;
+        cell.forEachTypeConst<ESM::Door>([&](const MWWorld::ConstPtr& ptr) {
+            if (!ptr.getRefData().isEnabled() || ptr.getBase()->isDeleted() || !ptr.getCellRef().getTeleport())
+                return true;
+            const ESM::RefId destination = ptr.getCellRef().getDestCell();
+            if (destination.empty() || candidates.contains(destination))
+                return true;
+
+            // Store::search reads cell metadata only. Do not call WorldModel's
+            // getCell/getInterior here: their default is to load references.
+            const ESM::Cell* interior = store.get<ESM::Cell>().search(destination);
+            if (!interior || interior->isExterior())
+                return true;
+            const auto* door = ptr.get<ESM::Door>()->mBase;
+            const auto category = MapMarkers::classify(interior->mName, interior->mName, door->mModel.getOriginal());
+            if (!MapMarkers::meaningfulEntrance(category))
+                return true;
+            const auto& pos = ptr.getRefData().getPosition();
+            if (!validLocationPosition(pos.pos[0], pos.pos[1]))
+                return true;
+
+            ESM::LocationMarker saved;
+            saved.mDestination = destination;
+            saved.mDoor = door->mId;
+            saved.mSourceX = source.first;
+            saved.mSourceY = source.second;
+            saved.mWorldX = pos.pos[0];
+            saved.mWorldY = pos.pos[1];
+            candidates.emplace(destination, LocationEntrance{ saved, interior->mName, category });
+            return true;
+        });
+
+        std::set<ESM::RefId> previous;
+        if (const auto it = mEntrancesBySource.find(source); it != mEntrancesBySource.end())
+            previous = it->second;
+        for (auto& [destination, candidate] : candidates)
+        {
+            previous.erase(destination);
+            const auto existing = mDiscoveredEntrances.find(destination);
+            if (existing != mDiscoveredEntrances.end())
+            {
+                const auto& old = existing->second;
+                // Several doors may lead to one interior. Keep its first
+                // discovered exterior entrance, not a moving centroid.
+                if (CellId{ old.saved.mSourceX, old.saved.mSourceY } != source)
+                    continue;
+                if (old.saved.mDoor == candidate.saved.mDoor && old.saved.mWorldX == candidate.saved.mWorldX
+                    && old.saved.mWorldY == candidate.saved.mWorldY && old.category == candidate.category
+                    && old.name == candidate.name)
+                    continue;
+                eraseEntrance(destination);
+            }
+            insertEntrance(std::move(candidate));
+        }
+        // Re-entering a source cell validates its references, including doors
+        // deleted, disabled, moved or redirected since the previous discovery.
+        for (const auto& destination : previous)
+            eraseEntrance(destination);
+        refreshEntranceWidgets();
+    }
+
+    void MapWindow::clearEntranceWidgets()
+    {
+        for (const auto& [destination, marker] : mEntranceWidgets)
+            MyGUI::Gui::getInstance().destroyWidget(marker.widget);
+        mEntranceWidgets.clear();
+        mEntranceWidgetsDirty = true;
+    }
+
+    void MapWindow::refreshEntranceWidgets()
+    {
+        if (!isVisible() || !mGlobalMap->getVisible() || !Settings::map().mLocationIcons
+            || !Settings::map().mLocationEntranceIcons)
+        {
+            clearEntranceWidgets();
+            return;
+        }
+
+        const auto offset = mGlobalMap->getViewOffset();
+        const auto size = mGlobalMap->getSize();
+        const MyGUI::IntCoord viewport(-offset.left, -offset.top, size.width, size.height);
+        if (!mEntranceWidgetsDirty && mEntranceViewport == viewport && mEntranceZoom == mGlobalMapZoom)
+            return;
+        mEntranceViewport = viewport;
+        mEntranceZoom = mGlobalMapZoom;
+
+        const bool restyle = mEntranceWidgetsDirty;
+        mEntranceWidgetsDirty = false;
+        const float maximumSize = std::max(12, Settings::map().mLocationIconSize.get()) * mGlobalMapZoom;
+        if (maximumSize < 6)
+        {
+            clearEntranceWidgets();
+            mEntranceWidgetsDirty = false;
+            return;
+        }
+
+        // Invert the renderer's linear map transform using two known points.
+        // Query only occupied buckets intersecting the viewport, not all saved
+        // discoveries or any world/reference data. Icons straddling an edge
+        // remain included by the half-icon margin.
+        float originX, originY, cellX, cellY;
+        worldPosToGlobalMapImageSpace(0, 0, originX, originY);
+        worldPosToGlobalMapImageSpace(cellSize, cellSize, cellX, cellY);
+        const double stepX = cellX - originX;
+        const double stepY = cellY - originY;
+        if (stepX <= 0 || stepY >= 0 || !std::isfinite(stepX) || !std::isfinite(stepY))
+            return;
+        const double margin = maximumSize * 0.5;
+        const double left = viewport.left - margin;
+        const double right = static_cast<double>(viewport.left) + viewport.width + margin;
+        const double top = viewport.top - margin;
+        const double bottom = static_cast<double>(viewport.top) + viewport.height + margin;
+        const auto bucketBound = [](double value) {
+            return static_cast<int>(std::clamp(std::floor(value),
+                static_cast<double>(std::numeric_limits<int>::min()),
+                static_cast<double>(std::numeric_limits<int>::max())));
+        };
+        const int minX = bucketBound((left - originX) / stepX);
+        const int maxX = bucketBound((right - originX) / stepX);
+        const int minY = bucketBound((bottom - originY) / stepY);
+        const int maxY = bucketBound((top - originY) / stepY);
+        std::set<ESM::RefId> visible;
+        mEntranceSpatialIndex.query(minX, minY, maxX, maxY, [&](const ESM::RefId& destination) {
+            const auto& entrance = mDiscoveredEntrances.at(destination);
+            float imageX, imageY;
+            worldPosToGlobalMapImageSpace(entrance.saved.mWorldX, entrance.saved.mWorldY, imageX, imageY);
+            if (imageX < left || imageX > right || imageY < top || imageY > bottom)
+                return;
+            const osg::Vec2f position(entrance.saved.mWorldX, entrance.saved.mWorldY);
+            const CellId source{ entrance.saved.mSourceX, entrance.saved.mSourceY };
+            const MapMarkerType candidate{ position, nullptr, entrance.name, entrance.category, source, true };
+            if (getMarkerSize(candidate, 0) < 6)
+                return;
+            visible.insert(destination);
+            const auto existing = mEntranceWidgets.find(destination);
+            if (existing == mEntranceWidgets.end())
+                mEntranceWidgets.emplace(destination,
+                    createMarker(entrance.name, position, 0, entrance.category, source, true));
+            else if (restyle)
+                styleMarker(existing->second, 0);
+            else
+            {
+                existing->second.widget->setCoord(createMarkerCoords(existing->second, 0));
+                existing->second.widget->setVisible(true);
+            }
+        });
+        for (auto it = mEntranceWidgets.begin(); it != mEntranceWidgets.end();)
+        {
+            if (visible.contains(it->first))
+                ++it;
+            else
+            {
+                MyGUI::Gui::getInstance().destroyWidget(it->second.widget);
+                it = mEntranceWidgets.erase(it);
             }
         }
     }
@@ -1184,12 +1500,15 @@ namespace MWGui
         }
     }
 
-    float MapWindow::getMarkerSize(size_t agregatedWeight) const
+    float MapWindow::getMarkerSize(const MapMarkerType& marker, size_t aggregatedWeight) const
     {
-        float markerSize = 12.f * mGlobalMapZoom;
+        const float markerSize = (usesLocationIcon(marker) ? Settings::map().mLocationIconSize.get() : 12.f)
+            * mGlobalMapZoom;
+        if (marker.entrance)
+            return markerSize;
         if (mGlobalMapZoom < 1)
-            return static_cast<float>(markerSize * std::sqrt(agregatedWeight)); // we want to see agregated object
-        return agregatedWeight ? 0 : markerSize; // we want to see only original markers (i.e. non agregated)
+            return static_cast<float>(markerSize * std::sqrt(aggregatedWeight)); // aggregated places
+        return aggregatedWeight ? 0 : markerSize; // original places
     }
 
     void MapWindow::resizeGlobalMap()
@@ -1212,8 +1531,9 @@ namespace MWGui
         LocalMapBase::updateCustomMarkers();
 
         for (auto& [widgetPair, ignore] : mGlobalMapMarkers)
-            setGlobalMapMarkerTooltip(widgetPair.widget, static_cast<int>(widgetPair.position.x()),
-                static_cast<int>(widgetPair.position.y()));
+            setGlobalMapMarkerTooltip(widgetPair.widget, widgetPair.sourceCell.first, widgetPair.sourceCell.second);
+        for (auto& [destination, marker] : mEntranceWidgets)
+            setGlobalMapMarkerTooltip(marker.widget, marker.sourceCell.first, marker.sourceCell.second);
     }
 
     void MapWindow::onDragStart(MyGUI::Widget* /*sender*/, int left, int top, MyGUI::MouseButton id)
@@ -1236,7 +1556,10 @@ namespace MWGui
             mLocalMap->setViewOffset(mLocalMap->getViewOffset() + diff);
         }
         else
+        {
             mGlobalMap->setViewOffset(mGlobalMap->getViewOffset() + diff);
+            refreshEntranceWidgets();
+        }
 
         mLastDragPos = MyGUI::IntPoint(left, top);
     }
@@ -1249,6 +1572,8 @@ namespace MWGui
 
         mGlobalMap->setVisible(global);
         mLocalMap->setVisible(!global);
+        updateLocationIconStyles();
+        refreshEntranceWidgets();
 
         mButton->setCaptionWithReplacing(global ? "#{sLocal}" : "#{sWorld}");
         mControllerButtons.mX = global ? "#{Interface:Local}" : "#{Interface:World}";
@@ -1276,6 +1601,8 @@ namespace MWGui
     {
         ensureGlobalMapLoaded();
 
+        updateLocationIconStyles();
+        refreshEntranceWidgets();
         globalMapUpdatePlayer();
     }
 
@@ -1305,6 +1632,7 @@ namespace MWGui
         MyGUI::IntPoint viewoffs(
             static_cast<int>(viewsize.width * 0.5f - pos.left), static_cast<int>(viewsize.height * 0.5f - pos.top));
         mGlobalMap->setViewOffset(viewoffs);
+        refreshEntranceWidgets();
     }
 
     void MapWindow::setGlobalMapPlayerPosition(float worldX, float worldY)
@@ -1346,6 +1674,11 @@ namespace MWGui
 
     void MapWindow::clear()
     {
+        clearEntranceWidgets();
+        mDiscoveredEntrances.clear();
+        mEntrancesBySource.clear();
+        mEntranceSpatialIndex.clear();
+        mLocationIconsDirty = true;
         mMarkers.clear();
 
         mGlobalMapRender->clear();
@@ -1367,6 +1700,22 @@ namespace MWGui
         writer.startRecord(ESM::REC_GMAP);
         map.save(writer);
         writer.endRecord(ESM::REC_GMAP);
+
+        if (!mDiscoveredEntrances.empty())
+        {
+            ESM::LocationMarkers entrances;
+            entrances.mMarkers.reserve(mDiscoveredEntrances.size());
+            for (const auto& [destination, entrance] : mDiscoveredEntrances)
+                entrances.mMarkers.push_back(entrance.saved);
+            writer.startRecord(ESM::REC_LMRK);
+            entrances.save(writer);
+            writer.endRecord(ESM::REC_LMRK);
+        }
+    }
+
+    size_t MapWindow::countSavedGameRecords() const
+    {
+        return 1 + (mDiscoveredEntrances.empty() ? 0 : 1);
     }
 
     void MapWindow::readRecord(ESM::ESMReader& reader, uint32_t type)
@@ -1385,6 +1734,32 @@ namespace MWGui
                 if (cell && !cell->mName.empty())
                     addVisitedLocation(cell->mName, cellId.first, cellId.second);
             }
+        }
+        else if (type == ESM::REC_LMRK)
+        {
+            ESM::LocationMarkers entrances;
+            entrances.load(reader);
+            clearEntranceWidgets();
+            mDiscoveredEntrances.clear();
+            mEntrancesBySource.clear();
+            mEntranceSpatialIndex.clear();
+            const auto& store = *MWBase::Environment::get().getESMStore();
+            for (const auto& saved : entrances.mMarkers)
+            {
+                if (!validLocationPosition(saved.mWorldX, saved.mWorldY)
+                    || mDiscoveredEntrances.contains(saved.mDestination))
+                    continue;
+                const auto* source = store.get<ESM::Cell>().search(saved.mSourceX, saved.mSourceY);
+                const auto* interior = store.get<ESM::Cell>().search(saved.mDestination);
+                const auto* door = store.get<ESM::Door>().search(saved.mDoor);
+                if (!source || !interior || interior->isExterior() || !door)
+                    continue;
+                const auto category = MapMarkers::classify(interior->mName, interior->mName, door->mModel.getOriginal());
+                if (MapMarkers::meaningfulEntrance(category))
+                    insertEntrance(LocationEntrance{ saved, interior->mName, category });
+            }
+            // Reference existence is rechecked only on entry to its loaded
+            // source cell. Loading a save never loads destination interiors.
         }
     }
 
@@ -1459,6 +1834,7 @@ namespace MWGui
         {
             mGlobalMap->setViewOffset(
                 MyGUI::IntPoint(mGlobalMap->getViewOffset().left + dx, mGlobalMap->getViewOffset().top + dy));
+            refreshEntranceWidgets();
         }
     }
 

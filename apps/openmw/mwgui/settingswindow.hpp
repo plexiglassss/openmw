@@ -8,6 +8,7 @@
 
 #include "dialoguecolourcontrols.hpp"
 #include "messagepositioncontrols.hpp"
+#include "mapiconcontrols.hpp"
 #include "windowbase.hpp"
 
 namespace MWGui
@@ -82,6 +83,10 @@ namespace MWGui
         MessagePositionControls mMessagePositionControls;
         bool mUpdatingMessagePosition = false;
 
+        MyGUI::TabItem* mMapIconTab = nullptr;
+        MapIconControls mMapIconControls;
+        bool mUpdatingMapIcons = false;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
@@ -146,6 +151,15 @@ namespace MWGui
         void onMessagePositionOffsetChanged(MyGUI::ScrollBar* sender, size_t pos);
         void onMessagePositionReset(MyGUI::Widget* sender);
         void onMessagePositionTest(MyGUI::Widget* sender);
+
+        void initialiseMapIconControls();
+        void updateMapIconSettings();
+        void onMapIconToggled(MyGUI::Widget* sender);
+        void onMapIconSizeChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onMapIconColoursChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onMapIconCategoryChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onMapIconCategoryToggled(MyGUI::Widget* sender);
+        void onMapIconReset(MyGUI::Widget* sender);
 
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);

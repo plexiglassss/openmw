@@ -24,6 +24,7 @@
 #include <components/files/configurationmanager.hpp>
 #include <components/l10n/manager.hpp>
 #include <components/lua_ui/scriptsettings.hpp>
+#include <components/mapmarkers/classification.hpp>
 #include <components/misc/constants.hpp>
 #include <components/misc/display.hpp>
 #include <components/misc/strings/algorithm.hpp>
@@ -420,6 +421,7 @@ namespace MWGui
         updateJournalSettings();
         initialiseDialogueColourControls();
         initialiseMessagePositionControls();
+        initialiseMapIconControls();
 
         computeMinimumWindowSize();
 
@@ -544,6 +546,7 @@ namespace MWGui
     {
         layoutDialogueColourControls();
         layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
         resetScrollbars();
     }
 
@@ -1066,6 +1069,7 @@ namespace MWGui
         }
         mUpdatingMessagePosition = false;
         layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
     }
 
     void SettingsWindow::onMessagePositionChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
@@ -1109,6 +1113,119 @@ namespace MWGui
     {
         MWBase::Environment::get().getWindowManager()->messageBox(
             "#{OMWEngine:MessagePositionTest}", MWGui::ShowInDialogueMode_Never);
+    }
+
+    void SettingsWindow::initialiseMapIconControls()
+    {
+        // Keep the controls available even when a mod replaces the Options layout.
+        mMapIconTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:MapIconsTab}"));
+        mMapIconTab->setUserString("AllowTabOverflow", "true");
+        mMapIconControls = createMapIconControls(mMapIconTab, mPrefix);
+        for (auto* button : mMapIconControls.mToggles)
+            button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onMapIconToggled);
+        mMapIconControls.mSize->eventScrollChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconSizeChanged);
+        mMapIconControls.mColours->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconColoursChanged);
+        mMapIconControls.mCategory->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconCategoryChanged);
+        mMapIconControls.mCategoryToggle->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconCategoryToggled);
+        mMapIconControls.mReset->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconReset);
+        updateMapIconSettings();
+    }
+
+    void SettingsWindow::updateMapIconSettings()
+    {
+        if (!mMapIconControls.mContent)
+            return;
+        mUpdatingMapIcons = true;
+        const auto& settings = Settings::map();
+        const std::array<bool, 3> enabled{
+            settings.mLocationIcons.get(), settings.mLocationEntranceIcons.get(), settings.mLocationIconTooltips.get()
+        };
+        for (size_t i = 0; i < enabled.size(); ++i)
+            mMapIconControls.mToggles[i]->setCaptionWithReplacing(enabled[i] ? "#{Interface:On}" : "#{Interface:Off}");
+        mMapIconControls.mSize->setScrollPosition(static_cast<size_t>(settings.mLocationIconSize.get() - 16));
+        mMapIconControls.mSizeValue->setCaption(std::to_string(settings.mLocationIconSize.get()));
+        mMapIconControls.mColours->setIndexSelected(static_cast<size_t>(settings.mLocationIconColours.get()));
+        const size_t selected = mMapIconControls.mCategory->getIndexSelected();
+        const bool categoryEnabled = selected < MapMarkers::categoryCount
+            && (static_cast<unsigned>(settings.mLocationIconCategories.get())
+                & MapMarkers::bit(static_cast<MapMarkers::Category>(selected))) != 0;
+        mMapIconControls.mCategoryToggle->setCaptionWithReplacing(categoryEnabled ? "#{Interface:On}" : "#{Interface:Off}");
+        mUpdatingMapIcons = false;
+        layoutMapIconControls(mMapIconControls);
+    }
+
+    void SettingsWindow::onMapIconToggled(MyGUI::Widget* sender)
+    {
+        if (mUpdatingMapIcons)
+            return;
+        auto& settings = Settings::map();
+        if (sender == mMapIconControls.mToggles[0])
+            settings.mLocationIcons.set(!settings.mLocationIcons.get());
+        else if (sender == mMapIconControls.mToggles[1])
+            settings.mLocationEntranceIcons.set(!settings.mLocationEntranceIcons.get());
+        else if (sender == mMapIconControls.mToggles[2])
+            settings.mLocationIconTooltips.set(!settings.mLocationIconTooltips.get());
+        else
+            return;
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconSizeChanged(MyGUI::ScrollBar* /*sender*/, size_t pos)
+    {
+        if (mUpdatingMapIcons)
+            return;
+        Settings::map().mLocationIconSize.set(16 + static_cast<int>(std::min(pos, size_t(24))));
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconColoursChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (mUpdatingMapIcons || pos >= 3)
+            return;
+        Settings::map().mLocationIconColours.set(static_cast<int>(pos));
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconCategoryChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (!mUpdatingMapIcons && pos < MapMarkers::categoryCount)
+            updateMapIconSettings();
+    }
+
+    void SettingsWindow::onMapIconCategoryToggled(MyGUI::Widget* /*sender*/)
+    {
+        if (mUpdatingMapIcons)
+            return;
+        const size_t selected = mMapIconControls.mCategory->getIndexSelected();
+        if (selected >= MapMarkers::categoryCount)
+            return;
+        auto& settings = Settings::map();
+        settings.mLocationIconCategories.set(static_cast<int>(static_cast<unsigned>(settings.mLocationIconCategories.get())
+            ^ MapMarkers::bit(static_cast<MapMarkers::Category>(selected))));
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconReset(MyGUI::Widget* /*sender*/)
+    {
+        auto& settings = Settings::map();
+        settings.mLocationIcons.reset();
+        settings.mLocationEntranceIcons.reset();
+        settings.mLocationIconTooltips.reset();
+        settings.mLocationIconSize.reset();
+        settings.mLocationIconColours.reset();
+        settings.mLocationIconCategories.reset();
+        updateMapIconSettings();
+        apply();
     }
 
     void SettingsWindow::onShadowsButtonClicked(MyGUI::Widget* /*sender*/)
@@ -1159,6 +1276,7 @@ namespace MWGui
         center();
         layoutDialogueColourControls();
         layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
         highlightCurrentResolution();
     }
 
@@ -1497,6 +1615,7 @@ namespace MWGui
         updateDialogueColourSettings();
         updateMessagePositionSettings();
         resetScrollbars();
+        updateMapIconSettings();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
     }
@@ -1514,6 +1633,7 @@ namespace MWGui
         layoutControlsBox();
         layoutDialogueColourControls();
         layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
     }
 
     void SettingsWindow::computeMinimumWindowSize()
@@ -1554,6 +1674,8 @@ namespace MWGui
             mDialogueColourControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mMessagePositionControls.mView)
             mMessagePositionControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mMapIconControls.mView)
+            mMapIconControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
     }
 
     bool SettingsWindow::onControllerButtonEvent(const SDL_ControllerButtonEvent& arg)

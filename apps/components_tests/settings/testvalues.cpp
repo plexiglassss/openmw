@@ -434,5 +434,60 @@ namespace Settings
                 EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), anchor);
             }
         }
+
+        TEST_F(SettingsValuesTest, mapIconsDefaultWithoutAwmAndClampExternalValues)
+        {
+            Manager::mUserSettings[{ "Map", "location icon size" }] = "999";
+            Manager::mUserSettings[{ "Map", "location icon colours" }] = "-10";
+            Manager::mUserSettings[{ "Map", "location icon categories" }] = "999999";
+            Index index;
+            Values values(index);
+            EXPECT_TRUE(values.mMap.mLocationIcons.get());
+            EXPECT_TRUE(values.mMap.mLocationEntranceIcons.get());
+            EXPECT_TRUE(values.mMap.mLocationIconTooltips.get());
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 40);
+            EXPECT_EQ(values.mMap.mLocationIconColours.get(), 0);
+            EXPECT_EQ(values.mMap.mLocationIconCategories.get(), 524287);
+            values.mMap.mLocationIconSize.set(-10);
+            values.mMap.mLocationIconColours.set(99);
+            values.mMap.mLocationIconCategories.set(-1);
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 16);
+            EXPECT_EQ(values.mMap.mLocationIconColours.get(), 2);
+            EXPECT_EQ(values.mMap.mLocationIconCategories.get(), 0);
+            values.mMap.mLocationIconSize.reset();
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 24);
+        }
+
+        TEST_F(SettingsValuesTest, mapIconSettingsRoundTripWithoutChangingMapResolutionOrDeleveling)
+        {
+            const auto path = TestingOpenMW::outputFilePath("map-icon-settings.cfg");
+            {
+                Index index;
+                Values values(index);
+                values.mMap.mLocationIcons.set(false);
+                values.mMap.mLocationEntranceIcons.set(false);
+                values.mMap.mLocationIconTooltips.set(false);
+                values.mMap.mLocationIconSize.set(33);
+                values.mMap.mLocationIconColours.set(2);
+                values.mMap.mLocationIconCategories.set(0x12568);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_FALSE(values.mMap.mLocationIcons.get());
+            EXPECT_FALSE(values.mMap.mLocationEntranceIcons.get());
+            EXPECT_FALSE(values.mMap.mLocationIconTooltips.get());
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 33);
+            EXPECT_EQ(values.mMap.mLocationIconColours.get(), 2);
+            EXPECT_EQ(values.mMap.mLocationIconCategories.get(), 0x12568);
+            EXPECT_EQ(values.mMap.mGlobalMapCellSize.get(), 18);
+            EXPECT_EQ(values.mMap.mLocalMapResolution.get(), 256);
+            EXPECT_FALSE(values.mGame.mDelevelCreatures.get());
+            EXPECT_FALSE(values.mGame.mDelevelItems.get());
+        }
     }
 }

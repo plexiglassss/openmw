@@ -21,6 +21,9 @@ file(GLOB UNITTEST_SRC_FILES
     lua/testutilpackage.cpp
     lua/testyaml.cpp
 
+    mapmarkers/testclassification.cpp
+    mapmarkers/testspatialindex.cpp
+
     misc/compression.cpp
     misc/progressreporter.cpp
     misc/testdialoguetext.cpp
@@ -80,6 +83,7 @@ file(GLOB UNITTEST_SRC_FILES
     esm3/testesmwriter.cpp
     esm3/testinfoorder.cpp
     esm3/testcstringids.cpp
+    esm3/testlocationmarkers.cpp
 
     nifosg/testnifloader.cpp
 

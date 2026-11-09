@@ -1,0 +1,119 @@
+{
+  "origin": "Original glyphs created for this user; no copied mod or game artwork.",
+  "files": [
+    {
+      "category": "barrow",
+      "path": "textures/mapmarkers/barrow.png",
+      "bytes": 3243,
+      "sha256": "285c4be05ad1161f556d5b0d1c6581599581220261905a3a03fc317235dbd54b"
+    },
+    {
+      "category": "camp",
+      "path": "textures/mapmarkers/camp.png",
+      "bytes": 1945,
+      "sha256": "074a1afe25326b089d17b8c3c88a7f1daae38db8bfcaa285f50558bdc436a038"
+    },
+    {
+      "category": "cave",
+      "path": "textures/mapmarkers/cave.png",
+      "bytes": 3772,
+      "sha256": "c0994c83b84ca48cf1506fd90c811145977e108145863693990f97095a1218d7"
+    },
+    {
+      "category": "city",
+      "path": "textures/mapmarkers/city.png",
+      "bytes": 2063,
+      "sha256": "7eb6aa24611a645155d158c9fee86b71b92a9012af7a899449bf4e75f4cc3b54"
+    },
+    {
+      "category": "daedric",
+      "path": "textures/mapmarkers/daedric.png",
+      "bytes": 3275,
+      "sha256": "3eabb9d3635c4bb8be1b91b3c673e438801fa4650b3625e62f9faa8e38a63dfd"
+    },
+    {
+      "category": "dwemer",
+      "path": "textures/mapmarkers/dwemer.png",
+      "bytes": 4443,
+      "sha256": "f77c30f08165612cc701f9567a889117d1bea1163830a4bd9ee573c822e7e243"
+    },
+    {
+      "category": "fort",
+      "path": "textures/mapmarkers/fort.png",
+      "bytes": 1464,
+      "sha256": "bf6b576af9b63fea4ba676cfd2008b69f8f612a521a3ed01d4657e911bf9520c"
+    },
+    {
+      "category": "house",
+      "path": "textures/mapmarkers/house.png",
+      "bytes": 2041,
+      "sha256": "8988b8435165caed9c81f85842cbbcc12b11aa67ceab2f8edaad54349b3d18e3"
+    },
+    {
+      "category": "landmark",
+      "path": "textures/mapmarkers/landmark.png",
+      "bytes": 1699,
+      "sha256": "686ef21faaf2fdb865383383ba48150983ef358d6ad822a4b4d99672e942606e"
+    },
+    {
+      "category": "mine",
+      "path": "textures/mapmarkers/mine.png",
+      "bytes": 2265,
+      "sha256": "45f878df68e6bc3c21cc51f78a7fbfd0cdd68c25349804284605b72bccfbe6be"
+    },
+    {
+      "category": "misc",
+      "path": "textures/mapmarkers/misc.png",
+      "bytes": 1415,
+      "sha256": "c44aa8e42aa64c4b4cab4e6e0b1d8c2ee9db2127ae7811bc06da93f40e45c965"
+    },
+    {
+      "category": "ruin",
+      "path": "textures/mapmarkers/ruin.png",
+      "bytes": 2528,
+      "sha256": "89f07b866e24c2dcb591ee4b0902fc7cf452222a49aae04f90bfd75a30425fa1"
+    },
+    {
+      "category": "settlement",
+      "path": "textures/mapmarkers/settlement.png",
+      "bytes": 2079,
+      "sha256": "dfa9a07e06fee8a4e337637e48a1f3daf3ca23e5dfb8cd5e3169209864b540ca"
+    },
+    {
+      "category": "ship",
+      "path": "textures/mapmarkers/ship.png",
+      "bytes": 3196,
+      "sha256": "ec6e449eb410d5fcd3ba89b76e3ab4be8a5b4d7531e69854a5a7fc6ef477fe51"
+    },
+    {
+      "category": "shipwreck",
+      "path": "textures/mapmarkers/shipwreck.png",
+      "bytes": 3993,
+      "sha256": "b900a058a4353f555e0cacef456b981d6e7ac635ee5bad095a7ef693ec75060f"
+    },
+    {
+      "category": "stronghold",
+      "path": "textures/mapmarkers/stronghold.png",
+      "bytes": 1193,
+      "sha256": "5a54fa64759f0c21187349cd5d6e9a690ed89be469689bbba624fc090fd3977f"
+    },
+    {
+      "category": "tomb",
+      "path": "textures/mapmarkers/tomb.png",
+      "bytes": 2373,
+      "sha256": "1c300e1270b36dc54cd1b558dedea6c99d25419602a467adfe8d5b4528de399d"
+    },
+    {
+      "category": "tower",
+      "path": "textures/mapmarkers/tower.png",
+      "bytes": 2167,
+      "sha256": "8b0845f4965a7eb7269482438f42a8db51c405cd505a635756a4b21c5605579c"
+    },
+    {
+      "category": "town",
+      "path": "textures/mapmarkers/town.png",
+      "bytes": 2097,
+      "sha256": "fe380bd3be03fcfeff31de7e7c498cbbe6e18d1f25177b8823433cdd1b6e13f8"
+    }
+  ]
+}

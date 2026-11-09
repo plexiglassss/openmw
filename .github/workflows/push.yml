@@ -1,4 +1,4 @@
-name: OpenMW - repair Lua UI image inheritance
+name: OpenMW - native world map icons
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -149,6 +149,13 @@ jobs:
           if ($LASTEXITCODE) { throw 'Notification geometry test compilation failed' }
           ./message-position-tests.exe | Tee-Object message-position-tests.txt
           if ($LASTEXITCODE) { throw 'Notification geometry regressions failed' }
+      - name: Validate native map classification and resource budget
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /O2 /W4 /WX /I . custom/map-icons/test-classification.cpp components/mapmarkers/classification.cpp /Fe:map-icons-classifier.exe
+          if ($LASTEXITCODE) { throw 'Map icon classifier compilation failed' }
+          python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-classification.json --cmake-copy
+          if ($LASTEXITCODE) { throw 'Map icon classification, assets or allocation checks failed' }
       - name: Verify Ninja supplied with the Visual Studio build tools
         shell: pwsh
         run: |
@@ -343,6 +350,15 @@ jobs:
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialoguecolourcontrols.cpp.obj
           components/CMakeFiles/components.dir/misc/dialoguetext.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/misc/testdialoguetext.cpp.obj
+      - name: Compile native map icons and save regressions first
+        run: >-
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapiconcontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/esm3/testlocationmarkers.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testclassification.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
       - name: Build engine and regression tests
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
       - name: Prepare test DLLs
@@ -415,6 +431,10 @@ jobs:
           Copy-Item custom/deleveler/README.md install/NATIVE-DELEVELER.md
           Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
           Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
+          Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
+          python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-package.json --resources install/resources/vfs
+          if ($LASTEXITCODE) { throw 'Installed map icon resource verification failed' }
+          Copy-Item map-icons-classification.json,map-icons-package.json install/
           Copy-Item lua-ui-legacy-tests.xml,lua-ui-layout-parity.json install/
           New-Item -ItemType Directory -Force install/tools/town-performance/capture | Out-Null
           Copy-Item custom/town-performance/Start-Comparison.ps1,custom/town-performance/Compare-Optimized.cmd,custom/town-performance/Compare-Legacy-Layout.cmd install/tools/town-performance/
@@ -422,7 +442,7 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nNative world map location icons; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/cumulative/prepare-upgrade.py install --town-performance
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
@@ -431,7 +451,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-town-candidate-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-native-map-icons-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
@@ -458,6 +478,8 @@ jobs:
             town-performance-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
+            map-icons-classification.json
+            map-icons-package.json
             lookup-*.xml
             install/UPGRADE-PRESERVATION.json
             install/verification/CI-PACKAGE-SHA256.json

@@ -65,3 +65,34 @@ Map Settings
 
    Controls viewing distance on the local map when 'distant terrain' is enabled.
    Increasing this may increase cell load times.
+
+
+Location icons
+--------------
+
+The native world map can display categorized location icons. These settings do not
+change the local map or require Advanced World Map. They can also be changed under
+Options > Map icons.
+
+``location icons`` (boolean, default true)
+    Enable categorized native markers. Disabling restores ordinary named markers
+    and hides additional discovered entrance markers.
+
+``location entrance icons`` (boolean, default true)
+    Discover and show meaningful interior entrances in exterior cells entered by
+    the player. Ordinary settlement doors are excluded.
+
+``location icon tooltips`` (boolean, default true)
+    Include the location type in marker tooltips.
+
+``location icon size`` (integer, 16 to 40, default 24)
+    Icon size in logical UI pixels. Interface scaling applies.
+
+``location icon colours`` (integer, default 0)
+    0 uses map colours; 1 uses white; 2 uses category colours.
+
+``location icon categories`` (integer bit mask, default 524287)
+    Categories with their bit clear use square markers. Bits 0 through 18 are:
+    city, town, settlement, house, cave, mine, tomb, barrow, Dwemer, Daedric,
+    stronghold, fort, tower, ruin, camp, ship, shipwreck, landmark and miscellaneous.
+    Use the in-game category controls for ordinary configuration.
