@@ -28,6 +28,28 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def refresh_adapter_installers(install):
+    """Bind a reused engine package to this checkout's installer without changing its reviewed Lua payloads."""
+    receipt_path = install / "COMBINED-PACKAGE.json"
+    receipt = json.loads(receipt_path.read_bytes())
+    tool_root = install / "tools" / "combined-performance"
+    source = ROOT / "custom/gameplay-responsiveness/Install-Fix.ps1"
+    new_hash = digest(source)
+    old_hash = receipt["installer_sha256"]
+    paths = [f"{name}/Install-Fix.ps1" for name in ("SaneMagic", "AdvancedWorldMap", "QuestGuiderLite", "ProximityTool")]
+    for name in paths:
+        if receipt["tools"][name] != old_hash or digest(tool_root / name) != old_hash:
+            raise ValueError("The staged installer differs from its package inventory: " + name)
+    if old_hash == new_hash:
+        return []
+    for name in paths:
+        shutil.copyfile(source, tool_root / name)
+        receipt["tools"][name] = new_hash
+    receipt["installer_sha256"] = new_hash
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+    return [receipt_path.name, *[(tool_root / name).relative_to(install).as_posix() for name in paths]]
+
+
 def stage(build, install):
     for name in [*(tool + ".exe" for tool in EXTRAS), "defaults-cs.bin"]:
         target = install / name
@@ -172,10 +194,12 @@ def main():
     for name, row in before.items():
         if digest(install / name) != row["sha256"]:
             raise ValueError("An original package file changed: " + name)
+    updated = refresh_adapter_installers(install)
     current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     combined = json.loads((install / "COMBINED-PACKAGE.json").read_bytes())
     report = dict(result="PASS", engine_commit=combined["candidate_commit"], packaging_commit=current,
-                  tested_original_files_preserved=len(before), public_applications=list(PUBLIC), command_checks=launches,
+                  tested_original_files_preserved=len(before.keys() - set(updated)), updated_installer_paths=updated,
+                  public_applications=list(PUBLIC), command_checks=launches,
                   tool_hashes={name: digest(install / (name + ".exe")) for name in PUBLIC}, imports=imports)
     folder = install / "verification"
     folder.mkdir(exist_ok=True)

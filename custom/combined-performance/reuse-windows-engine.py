@@ -23,6 +23,8 @@ PACKAGING_INPUTS = {
     "custom/combined-performance/reuse-windows-engine.py",
     "custom/combined-performance/complete-windows-distribution.py",
     "custom/combined-performance/stage-msvc-runtime.ps1",
+    "custom/combined-performance/tests/test-adapter-entrypoints.py",
+    "custom/gameplay-responsiveness/Install-Fix.ps1",
 }
 
 

@@ -30,6 +30,8 @@ jobs:
         with:
           ref: ${{ env.CUMULATIVE_COMMIT }}
           fetch-depth: 100
+      - name: Exercise the actual Windows adapter installer and restore commands
+        run: python custom/combined-performance/tests/test-adapter-entrypoints.py --output native-adapter-installer-tests.json
       - name: Reuse tested engine for eligible packaging-only changes
         id: existing_engine
         shell: pwsh
@@ -601,6 +603,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Windows tools, public files or dependencies failed verification' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot distribution-startup
           Copy-Item -LiteralPath distribution-startup -Destination install/verification/distribution-startup -Recurse
+          Copy-Item -LiteralPath native-adapter-installer-tests.json -Destination install/verification/
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Final Windows distribution inventory validation failed' }
       - uses: actions/upload-artifact@v6
@@ -637,6 +640,7 @@ jobs:
           name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
             install/verification/WINDOWS-DISTRIBUTION.json
+            native-adapter-installer-tests.json
             distribution-startup/
             gameplay-installer-tests.json
             cumulative-source-manifest.json

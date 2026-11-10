@@ -2,7 +2,7 @@
 # Copies prepared files only. Does not patch source, edit configuration, or stop processes.
 [CmdletBinding()]
 param(
-    [string]$PackageRoot = $PSScriptRoot,
+    [string]$PackageRoot = '',
     [string]$LogPath = '',
     [string]$BackupRoot = '',
     [string]$RestoreBackup = '',
@@ -347,6 +347,8 @@ function Invoke-Transaction($Items, $Receipt) {
 try {
     if ($PSVersionTable.PSVersion -lt [Version]'5.1') { Stop-Guard 'Windows PowerShell 5.1 or newer is required.' }
     if ($env:OS -ne 'Windows_NT') { Stop-Guard 'Use this installer on the Windows OpenMW computer.' }
+    # Windows PowerShell 5.1 initializes PSScriptRoot after binding -File parameters.
+    if ([string]::IsNullOrEmpty($PackageRoot)) { $PackageRoot = $PSScriptRoot }
     if ([string]::IsNullOrEmpty($BackupRoot)) { $BackupRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'OpenMW Responsiveness Backups' }
     $PackageRoot = [IO.Path]::GetFullPath($PackageRoot)
     $BackupRoot = [IO.Path]::GetFullPath($BackupRoot)

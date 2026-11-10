@@ -25,10 +25,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "178fe052a45eb4fa9358716219ae70b64ec6a72d"
+        "blob": "0e4d39c49a4e78c848ccf64c963bddc49c9de656"
       },
-      "bytes": 57909,
-      "sha256": "281d179d523f6eda312bd40e449b42f22d140e0f6d95e70fd6b824eba8e91e84",
+      "bytes": 58269,
+      "sha256": "9f3e1df5c03d9520bc120b0480e0a6bdef13a9af9b0c03f98750e5af78192c0d",
       "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -1362,10 +1362,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4ca8c399a1cab75f5ee01cad5847c22dfdff9822"
+        "blob": "89b843f85a37da45f8577ba74abce14c2a58a316"
       },
-      "bytes": 9381,
-      "sha256": "362d0453ebc1d718bb4a5eda752aab5dcb75a7e82dc8c377046951287b931b17",
+      "bytes": 10687,
+      "sha256": "c2143ee0d8419b85708e4409b4c1a861d5bf305cb93f50f8f16399e68d375f15",
       "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
@@ -1602,10 +1602,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "83089f12d3190659c1455f703e8bca791cf4f216"
+        "blob": "4a2b44dd12d77fa33da44e5f98a0de06194489b5"
       },
-      "bytes": 4924,
-      "sha256": "17fddca684a880b920c8c8a427c461d50e92eb07a3807869f93171baa2eded9e",
+      "bytes": 5047,
+      "sha256": "1943bfbce24c6037a2dadeea1db4fa5183deda186524cbae7139d5a32fdea4e5",
       "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "custom/combined-performance/stage-msvc-runtime.ps1": {
@@ -1698,6 +1698,16 @@
       "sha256": "c355c313ec4744320b1e0d22e7e70465d899a48e8c62293578ddff95d0672c6b",
       "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
     },
+    "custom/combined-performance/tests/test-adapter-entrypoints.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3e198a1e56db511008ce8aead5b149a59b61e344"
+      },
+      "bytes": 7644,
+      "sha256": "a802999687121328316e34ef7d2744e0b64f1721f30213c3c67d6bffa67cbb31",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
     "custom/combined-performance/tests/test_native_adapters.py": {
       "before": null,
       "after": {
@@ -1750,6 +1760,19 @@
       "bytes": 15180,
       "sha256": "cb0c658b75ab4de2efae90cae5af226e4cf1bf401fc49d6f28bdf8fac7f24e4e",
       "reason": "Validate current town and exact historical combined manifests, all retained feature tests/resources/defaults/runtime, and recompute native two-mode layout parity before packaging."
+    },
+    "custom/gameplay-responsiveness/Install-Fix.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "a85d129c907b465c63365a2d52185460bdbe1e9b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c38309ba4966769391322a9e4f27a2efd4508d11"
+      },
+      "bytes": 31773,
+      "sha256": "19701b969b0d0f1fdfc5ac26dfb51250afaf968c74828b24ba601333c84b9c87",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/loading-repair/apply.py": {
       "before": {
