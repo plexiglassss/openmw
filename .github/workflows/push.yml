@@ -619,6 +619,10 @@ jobs:
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot distribution-startup
           Copy-Item -LiteralPath distribution-startup -Destination install/verification/distribution-startup -Recurse
           Copy-Item -LiteralPath native-adapter-installer-tests.json -Destination install/verification/
+          if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') {
+            python custom/combined-performance/complete-windows-distribution.py build install --record-final-preservation
+            if ($LASTEXITCODE) { throw 'Final preserved file verification failed' }
+          }
           python custom/dialogue-colours/package-manifest.py install
           if ($LASTEXITCODE) { throw 'Final Windows distribution inventory validation failed' }
       - uses: actions/upload-artifact@v6

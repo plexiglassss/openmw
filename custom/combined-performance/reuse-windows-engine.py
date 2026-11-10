@@ -32,11 +32,11 @@ PACKAGING_INPUTS = {
     "custom/gameplay-responsiveness/Install-Fix.ps1",
 }
 TOWN_PACKAGE_FILES = {
-    ".github/workflows/push.yml": "511840cf6098d302178f7a66e9a93f4aea2c1f79",
+    ".github/workflows/push.yml": "55d428cb16ebac2b44c6f092277cbef00267fcdc",
     "custom/combined-performance/README.md": "cb9a0127d4e35912a5b3b43a67c96ab961e6d04b",
     "custom/combined-performance/Start-Combined.ps1": "8474c50bdfdbb74807be7d08f7b73dcaba94a83e",
     "custom/combined-performance/prepare-package.py": "f752f246c395fdb490cd13a53145e7faab4d19c4",
-    "custom/combined-performance/complete-windows-distribution.py": "8adf346b18e5d5eae63b07db4c5778510c05d764",
+    "custom/combined-performance/complete-windows-distribution.py": "0202d2707fe396dc643bcd332b17020f848d8b0a",
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": "61d33ce11e964c3cfa9d9c20ca456c4bc50573f0",
 }
 TOWN_PACKAGING_INPUTS = TOWN_PACKAGE_FILES.keys() | {
