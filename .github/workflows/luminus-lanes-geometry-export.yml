@@ -13,12 +13,28 @@ jobs:
   export:
     runs-on: ubuntu-latest
     steps:
-      - name: Install geometry tools
+      - uses: actions/checkout@v6
+
+      - name: Install OpenMW build dependencies
         shell: bash
         run: |
           set -euxo pipefail
+          sudo add-apt-repository ppa:openmw/openmw
           sudo apt-get update
-          sudo apt-get install -y assimp-utils p7zip-full jq
+          sudo CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
+          sudo apt-get install -y p7zip-full jq
+
+      - name: Build OpenMW NIF geometry exporter
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cmake -S . -B build \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D OPENMW_USE_SYSTEM_RECASTNAVIGATION=ON \
+            -D USE_SYSTEM_TINYXML=ON \
+            -D BUILD_NIFTEST=ON
+          cmake --build build --target nifgeometry -- -j2
+          build/nifgeometry 2>&1 | tee nifgeometry-usage.txt || test ${PIPESTATUS[0]} -eq 2
 
       - name: Collect support meshes
         shell: bash
@@ -56,20 +72,12 @@ jobs:
           curl -fsSL -A 'Mozilla/5.0' -H 'Content-Type: application/json' \
             --data @out/logs/query.json https://api.nexusmods.com/v2/graphql \
             -o out/logs/nexus-modfiles.json || true
-          cat > out/logs/introspection.json <<'JSON'
-          {"query":"query { __type(name: \"ModFile\") { name fields { name type { kind name ofType { kind name } } } } }"}
+          cat > out/logs/animated-query.json <<'JSON'
+          {"query":"query { modFiles(modId: 60528, gameId: 100) { fileId name uri version size sizeInBytes categoryId date } }"}
           JSON
           curl -fsSL -A 'Mozilla/5.0' -H 'Content-Type: application/json' \
-            --data @out/logs/introspection.json https://api.nexusmods.com/v2/graphql \
-            -o out/logs/nexus-modfile-schema.json || true
-          if test -s out/logs/nexus-modfiles.json; then
-            jq -r '.data.modFiles[]?.uri // empty' out/logs/nexus-modfiles.json | while IFS= read -r uri; do
-              encoded=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$uri")
-              url="https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/100/45779/${encoded}.json"
-              echo "$url" >> out/logs/preview-urls.txt
-              curl -fsSL -A 'Mozilla/5.0' "$url" -o "out/logs/preview-$(echo "$uri" | sha256sum | cut -d' ' -f1).json" || true
-            done
-          fi
+            --data @out/logs/animated-query.json https://api.nexusmods.com/v2/graphql \
+            -o out/logs/nexus-animated-modfiles.json || true
 
       - name: Try public Remiros archive endpoints
         shell: bash
@@ -77,26 +85,28 @@ jobs:
         run: |
           set -x
           mkdir -p work/remiros
-          filename="Remiros' Ascadian Isles Trees - Vanilla-45779-2-1-1556198681.7z"
-          encoded=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$filename")
-          urls=(
-            "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/100/45779/${encoded}.json"
-            "https://cf-files.nexusmods.com/cdn/100/45779/${encoded}"
-            "https://supporter-files.nexus-cdn.com/100/45779/${encoded}"
-            "https://premium-files.nexus-cdn.com/100/45779/${encoded}"
-            "https://www.confrerie-des-traducteurs.fr/morrowind/telechargement/2274/0"
+          while IFS=$'\t' read -r modid uri; do
+            encoded=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$uri")
+            urls=(
+              "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/100/${modid}/${encoded}.json"
+              "https://cf-files.nexusmods.com/cdn/100/${modid}/${encoded}"
+              "https://supporter-files.nexus-cdn.com/100/${modid}/${encoded}"
+              "https://premium-files.nexus-cdn.com/100/${modid}/${encoded}"
+            )
+            for url in "${urls[@]}"; do
+              key=$(printf '%s' "$url" | sha256sum | cut -d' ' -f1)
+              echo "$url" >> out/logs/remiros-attempts.txt
+              curl -L --retry 2 --connect-timeout 30 -A 'Mozilla/5.0' -D "out/logs/${key}.headers" "$url" -o "work/remiros/${key}.download" || true
+              file "work/remiros/${key}.download" >> out/logs/remiros-file-types.txt 2>&1 || true
+              if 7z t "work/remiros/${key}.download" >/dev/null 2>&1; then
+                mkdir -p "work/remiros/extracted-${key}"
+                7z x -y "work/remiros/${key}.download" "-owork/remiros/extracted-${key}" > "out/logs/${key}-extract.log"
+              fi
+            done
+          done < <(
+            jq -r '.data.modFiles[]? | select(.fileId == 1000014117) | ["45779", .uri] | @tsv' out/logs/nexus-modfiles.json
+            jq -r '.data.modFiles[]? | ["60528", .uri] | @tsv' out/logs/nexus-animated-modfiles.json
           )
-          i=0
-          for url in "${urls[@]}"; do
-            i=$((i+1))
-            echo "$url" >> out/logs/remiros-attempts.txt
-            curl -L --retry 2 --connect-timeout 30 -A 'Mozilla/5.0' -D "out/logs/remiros-${i}.headers" "$url" -o "work/remiros/remiros-${i}.download" || true
-            file "work/remiros/remiros-${i}.download" >> out/logs/remiros-file-types.txt 2>&1 || true
-            if 7z t "work/remiros/remiros-${i}.download" >/dev/null 2>&1; then
-              mkdir -p work/remiros/extracted-$i
-              7z x -y "work/remiros/remiros-${i}.download" "-owork/remiros/extracted-$i" > "out/logs/remiros-${i}-extract.log"
-            fi
-          done
           find work/remiros -type f -iname '*.nif' -print0 | while IFS= read -r -d '' f; do
             rel="${f#work/remiros/}"
             dest="out/source/remiros/$rel"
@@ -104,15 +114,16 @@ jobs:
             cp "$f" "$dest"
           done
 
-      - name: Convert NIF meshes to OBJ
+      - name: Convert NIF meshes with OpenMW
         shell: bash
         run: |
           set -euxo pipefail
+          : > out/logs/conversion.tsv
           find out/source -type f -iname '*.nif' -print0 | while IFS= read -r -d '' f; do
             rel="${f#out/source/}"
-            obj="out/obj/${rel%.nif}.obj"
+            obj="out/obj/${rel%.*}.obj"
             mkdir -p "$(dirname "$obj")"
-            if assimp export "$f" "$obj" > "${obj}.assimp.log" 2>&1; then
+            if build/nifgeometry "$f" "$obj" > "${obj}.openmw.log" 2>&1; then
               echo -e "PASS\t$f\t$obj" >> out/logs/conversion.tsv
             else
               echo -e "FAIL\t$f\t$obj" >> out/logs/conversion.tsv
@@ -126,7 +137,7 @@ jobs:
           set -euxo pipefail
           find out -type f -printf '%p\t%s\n' | sort > out/FILES.tsv
           find out -type f -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
-          cat out/logs/conversion.tsv || true
+          cat out/logs/conversion.tsv
 
       - name: Upload geometry
         uses: actions/upload-artifact@v4
