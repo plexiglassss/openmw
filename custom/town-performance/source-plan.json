@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Cumulative native jobs with a same-build comparison for recurring Lua actor updates and stable HUD attachments.",
+  "scope": "Cumulative native jobs and actor/HUD improvements with generic data-driven location rendering and the editable Horror Mod profile.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -16,7 +16,9 @@
     "7024d00c79fb0a88a97ff0b636096a5f3fd316d0",
     "8bd0d90b2727b8d654288d5c42e45a3edefc7146",
     "12e5b050cb144396f213bb5ce193b6a7e7e7fce1",
-    "3db8987d9dd58729025ee11b2f3b60652c6cf5d4"
+    "3db8987d9dd58729025ee11b2f3b60652c6cf5d4",
+    "5e66b560876f3c86c612faf413f46fdd8a91395d",
+    "a0395b811024a0ee9fe97345464f167247f92aaa"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -26,11 +28,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b109b7eba03dd829a84c42545695499b5b4c9817"
+        "blob": "3c2d558b339d44d6b9b5ccaa4a55a08b8d75e667"
       },
-      "bytes": 60307,
-      "sha256": "1698de5ec7a954adbc278998ce39dcb90f672cb9bab6301fc1c058bda2e488af",
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+      "bytes": 61904,
+      "sha256": "94304319ffb67da919a7cd43987dfdb6edd7469699584980a5bfb5405fb86dae",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -151,11 +153,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "70f26a4b8cdf9779b4dbbad2c525cfbe3ef4256e"
+        "blob": "b92317561309847ed6979e62c462da352a4e0527"
       },
-      "bytes": 11916,
-      "sha256": "b1ada9ab33ec29ad0a9fd18723aca036f9fccc3d89df0b1a2b0046f3ee477ce0",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 11942,
+      "sha256": "a170a83639605af90965c7161a171ee7170b0352b103365d2389c37db34d5007",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
     },
     "apps/openmw/engine.cpp": {
       "before": {
@@ -301,11 +303,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3232c199db9fd3064305e7c9791862a831a4386f"
+        "blob": "c4e308bec68a314c39739db9dbd388f4d6f5e8a1"
       },
-      "bytes": 75859,
-      "sha256": "ae1dd26086674c4bfaba0c5a3276b7ae2d99d0a03bf0bade69f6b34d3bcde6f5",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 75923,
+      "sha256": "16e73d2f1f732d70c300907d8d8ccc2374054dbff3f0d2afb1c8d4c35f317bd6",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
     },
     "apps/openmw/mwgui/settingswindow.hpp": {
       "before": {
@@ -805,11 +807,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8aaa7fe5e0e6ce56dfd59fb70317b72de85e2aad"
+        "blob": "7c1d478f708ca6df082fe2f22c018a9beaaf71bb"
       },
-      "bytes": 60868,
-      "sha256": "9d6ed609523d608b68e5d39406cda92db1821862005968dba624daeec693324d",
-      "reason": "Native tooltip integration: apps/openmw/mwworld/scene.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 61151,
+      "sha256": "04c165dd3ccc019c6f2012655c902d27699ddb1f90ffe414efc747792841afb8",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
     },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
@@ -818,11 +820,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1d6ed350a1d67deb6c891c5db3cb0ae645b3cb4a"
+        "blob": "c0e40efd3e61559a29229355ee1157ac7f159e57"
       },
-      "bytes": 3784,
-      "sha256": "22947e242975d767943512e1707459365393c1c6735b1bf6bc68d486d3199059",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 3832,
+      "sha256": "7c7b9128003b09f47528a6c7d27cf6da53221c38c17467bc7cad59bf9e9afa51",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -1313,11 +1315,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "cb9a0127d4e35912a5b3b43a67c96ab961e6d04b"
+        "blob": "1aedd48211cea3a0b143add24d02fb65aca7c779"
       },
-      "bytes": 4233,
-      "sha256": "088198594c2976acd64f02dab272b7ee3e190945b14c330ae6825c5b352a4d49",
-      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+      "bytes": 4982,
+      "sha256": "16ed0269621600ed426dbd2db8a70084388ec839f6d9393cb9c8b86a07461693",
+      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -2217,11 +2219,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "954e29a540d55d32a79a6aec71d68a814eac1635"
+        "blob": "076435c2208b045f65a9d4c22ed2eed3db71a0e7"
       },
-      "bytes": 9604,
-      "sha256": "c97c1d736c5850ac2c333b7010991c9a93c24d6b5444f1fa0f194a4a8602479b",
-      "reason": "Native world-map icon feature: files/data/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 9641,
+      "sha256": "e34a30d4f33016b2b6a477446489f131259b572ec2c0f2f5b7d5c3b0d60b677c",
+      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
     },
     "files/data/l10n/OMWEngine/en.yaml": {
       "before": {
@@ -2230,11 +2232,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "14bc4d5eeffd7c373e5d96b2ad8316ea08b9b7d6"
+        "blob": "d8d39a239bc0e720b3798cc19d8ee9c363a94fca"
       },
-      "bytes": 18637,
-      "sha256": "218226edd2de81fd72296163d49bc7f41aa822ae85747cef7b1f5b3824f82015",
-      "reason": "Native world-map icon feature: files/data/l10n/OMWEngine/en.yaml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: files/data/l10n/OMWEngine/en.yaml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 19048,
+      "sha256": "224798b8a29a88e88128d5e82411330ca82cdef2b681fc50db4c448804c322f7",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
     },
     "files/data/textures/mapmarkers/barrow.png": {
       "before": null,
@@ -2446,11 +2448,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a3fceb917666bad132bbd846c8303308a0f276c7"
+        "blob": "97c15a8c5292f537d95b5a0bcb387d1280846f61"
       },
-      "bytes": 50935,
-      "sha256": "e3b9d3acbd47e0a7c8ca43f3da0fc1fd61c519847b606d754e96d620e4b07cdb",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 51213,
+      "sha256": "3b6a6d8dfca0d1103570543d78d2862f5afa10bb204d051567ce85e6f60f17c6",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
     },
     "apps/openmw/mwlua/localscripts.hpp": {
       "before": {
@@ -2549,6 +2551,431 @@
       "bytes": 3226,
       "sha256": "03731f935290f283aa5c00456c198fbed28aba54b687ba3facddc16018a54c4c",
       "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+    },
+    "apps/components_tests/shader/shadermanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b80839d0ec1841e0911c24d477bf06b8bc64ced1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7a66f082dee6d691a8f92dafed3acf915d3cdee6"
+      },
+      "bytes": 8799,
+      "sha256": "d6fcfee2a5f15f9c449de26ed630b794a4f2518bd68b2c51dbe2b2a4ff8e6256",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+    },
+    "apps/openmw/mwrender/characterpreview.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f1d7d1bb9f6ce65c1081459e800ad4dca13706db"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "292f6cf0cbe7510e372404f5bdf3886ae2ab7d80"
+      },
+      "bytes": 24242,
+      "sha256": "03cd963cf516fcc943d72ce4a79a115420384650270b453eeaa1f02093f4511a",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw/mwrender/localmap.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "60beb81d9e7bb7245a9b979e8a27326fd82fb369"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "10615e8360c2b932c9a653ba7d84a2d89350821e"
+      },
+      "bytes": 30935,
+      "sha256": "01d41434f31d81213e1c016584ec66a929c3ad50133250ee6cd15d37ba602711",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw/mwrender/locationrenderingprofiles.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8884f0d9b340be72dda2394da2df476aca60d7b3"
+      },
+      "bytes": 11512,
+      "sha256": "3650f3b5248980d1429ace977a78c94a8a73e836f0d8fb634caa3fcfbeee02cc",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw/mwrender/locationrenderingprofiles.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b8704ab6d5079dfbac3e4c07a303f015fd0ba10f"
+      },
+      "bytes": 1958,
+      "sha256": "90594266ec56b2bfa4d03055db0b2b0622ea187928ff51704e91ecfcf6078feb",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw/mwrender/renderingmanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "85dad40d363d128c872fd9b4182537f80ee6c7ba"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "850181655517bc1128bcf8acdb744a4b0757b0f8"
+      },
+      "bytes": 74491,
+      "sha256": "2a864e19015d185488ced62c4e37c378b7d974e51aebd829a484138b204a7e7d",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw/mwrender/renderingmanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b23db3b0a836fad203bc5fb4c581bafb32e5f56e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "264da9d7c36588e499df8977b86f1eca6db0a183"
+      },
+      "bytes": 12154,
+      "sha256": "c0b361792ba0c11caa6280c41cc5e5b3af64f2340c034bb8e66e886695955630",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw/mwworld/worldimp.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b647e89405129cce295e0fe649f5e2b46ad95ba6"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2d8f62a4be55e0079d236d7d69f78b77b73a2875"
+      },
+      "bytes": 140399,
+      "sha256": "15bea455973125bc43f8e075e078aba6ab3e31361e0980c3747e1e582688733f",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "apps/openmw_tests/mwrender/testlocationrenderingprofiles.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3f4b0a4fab3d6c19d0d7019fc32be65ccdf51570"
+      },
+      "bytes": 13523,
+      "sha256": "a1daa7d2e94f99893de0f5a05da9893312c53ba76ede247c6e4ae586df0dccc9",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+    },
+    "components/sceneutil/optimizer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "606288af5423f7fda2805b5c918ae0dbca573a14"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5dd145e6d78c07ed985e8f52534c6a4ddfaa3c4c"
+      },
+      "bytes": 77280,
+      "sha256": "84fc1c0e6f749eadcdbb44f8efa98bf73a18590e11ad9575f3fc1e8386783590",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/riggeometry.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "74246a076a8f7d70ab414d966d57321ae3cc3efd"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "30e1bac58d5097ab58e8609b533d90b9a4a6c7f5"
+      },
+      "bytes": 16059,
+      "sha256": "05140f6e057e5a0829b2f367037625625f2fcb602e7151ac87b632c250a01818",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/riggeometry.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "64f8ac3ce237c46bfb94539e9bb0a4f57525a5de"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "db60341eeb014601a72153f97d23e0ad5f25b413"
+      },
+      "bytes": 4381,
+      "sha256": "f247799a0b9e77a96e0ef59629b31ab49028a4cd842f7be71bd5164edc962d85",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/riggeometryosgaextension.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "df8975dc3584d9ebf2fa5c5e5cf8fb1fbeaefbb5"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c102f26b2aebd840f3cbc92f8a1f8d5109f7938d"
+      },
+      "bytes": 12636,
+      "sha256": "a568042976624f8780d46844453f8c41cccc64e4173f9a864d100bfa03f50854",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/stateupdater.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "51e3690f0b9665bd7ca867545097d07df38cd94d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7f228e008180bb89009ac35b0b55bf198662d096"
+      },
+      "bytes": 9336,
+      "sha256": "9a9363a8a2d086b65767038c6824948b5947a0201b7525944ba5fa8d3fb86f61",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/stateupdater.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "82d8f05bf7e669adc6deeeb65dcbfa24432a7d96"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e0a8750f23e198286097662b60137d6ce10f262c"
+      },
+      "bytes": 4393,
+      "sha256": "0366162ad1ae0624be1fd29a89358d22f60cd693aebee0ea9b2d6faa9884c201",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/vertexattributes.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "483c8fc708724fb0fe669d4b7c47d04da9807a86"
+      },
+      "bytes": 385,
+      "sha256": "db60ec78af07b67d7774f1f1a17141a809d7c97706a47b127f549b92c7db2765",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/settings/categories/shaders.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "da2cc691260991496992a8701398b9b871b89f3b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "609902e1e44246ebf9a9600b76a716ea24544564"
+      },
+      "bytes": 3304,
+      "sha256": "4535699317a4778340c9ffad31ed76b8d4b1c2424998daf075305c55d6abe920",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "components/shader/shadermanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "548a1225ce7ff34747b5990bdf8b52835e645295"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ab06b5436b2eaa3f931d8fa89210fbea3e1e7668"
+      },
+      "bytes": 36643,
+      "sha256": "c5118c34646e63520db4ec7d87a7af5c79738ddb47c0a85ec5bfa43f9250ff0a",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/shader/shadervisitor.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5ecbf17bc9b025292c5ecec840e47183ac23d423"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fd47f8e1f23ad5d86e8e1c9032b653949eccbb23"
+      },
+      "bytes": 50061,
+      "sha256": "144f105d0aaa8c0f10c1d5c5f13910f79de7de947caab93eb66c32b30e522a9e",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/shader/shadervisitor.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8962a09ae0ef082e4046daa778d1859e1888de31"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4247bccb91dae1166b89f3296e9a7edfbd59bed8"
+      },
+      "bytes": 4922,
+      "sha256": "6bd5371e2121bb62a2599ac6debc1c0c9f5e235ae962063fe73f876eae6feabf",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "custom/combined-performance/tests/verify-rendering-profile.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1935498266d874b38dd482421b0926afefcaf8c7"
+      },
+      "bytes": 3368,
+      "sha256": "a90addabf24e3ea66d4e2c12d605456b50f146bf30a91fe2c9dd672106ce5787",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+    },
+    "docs/source/reference/modding/index.rst": {
+      "before": {
+        "mode": "100644",
+        "blob": "965acd96670eda629e1aed5baeb2e0928709ef2b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "59abdc5c232b943a41462c4d2e24b162ee06f4db"
+      },
+      "bytes": 1074,
+      "sha256": "1576cac3c66b2033053b9ec2dfc4884b6e99969f01a6ad93170ce8ee16286312",
+      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
+    },
+    "docs/source/reference/modding/location-rendering-profiles.rst": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "06c76acd389b4328472543a3c1db4609aa81137f"
+      },
+      "bytes": 2331,
+      "sha256": "eec05796840b94843d567b63c123db1f3bf7e8774ae0ee840aa0fb6ca875a46a",
+      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
+    },
+    "docs/source/reference/modding/settings/shaders.rst": {
+      "before": {
+        "mode": "100644",
+        "blob": "e5aacdc2cab4a6b6431874e78de46526f8272353"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "43926bc311879205f6291bd38d688e9142ff9c90"
+      },
+      "bytes": 7836,
+      "sha256": "b25105739a59d0042f7a63db873ff9711059e63baa5ede818a49adb05c488e73",
+      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
+    },
+    "files/data/mygui/openmw_settings_window.layout": {
+      "before": {
+        "mode": "100644",
+        "blob": "41717c7c1f3e224080e0247c5cb783fa4f0e49c8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e660cf2b1f63138281bb9ca1fa90174efe2d8282"
+      },
+      "bytes": 80089,
+      "sha256": "9433b6b1d91fb3cd026b4a07c80046729b3cc1db2f2ecd152979a18937f3ef9e",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+    },
+    "files/data/shader_profiles/horror_mod.yaml": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4f9c4d7b30d31020be8694e697b33ec7baf94d5f"
+      },
+      "bytes": 2249,
+      "sha256": "a7a165e47f471ccf383ba5b896e512c02f1d532e201663a44825a1f7eb1c1251",
+      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
+    },
+    "files/shaders/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "0c97fca8e4da804131164c2c96c7368ee079a4e4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "a4a817b4f4ea9a94683368e010fa7eb1d5cb90c0"
+      },
+      "bytes": 2943,
+      "sha256": "d306ea5b7bff8bf5349b3be642f549c4c3a61cb14a24e9850327cfe8284ef421",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/compatibility/bs/default.frag": {
+      "before": {
+        "mode": "100644",
+        "blob": "7a2aecb38788077ed771b1ac1fe7249e996c0a63"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "1e9500ddea044d81101fd7cc9c6fcfd322b2bbd2"
+      },
+      "bytes": 3917,
+      "sha256": "05a7535e890a59518af2c205abf5b755a0d3e3632dfc59306c6939eaca852bb3",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/compatibility/bs/default.vert": {
+      "before": {
+        "mode": "100644",
+        "blob": "a4b83a17bd6d2889b29ec01a633912879d0c65fb"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "86df393092c7e949650e09521f741727db53777b"
+      },
+      "bytes": 2282,
+      "sha256": "b4e1c14e4705da892cf2a39176e21ba60bb50bbc3ebbe502a24c8740c8610f01",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/compatibility/objects.frag": {
+      "before": {
+        "mode": "100644",
+        "blob": "17e7c9e6c95f7af7b2d460fb7440b1f6b1200fb8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "58b73ca89a65e7baf9c9bf09c2f319cb1fdb20f7"
+      },
+      "bytes": 8868,
+      "sha256": "8e19f3f55c2fb300f487066719b907b379f1f8ad7e06d652928eed5b0c862d14",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/compatibility/objects.vert": {
+      "before": {
+        "mode": "100644",
+        "blob": "cc02177f609485c0e7d0218bb347bc313db3f330"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "04888fc659659fa6d67af5dbe88f59b4be415ca4"
+      },
+      "bytes": 6741,
+      "sha256": "963579d97b24b92146487a6449bc105f4ec263c7abf8a5ca4dbb7f2361a2e591",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/lib/light/clamp.glsl": {
+      "before": {
+        "mode": "100644",
+        "blob": "e9a4f6bbf1f7045aacd76a129dee76b7c9091bee"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "80b2f6c2d8b6da017ac6555ce0090292453c12ad"
+      },
+      "bytes": 245,
+      "sha256": "f24603c14f530fde6d83c62a76ee1a9bdf95c79cbcf40e30058780babeda6863",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/lib/light/locationrenderingprofile.glsl": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9b41e0585415d82aff07bcb87e53f09da31c08f1"
+      },
+      "bytes": 1529,
+      "sha256": "3b5fd3092ae601e6fe7a2826f8a42c3d511457fd54ac2a186991d59d3297acbb",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "files/shaders/lib/light/objectlighting.glsl": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "c31674301a703fe0e50efe883e1ffd27bc56d0bd"
+      },
+      "bytes": 1474,
+      "sha256": "dc08f6ef7bc013fe3509583b685d2cbd2166686e60558c37f99f8255724054d8",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "scripts/test_location_rendering_shaders.py": {
+      "before": null,
+      "after": {
+        "mode": "100755",
+        "blob": "b06ab7ba98138487b49204bec81adef4ad0b91dc"
+      },
+      "bytes": 14276,
+      "sha256": "185e7f9e2a518f42f9d11204fb2da9af0cba7516f20f18d56684a5e85cadce8b",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
     }
   }
 }

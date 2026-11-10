@@ -250,6 +250,7 @@ namespace MWWorld
 
         mRendering = std::make_unique<MWRender::RenderingManager>(
             viewer, rootNode, mResourceSystem, workQueue, *mNavigator, mGroundcoverStore, unrefQueue);
+        mRendering->loadLocationRenderingProfiles(mContentFiles);
         mProjectileManager = std::make_unique<ProjectileManager>(
             mRendering->getLightRoot()->asGroup(), mResourceSystem, mRendering.get(), mPhysics.get());
         mRendering->preloadCommonAssets();

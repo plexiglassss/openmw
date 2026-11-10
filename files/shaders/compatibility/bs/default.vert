@@ -4,13 +4,22 @@
     #extension GL_EXT_gpu_shader4: require
 #endif
 
-#define PER_PIXEL_LIGHTING 1
-
+#include "lib/light/objectlighting.glsl"
 #include "lib/core/vertex.h.glsl"
 
 #if @diffuseMap
 varying vec2 diffuseMapUV;
 uniform mat4 texMat@diffuseMapUV;
+#endif
+
+#if @fallbackNormalMap
+varying vec2 fallbackNormalMapUV;
+#if (!@diffuseMap || @diffuseMapUV != @fallbackNormalMapUV) && (!@emissiveMap || @emissiveMapUV != @fallbackNormalMapUV) && (!@normalMap || @normalMapUV != @fallbackNormalMapUV)
+uniform mat4 texMat@fallbackNormalMapUV;
+#endif
+#endif
+#if @fallbackTangent
+attribute vec4 fallbackTangent;
 #endif
 
 #if @emissiveMap
@@ -51,8 +60,13 @@ void main(void)
     passNormal = gl_Normal.xyz;
     normalToViewMatrix = gl_NormalMatrix;
 
-#if @normalMap
-    normalToViewMatrix *= generateTangentSpace(gl_MultiTexCoord7.xyzw, passNormal);
+#if @normalMap || @fallbackNormalMap
+    vec4 tangent = gl_MultiTexCoord7.xyzw;
+#if @fallbackTangent
+    if (useFallbackNormalMap())
+        tangent = fallbackTangent;
+#endif
+    normalToViewMatrix *= generateTangentSpace(tangent, passNormal);
 #endif
 
 #if @diffuseMap
@@ -65,6 +79,9 @@ void main(void)
 
 #if @normalMap
     normalMapUV = (texMat@normalMapUV * gl_MultiTexCoord@normalMapUV).xy;
+#endif
+#if @fallbackNormalMap
+    fallbackNormalMapUV = (texMat@fallbackNormalMapUV * gl_MultiTexCoord@fallbackNormalMapUV).xy;
 #endif
 
 

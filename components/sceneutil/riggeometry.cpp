@@ -10,6 +10,7 @@
 
 #include "skeleton.hpp"
 #include "util.hpp"
+#include "vertexattributes.hpp"
 
 namespace SceneUtil
 {
@@ -89,6 +90,22 @@ namespace SceneUtil
             }
             else
                 mSourceTangents = nullptr;
+
+            bool fallbackTangent = false;
+            const auto* fallbackTangents
+                = dynamic_cast<const osg::Vec4Array*>(from.getVertexAttribArray(FallbackTangentAttribute));
+            if (fallbackTangents)
+                fallbackTangents->getUserValue(FallbackTangentUserValue, fallbackTangent);
+            if (!fallbackTangent)
+                fallbackTangents = nullptr;
+            mSourceFallbackTangents = fallbackTangents;
+            if (fallbackTangents)
+            {
+                osg::ref_ptr<osg::Array> tangentArray
+                    = static_cast<osg::Array*>(fallbackTangents->clone(osg::CopyOp::DEEP_COPY_ALL));
+                tangentArray->setVertexBufferObject(vbo);
+                to.setVertexAttribArray(FallbackTangentAttribute, tangentArray, osg::Array::BIND_PER_VERTEX);
+            }
         }
     }
 
@@ -168,6 +185,9 @@ namespace SceneUtil
         osg::Vec3Array* positionDst = static_cast<osg::Vec3Array*>(geom.getVertexArray());
         osg::Vec3Array* normalDst = static_cast<osg::Vec3Array*>(geom.getNormalArray());
         osg::Vec4Array* tangentDst = static_cast<osg::Vec4Array*>(geom.getTexCoordArray(7));
+        auto* fallbackTangentDst = mSourceFallbackTangents
+            ? static_cast<osg::Vec4Array*>(geom.getVertexAttribArray(FallbackTangentAttribute))
+            : nullptr;
 
         std::vector<osg::Matrixf> boneMatrices(mNodes.size());
         std::vector<Bone*>::const_iterator bone = mNodes.begin();
@@ -216,6 +236,13 @@ namespace SceneUtil
                         osg::Vec3f(srcTangent.x(), srcTangent.y(), srcTangent.z()), resultMat);
                     (*tangentDst)[vertex] = osg::Vec4f(transformedTangent, srcTangent.w());
                 }
+                if (fallbackTangentDst)
+                {
+                    const osg::Vec4f& srcTangent = (*mSourceFallbackTangents)[vertex];
+                    osg::Vec3f transformedTangent = osg::Matrixf::transform3x3(
+                        osg::Vec3f(srcTangent.x(), srcTangent.y(), srcTangent.z()), resultMat);
+                    (*fallbackTangentDst)[vertex] = osg::Vec4f(transformedTangent, srcTangent.w());
+                }
             }
         }
 
@@ -224,6 +251,8 @@ namespace SceneUtil
             normalDst->dirty();
         if (tangentDst)
             tangentDst->dirty();
+        if (fallbackTangentDst)
+            fallbackTangentDst->dirty();
 
         geom.osg::Drawable::dirtyGLObjects();
 

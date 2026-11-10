@@ -313,6 +313,12 @@ jobs:
         shell: pwsh
         run: >
           cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/locationrenderingprofiles.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/renderingmanager.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwrender/testlocationrenderingprofiles.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/cellbindings.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
@@ -566,6 +572,13 @@ jobs:
         run: |
           cmake --install build --prefix install
           if ($LASTEXITCODE) { throw 'Installation failed' }
+          $env:OPENMW_TEST_PROFILE_DATA = (Resolve-Path 'install/resources/vfs').Path
+          try {
+            ./build/openmw-tests.exe --gtest_filter=LocationRenderingProfileTest.* --gtest_output=xml:location-rendering-profile-tests.xml
+            if ($LASTEXITCODE) { throw 'Location rendering tests on the installed data failed' }
+          } finally { Remove-Item Env:OPENMW_TEST_PROFILE_DATA -ErrorAction SilentlyContinue }
+          python custom/combined-performance/tests/verify-rendering-profile.py install
+          if ($LASTEXITCODE) { throw 'Installed location rendering resources or native regression proof is incomplete' }
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value 'installed=true'
           Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
           Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
@@ -705,6 +718,8 @@ jobs:
             town-frame-updates.json
             town-previous-components.xml
             town-previous-engine.xml
+            location-rendering-profile-tests.xml
+            install/verification/location-rendering-profile.json
             install/COMBINED-PACKAGE.json
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json
@@ -724,6 +739,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl1 libgl1-mesa-dri g++
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
+      - name: Exercise location rendering shaders on Mesa
+        run: python3 scripts/test_location_rendering_shaders.py
+      - uses: actions/upload-artifact@v6
+        with:
+          name: location-rendering-shaders-${{ env.CUMULATIVE_COMMIT }}
+          path: location-rendering-shader-tests.json
+          if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'
     needs: GLRegression

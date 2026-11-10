@@ -41,6 +41,7 @@
 #include <cassert>
 
 #include <components/sceneutil/depth.hpp>
+#include <components/sceneutil/vertexattributes.hpp>
 
 // NOLINTBEGIN(readability-identifier-naming)
 
@@ -384,9 +385,18 @@ void CollectLowestTransformsVisitor::doTransform(osg::Object* obj,osg::Matrix& m
         drawable->accept(tf);
 
         osg::Geometry *geom = drawable->asGeometry();
-        osg::Vec4Array* tangents = geom ? dynamic_cast<osg::Vec4Array*>(geom->getTexCoordArray(7)) : nullptr;
-        if (tangents)
+        bool fallbackTangent = false;
+        if (geom && geom->getVertexAttribArray(SceneUtil::FallbackTangentAttribute))
+            geom->getVertexAttribArray(SceneUtil::FallbackTangentAttribute)
+                ->getUserValue(SceneUtil::FallbackTangentUserValue, fallbackTangent);
+        for (osg::Vec4Array* tangents : {
+                 geom ? dynamic_cast<osg::Vec4Array*>(geom->getTexCoordArray(7)) : nullptr,
+                 geom && fallbackTangent
+                     ? dynamic_cast<osg::Vec4Array*>(geom->getVertexAttribArray(SceneUtil::FallbackTangentAttribute))
+                     : nullptr })
         {
+            if (!tangents)
+                continue;
             for (unsigned int i=0; i<tangents->size(); ++i)
             {
                 osg::Vec4f& itr = (*tangents)[i];
@@ -647,6 +657,13 @@ void Optimizer::FlattenStaticTransformsVisitor::apply(osg::Geometry& geometry)
             geometry.setNormalArray(cloneArray(geometry.getNormalArray(), vbo, &geometry));
         if(geometry.getTexCoordArray(7) && geometry.getTexCoordArray(7)->referenceCount() > 1) // tangents
             geometry.setTexCoordArray(7, cloneArray(geometry.getTexCoordArray(7), vbo, &geometry));
+        bool fallbackTangent = false;
+        auto* fallbackTangents = geometry.getVertexAttribArray(SceneUtil::FallbackTangentAttribute);
+        if(fallbackTangents)
+            fallbackTangents->getUserValue(SceneUtil::FallbackTangentUserValue, fallbackTangent);
+        if(fallbackTangent && fallbackTangents && fallbackTangents->referenceCount() > 1)
+            geometry.setVertexAttribArray(SceneUtil::FallbackTangentAttribute,
+                cloneArray(fallbackTangents, vbo, &geometry));
     }
     _drawableSet.insert(&geometry);
 }

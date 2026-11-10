@@ -686,10 +686,19 @@ namespace Shader
             osg::ref_ptr<SamplerProgram> program = programTemplate
                 ? new SamplerProgram(samplers, *programTemplate, osg::CopyOp::SHALLOW_COPY)
                 : new SamplerProgram(samplers);
-            program->addShader(vertexShader);
-            program->addShader(fragmentShader);
-            addLinkedShaders(vertexShader, program);
-            addLinkedShaders(fragmentShader, program);
+            if (vertexShader)
+                program->addShader(vertexShader);
+            if (fragmentShader)
+                program->addShader(fragmentShader);
+            // Object shaders use a second tangent only for differing ordinary/fallback UV sets.
+            // Groundcover uses attribute 6 for instance offsets and has no fallbackTangent input.
+            if (vertexShader
+                && vertexShader->getShaderSource().find("attribute vec4 fallbackTangent;") != std::string::npos)
+                program->addBindAttribLocation("fallbackTangent", 6);
+            if (vertexShader)
+                addLinkedShaders(vertexShader, program);
+            if (fragmentShader)
+                addLinkedShaders(fragmentShader, program);
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
         else
@@ -860,6 +869,18 @@ namespace Shader
     {
         return {
             { "forcePPL", "0" },
+            { "autoNormalMap", "0" },
+            { "autoSpecularMap", "0" },
+            { "fallbackNormalMap", "0" },
+            { "fallbackNormalMapUV", "0" },
+            { "fallbackNormalMapUnit", "0" },
+            { "fallbackSpecularMap", "0" },
+            { "fallbackSpecularMapUV", "0" },
+            { "fallbackSpecularMapUnit", "0" },
+            { "fallbackParallax", "0" },
+            { "fallbackReconstructNormalZ", "0" },
+            { "fallbackTangent", "0" },
+            { "locationProfileAvailable", "1" },
             { "clamp", "1" },
             { "preLightEnv", "0" },
             { "radialFog", "0" },

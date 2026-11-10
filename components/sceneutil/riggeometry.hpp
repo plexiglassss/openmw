@@ -89,6 +89,7 @@ namespace SceneUtil
 
         osg::ref_ptr<osg::Geometry> mSourceGeometry;
         osg::ref_ptr<const osg::Vec4Array> mSourceTangents;
+        osg::ref_ptr<const osg::Vec4Array> mSourceFallbackTangents;
         Skeleton* mSkeleton{ nullptr };
 
         osg::ref_ptr<osg::RefMatrix> mSkinToSkelMatrix;

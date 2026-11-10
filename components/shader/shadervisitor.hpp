@@ -3,6 +3,9 @@
 
 #include <osg/NodeVisitor>
 #include <osg/Program>
+#include <osg/Texture>
+
+#include <set>
 
 namespace Resource
 {
@@ -89,6 +92,18 @@ namespace Shader
             // <texture stage, texture name>
             std::map<int, std::string> mTextures;
 
+            // Provenance belongs to the binding, not the shared texture or image.
+            std::set<int> mAutomaticMapUnits;
+
+            struct TextureBinding
+            {
+                std::string mType;
+                osg::ref_ptr<osg::Texture> mTexture;
+            };
+            // The binding stack as it would be with automatic discovery disabled. An automatic child
+            // may shadow an explicit parent at the same unit without erasing the explicit binding here.
+            std::map<int, TextureBinding> mFallbackTextures;
+
             bool mAlphaTestOverridden;
             bool mAlphaBlendOverridden;
 
@@ -102,9 +117,12 @@ namespace Shader
             bool mDiffuseHeight; // true if diffuse map has height info in alpha channel
             bool mNormalHeight; // true if normal map has height info in alpha channel
             bool mReconstructNormalZ; // used for red-green normal maps (e.g. BC5)
+            bool mFallbackNormalHeight;
+            bool mFallbackReconstructNormalZ;
 
             // -1 == no tangents required
             int mTexStageRequiringTangents;
+            int mFallbackTexStageRequiringTangents;
 
             bool mSoftParticles;
 

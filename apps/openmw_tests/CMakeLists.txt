@@ -18,6 +18,8 @@ file(GLOB UNITTEST_SRC_FILES
 
     mwmechanics/testlevelledlist.cpp
 
+    mwrender/testlocationrenderingprofiles.cpp
+
     mwgui/tooltips.cpp
     mwgui/weightedsearch.cpp
     mwgui/test_journaltypography.cpp

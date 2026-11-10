@@ -4,6 +4,7 @@
 #include "objects.hpp"
 #include "renderinginterface.hpp"
 #include "rendermode.hpp"
+#include "locationrenderingprofiles.hpp"
 
 #include <components/settings/settings.hpp>
 #include <components/vfs/pathutil.hpp>
@@ -127,6 +128,9 @@ namespace MWRender
         Terrain::World* getTerrain();
 
         void preloadCommonAssets();
+
+        void loadLocationRenderingProfiles(const std::vector<std::string>& activeContent);
+        void updateLocationRenderingProfile(const MWWorld::Cell* cell);
 
         double getReferenceTime() const;
 
@@ -316,6 +320,9 @@ namespace MWRender
         osg::ref_ptr<osg::Group> mRootNode;
         osg::ref_ptr<SceneUtil::LightManager> mSceneRoot;
         Resource::ResourceSystem* mResourceSystem;
+
+        LocationRenderingProfiles mLocationRenderingProfiles;
+        std::string mActiveLocationRenderingProfile;
 
         osg::ref_ptr<SceneUtil::WorkQueue> mWorkQueue;
 

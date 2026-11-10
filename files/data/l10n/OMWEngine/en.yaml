@@ -100,6 +100,11 @@ ClampLighting: "Clamp Lighting"
 ClampLightingTooltip: |-
     Cap lighting brightness at (1, 1, 1) to replicate Morrowind's rendering.
     Prevents overly bright or shifted colors but can dull lighting.
+LocationRenderingProfiles: "Location Rendering Profiles"
+LocationRenderingProfilesTooltip: |-
+    Apply installed shader_profiles configuration files in their matched interior cells.
+
+    Profiles can temporarily override clamp lighting, forced per-pixel lighting, and automatic object normal/specular maps without changing your saved global settings. Disable this to use the global shader settings everywhere.
 ClassicFalloff: "Classic Falloff"
 ClassicFalloffTooltip: |-
     Default: off

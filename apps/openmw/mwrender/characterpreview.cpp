@@ -235,6 +235,10 @@ namespace MWRender
             },
             resourceSystem);
         osg::ref_ptr<osg::StateSet> stateset = lightManager->getOrCreateStateSet();
+        // Inventory/race previews use the user's ordinary material settings,
+        // independently of the currently displayed game world's cell profile.
+        stateset->addUniform(new osg::Uniform("locationRenderingProfileActive", false),
+            osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
         stateset->setDefine("FORCE_OPAQUE", "1", osg::StateAttribute::ON);
         stateset->setMode(GL_NORMALIZE, osg::StateAttribute::ON);
         stateset->setMode(GL_CULL_FACE, osg::StateAttribute::ON);

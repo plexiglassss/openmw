@@ -2,6 +2,7 @@
 
 #include <components/diagnostics/timing.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 
 #include <osg/ClipControl>
@@ -44,6 +45,8 @@
 #include <components/sceneutil/writescene.hpp>
 
 #include <components/misc/constants.hpp>
+
+#include <components/vfs/manager.hpp>
 
 #include <components/terrain/quadtreeworld.hpp>
 #include <components/terrain/terraingrid.hpp>
@@ -326,6 +329,17 @@ namespace MWRender
         mSharedUniformStateUpdater = new SceneUtil::SharedUniformStateUpdater(Settings::fog().mSkyBlendingStart);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
+        // A default on the outer root resets this uniform outside the world
+        // subtree. UI/local-map cameras also explicitly override it to false.
+        osg::StateSet* rootStateSet = rootNode->getOrCreateStateSet();
+        rootStateSet->addUniform(new osg::Uniform("locationRenderingProfileActive", false));
+        rootStateSet->addUniform(
+            new osg::Uniform("ordinaryAutoUseObjectNormalMaps", Settings::shaders().mAutoUseObjectNormalMaps));
+        rootStateSet->addUniform(
+            new osg::Uniform("ordinaryAutoUseObjectSpecularMaps", Settings::shaders().mAutoUseObjectSpecularMaps));
+        mStateUpdater->setOrdinaryAutomaticObjectMaps(Settings::shaders().mAutoUseObjectNormalMaps,
+            Settings::shaders().mAutoUseObjectSpecularMaps);
+
         mPerViewUniformStateUpdater = new SceneUtil::PerViewUniformStateUpdater(mResourceSystem->getSceneManager(),
             mResourceSystem->getSceneManager()->getShaderManager().reserveGlobalTextureUnits(
                 Shader::ShaderManager::Slot::OpaqueDepthTexture),
@@ -596,6 +610,61 @@ namespace MWRender
 
         mPostProcessor->getStateUpdater()->setSunPos(osg::Vec4f(position, 0.f), mNight);
         mPostProcessor->getStateUpdater()->setSunVec(osg::Vec4f(-sunlightPos, 0.f));
+    }
+
+    void RenderingManager::loadLocationRenderingProfiles(const std::vector<std::string>& activeContent)
+    {
+        updateLocationRenderingProfile(nullptr);
+        mLocationRenderingProfiles.load(*mResourceSystem->getVFS(), activeContent);
+
+        const auto& profiles = mLocationRenderingProfiles.profiles();
+        const bool profileUsesNormalMaps = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+            return profile.mShaders.mAutoUseObjectNormalMaps;
+        });
+        const bool profileUsesSpecularMaps = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+            return profile.mShaders.mAutoUseObjectSpecularMaps;
+        });
+        mResourceSystem->getSceneManager()->setAutoUseNormalMaps(
+            Settings::shaders().mAutoUseObjectNormalMaps || profileUsesNormalMaps);
+        mResourceSystem->getSceneManager()->setAutoUseSpecularMaps(
+            Settings::shaders().mAutoUseObjectSpecularMaps || profileUsesSpecularMaps);
+    }
+
+    void RenderingManager::updateLocationRenderingProfile(const MWWorld::Cell* cell)
+    {
+        const bool ordinaryNormalMaps = Settings::shaders().mAutoUseObjectNormalMaps;
+        const bool ordinarySpecularMaps = Settings::shaders().mAutoUseObjectSpecularMaps;
+        mStateUpdater->setOrdinaryAutomaticObjectMaps(ordinaryNormalMaps, ordinarySpecularMaps);
+        if (osg::StateSet* rootStateSet = mRootNode->getStateSet())
+        {
+            if (osg::Uniform* normalMaps = rootStateSet->getUniform("ordinaryAutoUseObjectNormalMaps"))
+                normalMaps->set(ordinaryNormalMaps);
+            if (osg::Uniform* specularMaps = rootStateSet->getUniform("ordinaryAutoUseObjectSpecularMaps"))
+                specularMaps->set(ordinarySpecularMaps);
+        }
+        const LocationRenderingProfile* profile = cell && Settings::shaders().mLocationRenderingProfiles
+            ? mLocationRenderingProfiles.find(cell->getNameId(), cell->isExterior())
+            : nullptr;
+        if (profile)
+        {
+            const LocationRenderingShaderSettings& shaders = profile->mShaders;
+            mStateUpdater->setLocationRenderingProfile(true, shaders.mClampLighting,
+                shaders.mForcePerPixelLighting, shaders.mAutoUseObjectNormalMaps,
+                shaders.mAutoUseObjectSpecularMaps);
+        }
+        else
+            mStateUpdater->setLocationRenderingProfile(false, false, false, true, true);
+
+        const std::string_view profileId = profile ? std::string_view(profile->mId) : std::string_view{};
+        if (profileId != mActiveLocationRenderingProfile)
+        {
+            if (!profile)
+                Log(Debug::Info) << "Location rendering profile: ordinary rendering restored";
+            else
+                Log(Debug::Info) << "Location rendering profile: '" << profile->mName << "' active in "
+                                 << cell->getNameId();
+            mActiveLocationRenderingProfile = profileId;
+        }
     }
 
     void RenderingManager::addCell(const MWWorld::CellStore* store)
@@ -1122,6 +1191,7 @@ namespace MWRender
 
     void RenderingManager::clear()
     {
+        updateLocationRenderingProfile(nullptr);
         mSky->setMoonColour(false);
 
         notifyWorldSpaceChanged();
@@ -1395,6 +1465,31 @@ namespace MWRender
             else if (it->first == "Water")
             {
                 mWater->processChangedSettings(changed);
+            }
+            else if (it->first == "Shaders"
+                && (it->second == "auto use object normal maps"
+                    || it->second == "auto use object specular maps"))
+            {
+                const auto& profiles = mLocationRenderingProfiles.profiles();
+                const bool profileUsesNormalMaps
+                    = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+                          return profile.mShaders.mAutoUseObjectNormalMaps;
+                      });
+                const bool profileUsesSpecularMaps
+                    = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+                          return profile.mShaders.mAutoUseObjectSpecularMaps;
+                      });
+                mResourceSystem->getSceneManager()->setAutoUseNormalMaps(
+                    Settings::shaders().mAutoUseObjectNormalMaps || profileUsesNormalMaps);
+                mResourceSystem->getSceneManager()->setAutoUseSpecularMaps(
+                    Settings::shaders().mAutoUseObjectSpecularMaps || profileUsesSpecularMaps);
+                const auto player = MWMechanics::getPlayer();
+                updateLocationRenderingProfile(player.isInCell() ? player.getCell()->getCell() : nullptr);
+            }
+            else if (it->first == "Shaders" && it->second == "location rendering profiles")
+            {
+                const auto player = MWMechanics::getPlayer();
+                updateLocationRenderingProfile(player.isInCell() ? player.getCell()->getCell() : nullptr);
             }
             else if (it->first == "Shaders" && it->second == "minimum interior brightness")
             {

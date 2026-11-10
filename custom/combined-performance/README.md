@@ -1,6 +1,12 @@
 # OpenMW parallel native jobs
 
-This Windows build continues the `12e5b050` native-jobs engine and its corrected `3db8987d` distribution.
+This Windows build combines the `5e66b560` native-jobs engine and its `a0395b81` distribution with configurable location rendering profiles.
+
+## Horror Mod lighting
+
+The bundled profile is an editable file at `resources/vfs/shader_profiles/horror_mod.yaml`. Extracting the full package makes it available automatically. With `Horror Mod.esp` active and **Options → Video → Lights → Location Rendering Profiles** enabled, the listed interiors use the four shader values in the file. Other cells use your normal settings. The switch is on by default.
+
+To customize the interiors or shader values, edit the YAML while OpenMW is closed and restart the game. A copy at `shader_profiles/horror_mod.yaml` in a higher-priority mod folder overrides the bundled copy and can be kept across engine upgrades. Set `enabled: false` to disable this profile alone.
 
 ## Using the engine
 
