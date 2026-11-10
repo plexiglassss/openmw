@@ -841,10 +841,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ee5d4501cfc2681407cf2093f4f791fbedd9a6b0"
+        "blob": "4ffc5811c7ff7d61c06e77227511e33864a7e530"
       },
-      "bytes": 70711,
-      "sha256": "a39c1983d14ca8fdcdf17a671a4ffbda0afb95f8dff7424f854c7c2f9530a822",
+      "bytes": 71183,
+      "sha256": "a2b04c7c14f5611d00cad8da603d4531b37efee124ed96e3c015d66806379d36",
       "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
@@ -1034,10 +1034,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9a8f6cdb00994c5f8c9dcd5d391baae4872901df"
+        "blob": "b4b7f7dd515afe0748b166fae082f535d5362d9e"
       },
-      "bytes": 25264,
-      "sha256": "e212f1e5b4e095c2df800678ad771966a7a16d12b4a5830fba48e4b2a7fb4569",
+      "bytes": 25953,
+      "sha256": "a30c88f1daf1e33f031e04ffffc9f0661859026910e84b5766eeaca96060e27e",
       "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "components/lua_ui/flex.cpp": {
@@ -2101,11 +2101,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "65870d80e1623d0337e784115dcf460db692ccab"
+        "blob": "1ca00c0e9a4696cf073999ced4fe8e14728f7f43"
       },
-      "bytes": 52725,
-      "sha256": "c469f2a5fb665d43f86af3b08605bdee08f59566ceacbecd52ffcac236384b9b",
-      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+      "bytes": 52752,
+      "sha256": "5bec6c0697e46a7dc09d9a5c6fb4287c92032a5b3a7b582760cdeea784956dee",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -2114,11 +2114,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "61d33ce11e964c3cfa9d9c20ca456c4bc50573f0"
+        "blob": "aa01733cfed3afa5e8fc20e23839b7bdd6c77365"
       },
-      "bytes": 20674,
-      "sha256": "1d2a8b255a976a534fba6801d8297daf056f1253b1dc37139a159fcd3c3f965b",
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+      "bytes": 20701,
+      "sha256": "2ae0b61a734a04151b25ded6965ddaae846eaaa796d5fd9024e3a2216d9d139f",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,

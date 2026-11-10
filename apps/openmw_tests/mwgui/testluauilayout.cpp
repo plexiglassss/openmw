@@ -858,6 +858,14 @@ namespace LuaUi
             root->requestUpdate(&replacement, queue);
             root->update();
             run("snapshot('repaired-after-error')");
+            run("root.layout.layer='AbsentTestLayer'");
+            root->requestUpdate(nullptr, queue);
+            EXPECT_THROW(root->update(), std::logic_error);
+            EXPECT_EQ(root->mState, Element::Created);
+            run("root.layout.layer='LuaUiTest'; b.props.text='recovered after invalid layer'");
+            root->requestUpdate(&replacement, queue);
+            root->update();
+            run("snapshot('repaired-layer-and-sibling')");
         }
 
         TEST_F(LuaUiLayoutTest, BatchedHudPropertiesBenchmark)
@@ -870,7 +878,7 @@ namespace LuaUi
                     local arrow={name='arrow'..i,type='LuaImage',props={resource=texture('arrow.dds'),size=vec2(16,16)}}
                     rows[i]={name='row'..i,type='LuaFlex',props={horizontal=true,gap=3},content=content {label,distance,arrow}}
                 end
-                root=element {type='LuaFlex',layer='LuaUiTest',props={gap=2},content=content(rows)}
+                root=element {type='LuaFlex',layer='LuaUiTest',template=false,props={gap=2},content=content(rows)}
                 roots={root}; refresh(root)
                 local images={texture('left.dds'),texture('right.dds')}
                 function changePair(i)

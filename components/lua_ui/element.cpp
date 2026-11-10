@@ -3,6 +3,7 @@
 #include <MyGUI_Gui.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <iterator>
 #include <unordered_map>
 
@@ -379,6 +380,16 @@ namespace LuaUi
                 if (widget != root)
                     widget->updateCoord();
             }
+            // A single trace marker lets a gameplay recording confirm that the
+            // optional API actually reached the narrow path on this installation.
+            static const bool capturing = std::getenv("OPENMW_OSG_STATS_FILE") != nullptr;
+            static bool reported = false;
+            if (capturing && !reported)
+            {
+                reported = true;
+                Log(Debug::Info) << "Lua UI sparse property refresh active: changedLayouts=" << requested.size()
+                                 << " affectedLayoutNodes=" << updates.size();
+            }
             return true;
         }
 
@@ -489,7 +500,9 @@ namespace LuaUi
 
     void Element::update()
     {
-        if (mState == Update)
+        if (mState != Update)
+            return;
+        try
         {
             LayoutUpdateScope layoutUpdate(mRoot);
             assert(mRoot);
@@ -543,25 +556,26 @@ namespace LuaUi
             else
             {
                 const sol::table current = layout();
-                try
-                {
-                    if (changedLayouts.empty() || !updateChangedProperties(mRoot, current, changedLayouts))
-                        updateWidget(mRoot, current, 0, canRetainAttachments(current, mRoot));
-                }
-                catch (...)
-                {
-                    // Some property setters may have run already. A repaired
-                    // request must be able to enqueue a complete refresh.
-                    mRetryFullUpdate = true;
-                    mState = Created;
-                    throw;
-                }
+                if (changedLayouts.empty() || !updateChangedProperties(mRoot, current, changedLayouts))
+                    updateWidget(mRoot, current, 0, canRetainAttachments(current, mRoot));
             }
             mLayer = setLayer(mRoot, layout());
             updateRootCoord(mRoot);
             mState = Created;
             mRetryFullUpdate = false;
             checkWarnings();
+        }
+        catch (...)
+        {
+            // A surviving root may already contain earlier writes. Once its
+            // input is repaired the next request must reapply the whole layout.
+            // A failed root replacement has already selected the New state.
+            if (mRoot && mState == Update)
+            {
+                mRetryFullUpdate = true;
+                mState = Created;
+            }
+            throw;
         }
     }
 
