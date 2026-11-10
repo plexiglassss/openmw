@@ -108,6 +108,7 @@ namespace MWLua
 
     LuaManager::LuaManager(const VFS::Manager* vfs, const std::filesystem::path& libsDir)
         : mLua(vfs, &mConfiguration, createLuaStateSettings())
+        , mNativeQueryService(*MWBase::Environment::get().getNativeJobPool())
         , mScriptTracker(Settings::lua().mInactiveScriptCacheDuration,
               Settings::lua().mInactiveScriptCacheMemoryThreshold)
     {
@@ -174,6 +175,7 @@ namespace MWLua
             globalContext.mLuaManager = this;
             globalContext.mLua = &mLua;
             globalContext.mObjectLists = &mObjectLists;
+            globalContext.mNativeQueryService = &mNativeQueryService;
             globalContext.mLuaEvents = &mLuaEvents;
             globalContext.mSerializer = mGlobalSerializer.get();
 

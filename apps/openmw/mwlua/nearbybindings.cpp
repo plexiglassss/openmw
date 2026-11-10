@@ -3,6 +3,7 @@
 #include <components/detournavigator/navigator.hpp>
 #include <components/detournavigator/navigatorutils.hpp>
 #include <components/lua/luastate.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/constants.hpp>
 #include <components/settings/values.hpp>
 
@@ -15,8 +16,12 @@
 
 #include "context.hpp"
 #include "luamanagerimp.hpp"
+#include "nativequeryservice.hpp"
 #include "objectlists.hpp"
 
+#include <cmath>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace
@@ -59,6 +64,11 @@ namespace sol
     struct is_automagical<MWPhysics::RayCastingResult> : std::false_type
     {
     };
+
+    template <>
+    struct is_automagical<MWLua::NativeDistanceQuery<MWLua::LObject>> : std::false_type
+    {
+    };
 }
 
 namespace MWLua
@@ -68,6 +78,115 @@ namespace MWLua
         sol::state_view lua = context.sol();
         sol::table api(lua, sol::create);
         ObjectLists* objectLists = context.mObjectLists;
+
+        using DistanceQuery = NativeDistanceQuery<LObject>;
+        sol::usertype<DistanceQuery> distanceQuery
+            = lua.new_usertype<DistanceQuery>("NativeDistanceQuery");
+        distanceQuery[sol::meta_function::to_string] = [](const DistanceQuery& query) {
+            return "{" + std::to_string(query.mSamples ? query.mSamples->size() : 0) + " native distance results}";
+        };
+        distanceQuery[sol::meta_function::length]
+            = [](const DistanceQuery& query) { return query.mSamples ? query.mSamples->size() : 0; };
+        distanceQuery["object"] = [](const DistanceQuery& query, std::size_t index) -> sol::optional<LObject> {
+            if (!query.mSamples || index == 0 || index > query.mSamples->size())
+                return sol::nullopt;
+            const NativeDistanceSample& sample = (*query.mSamples)[LuaUtil::fromLuaIndex(index)];
+            if (!sample.mHasObject)
+                return sol::nullopt;
+            return LObject(sample.mObjectId);
+        };
+        distanceQuery["distance"] = [](const DistanceQuery& query, std::size_t index) -> sol::optional<float> {
+            if (!query.mSamples || index == 0 || index > query.mSamples->size())
+                return sol::nullopt;
+            return (*query.mSamples)[LuaUtil::fromLuaIndex(index)].mDistance3D;
+        };
+        distanceQuery["distance2D"] = [](const DistanceQuery& query, std::size_t index) -> sol::optional<float> {
+            if (!query.mSamples || index == 0 || index > query.mSamples->size())
+                return sol::nullopt;
+            return (*query.mSamples)[LuaUtil::fromLuaIndex(index)].mDistance2D;
+        };
+        distanceQuery["heightDifference"]
+            = [](const DistanceQuery& query, std::size_t index) -> sol::optional<float> {
+            if (!query.mSamples || index == 0 || index > query.mSamples->size())
+                return sol::nullopt;
+            return (*query.mSamples)[LuaUtil::fromLuaIndex(index)].mHeightDifference;
+        };
+        distanceQuery["sourceIndex"]
+            = [](const DistanceQuery& query, std::size_t index) -> sol::optional<std::size_t> {
+            if (!query.mSamples || index == 0 || index > query.mSamples->size())
+                return sol::nullopt;
+            return (*query.mSamples)[LuaUtil::fromLuaIndex(index)].mSourceIndex;
+        };
+
+        NativeQueryService* nativeQueries = context.mNativeQueryService;
+        if (Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled)
+        {
+            api["measureDistance"] = [](const osg::Vec3f& origin, const osg::Vec3f& target) {
+                const auto delta = origin - target;
+                // Match Lua's double arithmetic for the planar distance and signed height.
+                const double dx = static_cast<double>(origin.x()) - target.x();
+                const double dy = static_cast<double>(origin.y()) - target.y();
+                return std::make_tuple(delta.length(), std::sqrt(dx * dx + dy * dy),
+                    static_cast<double>(origin.z()) - target.z());
+            };
+            api["queryDistances"] = [nativeQueries](const sol::object& targets, const osg::Vec3f& origin,
+                                        const sol::optional<sol::table>& rawOptions) -> DistanceQuery {
+                if (nativeQueries == nullptr)
+                    throw std::logic_error("Native query service is not available");
+
+                NativeDistanceOptions options;
+                if (rawOptions)
+                {
+                    options.mMaxDistance
+                        = rawOptions->get<sol::optional<double>>("maxDistance").value_or(options.mMaxDistance);
+                    options.mSortByDistance
+                        = rawOptions->get<sol::optional<bool>>("sortByDistance").value_or(false);
+                    options.mFilterBy2D = rawOptions->get<sol::optional<bool>>("filterBy2D").value_or(false);
+                }
+                if (std::isnan(options.mMaxDistance) || options.mMaxDistance < 0.f)
+                    throw std::invalid_argument("maxDistance must be non-negative");
+
+                if (targets.is<LObjectList>())
+                {
+                    const LObjectList& list = targets.as<const LObjectList&>();
+                    return { nativeQueries->queryObjects(list.mIds, origin, options) };
+                }
+                if (!targets.is<sol::table>())
+                    throw std::invalid_argument("queryDistances expects an ObjectList or an array of objects/positions");
+
+                const sol::table table = targets.as<sol::table>();
+                std::vector<NativeDistanceTarget> values;
+                values.reserve(table.size());
+                for (std::size_t index = 1; index <= table.size(); ++index)
+                {
+                    const sol::object value = table.get<sol::object>(index);
+                    if (value.is<LObject>())
+                    {
+                        const LObject& object = value.as<const LObject&>();
+                        const MWWorld::Ptr& ptr = object.ptrOrEmpty();
+                        if (!ptr.isEmpty() && !ptr.mRef->isDeleted())
+                        {
+                            values.push_back({
+                                .mObjectId = getId(ptr),
+                                .mPosition = ptr.getRefData().getPosition().asVec3(),
+                                .mSourceIndex = index,
+                                .mHasObject = true,
+                            });
+                        }
+                    }
+                    else if (value.is<osg::Vec3f>())
+                    {
+                        values.push_back({
+                            .mPosition = value.as<osg::Vec3f>(),
+                            .mSourceIndex = index,
+                        });
+                    }
+                    else
+                        throw std::invalid_argument("queryDistances array values must be objects or Vec3 positions");
+                }
+                return { nativeQueries->queryTargets(std::move(values), origin, options) };
+            };
+        }
 
         sol::usertype<MWPhysics::RayCastingResult> rayResult
             = lua.new_usertype<MWPhysics::RayCastingResult>("RayCastingResult");

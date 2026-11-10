@@ -8,7 +8,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('OpenMW-combined-launcher-' + [Guid]::NewGuid().ToString('N'))
 $tool = Join-Path $fixture 'tools\combined-performance'
 $capture = Join-Path $tool 'capture'
-$names = @('OPENMW_COMBINED_PERFORMANCE', 'OPENMW_LUA_UI_LEGACY_UPDATES', 'OPENMW_LUA_UI_LEGACY_LAYOUT', 'OPENMW_LUA_CELL_QUERY_CACHE')
+$names = @('OPENMW_COMBINED_PERFORMANCE', 'OPENMW_NATIVE_JOBS', 'OPENMW_LUA_UI_LEGACY_UPDATES', 'OPENMW_LUA_UI_LEGACY_LAYOUT', 'OPENMW_LUA_CELL_QUERY_CACHE')
 $original = @{}
 foreach ($name in $names) { $original[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 $cases = @()
@@ -27,7 +27,8 @@ $row = @{
     executable = $OpenMWExe; label = $RunLabel; mode = $Mode; fg = $DeclaredFG;
     arguments = @($GameArguments); no_gpu = [bool]$NoGpu; no_prompt = [bool]$NoPrompt;
     config = $UserConfigDir; output = $OutputRoot;
-    combined = $env:OPENMW_COMBINED_PERFORMANCE; updates = $env:OPENMW_LUA_UI_LEGACY_UPDATES;
+    combined = $env:OPENMW_COMBINED_PERFORMANCE; native_jobs = $env:OPENMW_NATIVE_JOBS;
+    updates = $env:OPENMW_LUA_UI_LEGACY_UPDATES;
     layout = $env:OPENMW_LUA_UI_LEGACY_LAYOUT; cell = $env:OPENMW_LUA_CELL_QUERY_CACHE
 }
 $row | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'observed.json') -Encoding UTF8
@@ -47,7 +48,8 @@ $row | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $PSScriptRo
         Assert-Equal $true $row.no_gpu 'GPU flag'
         Assert-Equal $true $row.no_prompt 'prompt flag'
         $expected = if ($variant -eq 'Combined') { '1' } else { '0' }
-        Assert-Equal $expected $row.combined 'master switch'
+        Assert-Equal '1' $row.combined 'preserved cumulative performance mode'
+        Assert-Equal $expected $row.native_jobs 'native-job switch'
         Assert-Equal '0' $row.updates 'native UI fallback reset'
         Assert-Equal '0' $row.layout 'prior property-reader mode'
         Assert-Equal '1' $row.cell 'cell cache mode'

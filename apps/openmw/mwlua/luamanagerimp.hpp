@@ -25,6 +25,7 @@
 #include "menuscripts.hpp"
 #include "object.hpp"
 #include "objectlists.hpp"
+#include "nativequeryservice.hpp"
 
 namespace MWLua
 {
@@ -228,6 +229,7 @@ namespace MWLua
         std::vector<LuaUtil::ScriptsContainerWeakPtr> mActiveLocalScripts;
         std::vector<LuaUtil::ScriptsContainerWeakPtr> mQueuedAutoStartedScripts;
         ObjectLists mObjectLists;
+        NativeQueryService mNativeQueryService;
 
         MWWorld::Ptr mPlayer;
 

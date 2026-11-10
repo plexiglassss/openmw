@@ -164,14 +164,17 @@ namespace MWLua
     std::tuple<sol::table, sol::table, bool> EffectSourceQuery::read(sol::this_state ts)
     {
         auto& query = *this;
-        const bool changed = MagicBindings::readEffectSources(query.mActor, query.mData, [](ESM::RefNum id) {
-            if (!id.isSet())
-                return MagicBindings::EffectCaster{};
-            const auto ptr = MWBase::Environment::get().getWorldModel()->getPtr(id);
-            if (ptr.isEmpty())
-                return MagicBindings::EffectCaster{};
-            return MagicBindings::EffectCaster{ id, getLiveCellRefType(ptr.mRef) };
-        });
+        const std::uint64_t registryRevision
+            = MWBase::Environment::get().getWorldModel()->getPtrRegistryRevision();
+        const bool changed = MagicBindings::readEffectSources(query.mActor, query.mData, registryRevision,
+            [](ESM::RefNum id) {
+                if (!id.isSet())
+                    return MagicBindings::EffectCaster{};
+                const auto ptr = MWBase::Environment::get().getWorldModel()->getPtr(id);
+                if (ptr.isEmpty())
+                    return MagicBindings::EffectCaster{};
+                return MagicBindings::EffectCaster{ id, getLiveCellRefType(ptr.mRef) };
+            });
         if (changed)
             query.mSnapshotCurrent = false;
         const bool snapshotChanged = !query.mSnapshotCurrent;

@@ -1,4 +1,6 @@
 #include "scenemanager.hpp"
+
+#include <components/misc/nativejobpool.hpp>
 #include <components/diagnostics/timing.hpp>
 #include <components/diagnostics/loading.hpp>
 
@@ -1002,6 +1004,34 @@ namespace Resource
         std::call_once(mErrorMarkerFlag, [this] { mErrorMarker = loadErrorMarker(); });
 
         return static_cast<osg::Node*>(mErrorMarker->clone(osg::CopyOp::DEEP_COPY_ALL));
+    }
+
+    void SceneManager::prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs)
+    {
+        std::vector<VFS::Path::NormalizedView> cold;
+        constexpr VFS::Path::ExtensionView nif("nif");
+        for (auto path : paths)
+        {
+            if (path.extension() == nif && !mCache->getRefFromObjectCache(path) && !mNifFileManager->isCached(path))
+                cold.push_back(path);
+        }
+        if (cold.size() < 4)
+            return;
+
+        std::vector<Nif::NIFFilePtr> decoded(cold.size());
+        jobs.parallelFor(cold.size(), 2, [&](std::size_t i) {
+            try
+            {
+                decoded[i] = mNifFileManager->read(cold[i]);
+            }
+            catch (const std::exception&)
+            {
+                // Leave this entry to getTemplate's normal logging and error marker path.
+            }
+        });
+        for (std::size_t i = 0; i < cold.size(); ++i)
+            if (decoded[i])
+                mNifFileManager->get(cold[i], std::move(decoded[i]));
     }
 
     osg::ref_ptr<const osg::Node> SceneManager::getTemplate(VFS::Path::NormalizedView path, bool compile)

@@ -1,21 +1,15 @@
 {
   "id": "sanemagic-native-queries",
   "name": "Sane Magic native-query adapters",
-  "expected_revision": "85b3384dd0",
+  "expected_revision": "8bd0d90b27",
   "allowed_revisions": [
-    "85b3384dd0",
-    "85b3384dd06528914e090f5fb39aad415e808a0b",
-    "016577e6e3",
-    "016577e6e33b16080e9c6828b38a3879526714d7",
-    "6182d81e98",
-    "6182d81e985763b2fed194d297db601fe1a56dfb",
-    "7024d00c79",
-    "7024d00c79fb0a88a97ff0b636096a5f3fd316d0"
+    "8bd0d90b27",
+    "8bd0d90b2727b8d654288d5c42e45a3edefc7146"
   ],
-  "expected_data_order_sha256": "9d5dbeafe1f1f154edd7f43d4373f24d63c1b0c9563071ed64cdd6da7e74e1a1",
+  "expected_data_order_sha256": "67fa12e2351e54ccc6e9f7d33b887a9f8b286feb31a1b8a6e1665d21b3039e1e",
   "expected_config_sha256": [
     "2291eb4e130b803938b26be461475bef76e9f9035e6889e5d778a5b52423ea66",
-    "4fe1803bd7319288d0a21c423f33cae4d15704f9fbb1ac477676b21eb30913a6"
+    "801ec806dff8a958914b808a24d1140debca30798bbbd318f0e3fc35fba870ca"
   ],
   "files": [
     {

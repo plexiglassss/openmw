@@ -1,6 +1,10 @@
 #include <components/diagnostics/loading.hpp>
 #include "objectpaging.hpp"
 
+#include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
+#include <components/settings/values.hpp>
+
 #include <components/diagnostics/timing.hpp>
 
 #include <limits>
@@ -731,6 +735,84 @@ namespace MWRender
 
         AnalyzeVisitor analyzeVisitor(copyMask);
         const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
+        struct Selected
+        {
+            ESM::RefNum mNumber;
+            const PagedCellRef* mRef;
+            VFS::Path::Normalized mModel;
+            float mDistanceSquared;
+        };
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        const bool prepare = jobs && jobs->workerCount() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
+        const auto consume = [&](const ESM::RefNum& refNum, const PagedCellRef& ref,
+                                 const VFS::Path::Normalized& model, float dSqr) {
+            osg::ref_ptr<const osg::Node> cnode = [&] {
+                Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
+                Diagnostics::Loading::Timer modelLoading(Diagnostics::Loading::Stage::ObjectTemplates);
+                if (auto found = chunkTemplates.find(model); found != chunkTemplates.end())
+                    return found->second;
+                auto node = mSceneManager->getTemplate(model, false);
+                chunkTemplates.emplace(model, node);
+                return node;
+            }();
+
+            if (activeGrid)
+            {
+                if (cnode->getNumChildrenRequiringUpdateTraversal() > 0
+                    || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel)
+                    || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
+                    || (cnode->getName() == "Collada visual scene group"
+                        && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
+                    return;
+                else
+                    refnumSet->mRefnums.push_back(refNum);
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+                if (getRefTracker().mDisabled.count(refNum))
+                    return;
+            }
+
+            const float radius2 = cnode->getBound().radius2() * ref.mScale * ref.mScale;
+            if (radius2 < dSqr * minSize * minSize && !activeGrid)
+            {
+                std::lock_guard<std::mutex> lock(mSizeCacheMutex);
+                mSizeCache[refNum] = radius2;
+                return;
+            }
+
+            const auto emplaced = nodes.emplace(std::move(cnode), InstanceList());
+            if (emplaced.second)
+            {
+                Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
+                analyzeVisitor.mDistances = lodDistances / ref.mScale;
+                const osg::Node* const nodePtr = emplaced.first->first.get();
+                // const-trickery required because there is no const version of NodeVisitor
+                const_cast<osg::Node*>(nodePtr)->accept(analyzeVisitor);
+                emplaced.first->second.mAnalyzeResult = analyzeVisitor.retrieveResult();
+                emplaced.first->second.mNeedCompile = compile && nodePtr->referenceCount() <= 2;
+            }
+            else
+                analyzeVisitor.addInstance(emplaced.first->second.mAnalyzeResult);
+            emplaced.first->second.mInstances.push_back(&ref);
+        };
+
+        // Requests and template consumption retain the original reference order.
+        // The only parallel phase decodes private NIF records from final VFS paths.
+        std::vector<Selected> batch;
+        auto flush = [&] {
+            std::vector<VFS::Path::NormalizedView> paths;
+            for (const auto& entry : batch)
+                if (!chunkTemplates.contains(entry.mModel))
+                    paths.emplace_back(entry.mModel);
+            std::sort(paths.begin(), paths.end());
+            paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+            mSceneManager->prepareNifInputs(paths, *jobs);
+            for (const auto& entry : batch)
+                consume(entry.mNumber, *entry.mRef, entry.mModel, entry.mDistanceSquared);
+            batch.clear();
+        };
         for (const auto& [refNum, ref] : refs)
         {
             // Inclusive of template requests and node analysis below.
@@ -792,57 +874,17 @@ namespace MWRender
                                 ->second;
             }
 
-            osg::ref_ptr<const osg::Node> cnode = [&] {
-                Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
-                Diagnostics::Loading::Timer modelLoading(Diagnostics::Loading::Stage::ObjectTemplates);
-                if (auto found = chunkTemplates.find(model); found != chunkTemplates.end())
-                    return found->second;
-                auto node = mSceneManager->getTemplate(model, false);
-                chunkTemplates.emplace(model, node);
-                return node;
-            }();
-
-            if (activeGrid)
+            if (prepare)
             {
-                if (cnode->getNumChildrenRequiringUpdateTraversal() > 0
-                    || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel)
-                    || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
-                    || (cnode->getName() == "Collada visual scene group"
-                        && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
-                    continue;
-                else
-                    refnumSet->mRefnums.push_back(refNum);
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-                if (getRefTracker().mDisabled.count(refNum))
-                    continue;
-            }
-
-            const float radius2 = cnode->getBound().radius2() * ref.mScale * ref.mScale;
-            if (radius2 < dSqr * minSize * minSize && !activeGrid)
-            {
-                std::lock_guard<std::mutex> lock(mSizeCacheMutex);
-                mSizeCache[refNum] = radius2;
-                continue;
-            }
-
-            const auto emplaced = nodes.emplace(std::move(cnode), InstanceList());
-            if (emplaced.second)
-            {
-                Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
-                analyzeVisitor.mDistances = lodDistances / ref.mScale;
-                const osg::Node* const nodePtr = emplaced.first->first.get();
-                // const-trickery required because there is no const version of NodeVisitor
-                const_cast<osg::Node*>(nodePtr)->accept(analyzeVisitor);
-                emplaced.first->second.mAnalyzeResult = analyzeVisitor.retrieveResult();
-                emplaced.first->second.mNeedCompile = compile && nodePtr->referenceCount() <= 2;
+                batch.push_back({ refNum, &ref, std::move(model), dSqr });
+                if (batch.size() == 32)
+                    flush();
             }
             else
-                analyzeVisitor.addInstance(emplaced.first->second.mAnalyzeResult);
-            emplaced.first->second.mInstances.push_back(&ref);
+                consume(refNum, ref, model, dSqr);
         }
+        if (!batch.empty())
+            flush();
 
         const osg::Vec3f worldCenter
             = osg::Vec3f(center.x(), center.y(), 0) * static_cast<float>(getCellSize(mWorldspace));

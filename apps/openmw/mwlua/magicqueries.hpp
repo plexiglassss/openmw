@@ -14,6 +14,9 @@
 
 #include "../mwmechanics/activespells.hpp"
 #include "magicbindingshelper.hpp"
+#include "../mwworld/queryrevision.hpp"
+#include <components/misc/combinedperformance.hpp>
+#include <components/settings/values.hpp>
 
 namespace MWLua::MagicBindings
 {
@@ -49,6 +52,11 @@ namespace MWLua::MagicBindings
         EffectSourceFilter mFilter;
         std::vector<EffectSource> mValues;
         std::vector<EffectSource> mPending;
+        const MWMechanics::ActiveSpells* mLastStore = nullptr;
+        std::uint64_t mLastEffectSourceRevision = 0;
+        std::uint64_t mLastRegistryRevision = 0;
+        std::uint64_t mLastReferenceRevision = 0;
+        bool mRevisionCurrent = false;
         bool mInitialized = false;
 
     public:
@@ -66,7 +74,7 @@ namespace MWLua::MagicBindings
         const std::vector<EffectSource>& values() const { return mValues; }
 
         template <class Spells, class ResolveCaster>
-        bool update(const Spells& spells, ResolveCaster&& resolveCaster)
+        bool scan(const Spells& spells, ResolveCaster&& resolveCaster)
         {
             mPending.clear();
             std::optional<ESM::RefNum> lastCaster;
@@ -101,15 +109,37 @@ namespace MWLua::MagicBindings
             mInitialized = true;
             return changed;
         }
+
+        template <class ResolveCaster>
+        bool update(const MWMechanics::ActiveSpells* spells, std::uint64_t registryRevision,
+            ResolveCaster&& resolveCaster)
+        {
+            const std::uint64_t effectSourceRevision = spells ? spells->getEffectSourceRevision() : 0;
+            const auto referenceRevision = MWWorld::getReferenceQueryRevision();
+            if (Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled
+                && referenceRevision == mLastReferenceRevision && mRevisionCurrent && spells == mLastStore && effectSourceRevision == mLastEffectSourceRevision
+                && registryRevision == mLastRegistryRevision)
+                return false;
+
+            const bool changed = spells ? scan(*spells, std::forward<ResolveCaster>(resolveCaster))
+                : scan(std::span<const MWMechanics::ActiveSpells::ActiveSpellParams>{},
+                    std::forward<ResolveCaster>(resolveCaster));
+            mLastStore = spells;
+            mLastEffectSourceRevision = effectSourceRevision;
+            mLastRegistryRevision = registryRevision;
+            mLastReferenceRevision = referenceRevision;
+            mRevisionCurrent = true;
+            return changed;
+        }
     };
 
     template <class ResolveCaster>
-    bool readEffectSources(const ObjectVariant& actor, EffectSourceQueryData& query, ResolveCaster&& resolveCaster)
+    bool readEffectSources(const ObjectVariant& actor, EffectSourceQueryData& query, std::uint64_t registryRevision,
+        ResolveCaster&& resolveCaster)
     {
         if (auto* stats = getActorStats(actor))
-            return query.update(stats->getActiveSpells(), std::forward<ResolveCaster>(resolveCaster));
-        return query.update(std::span<const MWMechanics::ActiveSpells::ActiveSpellParams>{},
-            std::forward<ResolveCaster>(resolveCaster));
+            return query.update(&stats->getActiveSpells(), registryRevision, std::forward<ResolveCaster>(resolveCaster));
+        return query.update(nullptr, registryRevision, std::forward<ResolveCaster>(resolveCaster));
     }
 
     class EffectMagnitudeQueryData

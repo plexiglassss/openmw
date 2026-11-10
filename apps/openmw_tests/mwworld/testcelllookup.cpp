@@ -5,6 +5,7 @@
 #include "apps/openmw/mwworld/queryrevision.hpp"
 
 #include "apps/openmw/mwbase/environment.hpp"
+#include "apps/openmw/mwclass/door.hpp"
 #include "apps/openmw/mwclass/npc.hpp"
 #include "apps/openmw/mwclass/static.hpp"
 #include "apps/openmw/mwworld/cellstore.hpp"
@@ -17,6 +18,7 @@
 #include <components/esm3/formatversion.hpp>
 #include <components/esm3/loadcell.hpp>
 #include <components/esm3/loadclas.hpp>
+#include <components/esm3/loaddoor.hpp>
 #include <components/esm3/loadnpc.hpp>
 #include <components/esm3/loadrace.hpp>
 #include <components/esm3/loadstat.hpp>
@@ -53,6 +55,7 @@ namespace MWWorld
             {
                 MWClass::Static::registerSelf();
                 MWClass::Npc::registerSelf();
+                MWClass::Door::registerSelf();
                 mEnvironment.setWorldModel(mWorld);
                 mEnvironment.setESMStore(mStore);
                 mEnvironment.setLuaManager(mLua);
@@ -640,6 +643,62 @@ namespace MWWorld
             RecordProperty("scope", "native typed cell query; unchanged membership; no Lua dispatch or game FPS");
             std::cout << "CELL_QUERY_BENCHMARK references=1024 rounds=7 queries_per_round=1000 uncached_ns="
                       << uncached[3] << " cached_ns=" << cached[3] << '\n';
+        }
+
+        TEST_F(CellLookupTest, multiTypeQueryMatchesIndividualQueriesInRequestedOrder)
+        {
+            CellStore& room = cell("multi query room");
+            const Ptr firstStatic = add(room, "static one");
+            const Ptr npc = add<ESM::NPC>(room, "npc one");
+            const Ptr door = add<ESM::Door>(room, "door one");
+            const Ptr secondStatic = add(room, "static two");
+
+            const std::vector<std::uint32_t> types{ ESM::REC_NPC_, ESM::REC_STAT, ESM::REC_DOOR };
+            std::vector<ESM::RefNum> expected;
+            for (const std::uint32_t type : types)
+            {
+                const auto values = MWLua::queryCellObjects(room, type);
+                expected.insert(expected.end(), values->begin(), values->end());
+            }
+            std::vector<std::size_t> counts;
+            const auto actual = MWLua::queryCellObjectsOfTypes(room, types, true, &counts);
+            ASSERT_TRUE(actual);
+            EXPECT_EQ(counts, (std::vector<std::size_t>{ 1, 2, 1 }));
+            EXPECT_EQ(*actual, expected);
+            EXPECT_EQ(*actual, (std::vector<ESM::RefNum>{ npc.getCellRef().getRefNum(),
+                                   firstStatic.getCellRef().getRefNum(), secondStatic.getCellRef().getRefNum(),
+                                   door.getCellRef().getRefNum() }));
+        }
+
+        TEST_F(CellLookupTest, multiTypeQueryRefreshesSnapshotsAndPreservesOldResults)
+        {
+            CellStore& room = cell("multi query mutation room");
+            const Ptr firstStatic = add(room, "static one");
+            add<ESM::NPC>(room, "npc one");
+            add<ESM::Door>(room, "door one");
+            const std::vector<std::uint32_t> types{ ESM::REC_STAT, ESM::REC_NPC_, ESM::REC_DOOR };
+
+            const auto before = MWLua::queryCellObjectsOfTypes(room, types);
+            ASSERT_EQ(before->size(), 3u);
+            count(firstStatic, 0);
+            const auto after = MWLua::queryCellObjectsOfTypes(room, types);
+            ASSERT_EQ(after->size(), 2u);
+            EXPECT_EQ(before->size(), 3u);
+            EXPECT_EQ(*after, *MWLua::queryCellObjectsOfTypes(room, types));
+        }
+
+        TEST_F(CellLookupTest, multiTypeQueryPreservesDuplicatesAndRejectsUnsupportedTypes)
+        {
+            CellStore& room = cell("multi query duplicates room");
+            const Ptr npc = add<ESM::NPC>(room, "npc one");
+            const std::vector<std::uint32_t> duplicated{ ESM::REC_NPC_, ESM::REC_NPC_ };
+            std::vector<std::size_t> counts;
+            const auto values = MWLua::queryCellObjectsOfTypes(room, duplicated, true, &counts);
+            EXPECT_EQ(counts, (std::vector<std::size_t>{ 1, 1 }));
+            ASSERT_EQ(values->size(), 2u);
+            EXPECT_EQ((*values)[0], npc.getCellRef().getRefNum());
+            EXPECT_EQ((*values)[1], npc.getCellRef().getRefNum());
+            EXPECT_FALSE(MWLua::queryCellObjectsOfTypes(room, { 0xFFFFFFFFu }));
         }
 
         class WorldCellLookupTest : public CellLookupTest

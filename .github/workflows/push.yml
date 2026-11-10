@@ -138,6 +138,9 @@ jobs:
           if ($LASTEXITCODE) { throw 'Lua adapter test runtime installation failed' }
           python custom/combined-performance/tests/test_sanemagic_adapters.py --output sanemagic-adapter-parity.json
           if ($LASTEXITCODE) { throw 'SaneMagic native/fallback adapter behavior differs from the captured originals' }
+      - name: Exercise captured map, quest and proximity adapters
+        shell: pwsh
+        run: python custom/combined-performance/tests/test_native_adapters.py --output native-job-adapter-parity.json
       - name: Test combined launcher in Windows PowerShell
         shell: powershell
         run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-windows-powershell.json
@@ -468,6 +471,8 @@ jobs:
           }
           python custom/town-performance/verify-combined-layout.py openmw-tests.xml lua-ui-legacy-updates-tests.xml combined-performance-off-tests.xml combined-layout-parity.json
           if ($LASTEXITCODE) { throw 'Combined native UI state or fallback parity failed' }
+          python custom/combined-performance/tests/verify-native-jobs.py components-tests.xml openmw-tests.xml native-jobs-tests.json
+          if ($LASTEXITCODE) { throw 'Native job regressions did not run successfully' }
           python custom/combined-performance/verify-native.py openmw-tests.xml combined-performance-off-tests.xml combined-native-tests.json
           if ($LASTEXITCODE) { throw 'Required combined query regressions or fallback factory behavior did not execute' }
           try {
@@ -527,7 +532,7 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nSaneMagic adapters and same-executable launch modes included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/combined-performance/prepare-package.py install
           if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
           python custom/cumulative/prepare-upgrade.py install --town-performance
@@ -538,7 +543,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-combined-performance-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-parallel-native-jobs-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
@@ -588,6 +593,8 @@ jobs:
             combined-layout-parity.json
             lua-ui-legacy-updates-tests.xml
             combined-performance-off-tests.xml
+            native-job-adapter-parity.json
+            native-jobs-tests.json
             install/COMBINED-PACKAGE.json
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json

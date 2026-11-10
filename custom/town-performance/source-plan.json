@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Combined native performance candidate on 016577e6e33b16080e9c6828b38a3879526714d7: action-scoped dependency-aware Lua UI geometry reuse; compiled live native magic/effect queries and SaneMagic adapters; immutable typed cell query snapshots and idempotent pointer registration. Preserve native map icons, native travel/key/cleared-cell tooltips and every prior cumulative feature and build-time loading-repair gate. One complete engine package, prepared adapters and same-executable inherited fallback. No plugin, terrain, placement or modlist changes; no claimed gameplay FPS gain before user capture.",
+  "scope": "Generic native gameplay jobs and four opt-in script adapters. Cumulative engine, tested package, same-executable inherited mode, no plugin changes.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -13,7 +13,8 @@
     "ca144536f3dd813f9fb13c832b7396d1554d71f5",
     "016577e6e33b16080e9c6828b38a3879526714d7",
     "6182d81e985763b2fed194d297db601fe1a56dfb",
-    "7024d00c79fb0a88a97ff0b636096a5f3fd316d0"
+    "7024d00c79fb0a88a97ff0b636096a5f3fd316d0",
+    "8bd0d90b2727b8d654288d5c42e45a3edefc7146"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -23,11 +24,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0fa8c0ab0166bfd0cce0d30f146b5627c2868c36"
+        "blob": "1ea467dfa623d885147e0c988e90038acdf0b297"
       },
-      "bytes": 52996,
-      "sha256": "f9ba92913360f3ba579e17b753ea5703c314771ab96c4f0c23fc151cba1f85fb",
-      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: .github/workflows/push.yml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Combined performance candidate: Build one combined Windows candidate with all inherited source/test gates, adapter parity, three native UI modes, prepared tools and complete packaging."
+      "bytes": 53564,
+      "sha256": "13d859d19231864cd872e53015b4169d1a22db25a39643934bcf218862a547c5",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -36,11 +37,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "00413fb7b55c115bce7b88eb16f32fbe60bb9013"
+        "blob": "e0450f187a2780e86cc56bf8a98dde34c3ce5f8a"
       },
-      "bytes": 4117,
-      "sha256": "20dd43db9a746a08f99b4f9339064d2e0632518fbfc43d56331d7cec368776ea",
-      "reason": "Native world-map icon feature: apps/components_tests/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/components_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 4148,
+      "sha256": "e002d4eecf6ef53ddf40b61b032f1b3ab9fa4cf96ece3654c4438e183566374d",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -105,6 +106,29 @@
       "sha256": "edacb3dc322a9d5a8c5a5e3bfeee010c12f695c8f97c24b7b38b58e035018c21",
       "reason": "Native world-map icon feature: apps/components_tests/mapmarkers/testspatialindex.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "apps/components_tests/misc/testnativejobpool.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "48c7d9bc01d0cfd8e5c430a304947cee75510e19"
+      },
+      "bytes": 3419,
+      "sha256": "fc708c2a169c7594ce3a5b86186742f0b1fbe76992654b2c686313042956c47c",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/components_tests/resource/testresourcesystem.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8f869343c7f8c52c6564ef7423deba96ca68f567"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "08049d3ed2c7e5f8d42bd9c2459b4e1709b1d6b4"
+      },
+      "bytes": 3458,
+      "sha256": "4aa984747bb7485f47c0981da9eef29764c435230b89d49190bcf0b44b56f635",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
     "apps/components_tests/settings/testvalues.cpp": {
       "before": {
         "mode": "100644",
@@ -125,11 +149,50 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "56817c69d91becb283c8660c3b32c87752a7f554"
+        "blob": "70f26a4b8cdf9779b4dbbad2c525cfbe3ef4256e"
       },
-      "bytes": 11897,
-      "sha256": "5afcfcbce1a3c332dcce5bdebb59c0b268a3023e8ac0886609c39565fa72e0db",
-      "reason": "Native world-map icon feature: apps/openmw/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 11916,
+      "sha256": "b1ada9ab33ec29ad0a9fd18723aca036f9fccc3d89df0b1a2b0046f3ee477ce0",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/engine.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "569b7ea2871e6e756d3ce16a80b9e6cdf8b65964"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "a8bcc2819eb4f07c23162a20cfa7d682f8f346ca"
+      },
+      "bytes": 53204,
+      "sha256": "2e16ff0a6b087766b2db958fc7666707cfbc6fcf3dd09aea25a4977289a02a30",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/engine.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "193be6e97249d15559c5b144ab65fef0c3a86729"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ae52c72c21af7756aa6940b28924a269332baed4"
+      },
+      "bytes": 7138,
+      "sha256": "ee472d08182cb08c7ccc1bb1d3abdb762c1b14714b006f7dbd41200aa05c2c54",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwbase/environment.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "94f918a60b4c90b2f3d81005809f9c07dfb85794"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3a5b70b278c3c52826b3cac46a01666750f64582"
+      },
+      "bytes": 5103,
+      "sha256": "b3ca489dd3b9b52847e2c8a4836009e0a20d6b71b085a72721f9038e254e57f2",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwbase/mechanicsmanager.hpp": {
       "before": {
@@ -417,11 +480,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "badf72466202a7360499dcab7d9b5a5077c0d946"
+        "blob": "da67b3b90deeca0e11aba816374a00e13eb72412"
       },
-      "bytes": 16602,
-      "sha256": "ae1e171c20bde1cbdbd391f2261654d4ca465cfe10a39e54015501ad9787d530",
-      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "bytes": 19377,
+      "sha256": "f5ec9673267bb0054650f5c2b384239dc5d066ebb3ac9df67d935bceef64b754",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwlua/cellbindings.hpp": {
       "before": {
@@ -430,11 +493,50 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2ed701915f48dc739039f6a42eb516c67b28486f"
+        "blob": "ec3f36575106273a17ed107a3d6266117c5b7128"
       },
-      "bytes": 602,
-      "sha256": "014d740a36de8ac105f5062e61f886fa2c5084fc83446378d62527e7404cac2e",
-      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "bytes": 822,
+      "sha256": "825597cb436dd3580f2ac0877e12941bc85c21df0a7bb297310cc09eecd1472f",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/context.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b385031a474dceff2adc76cd684e32768771fa8a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "cbd82f76e015fc6e8a12393457e2f666d5225a2c"
+      },
+      "bytes": 3174,
+      "sha256": "889ff2f2ac1f5de40b4cc9d73a86d3b16b8a69736351895d292dbc111c8372f7",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/luamanagerimp.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e8e5ec38f1011d906e7e49045690d30dbd47f3cc"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "0ba5f04400db592d8766cc98e7246b0f5b68e522"
+      },
+      "bytes": 47917,
+      "sha256": "38d32ed9ab8bac06d96e41ea23bac0aa83342ef729022c8222b9eff3f5519b38",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/luamanagerimp.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1ead6474ad55936935785e2885474fbfa930f47d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "49da1ea7d1502003a68d53362baeb10e1773ebf6"
+      },
+      "bytes": 13592,
+      "sha256": "7eb36e9435aec44c3dc68b3538bacad6015d066cea6365fd5c87c79fda8e8408",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -443,11 +545,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "eb2c5be070758425cd780be591e6b7fd8c63f06b"
+        "blob": "f1b537e0cfef49a90c66d58b532597ed81205f68"
       },
-      "bytes": 51628,
-      "sha256": "9e9d7c60b1e085f23a81045ce3115a7fb7c7a78b2dde24b914fe2d648b11f1c3",
-      "reason": "Resolve each query actor once through scoped native helpers while preserving current values, contexts, effect-key error ordering and existing iteration boundaries. Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
+      "bytes": 51815,
+      "sha256": "d6c1ecaa544ce5fc26eeb76a46624e1237b780351a373ff4c9fb4fbc5fa1b6ec",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwlua/magicbindingshelper.hpp": {
       "before": null,
@@ -463,11 +565,70 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1ce1900a1db2589880e599db9c444adcc4d9e22b"
+        "blob": "f53b58e858e1bce7551451d0eb26a8ae87063307"
       },
-      "bytes": 6796,
-      "sha256": "b2f845e8058e3e9d3c5b225a1a7bfffc276828fc89c5dbf954eb7465054601c4",
-      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
+      "bytes": 8426,
+      "sha256": "e72384f486a14ad0fb9ee1545f6b25b0927bd1548a8d72def00f6d474e95c9a0",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/nativequeryservice.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "448f2e71a45ddc7422af77d312778fd130ae4ec3"
+      },
+      "bytes": 3574,
+      "sha256": "6067ab1a4ad4ca0733f45419fb2e172f183ded827892e13c8fad29c081dcef5f",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/nativequeryservice.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6acdf21dbf45fce8ead610dab7dbce25f985d378"
+      },
+      "bytes": 2070,
+      "sha256": "adae68cbd89221e856ab76504766a8f06c7b670b7c674f9fe00476eb46e09069",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/nearbybindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c5098d0582e0dcbdca60db0e0cac6ee0c6f86bae"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "1157e979a5720ac24d870c56a610c82dedceb59e"
+      },
+      "bytes": 25383,
+      "sha256": "ad0625c9a15b2824428d0634d54fcaa05ef84da59921caea190a0cd7dd981e2b",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwmechanics/activespells.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "6e7fc08c518d2341131d53fc594ffa7b993e2d0d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4ab8dce7732143468eecd3c1b050c8b0c79d859b"
+      },
+      "bytes": 29718,
+      "sha256": "19cdb97860634ca27ffdac707962845d2f35037de461294480dfd078fa23acf0",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwmechanics/activespells.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "dcc37521f0b26359a6930a24a45548a3717cde25"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "094e3af370520541137ee0a7c9f6f176f965147b"
+      },
+      "bytes": 6967,
+      "sha256": "9b0fa494500838d5d9d4a6fac1cd4a21d958e8189a191654d73383925a1cd963",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwmechanics/actors.cpp": {
       "before": {
@@ -476,11 +637,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "72955da3513d62d32bbe41f240a9d2fa334e8f06"
+        "blob": "7bf9bcaa18433a9d8872a4189c18f8d436ba8848"
       },
-      "bytes": 106791,
-      "sha256": "58705298f7aae83eee1c0b7dbd9420851c4a45bd49e2ce9e4dfbd5a8e088f870",
-      "reason": "Native tooltip integration: apps/openmw/mwmechanics/actors.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 107970,
+      "sha256": "9372d49b4a8f4c195cded484dbb55a99bcab2593795d844fc3f371b6c4f37f5a",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwmechanics/mechanicsmanagerimp.cpp": {
       "before": {
@@ -507,6 +668,19 @@
       "bytes": 12302,
       "sha256": "3390da27c14193625538b08ba756585d76697b688c017a0a575f840cd8c72a78",
       "reason": "Native tooltip integration: apps/openmw/mwmechanics/mechanicsmanagerimp.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+    },
+    "apps/openmw/mwrender/objectpaging.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a29bc6364bd14b81ea231c40f7e4990094fe756c"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d676fc9f230c69a17266df155629a3b5feefaa92"
+      },
+      "bytes": 51845,
+      "sha256": "2b32979cc149540dcd626c01c51c7f8bea589019333c7953e2e62e22d554e2ff",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
@@ -642,11 +816,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b01c961f8798369c8a904f434ad35e49223fd0ef"
+        "blob": "1d6ed350a1d67deb6c891c5db3cb0ae645b3cb4a"
       },
-      "bytes": 3747,
-      "sha256": "999ea63c64d6b6463ebc881e43669f517d2297f8a6eb7d4a77f0e502fc0cbf75",
-      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test; run the same form fixtures early with the production MyGUI ABI definition. Native tooltip integration: apps/openmw_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 3784,
+      "sha256": "22947e242975d767943512e1707459365393c1c6735b1bf6bc68d486d3199059",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -701,6 +875,16 @@
       "sha256": "1200ce0569587ebb072e1e211a2cc53088f786fecfff3afa60baf49c312b2e6b",
       "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
     },
+    "apps/openmw_tests/mwlua/testnativequeryservice.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "626e961939b68f7dd0190259588bbce6b32be03a"
+      },
+      "bytes": 3967,
+      "sha256": "37d10b2b309128bb3de77636e9b5746b8e92fc87fcd769c5a7932d10eef344e1",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
     "apps/openmw_tests/mwworld/testcelllookup.cpp": {
       "before": {
         "mode": "100644",
@@ -708,11 +892,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "dd34e6212fc3f7e36bd4435f20afb97ecd89911e"
+        "blob": "155dc9a1ee91d4374898ca1810af678b30732ccd"
       },
-      "bytes": 40952,
-      "sha256": "ac4d8b27a7ec9ad2cfd9b410693129f8d7bfc88a2e78964a49a2feb0e7c88d55",
-      "reason": "Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
+      "bytes": 44034,
+      "sha256": "64684db08f18d7d49d8db9be400c677e957bafd35d7e7043baa62c9fc852c467",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "components/CMakeLists.txt": {
       "before": {
@@ -721,11 +905,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b90fba38dd4483119d5a2b6aff44f912bb881534"
+        "blob": "726b16868722c362f94d551350a35b594a49f7c7"
       },
-      "bytes": 20677,
-      "sha256": "e33b759d6716daa5de56224fcfd03fafa29dc7ead57ee236fcb67c1c0847d9fd",
-      "reason": "Native world-map icon feature: components/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: components/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 20691,
+      "sha256": "361f0c94c1404ea92a6247f48b901cb976ae7c6fae20b20d803454de5076ec06",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "components/esm/defs.hpp": {
       "before": {
@@ -982,15 +1166,110 @@
       "sha256": "cda43af5a846eb2abcbf20a7703bb215f85f38f0615c2076ce40f05273305844",
       "reason": "Native world-map icon feature: components/mapmarkers/spatialindex.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "components/misc/actorneighbours.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "445291387027ca29dc7ba945292b588b959f3a24"
+      },
+      "bytes": 2516,
+      "sha256": "6bc0c794b6fc4fccef49a87f95706b93db7de36ce5f1955e82bec25117eeaa75",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
     "components/misc/combinedperformance.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1d9a71e884f0ed5261e10fa8976b3656d66e7505"
+        "blob": "359e302dda7aaa238050daf28178ab6596cdb3cf"
       },
-      "bytes": 613,
-      "sha256": "1b2bb253877d9bd87f5cff6d873e0b4e4934ade1a3567790c1e8ba8b0b8dda3f",
-      "reason": "Combined performance candidate: Provide a default-on combined candidate and one process-scoped same-executable master fallback."
+      "bytes": 901,
+      "sha256": "d87f0350f24b011024ecc0d5606b8c9fc83a416a9e5ef64985d9cd29439f94c8",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/misc/nativejobpool.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b6c2b9f0e02d93cf4f0a653a11242ff55aba3cd9"
+      },
+      "bytes": 3204,
+      "sha256": "5f93aa81be787bd1d25bdb2c68613d4dbcbdd89677218835b5f66c3e60f312a3",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/misc/nativejobpool.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3b6043e85929652d7be88e5cb806ded6e4068227"
+      },
+      "bytes": 6457,
+      "sha256": "aacc243405d51ebd323a46b2287a93e28d4a1142e29f3dd011fdd904635f2536",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/resource/niffilemanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "d670f41ee950a279e17f9250f33c460f871d3b28"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6363048d4fe869eb6e154d78be75fdb626860826"
+      },
+      "bytes": 2180,
+      "sha256": "cdc9d2d3b64767e00d2dee1071e13e0295b6f98239feebbe1d6bfce9925bb723",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/resource/niffilemanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a5395fef7ebc5f8d255b60853e42accb7b1905b4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ca29dc77fa34dcea5ab449efd213d3ebca7227d9"
+      },
+      "bytes": 1290,
+      "sha256": "4433c898f21d1a87ce2b2979b441e18c51bbb9cbe74fa94c4e22a9367274dabe",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/resource/scenemanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "82584cfec574c38697dcaed1a07cc58009b74ac0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6adbd56fd9b271b3d04d962831fe0666ef81fa30"
+      },
+      "bytes": 52921,
+      "sha256": "7bc96ce26bc5347ec309fed740c0875ce59a8ea7ed5efa2f763f851c3512ab3c",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/resource/scenemanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b96517da417a032774405177b8977a2c39d8565d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "43b0d07ac1db5b7b2191fe0d66a3df4953813bc1"
+      },
+      "bytes": 10493,
+      "sha256": "be1bc18ce700764e3b7504060a9e46320ea103cf2b5e1a2d09c09eadd28fd7b8",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "components/settings/categories/general.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a79ef83ea0f170e433c624878d082b0a0300b8c3"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "99dd8dcc4b6a206538aeeced884c724e2cf9b102"
+      },
+      "bytes": 2068,
+      "sha256": "7c856ca44234ec78531336576f37f2951ccde27b24882621101e11f1aa3b03ac",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     },
     "components/settings/categories/gui.hpp": {
       "before": {
@@ -1032,11 +1311,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2ad27c3ec0c8c4a449bd722cf1e25b0e2ef45c41"
+        "blob": "88c6c71cb0b51532fa140bc5184ef4b19492da37"
       },
-      "bytes": 5744,
-      "sha256": "871fe1050782206e0b632ce295aad4cb05c73ce89674bdbef9cd9055aae9c18b",
-      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+      "bytes": 3571,
+      "sha256": "8a16294a9f104685c0e8329b4fd35b67a9b6630b8624d0c88f03b6ff45e46b9e",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -1062,21 +1341,181 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6274f0c23b33d9ec80a11471d2d388a564328d46"
+        "blob": "ae5d9eba6c8994d24c3e153844a16d0b8df43b12"
       },
-      "bytes": 2408,
-      "sha256": "506e60265a67e8c51cf14fb771a80489ef8c97f6679da0185a927f670ea145be",
-      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+      "bytes": 2561,
+      "sha256": "93c5d7d005505b84df9ce2c0784e32262efaa1723899d7e8a243f4048b7fadec",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4c42fc597ecc6aec2c72cd2ff9553b8b68e2f181"
+        "blob": "2aa674a193f5b6e83f0e5189f301368afbcfa045"
       },
-      "bytes": 4860,
-      "sha256": "37159246a70ac51a45cc14d4f13e3141e4a22e4d04e72cb2a4d36eaa042e49f9",
-      "reason": "Verify combined/inherited process modes, recorded arguments and environment restoration after success/failure in Windows PowerShell 5.1 and PowerShell 7."
+      "bytes": 5011,
+      "sha256": "4339f4e7fa0631bd0eed98452fc7dff50c02f152745948a787d92d95a43d1e87",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "18e97d8ce2aa306f8f4ebe7256604058ce49841f"
+      },
+      "bytes": 168,
+      "sha256": "58968dcd964a6a296508b5ac8daa18f1e8a13c3c5fcef6df8a9c257bd53d0c90",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/AdvancedWorldMap/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "eba16e3ef89ead54b5b07bdde82f8d79d78c7578"
+      },
+      "bytes": 271,
+      "sha256": "6b50506fa7a6264ac3b248eeb56d417b33f0408c46fdf5aaa113133c28c71db4",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/AdvancedWorldMap/Restore.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e83f014fb0cb8e573d905dcdd743ed1ac72ba14b"
+      },
+      "bytes": 183,
+      "sha256": "f904d28c75e1f033000e70d474cbea609e9a876a15a0384524abf1d7b8bcd14f",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/AdvancedWorldMap/manifest.json": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a711a3031475ba55607c861352335417c6b74ec3"
+      },
+      "bytes": 1033,
+      "sha256": "665a262665e6d1c58e6e18306a507fc9db6d5f9b6adbad7f56d0de74ba834f10",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/AdvancedWorldMap/scripts/advanced_world_map/global.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "97b1ca29dcd78f19a2fcc18c17af35a7c1349c5a"
+      },
+      "bytes": 17347,
+      "sha256": "465ab2eccb1a3b87bcabf3d14048c77f53ef16306ed7cd374c2f085455545729",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/AdvancedWorldMap/scripts/advanced_world_map/player.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "cc8cae15f580a6b79678b23a68ce55e5fcabf544"
+      },
+      "bytes": 43593,
+      "sha256": "f22c5eb20e5be5693b9888484f060a3fe978d08cabe2938977b6279eb27f89ce",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/ProximityTool/Install.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "18e97d8ce2aa306f8f4ebe7256604058ce49841f"
+      },
+      "bytes": 168,
+      "sha256": "58968dcd964a6a296508b5ac8daa18f1e8a13c3c5fcef6df8a9c257bd53d0c90",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/ProximityTool/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3e250744a5fe90c5ffb2eeb453a77ae3fcb28415"
+      },
+      "bytes": 256,
+      "sha256": "a1ebc7612c99c0fbe49294a84289ddee9b52a302e3a6b8ba87576862c8b29fd6",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/ProximityTool/Restore.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e83f014fb0cb8e573d905dcdd743ed1ac72ba14b"
+      },
+      "bytes": 183,
+      "sha256": "f904d28c75e1f033000e70d474cbea609e9a876a15a0384524abf1d7b8bcd14f",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/ProximityTool/manifest.json": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "da2998ae2d50f91e83f51c2daf5051c868f53b12"
+      },
+      "bytes": 776,
+      "sha256": "fec3712305ee7efe67435d71439d76b0de52fdbd08eb7ebbe25dea94cb191bf0",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/ProximityTool/scripts/proximityTool/activeMarkers.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "272f8d2402080f61e199de24657e70f6c3d964de"
+      },
+      "bytes": 16512,
+      "sha256": "4823d917012325f30534a81ba719bee5339ab437e4ebbe7fce861049ccd844e9",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/QuestGuiderLite/Install.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "18e97d8ce2aa306f8f4ebe7256604058ce49841f"
+      },
+      "bytes": 168,
+      "sha256": "58968dcd964a6a296508b5ac8daa18f1e8a13c3c5fcef6df8a9c257bd53d0c90",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/QuestGuiderLite/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "127eaa3037fb9d834a988e10d1c318f4a56544c3"
+      },
+      "bytes": 246,
+      "sha256": "0f36697b7e4901e4539297e2f2664fb622389a36bd7b2dd6848ac854f60fa563",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/QuestGuiderLite/Restore.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e83f014fb0cb8e573d905dcdd743ed1ac72ba14b"
+      },
+      "bytes": 183,
+      "sha256": "f904d28c75e1f033000e70d474cbea609e9a876a15a0384524abf1d7b8bcd14f",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/QuestGuiderLite/manifest.json": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "df9996db38127e5b9f185981232485c7b4ccaf0a"
+      },
+      "bytes": 774,
+      "sha256": "ad29fd9e7d80e80d29570d6af789fc81468865d5c0bb8d13b05a298172a6194f",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/mods/QuestGuiderLite/scripts/quest_guider_lite/main.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "94a5953b59efc76827534ecbc34d6e7e344a8a81"
+      },
+      "bytes": 35877,
+      "sha256": "faf95a0827edc2892471a2d8f51eff39ff7d10745b04d6b704d12576949591af",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/combined-performance/mods/SaneMagic/Install.cmd": {
       "before": null,
@@ -1112,11 +1551,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "8ec8c70d0b6b7bf1a82b82badb2d35de8d305e68"
+        "blob": "751f54a160f2e1850013432ec0a49aac45b2be36"
       },
-      "bytes": 1201,
-      "sha256": "8157c3c80000bc1866cf0fe320d99a650907d840e7350b9a0cd86bed917adca0",
-      "reason": "Combined performance candidate: Supply hash-bound SaneMagic native-query adapters and prepared transactional install/restore using the preserved installer. Permit upgrades whose last log is from either exact merged parent (combined performance 6182d81e or hidden-HUD tooltips 7024d00c); retain existing script, configuration and data-order hash checks."
+      "bytes": 1003,
+      "sha256": "10703b7916fc247dbd657e8be1c0d1f0b003eb3387f5fb6631f1767e55ea6f05",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/combined-performance/mods/SaneMagic/scripts/SaneMagic/daesumm_pn.lua": {
       "before": null,
@@ -1142,11 +1581,51 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "81cde7bfcc04774edc1868b89d3071d69e35f5e3"
+        "blob": "30617b088951db7607182ad1bacd809e81f8b05b"
       },
-      "bytes": 7311,
-      "sha256": "8c7a96f0cebb4d560adbb0ac51b59407dd67bcdbefb42c6a3f45ad22b1f11087",
-      "reason": "Combined performance candidate: Package and verify combined native performance, preserve the custom runtime pair, and provide same-executable recording and rollback tools."
+      "bytes": 11007,
+      "sha256": "7ddd9c37e89a36f388e393e477794750e9276a8c1d04235d9593b74df8763d5b",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/tests/fixtures/NativeJobAdapters/AdvancedWorldMap-global.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "5cae726ac1337963c8966b2f461915bbcb6cefbd"
+      },
+      "bytes": 3587,
+      "sha256": "c41185f746d6d9cf855d3288a1e358b2341243709eb32ec7db14e4ef175d2c85",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/tests/fixtures/NativeJobAdapters/AdvancedWorldMap-player.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "44b301ad6083058474478455f6b1815dbc732054"
+      },
+      "bytes": 8192,
+      "sha256": "d3db336de6c16cf291cf55b3a3d2982c3703be9631adc20262f37f667c68d6dd",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/tests/fixtures/NativeJobAdapters/ProximityTool-activeMarkers.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "aceab1305d34f2139e5afff5767a5362331de038"
+      },
+      "bytes": 3320,
+      "sha256": "5c65e384a6c71e2ce181978c7ef15f7c31abb765e64a7fccd61dd3b3d1244056",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/tests/fixtures/NativeJobAdapters/QuestGuiderLite-main.lua.gz": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "29b69ebecdfb665c77836a76ffa84b9747c20eb0"
+      },
+      "bytes": 7334,
+      "sha256": "78b22b78cd12f6e82bd300f17ee8efd103ffc41a15af37b782dc0286a8d8c1c7",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/combined-performance/tests/fixtures/SaneMagic/README.md": {
       "before": null,
@@ -1188,6 +1667,16 @@
       "sha256": "c355c313ec4744320b1e0d22e7e70465d899a48e8c62293578ddff95d0672c6b",
       "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
     },
+    "custom/combined-performance/tests/test_native_adapters.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d9b8878e930d870ac53a3434886fd232083e189f"
+      },
+      "bytes": 7003,
+      "sha256": "6773321dfd4c692052befa88c947cb693c0438235a0b36e638e69484a9ffec60",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
     "custom/combined-performance/tests/test_sanemagic_adapters.py": {
       "before": null,
       "after": {
@@ -1197,6 +1686,16 @@
       "bytes": 15445,
       "sha256": "b54c227afaa50880cc513e3ed103ae26843eb0ab60f08cd4b15454b9cc646396",
       "reason": "Combined performance candidate: Reproduce SaneMagic original/adapted behavior in Lua 5.1 and LuaJIT 2.1 using exact captured source fixtures and pinned runtime."
+    },
+    "custom/combined-performance/tests/verify-native-jobs.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "98012c1fedfb7bf84a025c1aa809e244e666ec58"
+      },
+      "bytes": 1494,
+      "sha256": "799b06918e01bf36c7e79ef91fa49825249945648032abde56bfc0e2768a2194",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/combined-performance/verify-native.py": {
       "before": null,
@@ -1892,11 +2391,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1ea98e90a889b454daf6cff0fb0a83a8abd279b4"
+        "blob": "a3fceb917666bad132bbd846c8303308a0f276c7"
       },
-      "bytes": 50712,
-      "sha256": "4de6bf1b4a3bcc132aab743762b57baa82f5e0b0c385de98e3e23ec3628e8c76",
-      "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: files/settings-default.cfg; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 50935,
+      "sha256": "e3b9d3acbd47e0a7c8ca43f3da0fc1fd61c519847b606d754e96d620e4b07cdb",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
     }
   }
 }

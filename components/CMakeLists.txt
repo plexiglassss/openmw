@@ -299,7 +299,7 @@ add_component_dir (mapmarkers classification spatialindex)
 
 add_component_dir (misc
     barrier budgetmeasurement color compression constants convert coordinateconverter dialoguetext display endianness float16 frameratelimiter
-    guarded math mathutil messageformatparser notnullptr objectpool osgpluginchecker osguservalues progressreporter resourcehelpers
+    guarded math mathutil messageformatparser nativejobpool notnullptr objectpool osgpluginchecker osguservalues progressreporter resourcehelpers
     rng strongtypedef thread timeconvert timer tuplehelpers tuplemeta utf8stream weakcache windows
     )
 

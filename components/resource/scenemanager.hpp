@@ -5,6 +5,9 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <span>
+
+namespace Misc { class NativeJobPool; }
 
 #include <osg/Texture>
 #include <osg/ref_ptr>
@@ -154,6 +157,9 @@ namespace Resource
         ///  If even the error marker mesh can not be found, an exception is thrown.
         /// @note Thread safe.
         osg::ref_ptr<const osg::Node> getTemplate(VFS::Path::NormalizedView path, bool compile = true);
+
+        /// Decode the uncached NIF inputs of one bounded paging batch.
+        void prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs);
 
         /// Clone osg::Node safely.
         /// @note Thread safe.

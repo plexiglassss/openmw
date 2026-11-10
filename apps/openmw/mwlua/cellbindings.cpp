@@ -1,6 +1,10 @@
 #include "cellbindings.hpp"
 
+#include <components/settings/values.hpp>
+
+#include <algorithm>
 #include <cstdlib>
+#include <string_view>
 
 #include <components/esm3/loadacti.hpp>
 #include <components/esm3/loadalch.hpp>
@@ -248,6 +252,34 @@ namespace MWLua
         return res;
     }
 
+    ObjectIdList queryCellObjectsOfTypes(MWWorld::CellStore& cell, const std::vector<std::uint32_t>& types,
+        bool useCache, std::vector<std::size_t>* counts)
+    {
+        std::vector<ObjectIdList> groups;
+        groups.reserve(types.size());
+        std::size_t total = 0;
+        for (std::uint32_t type : types)
+        {
+            auto group = queryCellObjects(cell, type, useCache);
+            if (!group)
+                return {};
+            total += group->size();
+            groups.push_back(std::move(group));
+        }
+
+        auto result = std::make_shared<std::vector<ObjectId>>();
+        result->reserve(total);
+        if (counts)
+            counts->clear();
+        for (const auto& group : groups)
+        {
+            if (counts)
+                counts->push_back(group->size());
+            result->insert(result->end(), group->begin(), group->end());
+        }
+        return result;
+    }
+
     namespace
     {
         bool useCellQueryCache()
@@ -357,6 +389,33 @@ namespace MWLua
                         std::string("Incorrect type argument in cell:getAll: ") + LuaUtil::toString(*type));
                 return GObjectList{ std::move(res) };
             };
+            if (Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled)
+                cellT["getAllOfTypes"]
+                    = [ids = getPackageToTypeTable(view)](const CellT& cell, const sol::table& typePackages) {
+                      std::vector<std::uint32_t> types;
+                      types.reserve(typePackages.size());
+                      for (std::size_t index = 1; index <= typePackages.size(); ++index)
+                      {
+                          const sol::object package = typePackages.get<sol::object>(index);
+                          if (ids[package] == sol::nil)
+                          {
+                              if (cell.mStore->getState() != MWWorld::CellStore::State_Loaded)
+                                  cell.mStore->load();
+                              throw std::runtime_error("Incorrect type argument at index "
+                                  + std::to_string(index) + " in cell:getAllOfTypes");
+                          }
+                          types.push_back(ids[package].template get<std::uint32_t>());
+                      }
+                      std::vector<std::size_t> counts;
+                      ObjectIdList result
+                          = queryCellObjectsOfTypes(*cell.mStore, types, useCellQueryCache(), &counts);
+                      if (!result)
+                          throw std::runtime_error("Incorrect type argument in cell:getAllOfTypes");
+                      sol::table countTable(typePackages.lua_state(), sol::create);
+                      LuaUtil::copyVectorToTable(counts, countTable);
+                      return std::make_tuple(GObjectList{ std::move(result) },
+                          LuaUtil::makeStrictReadOnly(countTable));
+                  };
         }
 
         if (context.initializeOnce("openmw_cellbindings"))

@@ -1,5 +1,8 @@
 #include <components/files/configurationmanager.hpp>
+#include <components/misc/nativejobpool.hpp>
+#include <components/resource/niffilemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
+#include <components/testing/util.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/shadow.hpp>
 #include <components/toutf8/toutf8.hpp>
@@ -13,6 +16,32 @@
 namespace
 {
     using namespace testing;
+
+    TEST(ResourceResourceSystem, nativePagingDecodesColdInputsAndReusesWarmModels)
+    {
+        using VFS::Path::NormalizedView;
+        std::string nif = "NetImmerse File Format, Version 4.0.0.2\n";
+        nif.append("\x02\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00", 12);
+        TestingOpenMW::VFSTestFile good(nif), corrupt("invalid header\n");
+        constexpr NormalizedView a("a.nif"), b("b.nif"), c("c.nif"), d("d.nif"), broken("bad.nif");
+        auto vfs = TestingOpenMW::createTestVFS({ {a,&good}, {b,&good}, {c,&good}, {d,&good}, {broken,&corrupt} });
+        const ToUTF8::Utf8Encoder encoder(ToUTF8::WINDOWS_1252);
+        Resource::ResourceSystem resources(vfs.get(), 1.0, &encoder.getStatelessEncoder());
+        Misc::NativeJobPool pool(2, 8192);
+        const std::array paths{ a, b, c, d, broken };
+        resources.getSceneManager()->prepareNifInputs(paths, pool);
+        auto* files = resources.getNifFileManager();
+        auto first = files->get(a);
+        for (auto path : { a, b, c, d })
+            EXPECT_TRUE(files->isCached(path));
+        EXPECT_EQ(first->mVersion, Nif::NIFFile::VER_MW);
+        EXPECT_FALSE(files->isCached(broken));
+        EXPECT_ANY_THROW(files->get(broken));
+        EXPECT_EQ(pool.statistics().mParallelCalls, 1u);
+        resources.getSceneManager()->prepareNifInputs(paths, pool);
+        EXPECT_EQ(pool.statistics().mParallelCalls, 1u);
+        EXPECT_EQ(files->get(a), first);
+    }
 
     TEST(ResourceResourceSystem, scenemanager_getinstance_should_be_thread_safe)
     {

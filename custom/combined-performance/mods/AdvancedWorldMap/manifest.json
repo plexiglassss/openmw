@@ -1,0 +1,26 @@
+{
+  "id": "advanced-world-map-native-jobs",
+  "name": "Advanced World Map native-query adapter",
+  "expected_revision": "8bd0d90b27",
+  "allowed_revisions": [
+    "8bd0d90b27",
+    "8bd0d90b2727b8d654288d5c42e45a3edefc7146"
+  ],
+  "expected_data_order_sha256": "67fa12e2351e54ccc6e9f7d33b887a9f8b286feb31a1b8a6e1665d21b3039e1e",
+  "expected_config_sha256": [
+    "2291eb4e130b803938b26be461475bef76e9f9035e6889e5d778a5b52423ea66",
+    "801ec806dff8a958914b808a24d1140debca30798bbbd318f0e3fc35fba870ca"
+  ],
+  "files": [
+    {
+      "path": "scripts/advanced_world_map/player.lua",
+      "expected_sha256": "c1c98419c62caefc0cc0fe78373a20085ba25cc0e3904c669319d1716442fb58",
+      "installed_sha256": "f22c5eb20e5be5693b9888484f060a3fe978d08cabe2938977b6279eb27f89ce"
+    },
+    {
+      "path": "scripts/advanced_world_map/global.lua",
+      "expected_sha256": "aad72eb3a1b29ffdb00b4919fafd5eadbeed032eb81c1b0db0660a0a7d5b8e74",
+      "installed_sha256": "465ab2eccb1a3b87bcabf3d14048c77f53ef16306ed7cd374c2f085455545729"
+    }
+  ]
+}

@@ -16,6 +16,14 @@ namespace Misc
         }();
         return enabled;
     }
+    inline bool useNativeJobs()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_NATIVE_JOBS");
+            return value == nullptr || std::string_view(value) != "0";
+        }();
+        return enabled && useCombinedPerformance();
+    }
 }
 
 #endif

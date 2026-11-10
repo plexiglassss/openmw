@@ -7,7 +7,9 @@
 
 #include <cerrno>
 #include <chrono>
+#include <cstdlib>
 #include <future>
+#include <string_view>
 #include <system_error>
 
 #include <osgDB/ReaderWriter>
@@ -50,6 +52,8 @@
 #include <components/loadinglistener/loadinglistener.hpp>
 
 #include <components/misc/frameratelimiter.hpp>
+#include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
 
 #include <components/sceneutil/color.hpp>
 #include <components/sceneutil/depth.hpp>
@@ -576,6 +580,15 @@ OMW::Engine::~Engine()
     mWorkQueue = nullptr;
     reportShutdownStage("mWorkQueue");
 
+    if (mNativeJobPool)
+    {
+        const Misc::NativeJobPool::Statistics stats = mNativeJobPool->statistics();
+        Log(Debug::Info) << "Native gameplay jobs: " << stats.mParallelCalls << " parallel calls, "
+                         << stats.mSerialCalls << " serial calls, " << stats.mItems << " items, " << stats.mTasks
+                         << " tasks";
+    }
+    mNativeJobPool = nullptr;
+    reportShutdownStage("mNativeJobPool");
     mViewer = nullptr;
     reportShutdownStage("mViewer");
 
@@ -908,6 +921,14 @@ void OMW::Engine::prepareEngine()
     mEnvironment.setResourceSystem(*mResourceSystem);
 
     mWorkQueue = new SceneUtil::WorkQueue(Settings::cells().mPreloadNumThreads);
+    const bool nativeJobsEnabled = Settings::general().mNativeJobsEnabled && Misc::useNativeJobs();
+    const std::size_t nativeJobThreads
+        = nativeJobsEnabled ? static_cast<std::size_t>(Settings::general().mNativeJobsThreads) : 0;
+    mNativeJobPool = std::make_unique<Misc::NativeJobPool>(nativeJobThreads,
+        static_cast<std::size_t>(Settings::general().mNativeJobsMinimumItems));
+    mEnvironment.setNativeJobPool(*mNativeJobPool);
+    Log(Debug::Info) << "Native gameplay jobs: " << mNativeJobPool->workerCount()
+                     << " workers, minimum " << mNativeJobPool->minimumItemsPerTask() << " items per task";
     mUnrefQueue = std::make_unique<SceneUtil::UnrefQueue>();
 
     mScreenCaptureOperation = new SceneUtil::AsyncScreenCaptureOperation(mWorkQueue,

@@ -29,6 +29,7 @@ file(GLOB UNITTEST_SRC_FILES
     misc/testdialoguetext.cpp
     misc/testendianness.cpp
     misc/testmathutil.cpp
+    misc/testnativejobpool.cpp
     misc/testresourcehelpers.cpp
     misc/teststringops.cpp
 

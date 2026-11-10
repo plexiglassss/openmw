@@ -31,7 +31,8 @@ $parameters = @{
 if (-not [string]::IsNullOrWhiteSpace($UserConfigDir)) { $parameters.UserConfigDir = $UserConfigDir }
 if (-not [string]::IsNullOrWhiteSpace($OutputRoot)) { $parameters.OutputRoot = $OutputRoot }
 $overrides = @{
-    OPENMW_COMBINED_PERFORMANCE = $(if ($Variant -eq 'Combined') { '1' } else { '0' })
+    OPENMW_COMBINED_PERFORMANCE = '1'
+    OPENMW_NATIVE_JOBS = $(if ($Variant -eq 'Combined') { '1' } else { '0' })
     OPENMW_LUA_CELL_QUERY_CACHE = '1'
     OPENMW_LUA_UI_LEGACY_UPDATES = '0'
     OPENMW_LUA_UI_LEGACY_LAYOUT = '0'
@@ -44,13 +45,13 @@ try {
     foreach ($name in $overrides.Keys) {
         [Environment]::SetEnvironmentVariable($name, $overrides[$name], 'Process')
     }
-    Write-Host ('Engine mode: ' + $Variant + '; FrameOnly recording')
+    Write-Host ('Engine mode: ' + $Variant + '; native jobs ' + $(if ($Variant -eq 'Combined') { 'enabled' } else { 'disabled' }) + '; FrameOnly recording')
     Write-Host 'Load your usual town save, let loading settle, then play your usual short route.'
     Write-Host 'Keep the four mods enabled for this combined-candidate check.'
     Write-Host 'Quit normally when finished; the capture ZIP is created automatically.'
     if ($Variant -eq 'Inherited') {
-        Write-Host 'Inherited mode uses the same executable with the new combined paths disabled.'
-        Write-Host 'The installed SaneMagic adapters automatically use their original-code fallback.'
+        Write-Host 'Inherited mode uses the same executable with native jobs and the new generic query APIs disabled.'
+        Write-Host 'The cumulative Sane Magic queries remain available. The three new adapters use their prior paths.'
     }
     & $collector @parameters
 } finally {
