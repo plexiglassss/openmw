@@ -538,6 +538,21 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Compare actor and HUD updates with the previous paths in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_TOWN_FRAME_UPDATES = '0'
+          try {
+            ./build/components-tests.exe --gtest_filter=LuaScriptsContainerTest.UpdateHandlersKeepTracebacksOrderAndStateAfterCollection:LuaScriptsContainerTest.RepeatedActorUpdateDispatchBenchmark --gtest_output=xml:town-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous Lua update dispatch tests failed' }
+            ./build/openmw-tests.exe --gtest_filter=MWLuaMagicBindingsTest.ModifiedStatBindingsReadLiveValuesAndPendingSelfWrites:MWLuaMagicBindingsTest.RepeatedLuaTypeQueriesObserveRecordReplacementAndRemoval:LuaUiLayoutTest.* --gtest_output=xml:town-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous actor and HUD regression tests failed' }
+          } finally {
+            Remove-Item Env:OPENMW_TOWN_FRAME_UPDATES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-town-frame-updates.py
+          if ($LASTEXITCODE) { throw 'Town update state or attachment checks failed' }
       - name: Require executed native tooltip tests
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh

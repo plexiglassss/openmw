@@ -217,7 +217,13 @@ namespace LuaUtil
         struct Handler
         {
             int mScriptId;
-            sol::main_function mFn;
+            std::variant<sol::main_function, sol::protected_function> mFn;
+
+            template <class... Args>
+            sol::protected_function_result call(ScriptsContainer* container, const Args&... args) const
+            {
+                return std::visit([&](const auto& fn) { return LuaUtil::call({ container, mScriptId }, fn, args...); }, mFn);
+            }
         };
 
         struct EngineHandlerList
@@ -242,7 +248,7 @@ namespace LuaUtil
                 try
                 {
                     Diagnostics::Callback timingCallback(handlers.mName);
-                    LuaUtil::call({ this, handler.mScriptId }, handler.mFn, args...);
+                    handler.call(this, args...);
                 }
                 catch (std::exception& e)
                 {
@@ -310,7 +316,8 @@ namespace LuaUtil
         void callTimer(const Timer& t);
         void updateTimerQueue(std::vector<Timer>& timerQueue, double time);
         static void insertTimer(std::vector<Timer>& timerQueue, Timer&& t);
-        static void insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn);
+        static void insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn,
+            lua_State* prepareOnState = nullptr);
         static void removeHandler(std::vector<Handler>& list, int scriptId);
         void insertInterface(int scriptId, const Script& script);
         void removeInterface(int scriptId, const Script& script);

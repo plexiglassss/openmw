@@ -5,6 +5,7 @@
 #include "scripttracker.hpp"
 
 #include <components/esm/luascripts.hpp>
+#include <components/misc/combinedperformance.hpp>
 
 namespace
 {
@@ -165,7 +166,13 @@ namespace LuaUtil
                         if (it == mEngineHandlers.end())
                             Log(Debug::Error) << "Not supported handler '" << handlerName << "' in " << debugName;
                         else
-                            insertHandler(it->second->mList, scriptId, std::move(fn));
+                        {
+                            // onUpdate is called once per script per frame. Root its protected call
+                            // on the main Lua state once, using the engine's traceback handler.
+                            lua_State* prepareOn = it->second == &mUpdateHandlers && Misc::useTownFrameUpdates()
+                                ? mLua.unsafeState() : nullptr;
+                            insertHandler(it->second->mList, scriptId, std::move(fn), prepareOn);
+                        }
                     }
                 }
             }
@@ -334,7 +341,7 @@ namespace LuaUtil
             data.mPublicInterfaces[script.mInterfaceName] = sol::nil;
     }
 
-    void ScriptsContainer::insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn)
+    void ScriptsContainer::insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn, lua_State* prepareOnState)
     {
         size_t pos = list.size();
         list.emplace_back();
@@ -344,7 +351,10 @@ namespace LuaUtil
             pos--;
         }
         list[pos].mScriptId = scriptId;
-        list[pos].mFn = std::move(fn);
+        if (prepareOnState)
+            list[pos].mFn.emplace<sol::protected_function>(prepareOnState, fn);
+        else
+            list[pos].mFn.emplace<sol::main_function>(std::move(fn));
     }
 
     void ScriptsContainer::removeHandler(std::vector<Handler>& list, int scriptId)
@@ -378,7 +388,7 @@ namespace LuaUtil
                 try
                 {
                     Diagnostics::Callback timingCallback(eventName);
-                    sol::object res = LuaUtil::call({ this, h.mScriptId }, h.mFn, object);
+                    sol::object res = h.call(this, object);
                     if (res.is<bool>() && !res.as<bool>())
                         break; // Skip other handlers if 'false' was returned.
                 }

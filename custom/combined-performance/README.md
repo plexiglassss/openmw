@@ -29,3 +29,9 @@ Four workers are configured by default. In `settings.cfg`, the `[General]` entri
 | Sane Magic | Uses the two previously accepted effect-query scripts. Repeated reads can use the engine's new revision checks. |
 
 The capture launchers use the same executable. A measured town FPS increase and end-to-end cell-transition improvement require a comparison on the actual modlist.
+
+## Town frame updates
+
+Run `Run-Combined.cmd` from the extracted engine folder. This enables prepared onUpdate callbacks, direct reads of modified actor stats, reuse of repeated actor type checks and retention of stable HUD widget attachments. Each works with ordinary scripts. Existing mod adapters are optional.
+
+For a same-executable comparison with the previous town update code, run `Run-Previous-Frame-Updates.cmd` with the same save and route. Both launchers keep native jobs enabled. Each capture records both switches. Open inventory twice in Seyda Neen if comparing the menu hitches as well.

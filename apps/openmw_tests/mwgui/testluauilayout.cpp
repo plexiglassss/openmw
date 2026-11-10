@@ -369,6 +369,48 @@ namespace LuaUi
             snapshot("repaired-wrapper-style");
         }
 
+        TEST_F(LuaUiLayoutTest, RetainedAttachmentsPreserveOwnershipAndDynamicObservations)
+        {
+            run(R"(
+                kept=element {name='kept', props={size=vec2(12,8)}}
+                doomed={name='oldTemplate',props={size=vec2(20,20)}}
+                root=element {name='owner',layer='LuaUiTest',props={size=vec2(90,75)},
+                    template={content=content {doomed}},content=content {kept}}
+                roots={root}; refresh(root)
+            )");
+            auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            auto kept = mLua["kept"].get<std::shared_ptr<Element>>();
+            collectLayoutUpdateStatistics(true);
+            refresh(root);
+            const auto stats = takeLayoutUpdateStatistics();
+            collectLayoutUpdateStatistics(false);
+            RecordProperty("unchanged_attachment_calls", std::to_string(stats.hierarchyWrites));
+            if (Misc::useTownFrameUpdates() && useNativeLayoutReuse())
+                EXPECT_EQ(stats.hierarchyWrites, 0u);
+            else
+                EXPECT_GT(stats.hierarchyWrites, 0u);
+            snapshot("stable-attachments");
+
+            auto* oldTemplate = root->mRoot->templateChildren().at(0)->widget();
+            kept->mRoot->widget()->detachFromWidget();
+            kept->mRoot->widget()->attachToWidget(oldTemplate);
+            run("root.layout.template=nil; refresh(root)");
+            EXPECT_EQ(kept->mRoot->getParent(), root->mRoot);
+            EXPECT_EQ(kept->mRoot->widget()->getParent(), root->mRoot->widget()->getChildAt(0));
+            snapshot("survived-template-removal");
+
+            mLua["isKeptAttached"] = [kept] { return kept->mRoot->widget()->getParent() != nullptr; };
+            run(R"(
+                local props=root.layout.props
+                root.layout.props=setmetatable(props,{__index=function(t,k)
+                    if k=='visible' and observed==nil then observed=isKeptAttached() end
+                end})
+                refresh(root)
+                assert(observed==false)
+            )");
+            snapshot("dynamic-observation");
+        }
+
         TEST_F(LuaUiLayoutTest, MutableTemplateSlotsAndReplacementKeepRetainedChild)
         {
             run(R"(
@@ -755,6 +797,7 @@ namespace LuaUi
                 collectLayoutUpdateStatistics(false);
                 RecordProperty(kind + "_layout_calculations", std::to_string(stats.calculated));
                 RecordProperty(kind + "_layout_reuses", std::to_string(stats.reused));
+                RecordProperty(kind + "_attachment_calls", std::to_string(stats.hierarchyWrites));
                 if (useNativeLayoutReuse())
                     EXPECT_GT(stats.reused, 0u);
                 else

@@ -52,6 +52,7 @@ namespace LuaUi
     {
         std::uint64_t calculated = 0;
         std::uint64_t reused = 0;
+        std::uint64_t hierarchyWrites = 0;
     };
     // Disabled during normal play; used by native regression/benchmark tests.
     void collectLayoutUpdateStatistics(bool enabled);
@@ -84,16 +85,17 @@ namespace LuaUi
         void detachChildrenIf(auto&& predicate) { detachChildrenIf(predicate, mChildren); }
         void detachTemplateChildrenIf(auto&& predicate) { detachChildrenIf(predicate, mTemplateChildren); }
 
-        void reset();
+        bool prepareChildrenForUpdate(bool retain);
 
         const std::vector<WidgetExtension*>& children() { return mChildren; }
-        void setChildren(const std::vector<WidgetExtension*>&);
+        void setChildren(const std::vector<WidgetExtension*>&, bool keptAttached = false);
 
         const std::vector<WidgetExtension*>& templateChildren() { return mTemplateChildren; }
-        void setTemplateChildren(const std::vector<WidgetExtension*>&);
+        void setTemplateChildren(const std::vector<WidgetExtension*>&, bool retain = false);
 
         void setCallback(const std::string&, const LuaUtil::Callback&);
         void clearCallbacks();
+
 
         void setProperties(const sol::main_object& props);
         void setTemplateProperties(const sol::main_object& props)
@@ -238,6 +240,8 @@ namespace LuaUi
         bool mVisible; // used to implement updateVisible
 
     private:
+        bool hasOrderedAttachments(const std::vector<WidgetExtension*>& children, bool templates) const;
+
         friend class LayoutUpdateScope;
         void preserveRetainedExternalReads() const;
         bool mLayoutDirty = true;

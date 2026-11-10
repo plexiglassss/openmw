@@ -1,5 +1,12 @@
 #include "apps/openmw/mwlua/context.hpp"
 #include "apps/openmw/mwlua/magicbindings.hpp"
+#include "apps/openmw/mwlua/luamanagerimp.hpp"
+#include "apps/openmw/mwlua/stats.hpp"
+#include "apps/openmw/mwmechanics/npcstats.hpp"
+#include <components/misc/nativejobpool.hpp>
+#include <components/settings/values.hpp>
+#include <components/esm/attr.hpp>
+#include <components/esm3/loadskil.hpp>
 #include "apps/openmw/mwlua/magicbindingshelper.hpp"
 #include "apps/openmw/mwlua/magicqueries.hpp"
 #include "apps/openmw/mwlua/types/types.hpp"
@@ -61,7 +68,7 @@ namespace MWLua
 
         struct TestActorData : MWWorld::CustomData
         {
-            MWMechanics::CreatureStats mStats;
+            MWMechanics::NpcStats mStats;
 
             std::unique_ptr<MWWorld::CustomData> clone() const override
             {
@@ -100,6 +107,13 @@ namespace MWLua
                 if constexpr (Observe)
                     ++mObservations->mActorChecks;
                 return mIsActor;
+            }
+
+            bool isNpc() const override { return mIsActor; }
+
+            MWMechanics::NpcStats& getNpcStats(const MWWorld::Ptr& ptr) const override
+            {
+                return static_cast<TestActorData*>(ptr.getRefData().getCustomData())->mStats;
             }
 
             MWMechanics::CreatureStats& getCreatureStats(const MWWorld::Ptr& ptr) const override
@@ -242,6 +256,112 @@ namespace MWLua
                 return {};
             }
         };
+
+        TEST_F(MWLuaMagicBindingsTest, RepeatedLuaTypeQueriesObserveRecordReplacementAndRemoval)
+        {
+            const ESM::RefNum refNum{ 73, 2 };
+            const auto first = actor(false, refNum);
+            const LObject held(first);
+            const auto check = [&](const ESM::RefId& id, unsigned expected) {
+                const auto replacement = actor(false, refNum, id);
+                EXPECT_EQ(getLiveCellRefType(held), expected);
+                EXPECT_EQ(getLiveCellRefType(held), getLiveCellRefType(replacement.mRef));
+                EXPECT_EQ(getLiveCellRefType(GObject(replacement)), expected);
+            };
+            check(ESM::RefId::stringRefId("pLaYeR"), ESM::REC_INTERNAL_PLAYER);
+            for (auto id : { "pRiSoNmArKeR", "DIVINEMARKER", "templemarker", "northmarker" })
+                check(ESM::RefId::stringRefId(id), ESM::REC_INTERNAL_MARKER);
+            check(ESM::RefId::stringRefId("northmarker_extra"), ESM::REC_NPC_);
+            check(ESM::RefId::formIdRefId({ 22, 2 }), ESM::REC_NPC_);
+            mWorld.deregisterLiveCellRef(*held.ptr().mRef);
+            EXPECT_THROW(getLiveCellRefType(held), std::runtime_error);
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ModifiedStatBindingsReadLiveValuesAndPendingSelfWrites)
+        {
+            ESM::Attribute attr{};
+            attr.mId = ESM::RefId::stringRefId("fixtureattribute");
+            mStore.insertStatic(attr);
+            ESM::Skill skill{};
+            skill.mId = ESM::RefId::stringRefId("fixtureskill");
+            mStore.insertStatic(skill);
+            const auto ptr = actor();
+            struct StatScripts : LocalScripts
+            {
+                using LocalScripts::LocalScripts;
+                SelfObject& self() { return mData; }
+            };
+            StatScripts scripts(&mLua, LObject(ptr));
+            auto& native = mObservedClass.getNpcStats(ptr);
+            native.setAttribute(attr.mId, 20.f);
+            MWMechanics::SkillValue skillValue;
+            skillValue.setBase(15.f);
+            native.setSkill(skill.mId, skillValue);
+            native.setAiSetting(MWMechanics::AiSetting::Fight, 7);
+
+            Misc::NativeJobPool pool(0, 1);
+            mEnvironment.setNativeJobPool(pool);
+            struct RestoreProfilerSetting
+            {
+                bool mSaved = Settings::lua().mLuaProfiler;
+                Settings::CategorySettingVector mChanges = Settings::Manager::mChangedSettings;
+                ~RestoreProfilerSetting()
+                {
+                    Settings::lua().mLuaProfiler.set(mSaved);
+                    Settings::Manager::mChangedSettings = mChanges;
+                }
+            } restoreProfiler;
+            // Constructing a manager with profiling disabled would disable it
+            // for later fixtures in this process.
+            Settings::lua().mLuaProfiler.set(true);
+            LuaManager manager(&mVfs, {});
+            Context context{ Context::Local };
+            context.mLua = &mLua;
+            context.mLuaManager = &manager;
+            sol::state_view lua = mLua.unsafeState();
+            sol::table actorPackage(lua, sol::create);
+            addActorStatsBindings(actorPackage, context);
+            sol::table npcPackage(lua, sol::create);
+            npcPackage["baseType"] = actorPackage;
+            addNpcStatsBindings(npcPackage, context);
+            lua["actorStats"] = actorPackage["stats"];
+            lua["npcStats"] = npcPackage["stats"];
+            lua["selfActor"] = &scripts.self();
+            lua["worldActor"] = GObject(ptr);
+            const auto run = [&](const char* code) { LuaUtil::LuaState::throwIfError(lua.safe_script(code, sol::script_pass_on_error)); };
+            ASSERT_NO_THROW(run(R"(
+                a = actorStats.attributes.fixtureattribute(selfActor)
+                s = npcStats.skills.fixtureskill(selfActor)
+                fight = actorStats.ai.fight(selfActor)
+                other = actorStats.ai.fight(worldActor)
+                assert(a.modified == 20 and s.modified == 15 and fight.modified == 7)
+            )"));
+            mObservations.mStatsReads = 0;
+            ASSERT_NO_THROW(run("assert(fight.modified == 7)"));
+            RecordProperty("native_stat_reads", mObservations.mStatsReads);
+            native.setAiSetting(MWMechanics::AiSetting::Fight, 11);
+            ASSERT_NO_THROW(run(R"(
+                assert(fight.modified == 11)
+                a.damage = 4.5
+                a.modifier = 2
+                s.base = 3.5
+                s.damage = 5
+                fight.modifier = -19
+                assert(a.modified == 17.5 and s.modified == 0 and fight.modified == 0)
+                assert(other.modified == 11)
+            )"));
+            scripts.applyStatsCache();
+            EXPECT_FALSE(scripts.self().hasCachedStats());
+            ASSERT_NO_THROW(run("assert(a.modified == 17.5 and s.modified == 0 and other.modified == 0)"));
+            native.setAiSetting(MWMechanics::AiSetting::Fight, MWMechanics::Stat<int>(23, 0));
+            ASSERT_NO_THROW(run(R"(
+                assert(fight.modified == 23)
+                fight.base = 'invalid'
+                assert(not pcall(function() return fight.modified end))
+                fight.base = 23
+            )"));
+            scripts.applyStatsCache();
+        }
 
         TEST_F(MWLuaMagicBindingsTest, readsExistingMissingAndArgumentEffectsWithoutCachingValues)
         {

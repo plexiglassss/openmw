@@ -10,6 +10,7 @@
 
 #include <components/esm3/loadclas.hpp>
 #include <components/lua/luastate.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/resource/resourcesystem.hpp>
 
@@ -32,6 +33,13 @@ namespace
     using SelfObject = MWLua::SelfObject;
     using ObjectVariant = MWLua::ObjectVariant;
     using Index = const SelfObject::CachedStat::Index&;
+
+    // A local script can read its own queued writes before mechanics applies
+    // them. In that case the individual property getters must keep precedence.
+    bool canReadModifiedStatDirectly(const ObjectVariant& object)
+    {
+        return Misc::useTownFrameUpdates() && (!object.isSelfObject() || !object.asSelfObject()->hasCachedStats());
+    }
 
     template <class T>
     auto addIndexedAccessor(auto index)
@@ -313,6 +321,11 @@ namespace MWLua
 
             float getModified(const Context& context) const
             {
+                if (canReadModifiedStatDirectly(mObject))
+                {
+                    const auto& ptr = mObject.ptr();
+                    return ptr.getClass().getCreatureStats(ptr).getAttribute(mId).getModified();
+                }
                 auto base = LuaUtil::cast<float>(get(context, "base", &MWMechanics::AttributeValue::getBase));
                 auto damage = LuaUtil::cast<float>(get(context, "damage", &MWMechanics::AttributeValue::getDamage));
                 auto modifier
@@ -392,6 +405,11 @@ namespace MWLua
 
             float getModified(const Context& context) const
             {
+                if (canReadModifiedStatDirectly(mObject))
+                {
+                    const auto& ptr = mObject.ptr();
+                    return ptr.getClass().getNpcStats(ptr).getSkill(mId).getModified();
+                }
                 auto base = LuaUtil::cast<float>(get(context, "base", &MWMechanics::SkillValue::getBase));
                 auto damage = LuaUtil::cast<float>(get(context, "damage", &MWMechanics::SkillValue::getDamage));
                 auto modifier = LuaUtil::cast<float>(get(context, "modifier", &MWMechanics::SkillValue::getModifier));
@@ -464,6 +482,11 @@ namespace MWLua
 
             int getModified(const Context& context) const
             {
+                if (canReadModifiedStatDirectly(mObject))
+                {
+                    const auto& ptr = mObject.ptr();
+                    return ptr.getClass().getCreatureStats(ptr).getAiSetting(mIndex).getModified();
+                }
                 auto base = LuaUtil::cast<int>(get(context, "base", &MWMechanics::Stat<int>::getBase));
                 auto modifier = LuaUtil::cast<int>(get(context, "modifier", &MWMechanics::Stat<int>::getModifier));
                 return std::max(0, base + modifier);

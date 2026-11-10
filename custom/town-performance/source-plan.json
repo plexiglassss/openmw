@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Generic native gameplay jobs and four opt-in script adapters. Cumulative engine, tested package, same-executable inherited mode, no plugin changes.",
+  "scope": "Cumulative native jobs with a same-build comparison for recurring Lua actor updates and stable HUD attachments.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -15,7 +15,8 @@
     "6182d81e985763b2fed194d297db601fe1a56dfb",
     "7024d00c79fb0a88a97ff0b636096a5f3fd316d0",
     "8bd0d90b2727b8d654288d5c42e45a3edefc7146",
-    "12e5b050cb144396f213bb5ce193b6a7e7e7fce1"
+    "12e5b050cb144396f213bb5ce193b6a7e7e7fce1",
+    "3db8987d9dd58729025ee11b2f3b60652c6cf5d4"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -25,11 +26,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0e4d39c49a4e78c848ccf64c963bddc49c9de656"
+        "blob": "b7e25528f10a7d6fe8d907795ec80ba9a33d3dd2"
       },
-      "bytes": 58269,
-      "sha256": "9f3e1df5c03d9520bc120b0480e0a6bdef13a9af9b0c03f98750e5af78192c0d",
-      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
+      "bytes": 59495,
+      "sha256": "04b6e794c0d9a9228b0063ed738f4a4c11a40243f75f3a4ea518d265ac13fa54",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -71,11 +72,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3d07dedff4fac72ed5ffcdd74b6b20e755946a0f"
+        "blob": "673d930d24e4b87098d5a0ebc87793dd29897b3d"
       },
-      "bytes": 50614,
-      "sha256": "68aef186f5c5d211d3edec1f10aa311a63a878e36915dcfd4715174eebb5a2dc",
-      "reason": "Add actual native timer scheduling, reentrancy, tracker/unload, initialization/load and 24 boundary/clock regressions plus a bounded benchmark with anti-hoisting barrier and separate Lua-call probe."
+      "bytes": 53096,
+      "sha256": "6b1fa4fd01523c1170deadf04db91b856a6d301be6b4e7f5b5bdfa903fe8045b",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "apps/components_tests/mapmarkers/cases.hpp": {
       "before": null,
@@ -837,11 +838,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2f7b4d1da57ae3cd1f622194d9f56d0a5ffd54bb"
+        "blob": "87ab157d52fe49bef3776d6dd92270fb8c3d7766"
       },
-      "bytes": 62479,
-      "sha256": "1803fda4fe00ef9704c9c6d941746a979d17b9d38df6b92bd110ed5085130b10",
-      "reason": "Execute production Lua UI and MyGUI in both modes for seven layout and seven property cases, including fresh Image inheritance, explicit texture override, override removal, template update, unchanged refresh, pointer/default/error behavior and generic legacy nil semantics; retain earlier lifetime, metatable and benchmark coverage. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements. Reproduce reparenting into a growing sibling under the same UI root; check immediate detach, pointer identity, the following sibling and normal cache reuse in the next action, alongside the existing geometry/UI cases."
+      "bytes": 64700,
+      "sha256": "338c24b0e9eec847be6a2aa71592f728ee7d6a15739e336f44d188f2ec21b0af",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -870,11 +871,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ab78ee6ce0b1b9f4cd0c7dc45d78692cedf8904d"
+        "blob": "0ddbad5058f3d3fe025875ce7dfddb5dfb466a23"
       },
-      "bytes": 42280,
-      "sha256": "1200ce0569587ebb072e1e211a2cc53088f786fecfff3afa60baf49c312b2e6b",
-      "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
+      "bytes": 48168,
+      "sha256": "3885b8a9c44a9a8efcd01e2bb184e187f8cb4b104facba7e4994f0831b11e16f",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "apps/openmw_tests/mwlua/testnativequeryservice.cpp": {
       "before": null,
@@ -978,11 +979,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ac63595ffe99c76bf3de39f4d8a4599f6d107b81"
+        "blob": "478315d13f03fb437ad6544f097bacb8350c5063"
       },
-      "bytes": 34412,
-      "sha256": "22a9c10c02ce866b4cc71b334090f3ffca7cd7f227d99e000633a27ddceb4e10",
-      "reason": "Avoid a protected Lua call only for already-loaded containers with no due timer on either clock; preserve exact deadline predicate, tracker activity and all due/unloaded/load paths."
+      "bytes": 35049,
+      "sha256": "54a8d49322afe84823157a0b3cbc4d9994831e794e16d26e9b16b338b6a90005",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
     },
     "components/lua_ui/container.cpp": {
       "before": {
@@ -1030,11 +1031,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ee5b100a853da947e6d3933900e5033bcc292e0b"
+        "blob": "4dada46e6515c98ae2869a2e02a9ea273a99db12"
       },
-      "bytes": 15733,
-      "sha256": "fa241d7f5b58d7ddeeaa4e2609c74d0c0d9a7319690fba696a52e5bcbf4d66a4",
-      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+      "bytes": 19820,
+      "sha256": "0d207ed92b08a48d28473486b71dac066cb381a4aef48e78077e58fa4683f71a",
+      "reason": "Keep valid ordinary and template HUD attachments while honoring dynamic Lua reads, native slot ownership and sibling ordering."
     },
     "components/lua_ui/flex.cpp": {
       "before": {
@@ -1108,11 +1109,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5a19d4cab4bac7584ac43a261647823076c0c99a"
+        "blob": "47785088069121e827d588e73e4c592c8033bc3e"
       },
-      "bytes": 28047,
-      "sha256": "d061e563408e5f2563e9d60307969065efbfa26c611505b3df54192996142d6f",
-      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks. Walk retained widget trees only at the stable start of an outer action. Use normal layout for live Element transfers and nested updates, including template attachments, so partial child lists are never scanned."
+      "bytes": 30916,
+      "sha256": "68b9fcb008b64d5849a192414d59f965f0a8aa647397f9a7a12ea547afa99d7a",
+      "reason": "Keep valid ordinary and template HUD attachments while honoring dynamic Lua reads, native slot ownership and sibling ordering."
     },
     "components/lua_ui/widget.hpp": {
       "before": {
@@ -1121,11 +1122,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e1025a930feeea82a2b4da80cfd89bef80488e50"
+        "blob": "fa24c2ba3c86cdccfc77015d0a25585462e74e08"
       },
-      "bytes": 11652,
-      "sha256": "c64189422c5055326d9f47798b8472efde50ed58f1a738b23246b49d9c60d814",
-      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+      "bytes": 11880,
+      "sha256": "f6799a2ddd00a3617a72f5dd13f0e30413f621f314126d82459e83fd4c5e4bc3",
+      "reason": "Keep valid ordinary and template HUD attachments while honoring dynamic Lua reads, native slot ownership and sibling ordering."
     },
     "components/mapmarkers/classification.cpp": {
       "before": null,
@@ -1181,11 +1182,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "359e302dda7aaa238050daf28178ab6596cdb3cf"
+        "blob": "4f79f94f638f9a469d24a674ca642f401bf4ac83"
       },
-      "bytes": 901,
-      "sha256": "d87f0350f24b011024ecc0d5606b8c9fc83a416a9e5ef64985d9cd29439f94c8",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 1205,
+      "sha256": "2dfa9de359125fa6963a1b90ed769ee2b0563340bb4ea9719071e18fe35808a8",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -1312,11 +1313,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "88c6c71cb0b51532fa140bc5184ef4b19492da37"
+        "blob": "efd5e9d8ec052243a8df581f49a7a9772c222867"
       },
-      "bytes": 3571,
-      "sha256": "8a16294a9f104685c0e8329b4fd35b67a9b6630b8624d0c88f03b6ff45e46b9e",
-      "reason": "Build, run or package the combined candidate and four captured script adapters."
+      "bytes": 4174,
+      "sha256": "1039f55a6cb9feff03047c1999b7c785a616c33097d4d23fa5c894f98ce6a9c9",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -1342,31 +1343,31 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ae5d9eba6c8994d24c3e153844a16d0b8df43b12"
+        "blob": "6adb19b6252e6d445d0c37745f4222d505344c04"
       },
-      "bytes": 2561,
-      "sha256": "93c5d7d005505b84df9ce2c0784e32262efaa1723899d7e8a243f4048b7fadec",
-      "reason": "Build, run or package the combined candidate and four captured script adapters."
+      "bytes": 2838,
+      "sha256": "3219b0c4bf421f33c69f3770add900c5294ce6af43b032ac96100a46b14cb8fc",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2aa674a193f5b6e83f0e5189f301368afbcfa045"
+        "blob": "6ef42e03237a31ba553614819a43db3b26006218"
       },
-      "bytes": 5011,
-      "sha256": "4339f4e7fa0631bd0eed98452fc7dff50c02f152745948a787d92d95a43d1e87",
-      "reason": "Build, run or package the combined candidate and four captured script adapters."
+      "bytes": 5196,
+      "sha256": "812f7643167154a6d303846ae8d8abc5bf52582c6dc212a8048c44a24a9010fc",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "custom/combined-performance/complete-windows-distribution.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "89b843f85a37da45f8577ba74abce14c2a58a316"
+        "blob": "be9821c205a3a3f9cc3543f55a9f6076fd7b671f"
       },
-      "bytes": 10687,
-      "sha256": "c2143ee0d8419b85708e4409b4c1a861d5bf305cb93f50f8f16399e68d375f15",
-      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
+      "bytes": 10737,
+      "sha256": "f8759b0a2e519e5bbb7832a5178654b902585547e13a42a83167914e0496c55c",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
       "before": null,
@@ -1592,11 +1593,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "30617b088951db7607182ad1bacd809e81f8b05b"
+        "blob": "03210bf52a493b061a6ee1d748c0f47fbaeb4339"
       },
-      "bytes": 11007,
-      "sha256": "7ddd9c37e89a36f388e393e477794750e9276a8c1d04235d9593b74df8763d5b",
-      "reason": "Build, run or package the combined candidate and four captured script adapters."
+      "bytes": 11270,
+      "sha256": "9eb9053a5b5012970aa1bfc89f08f9d37a4f551659590bb1f229eef504ca6ea2",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -2097,11 +2098,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "595c489e833ca3df7972fef32f3bb8525f3dc900"
+        "blob": "65870d80e1623d0337e784115dcf460db692ccab"
       },
-      "bytes": 52676,
-      "sha256": "50b56b07daab80e9666a722ce8bce804710b6798af6348a38182df71cc289f2a",
-      "reason": "Record the inherited layout diagnostic flag without changing collection defaults, files, game settings or the existing three recorder environment controls. Combined performance candidate: Record combined performance, native UI and cell-cache environment switches in capture provenance."
+      "bytes": 52725,
+      "sha256": "c469f2a5fb665d43f86af3b08605bdee08f59566ceacbecd52ffcac236384b9b",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -2180,11 +2181,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "17768b7d62efb209fd0ada15d423fef6691291b0"
+        "blob": "4282b7c79b486cf35fa1f95e72f08086ee69e523"
       },
-      "bytes": 7157,
-      "sha256": "a898622b7d000c67c94ad9bafa8213761aae333c16350fa85c6ddba7ce9c1c06",
-      "reason": "Require the exact seven native layout and seven property cases in both fresh-process reader modes, including all five ordered Image inheritance snapshots, and reject differing snapshots or missing regression evidence before packaging. Combined performance candidate: Require all existing and new native UI cases and compare complete snapshots, mode metadata and work counts. Require the same-root retained-widget transfer regression in both optimized and legacy UI snapshot verification."
+      "bytes": 7223,
+      "sha256": "90eeccb68bbdd86d2bef490b5dc2db7ca6cd3598fef6b2dfbb19e8c0491cee00",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,
@@ -2450,6 +2451,104 @@
       "bytes": 50935,
       "sha256": "e3b9d3acbd47e0a7c8ca43f3da0fc1fd61c519847b606d754e96d620e4b07cdb",
       "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+    },
+    "apps/openmw/mwlua/localscripts.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5f89f1a72fd451e9f6070d93511b548ce1a02af9"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fa0a506eece25ded58e82705f0b80ae7e174fcf4"
+      },
+      "bytes": 5577,
+      "sha256": "78d5ee86d24a1f052d245a4773cf46b66baeb9dad86e0ed450e542cc6c54bb89",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+    },
+    "apps/openmw/mwlua/objectbindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b70d8569498e9c68d8dd68561c6df8f660797ef4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "168c971290f6479395c1904f85c1ce47bf6c02d8"
+      },
+      "bytes": 37335,
+      "sha256": "50e1d02dc10e0c89d59fb0abd840906cb0ef7e9d727041ee1907a0d056f1fb74",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+    },
+    "apps/openmw/mwlua/stats.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a038fd2e86bf6fa402b0bbf6ba5d213f4e0c2d61"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5f2344f04f31816468c778e97fcfec2bd8e71372"
+      },
+      "bytes": 41762,
+      "sha256": "8f9e407c9302969027458583a2d576db1030ec86e8e9f6f72fb61f9702a3809b",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+    },
+    "apps/openmw/mwlua/types/types.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "d6175d1c094adbda7a1f49eb0f280ab093bfc732"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "60948384d077d75cb0c1be58b210eb01a44ba6b5"
+      },
+      "bytes": 14923,
+      "sha256": "c82e2f389dea8b6c5f7cb03173c689f1b4e23e3cfda456b1b896cc5da9d2347d",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+    },
+    "apps/openmw/mwlua/types/types.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5967ce6d8b4275e454c620bd3b7bcdeba41c439a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "bf1ae3fbf28b24e2ee2972be62f5a22d4cd9a0a8"
+      },
+      "bytes": 4842,
+      "sha256": "a00ec4bab8800273ef7fa79c702bb83ba4b537e3f4451eaadcb36401d33cff4f",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+    },
+    "components/lua/scriptscontainer.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "caa0ee375d892a56a6e4c032365119663374a5a1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "318ac7f2d306b75ccc2c374b1bac4b419a8c34e5"
+      },
+      "bytes": 16544,
+      "sha256": "32d17f30328e3853b2511b4c075cbf733c75422ef01df7d556b96197d181ef81",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+    },
+    "custom/combined-performance/Run-Previous-Frame-Updates.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "cd21803884ce3c40c599ebac17b7a5df648d6943"
+      },
+      "bytes": 144,
+      "sha256": "99306324958a71e38ad2c42d1874183b772f140fb5b167da18aae73bd634612f",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+    },
+    "custom/combined-performance/tests/verify-town-frame-updates.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6723f57a8b994c43c66335aed310408ff10deb17"
+      },
+      "bytes": 3226,
+      "sha256": "03731f935290f283aa5c00456c198fbed28aba54b687ba3facddc16018a54c4c",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     }
   }
 }

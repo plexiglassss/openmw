@@ -17,6 +17,7 @@ IMAGE_INHERITANCE_SNAPSHOTS = (
 )
 EXPECTED = {
     "StableTemplateHierarchyAndSiblingOrderRepair",
+    "RetainedAttachmentsPreserveOwnershipAndDynamicObservations",
     "MutableTemplateSlotsAndReplacementKeepRetainedChild",
     "MovingRetainedElementRelayoutsThePreviousRootImmediately",
     "ReparentIntoGrowingSiblingUnderTheSameRoot",

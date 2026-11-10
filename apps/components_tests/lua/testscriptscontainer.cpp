@@ -9,6 +9,8 @@
 #include <limits>
 #include <sstream>
 
+#include <array>
+
 #include <components/esm/luascripts.hpp>
 
 #include <components/lua/asyncpackage.hpp>
@@ -262,9 +264,23 @@ return {
         }
     };
 
+    constexpr VFS::Path::NormalizedView framePath("frame.lua");
+    constexpr VFS::Path::NormalizedView followerPath("follower.lua");
+    VFSTestFile frameScript(R"(
+        local count = 0
+        return { engineHandlers = { onUpdate = function(dt)
+            count = count + 1
+            if dt < 0 then error("frame handler failure") end
+            if dt == 2 then print("frame", count) end
+        end }}
+    )");
+    VFSTestFile followerScript("return {engineHandlers={onUpdate=function() print('following handler') end}}");
+
     struct LuaScriptsContainerTest : Test
     {
         std::unique_ptr<VFS::Manager> mVFS = createTestVFS({
+            { framePath, &frameScript },
+            { followerPath, &followerScript },
             { invalidPath, &invalidScript },
             { incorrectPath, &incorrectScript },
             { emptyPath, &emptyScript },
@@ -304,6 +320,8 @@ CUSTOM: unload.lua
 CUSTOM: customdata.lua
 CUSTOM: cacheactivity.lua
 CUSTOM: timerlifecycle.lua
+CUSTOM: frame.lua
+CUSTOM: follower.lua
 )X");
             mCfg.init(std::move(cfg), false);
         }
@@ -374,6 +392,43 @@ CUSTOM: timerlifecycle.lua
         EXPECT_EQ(internal::GetCapturedStdout(),
             "Test[test1.lua]:\t update 1.5\n"
             "Test[test2.lua]:\t update 1.5\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, UpdateHandlersKeepTracebacksOrderAndStateAfterCollection)
+    {
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+        ASSERT_TRUE(scripts.addCustomScript(getId(followerPath)));
+        ASSERT_TRUE(scripts.addCustomScript(getId(framePath)));
+        lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
+        testing::internal::CaptureStdout();
+        scripts.update(-1.f);
+        const auto failed = testing::internal::GetCapturedStdout();
+        EXPECT_THAT(failed, HasSubstr("frame handler failure"));
+        EXPECT_THAT(failed, HasSubstr("stack traceback"));
+        EXPECT_THAT(failed, HasSubstr("following handler"));
+        EXPECT_LT(failed.find("frame handler failure"), failed.find("following handler"));
+        testing::internal::CaptureStdout();
+        scripts.update(2.f);
+        const auto recovered = testing::internal::GetCapturedStdout();
+        EXPECT_THAT(recovered, HasSubstr("frame\t2"));
+        EXPECT_THAT(recovered, HasSubstr("following handler"));
+    }
+
+    TEST_F(LuaScriptsContainerTest, RepeatedActorUpdateDispatchBenchmark)
+    {
+        LuaUtil::ScriptsContainer scripts(&mLua, "Bench");
+        ASSERT_TRUE(scripts.addCustomScript(getId(framePath)));
+        constexpr int iterations = 50000;
+        std::array<double, 7> samples;
+        for (auto& elapsed : samples)
+        {
+            const auto start = std::chrono::steady_clock::now();
+            for (int i = 0; i < iterations; ++i)
+                scripts.update(1.f);
+            elapsed = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start).count();
+        }
+        std::sort(samples.begin(), samples.end());
+        RecordProperty("median_ns_per_callback", std::to_string(samples[samples.size() / 2] / iterations));
     }
 
     TEST_F(LuaScriptsContainerTest, CallEvent)

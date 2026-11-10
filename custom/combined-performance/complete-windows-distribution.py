@@ -76,7 +76,8 @@ def confirm_distribution(install):
                 "defaults.bin", "defaults-cs.bin", "openmw.cfg", "lua51.dll", "resources/lua_libs/content.lua",
                 "resources/defaultfilters", "gamecontrollerdb.txt", "platforms/qwindows.dll",
                 "Install-SaneMagic-Adapters.cmd", "tools/combined-performance/SaneMagic/Install.cmd",
-                "Install-Native-Job-Adapters.cmd", "Restore-Native-Job-Adapters.cmd", "Run-Combined.cmd", "Run-Inherited.cmd"]
+                "Install-Native-Job-Adapters.cmd", "Restore-Native-Job-Adapters.cmd", "Run-Combined.cmd", "Run-Inherited.cmd",
+                "Run-Previous-Frame-Updates.cmd"]
     missing = [name for name in required if not (install / name).is_file()]
     if missing:
         raise ValueError(f"Missing Windows distribution files: {missing}")

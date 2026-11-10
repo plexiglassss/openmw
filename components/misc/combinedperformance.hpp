@@ -24,6 +24,15 @@ namespace Misc
         }();
         return enabled && useCombinedPerformance();
     }
+
+    inline bool useTownFrameUpdates()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_TOWN_FRAME_UPDATES");
+            return useCombinedPerformance() && (value == nullptr || std::string_view(value) != "0");
+        }();
+        return enabled;
+    }
 }
 
 #endif

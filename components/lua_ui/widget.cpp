@@ -258,11 +258,45 @@ namespace LuaUi
         w->eventKeyLostFocus.clear();
     }
 
-    void WidgetExtension::reset()
+    namespace
     {
-        // detach all children from the slot widget, in case it gets destroyed
+        bool isNativeChild(MyGUI::Widget* child, MyGUI::Widget* parent)
+        {
+            return child->getParent() == parent && child->getWidgetStyle() == MyGUI::WidgetStyle::Child
+                && child->getLayer() == nullptr && child->getLayerNode() == parent->getLayerNode();
+        }
+    }
+
+    bool WidgetExtension::hasOrderedAttachments(const std::vector<WidgetExtension*>& children, bool templates) const
+    {
+        MyGUI::Widget* parent = templates ? widget() : mSlot->contentWidget();
+        if (parent->getChildCount() != children.size() + (templates ? 1 : 0))
+            return false;
+        if (templates && (parent->getChildAt(children.size()) != mContentWidget || !isNativeChild(mContentWidget, parent)))
+            return false;
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            auto* child = children[i];
+            if (child->mParent != this || child->mTemplateChild != templates
+                || parent->getChildAt(i) != child->widget() || !isNativeChild(child->widget(), parent))
+                return false;
+        }
+        return true;
+    }
+
+    bool WidgetExtension::prepareChildrenForUpdate(bool retain)
+    {
+        // A template can destroy the old slot. Only our own content wrapper is
+        // guaranteed to outlive a template change, and native callers can have
+        // moved the children since the last Lua layout was applied.
+        if (retain && layoutReuseInProgress() && mSlot == this
+            && isNativeChild(mContentWidget, widget()) && hasOrderedAttachments(mChildren, false))
+            return true;
+        if (sCollectLayoutStatistics)
+            sLayoutStatistics.hierarchyWrites += mChildren.size();
         for (auto& w : mChildren)
             w->widget()->detachFromWidget();
+        return false;
     }
 
     void WidgetExtension::updateVisible()
@@ -293,6 +327,8 @@ namespace LuaUi
         }
         ext->mParent = this;
         ext->mTemplateChild = false;
+        if (sCollectLayoutStatistics)
+            ++sLayoutStatistics.hierarchyWrites;
         ext->widget()->attachToWidget(mSlot->contentWidget());
     }
 
@@ -302,6 +338,8 @@ namespace LuaUi
             invalidateLayoutReuse();
         ext->mParent = this;
         ext->mTemplateChild = true;
+        if (sCollectLayoutStatistics)
+            ++sLayoutStatistics.hierarchyWrites;
         ext->widget()->attachToWidget(widget());
     }
 
@@ -378,9 +416,28 @@ namespace LuaUi
         return table;
     }
 
-    void WidgetExtension::setChildren(const std::vector<WidgetExtension*>& children)
+    void WidgetExtension::setChildren(const std::vector<WidgetExtension*>& children, bool keptAttached)
     {
         invalidateLayout();
+        if (keptAttached)
+        {
+            if (layoutReuseInProgress() && children == mChildren && hasOrderedAttachments(children, false))
+            {
+                updateChildren();
+                return;
+            }
+            // The template may have selected a new slot, or the update may
+            // have changed/reordered children. Restore normal attachment order.
+            for (auto* child : children)
+            {
+                if (child->mParent == this && child->widget()->getParent())
+                {
+                    if (sCollectLayoutStatistics)
+                        ++sLayoutStatistics.hierarchyWrites;
+                    child->widget()->detachFromWidget();
+                }
+            }
+        }
         mChildren.resize(children.size());
         for (size_t i = 0; i < children.size(); ++i)
         {
@@ -390,9 +447,15 @@ namespace LuaUi
         updateChildren();
     }
 
-    void WidgetExtension::setTemplateChildren(const std::vector<WidgetExtension*>& children)
+    void WidgetExtension::setTemplateChildren(const std::vector<WidgetExtension*>& children, bool retain)
     {
         invalidateLayout();
+        if (retain && layoutReuseInProgress() && children == mTemplateChildren
+            && hasOrderedAttachments(children, true))
+        {
+            updateTemplate();
+            return;
+        }
         mTemplateChildren.resize(children.size());
         for (size_t i = 0; i < children.size(); ++i)
         {
@@ -404,6 +467,8 @@ namespace LuaUi
         // Template children attach directly to this widget, while normal content is
         // kept in mContentWidget to apply padding and clipping. Reattach the wrapper
         // after templates so normal content remains the top-most sibling.
+        if (sCollectLayoutStatistics)
+            sLayoutStatistics.hierarchyWrites += 2;
         mContentWidget->detachFromWidget();
         mContentWidget->attachToWidget(widget());
     }
