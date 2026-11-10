@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 # REC_DCLR beside REC_DCOU; removing that one case must reproduce the complete
 # prior native-map state-manager blob. All loading behavior is preserved.
 EXPECTED = {
-    'apps/openmw/engine.cpp': '569b7ea2871e6e756d3ce16a80b9e6cdf8b65964',
+    # Exact candidate engine with the worker pool constructed in prepareEngine and joined at shutdown.
+    'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
     'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
     'apps/openmw/mwstate/statemanagerimp.cpp': '102b9e0c99229d0e096f47671ff4da350381cc2a',

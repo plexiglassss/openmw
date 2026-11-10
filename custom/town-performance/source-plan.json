@@ -1727,11 +1727,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "de80525bd87dd5e51b7b4eb824692d9bd678bae7"
+        "blob": "a70fd25ddcfce41abf18cac2fd8b8129ef3b8007"
       },
-      "bytes": 5332,
-      "sha256": "67696b5aaab0528d01f35da3094df5933221f933307d1ea65e9a4005d99cb7dd",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged. Extend the exact state-manager hash to the reviewed REC_DCLR case and require removing that single line to reproduce the entire previous native-map state-manager blob; retain all waiting-stage and lookup-only guards."
+      "bytes": 5435,
+      "sha256": "1c343a51905e835b826adb2df5ecb8db70758e3b848bc6011107b58a014ed956",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -1740,11 +1740,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d80be8ff830740d7fd4a5cd17a5e227b5f955139"
+        "blob": "a3d9635884a29a797e161f81776d5e77145439a5"
       },
-      "bytes": 3176,
-      "sha256": "4602edd40e0c73cd6346c28d7d2a328950ac898c2315d754276f18a66d11a919",
-      "reason": "Update exact StateManager identity for the independently reviewed single LMRK save-dispatch case. All other loading code and strict build-time lookup mutation gates remain unchanged. Extend the exact state-manager hash to the reviewed REC_DCLR case and require removing that single line to reproduce the entire previous native-map state-manager blob; retain all waiting-stage and lookup-only guards."
+      "bytes": 3279,
+      "sha256": "c8e3c28c1758d3cd8aa52b331c7c7b84af670e2e0d45b495b0f11c029266edf5",
+      "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/map-icons/PROVENANCE.md": {
       "before": null,
