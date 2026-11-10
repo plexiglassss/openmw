@@ -693,6 +693,9 @@ jobs:
             combined-performance-off-tests.xml
             native-job-adapter-parity.json
             native-jobs-tests.json
+            town-frame-updates.json
+            town-previous-components.xml
+            town-previous-engine.xml
             install/COMBINED-PACKAGE.json
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json

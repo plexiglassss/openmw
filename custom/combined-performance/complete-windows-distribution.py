@@ -50,6 +50,34 @@ def refresh_adapter_installers(install):
     return [receipt_path.name, *[(tool_root / name).relative_to(install).as_posix() for name in paths]]
 
 
+def refresh_town_launcher(install):
+    comparison = install / "town-frame-updates.json"
+    if not comparison.is_file():
+        return []
+    receipt_path = install / "COMBINED-PACKAGE.json"
+    receipt = json.loads(receipt_path.read_bytes())
+    source = ROOT / "custom/combined-performance"
+    launcher = "tools/combined-performance/Start-Combined.ps1"
+    replacements = {launcher: source / "Start-Combined.ps1", "COMBINED-PERFORMANCE.md": source / "README.md"}
+    for name in ("combined-launcher-windows-powershell.json", "combined-launcher-pwsh.json"):
+        tested = ROOT / name
+        if json.loads(tested.read_text(encoding="utf-8-sig"))["result"] != "PASS":
+            raise ValueError("Windows launcher tests failed: " + name)
+        replacements[name] = tested
+        receipt["launcher_verification_sha256"][name] = digest(tested)
+    receipt["tools"]["Start-Combined.ps1"] = digest(replacements[launcher])
+    receipt["town_frame_verification_sha256"] = digest(comparison)
+    changed = []
+    for path, source_file in replacements.items():
+        if digest(install / path) != digest(source_file):
+            shutil.copy2(source_file, install / path)
+            changed.append(path)
+    if json.loads(receipt_path.read_bytes()) != receipt:
+        receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        changed.append(receipt_path.name)
+    return changed
+
+
 def stage(build, install):
     for name in [*(tool + ".exe" for tool in EXTRAS), "defaults-cs.bin"]:
         target = install / name
@@ -196,10 +224,12 @@ def main():
         if digest(install / name) != row["sha256"]:
             raise ValueError("An original package file changed: " + name)
     updated = refresh_adapter_installers(install)
+    town_updates = refresh_town_launcher(install) if args.preserve_existing else []
     current = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     combined = json.loads((install / "COMBINED-PACKAGE.json").read_bytes())
     report = dict(result="PASS", engine_commit=combined["candidate_commit"], packaging_commit=current,
-                  tested_original_files_preserved=len(before.keys() - set(updated)), updated_installer_paths=updated,
+                  tested_original_files_preserved=len(before.keys() - set(updated) - set(town_updates)),
+                  updated_installer_paths=updated, updated_town_launcher_paths=town_updates,
                   public_applications=list(PUBLIC), command_checks=launches,
                   tool_hashes={name: digest(install / (name + ".exe")) for name in PUBLIC}, imports=imports)
     folder = install / "verification"

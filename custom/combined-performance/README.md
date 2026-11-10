@@ -1,12 +1,12 @@
 # OpenMW parallel native jobs
 
-This Windows build continues the cumulative engine at `8bd0d90b`.
+This Windows build continues the `12e5b050` native-jobs engine and its corrected `3db8987d` distribution.
 
 ## Using the engine
 
 1. Extract the complete engine into a separate folder. If you use the Rubic0n Lua runtime, copy your matching `lua51.dll` and `resources/lua_libs/content.lua` into it together. Carry over your custom engine configuration and optional frame-generation files if you normally use them.
 2. Launching `openmw.exe` enables the candidate by default. To record the usual town route and a cell transition, use `Run-Combined.cmd`. Close OpenMW normally to complete the capture.
-3. To compare against the previous cumulative paths, run `Run-Inherited.cmd` with the same save and route. It changes `OPENMW_NATIVE_JOBS` for this launch. Both modes retain the cumulative UI, magic, tooltip, lookup and typed-cell improvements.
+3. To compare this actor and HUD change with the last native-jobs release, use `Run-Previous-Frame-Updates.cmd` with the same save and route. `Run-Inherited.cmd` is the older comparison with both the native jobs and the new frame updates disabled for that launch.
 4. Each optional adapter has its own `Install.cmd` under `tools/combined-performance`. If you use all four mods, `Install-Native-Job-Adapters.cmd` runs them in sequence. Each component verifies the winning script hashes and captured installation context and backs up its originals. Components already installed are reported. Use each component's `Restore.cmd` for rollback. All four are optional for engine operation.
 
 ## Engine work

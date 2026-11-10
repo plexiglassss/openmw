@@ -48,7 +48,7 @@ try {
     }
     Write-Host ('Engine mode: ' + $Variant + '; native jobs ' + $(if ($Variant -eq 'Inherited') { 'disabled' } else { 'enabled' }) + '; FrameOnly recording')
     Write-Host 'Load your usual town save, let loading settle, then play your usual short route.'
-    Write-Host 'Keep the four mods enabled for this combined-candidate check.'
+    Write-Host 'Use the same mods, adapters and settings for each recording.'
     Write-Host 'Quit normally when finished; the capture ZIP is created automatically.'
     if ($Variant -eq 'Inherited') {
         Write-Host 'Inherited mode uses the same executable with native jobs and the new generic query APIs disabled.'

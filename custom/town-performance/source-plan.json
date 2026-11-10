@@ -26,10 +26,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b7e25528f10a7d6fe8d907795ec80ba9a33d3dd2"
+        "blob": "511840cf6098d302178f7a66e9a93f4aea2c1f79"
       },
-      "bytes": 59495,
-      "sha256": "04b6e794c0d9a9228b0063ed738f4a4c11a40243f75f3a4ea518d265ac13fa54",
+      "bytes": 59609,
+      "sha256": "229789dffa706dd65b12e90ca2e56c6448ae9e73c5c0c9c55d7dc1d50382f7a5",
       "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -1313,10 +1313,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "efd5e9d8ec052243a8df581f49a7a9772c222867"
+        "blob": "cb9a0127d4e35912a5b3b43a67c96ab961e6d04b"
       },
-      "bytes": 4174,
-      "sha256": "1039f55a6cb9feff03047c1999b7c785a616c33097d4d23fa5c894f98ce6a9c9",
+      "bytes": 4233,
+      "sha256": "088198594c2976acd64f02dab272b7ee3e190945b14c330ae6825c5b352a4d49",
       "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/Run-Combined.cmd": {
@@ -1343,10 +1343,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6adb19b6252e6d445d0c37745f4222d505344c04"
+        "blob": "8474c50bdfdbb74807be7d08f7b73dcaba94a83e"
       },
-      "bytes": 2838,
-      "sha256": "3219b0c4bf421f33c69f3770add900c5294ce6af43b032ac96100a46b14cb8fc",
+      "bytes": 2837,
+      "sha256": "287798c75226bb44927224425cb377eaf628a9015c19ea64120ac61b525290f2",
       "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
@@ -1363,10 +1363,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "be9821c205a3a3f9cc3543f55a9f6076fd7b671f"
+        "blob": "8adf346b18e5d5eae63b07db4c5778510c05d764"
       },
-      "bytes": 10737,
-      "sha256": "f8759b0a2e519e5bbb7832a5178654b902585547e13a42a83167914e0496c55c",
+      "bytes": 12317,
+      "sha256": "125cb37406ab60313d05d2b80eb01c17c09289733b525866f670ac61802c9ea7",
       "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
@@ -1593,21 +1593,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "03210bf52a493b061a6ee1d748c0f47fbaeb4339"
+        "blob": "f752f246c395fdb490cd13a53145e7faab4d19c4"
       },
-      "bytes": 11270,
-      "sha256": "9eb9053a5b5012970aa1bfc89f08f9d37a4f551659590bb1f229eef504ca6ea2",
+      "bytes": 11358,
+      "sha256": "fa6120dbe517a15a9b1c8394baa06a2a015e8cd77a3cc412dfb2946d926b8924",
       "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4a2b44dd12d77fa33da44e5f98a0de06194489b5"
+        "blob": "63cd208d0c5a4f4bc429cb822362fcce32a1cd07"
       },
-      "bytes": 5047,
-      "sha256": "1943bfbce24c6037a2dadeea1db4fa5183deda186524cbae7139d5a32fdea4e5",
-      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
+      "bytes": 7444,
+      "sha256": "a009c241fc946683672f301646f6001be4997d33cb10a898841ee5e3abda5e4e",
+      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/stage-msvc-runtime.ps1": {
       "before": null,
@@ -2111,11 +2111,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d52b02a0c6d9421087409764af8df0bd4b10a3d4"
+        "blob": "61d33ce11e964c3cfa9d9c20ca456c4bc50573f0"
       },
-      "bytes": 20625,
-      "sha256": "0559019e1df6a211d6b85a61c8c773a903ccc125eca7a9eca44977cbeb20fb26",
-      "reason": "Require the one new inherited layout-mode inventory line exactly once and remove only it before the original byte-exact released-v1.0 collector preservation check; retain both historical digests and all prior assertions."
+      "bytes": 20674,
+      "sha256": "1d2a8b255a976a534fba6801d8297daf056f1253b1dc37139a159fcd3c3f965b",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,

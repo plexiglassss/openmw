@@ -178,6 +178,7 @@ def prepare(destination):
         "source_manifest_sha256": {name: sha(destination / name) for name in source_manifests},
         "native_query_verification_sha256": sha(destination / "combined-native-tests.json"),
         "native_layout_verification_sha256": sha(destination / "combined-layout-parity.json"),
+        "town_frame_verification_sha256": sha(destination / "town-frame-updates.json"),
         "adapter_parity_sha256": {
             "SaneMagic": sha(destination / "sanemagic-adapter-parity.json"),
             "OtherAdapters": sha(destination / "native-job-adapter-parity.json"),
