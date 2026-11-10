@@ -1,0 +1,108 @@
+name: Luminus Lanes Asset Collector
+
+on:
+  push:
+    branches:
+      - audit/luminus-lanes-assets-20261110
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p assets/project-atlas assets/momw-patches assets/remiros assets/logs
+
+      - name: Collect Project Atlas support meshes
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/MelchiorDahrk/Project-Atlas.git project-atlas
+          cd project-atlas
+          git sparse-checkout set '00 Core/Meshes/f' '04 Emperor Parasols - Smoothed'
+          cd ..
+          find project-atlas -type f -iname '*.nif' \( \
+            -iname 'flora_emp_parasol_*.nif' -o \
+            -iname 'flora_tree_*.nif' -o \
+            -iname 'furn_de_rope_*.nif' -o \
+            -iname 'furn_pole_support_*.nif' -o \
+            -iname 'furn_roped_pole_*.nif' \
+          \) -print -exec cp --parents '{}' assets/project-atlas/ \;
+
+      - name: Collect current MOMW patches source
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -x
+          for ref in 3.45.2 master; do
+            url="https://gitlab.com/modding-openmw/momw-patches/-/archive/${ref}/momw-patches-${ref}.zip"
+            echo "$url" | tee -a assets/logs/momw-urls.txt
+            if curl -fL --retry 3 --connect-timeout 20 -A 'Mozilla/5.0' "$url" -o "assets/momw-patches/momw-patches-${ref}.zip"; then
+              unzip -l "assets/momw-patches/momw-patches-${ref}.zip" > "assets/logs/momw-${ref}-listing.txt"
+            fi
+          done
+
+      - name: Collect Remiros tree archive from public mirrors
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -x
+          urls=(
+            'https://www.confrerie-des-traducteurs.fr/morrowind/telechargement/2274/0'
+            'https://www.nexusmods.com/Core/Libs/Common/Widgets/DownloadPopUp?id=1000014117&game_id=100&nmm=0'
+            'https://www.nexusmods.com/morrowind/mods/45779?file_id=1000014117&tab=files'
+          )
+          i=0
+          for url in "${urls[@]}"; do
+            i=$((i+1))
+            echo "$url" | tee -a assets/logs/remiros-urls.txt
+            curl -L --retry 2 --connect-timeout 20 -A 'Mozilla/5.0' -D "assets/logs/remiros-${i}-headers.txt" "$url" -o "assets/remiros/remiros-${i}.download" || true
+            file "assets/remiros/remiros-${i}.download" | tee "assets/logs/remiros-${i}-file.txt" || true
+            sha256sum "assets/remiros/remiros-${i}.download" | tee "assets/logs/remiros-${i}-sha256.txt" || true
+          done
+
+      - name: Extract relevant MOMW and Remiros meshes
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -x
+          mkdir -p assets/extracted
+          find assets/momw-patches -type f -name '*.zip' -print0 | while IFS= read -r -d '' z; do
+            d="assets/extracted/$(basename "$z" .zip)"
+            mkdir -p "$d"
+            unzip -q "$z" -d "$d" || true
+          done
+          find assets/remiros -type f -print0 | while IFS= read -r -d '' f; do
+            d="assets/extracted/$(basename "$f")"
+            mkdir -p "$d"
+            7z x -y "$f" "-o$d" > "assets/logs/$(basename "$f").7z.log" 2>&1 || \
+            unzip -q "$f" -d "$d" > "assets/logs/$(basename "$f").unzip.log" 2>&1 || true
+          done
+          find assets/extracted -type f | sort > assets/logs/extracted-files.txt
+          find assets/extracted -type f -iname '*.nif' \( \
+            -iname 'flora_emp_parasol_*.nif' -o \
+            -iname 'flora_tree_*.nif' -o \
+            -iname 'flora_tree_ai_*.nif' -o \
+            -iname 'furn_de_rope_*.nif' \
+          \) -print > assets/logs/relevant-meshes.txt
+
+      - name: Create manifest
+        shell: bash
+        run: |
+          set -euxo pipefail
+          find assets -type f -print0 | sort -z | xargs -0 sha256sum > assets/SHA256SUMS.txt
+          find assets -type f -printf '%p\t%s\n' | sort > assets/FILES.tsv
+
+      - name: Upload assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: luminus-lanes-support-assets
+          path: assets
+          if-no-files-found: error
+          retention-days: 7
