@@ -1,4 +1,5 @@
-"""Reuse the verified engine only for a packaging-only descendant of its CI run."""
+"""Reuse matching Windows binaries for a packaging-only descendant, or build them from source."""
+import argparse
 import hashlib
 import json
 import os
@@ -10,6 +11,12 @@ ENGINE = "12e5b050cb144396f213bb5ce193b6a7e7e7fce1"
 RUN = 42782245589
 ARTIFACT = 13753455262
 ARCHIVE_SHA = "9a7c5b462534456796f8ab438316d30535181a4bd663a016e05ac1a1044cf95d"
+TOOLS_HEAD = "1956cbbd39652d56843b9474c058ad08c4e179df"
+TOOLS_RUN = 42798538724
+TOOLS_ARTIFACT = 13757305351
+TOOLS_SHA = "7cf254f3a931da32d720da8bba648cf4225ad0c1891037909aa220f26760873f"
+TOOL_FILES = {"openmw-cs.exe", "openmw-essimporter.exe", "bsatool.exe", "esmtool.exe", "niftest.exe",
+              "openmw-bulletobjecttool.exe", "defaults-cs.bin"}
 PACKAGING_INPUTS = {
     ".github/workflows/push.yml",
     "custom/town-performance/source-plan.json",
@@ -22,9 +29,6 @@ PACKAGING_INPUTS = {
 def verify_and_extract(archive, install):
     if install.exists():
         raise RuntimeError("Expected a fresh staging directory")
-    with archive.open("rb") as stream:
-        if hashlib.file_digest(stream, "sha256").hexdigest() != ARCHIVE_SHA:
-            raise ValueError("The downloaded archive differs from the original successful Windows run")
     with zipfile.ZipFile(archive) as package:
         inventory = json.loads(package.read("PACKAGE-SHA256.json"))["files"]
         if {i.filename for i in package.infolist() if not i.is_dir()} != set(inventory) | {"PACKAGE-SHA256.json"}:
@@ -46,31 +50,58 @@ def may_reuse():
     return bool(set(changes) - {""}) and (set(changes) - {""}) <= PACKAGING_INPUTS
 
 
-def restore():
-    if not may_reuse():
-        return False
-    endpoint = f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{ARTIFACT}"
+def download(run, commit, artifact_id, digest):
+    endpoint = f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{artifact_id}"
     response = subprocess.run(["gh", "api", endpoint], capture_output=True)
     if response.returncode:
-        print("Previous artifact unavailable. Building the complete engine and test suites.")
-        return False
+        return None
     artifact = json.loads(response.stdout)
     if artifact["expired"]:
+        return None
+    if (artifact["workflow_run"]["id"] != run or artifact["workflow_run"]["head_sha"] != commit
+            or artifact["digest"] != "sha256:" + digest):
+        raise ValueError("Prior run, commit or archive identity mismatch")
+    archive = Path(os.environ["RUNNER_TEMP"]) / f"openmw-artifact-{artifact_id}.zip"
+    for _ in range(2):
+        with archive.open("wb") as out:
+            result = subprocess.run(["gh", "api", endpoint + "/zip"], stdout=out)
+        if not result.returncode:
+            with archive.open("rb") as stream:
+                if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
+                    raise ValueError("Downloaded archive hash mismatch")
+            return archive
+    return None
+
+
+def restore(companion_tools):
+    if not may_reuse():
         return False
-    if (artifact["workflow_run"]["id"] != RUN or artifact["workflow_run"]["head_sha"] != ENGINE
-            or artifact["digest"] != "sha256:" + ARCHIVE_SHA):
-        raise ValueError("Prior run, engine or archive identity mismatch")
-    archive = Path(os.environ["RUNNER_TEMP"]) / "native-engine-12e5b050.zip"
-    with archive.open("wb") as out:
-        result = subprocess.run(["gh", "api", endpoint + "/zip"], stdout=out)
-    if result.returncode:
-        raise RuntimeError("Unable to retrieve the original engine ZIP")
-    verify_and_extract(archive, Path("install"))
-    print("Verified every original package file. Reusing the tested engine and its test results.")
+    if companion_tools:
+        if subprocess.run(["git", "merge-base", "--is-ancestor", TOOLS_HEAD, "HEAD"]).returncode:
+            return False
+        archive = download(TOOLS_RUN, TOOLS_HEAD, TOOLS_ARTIFACT, TOOLS_SHA)
+        if not archive:
+            return False
+        with zipfile.ZipFile(archive) as package:
+            entries = package.namelist()
+            if len(entries) != len(TOOL_FILES) or set(entries) != TOOL_FILES:
+                raise ValueError("Unexpected contents in the companion tools archive")
+            package.extractall("build")
+        print("Reusing companion tools compiled from the same source. Launch checks will run on all six.")
+    else:
+        archive = download(RUN, ENGINE, ARTIFACT, ARCHIVE_SHA)
+        if not archive:
+            return False
+        verify_and_extract(archive, Path("install"))
+        print("Verified every original package file. Reusing the tested engine and its test results.")
     return True
 
 
 if __name__ == "__main__":
-    reused = restore()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--companion-tools", action="store_true")
+    reused = restore(parser.parse_args().companion_tools)
+    if not reused:
+        print("The matching archive is unavailable or inapplicable. Building from source.")
     with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as out:
         print("reused=" + str(reused).lower(), file=out)

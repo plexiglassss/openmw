@@ -461,8 +461,16 @@ jobs:
             New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
             Copy-Item "$qt/plugins/$plugin" "build/$plugin"
           }
+      - name: Restore matching compiled companions for packaging-only verification
+        id: existing_tools
+        if: steps.existing_engine.outputs.reused == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/combined-performance/reuse-windows-engine.py --companion-tools
       - name: Build the Construction Set and all public command-line tools
         id: distribution_tools
+        if: steps.existing_tools.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target openmw-cs openmw-essimporter bsatool esmtool niftest openmw-bulletobjecttool

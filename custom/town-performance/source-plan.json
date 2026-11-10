@@ -25,10 +25,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6692a52b5685b0ecc1cfd26224d01609fd815ab2"
+        "blob": "178fe052a45eb4fa9358716219ae70b64ec6a72d"
       },
-      "bytes": 57519,
-      "sha256": "80096c5941c8fc9834b50a075228f67fb35a178d58619727b04e6b1d5c3b032a",
+      "bytes": 57909,
+      "sha256": "281d179d523f6eda312bd40e449b42f22d140e0f6d95e70fd6b824eba8e91e84",
       "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -1362,10 +1362,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "e571d0d21fdb17c2640aa96e75d830c563fe937a"
+        "blob": "4ca8c399a1cab75f5ee01cad5847c22dfdff9822"
       },
-      "bytes": 9374,
-      "sha256": "6438bbf9be57fc7cad8fc3ba1a617e0bf058e164a404953839be9dbf1739442f",
+      "bytes": 9381,
+      "sha256": "362d0453ebc1d718bb4a5eda752aab5dcb75a7e82dc8c377046951287b931b17",
       "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
@@ -1602,10 +1602,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "04e1b1387e2bee7f26e3612eb309e28fffd1c4e6"
+        "blob": "83089f12d3190659c1455f703e8bca791cf4f216"
       },
-      "bytes": 3500,
-      "sha256": "50782d89f67499fccb3f67ffa59fccf7e31d2fa9cd8a93debc1894707635204f",
+      "bytes": 4924,
+      "sha256": "17fddca684a880b920c8c8a427c461d50e92eb07a3807869f93171baa2eded9e",
       "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "custom/combined-performance/stage-msvc-runtime.ps1": {

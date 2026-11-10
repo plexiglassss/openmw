@@ -134,7 +134,7 @@ def wait_for_editor(install, environ):
 
 def smoke_tools(install):
     env = os.environ.copy()
-    system = Path(env["SystemRoot"])
+    system = Path(os.environ["SystemRoot"])
     env["PATH"] = os.pathsep.join(map(str, (install, system / "System32", system)))
     for key in ("QT_PLUGIN_PATH", "QT_QPA_PLATFORM_PLUGIN_PATH", "QT_QPA_PLATFORM", "OSG_LIBRARY_PATH"):
         env.pop(key, None)
