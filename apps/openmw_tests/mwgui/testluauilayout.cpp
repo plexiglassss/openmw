@@ -806,6 +806,113 @@ namespace LuaUi
             }
         }
 
+        TEST_F(LuaUiLayoutTest, SparsePropertyRequestsMergeAndPreserveFullRefresh)
+        {
+            run(R"(
+                a={type='LuaText',name='first',props={text='one'}}
+                b={type='LuaText',name='second',props={text='two'}}
+                shared={type='LuaText',name='shared',props={text='copy'}}
+                root=element {type='LuaFlex',layer='LuaUiTest',props={gap=2},content=content {
+                    {type='LuaContainer',content=content {
+                        {type='LuaFlex',props={horizontal=true},content=content {a,shared}}}},
+                    {type='LuaFlex',content=content {b,shared}}
+                }}
+                roots={root}; refresh(root)
+                first=setmetatable({a}, {__len=function() error('must use raw length') end})
+                second={b,shared,b}; empty={}; invalid={a, 5}
+            )");
+            auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            const sol::table first = mLua["first"], second = mLua["second"], empty = mLua["empty"],
+                             invalid = mLua["invalid"];
+            int enqueued = 0;
+            const auto queue = [&] { ++enqueued; };
+            EXPECT_THROW(root->requestUpdate(&first, [] { throw std::runtime_error("cannot enqueue"); }), std::runtime_error);
+            EXPECT_EQ(root->mState, Element::Created);
+            EXPECT_THROW(root->requestUpdate(&invalid, queue), std::logic_error);
+            root->requestUpdate(&empty, queue);
+            EXPECT_EQ(enqueued, 0);
+            run("a.props.text='first label grows'; b.props.text='second label also grows'; shared.props.text='same instance twice'");
+            root->requestUpdate(&first, queue);
+            root->requestUpdate(&second, queue);
+            EXPECT_EQ(enqueued, 1);
+            root->update();
+            run("snapshot('merged-two-lists-and-duplicate-layout')");
+            run("b.props.text='unmarked edit included in full update'; a.props.text='narrow then full'");
+            root->requestUpdate(&first, queue);
+            root->requestUpdate(nullptr, queue);
+            root->requestUpdate(&first, queue);
+            EXPECT_EQ(enqueued, 2);
+            root->update();
+            run("snapshot('full-supersedes-narrow')");
+            run("old={a}; a={name='replacement',type='LuaText',props={text='replacement'}}; root.layout.content[1].content[1].content[1]=a");
+            const sol::table replacement = mLua.create_table_with(1, mLua["a"].get<sol::table>());
+            root->requestUpdate(&replacement, queue);
+            root->update();
+            EXPECT_NE(require(root, "replacement"), nullptr);
+            run("snapshot('unattached-target-falls-back')");
+            run("a.props.text={}"); // Invalid even when the template or a previous caption supplied a valid value.
+            root->requestUpdate(&replacement, queue);
+            EXPECT_THROW(root->update(), std::logic_error);
+            EXPECT_EQ(root->mState, Element::Created);
+            run("a.props.text='recovered'; b.props.text='after failed request'");
+            root->requestUpdate(&replacement, queue);
+            root->update();
+            run("snapshot('repaired-after-error')");
+        }
+
+        TEST_F(LuaUiLayoutTest, BatchedHudPropertiesBenchmark)
+        {
+            run(R"(
+                local rows={}
+                for i=1,32 do
+                    local label={name='name'..i,type='LuaText',props={text='Objective '..i,textSize=16}}
+                    local distance={name='distance'..i,type='LuaText',props={text='100m'}}
+                    local arrow={name='arrow'..i,type='LuaImage',props={resource=texture('arrow.dds'),size=vec2(16,16)}}
+                    rows[i]={name='row'..i,type='LuaFlex',props={horizontal=true,gap=3},content=content {label,distance,arrow}}
+                end
+                root=element {type='LuaFlex',layer='LuaUiTest',props={gap=2},content=content(rows)}
+                roots={root}; refresh(root)
+                local images={texture('left.dds'),texture('right.dds')}
+                function changePair(i)
+                    local objects=rows[i%32+1].content
+                    objects[2].props.text=tostring(100+i%121)..'m'
+                    objects[3].props.resource=images[i%2+1]
+                    return {objects[2],objects[3]}
+                end
+            )");
+            const auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            const sol::protected_function changePair = mLua["changePair"];
+            const auto update = [&](int i) {
+                const sol::table edited = changePair(i).get<sol::table>();
+                root->requestUpdate(&edited, [] {});
+                root->update();
+            };
+            for (int i = 0; i < 8; ++i)
+                update(i);
+            constexpr int iterations = 32;
+            int sequence = 8;
+            std::array<long long, 7> batches{};
+            for (auto& elapsed : batches)
+            {
+                const auto start = std::chrono::steady_clock::now();
+                for (int i = 0; i < iterations; ++i)
+                    update(sequence++);
+                elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::steady_clock::now() - start).count();
+            }
+            std::sort(batches.begin(), batches.end());
+            collectLayoutUpdateStatistics(true);
+            update(sequence);
+            const auto stats = takeLayoutUpdateStatistics();
+            collectLayoutUpdateStatistics(false);
+            const bool sparse = Misc::useSparseUiUpdates() && useNativeLayoutReuse();
+            EXPECT_EQ(stats.propertyApplications, sparse ? 2u : 129u);
+            RecordProperty("applied_widgets", std::to_string(stats.propertyApplications));
+            RecordProperty("median_refresh_ns", std::to_string(batches[batches.size()/2] / iterations));
+            RecordProperty("rows", 32);
+            run("snapshot('finished-32-row-playback')");
+        }
+
         TEST_F(LuaUiLayoutTest, ImageTemplatesInheritResourcesAcrossOverridesAndUpdates)
         {
             // MWUI boxes use this structure: the image instance supplies its

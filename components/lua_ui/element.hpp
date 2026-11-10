@@ -1,6 +1,7 @@
 #ifndef OPENMW_LUAUI_ELEMENT
 #define OPENMW_LUAUI_ELEMENT
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -52,6 +53,7 @@ namespace LuaUi
 
         void create(uint64_t dept = 0);
 
+        void requestUpdate(const sol::table* changedLayouts, const std::function<void()>& enqueue);
         void update();
 
         void destroy();
@@ -62,6 +64,8 @@ namespace LuaUi
         void checkWarnings();
 
     private:
+        std::vector<sol::main_table> mChangedLayouts;
+        bool mRetryFullUpdate = false;
         Element(sol::table layout, sol::optional<sol::table> options);
         sol::table layout() { return LuaUtil::cast<sol::table>(mLayout); }
         static std::map<Element*, std::shared_ptr<Element>> sGameElements;

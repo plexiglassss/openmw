@@ -28,6 +28,8 @@ EXPECTED = {
     "LayoutReuseFallsBackForLiveMetatableReads",
     "RetainedTextEditorsKeepCaretSelectionAndScrollPasses",
     "NestedRetainedHudSparseAndFullUpdatesBenchmark",
+    "SparsePropertyRequestsMergeAndPreserveFullRefresh",
+    "BatchedHudPropertiesBenchmark",
     IMAGE_INHERITANCE_CASE,
 }
 EXPECTED_PROPERTIES = {

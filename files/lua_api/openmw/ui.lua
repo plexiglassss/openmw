@@ -321,6 +321,15 @@
 
 
 ---
+-- Apply changes to the `props` of existing inline layouts in this Element, then recalculate layout.
+-- Pass the actual layout tables. Multiple requests in the same frame are combined. A full
+-- update takes priority. Use `update()` for changes to content, templates, callbacks, external
+-- properties or layers. Call a nested Element's own method for its internal layouts.
+-- @function [parent=#Element] updateProperties
+-- @param self
+-- @param #list<#Layout> layouts
+
+---
 -- Destroys the element
 -- @function [parent=#Element] destroy
 -- @param self

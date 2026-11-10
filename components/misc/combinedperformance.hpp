@@ -33,6 +33,15 @@ namespace Misc
         }();
         return enabled;
     }
+
+    inline bool useSparseUiUpdates()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_SPARSE_UI_UPDATES");
+            return useTownFrameUpdates() && (value == nullptr || std::string_view(value) != "0");
+        }();
+        return enabled;
+    }
 }
 
 #endif

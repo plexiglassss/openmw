@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Cumulative native jobs and actor/HUD improvements with generic data-driven location rendering and the editable Horror Mod profile.",
+  "scope": "Cumulative native jobs, actor/HUD updates, editable Horror rendering, and selective property updates for sparse Lua HUD changes.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -18,7 +18,8 @@
     "12e5b050cb144396f213bb5ce193b6a7e7e7fce1",
     "3db8987d9dd58729025ee11b2f3b60652c6cf5d4",
     "5e66b560876f3c86c612faf413f46fdd8a91395d",
-    "a0395b811024a0ee9fe97345464f167247f92aaa"
+    "a0395b811024a0ee9fe97345464f167247f92aaa",
+    "39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -28,11 +29,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3c2d558b339d44d6b9b5ccaa4a55a08b8d75e667"
+        "blob": "d2a3b0c83f552459b30f43b47a9087cc43db2b81"
       },
-      "bytes": 61904,
-      "sha256": "94304319ffb67da919a7cd43987dfdb6edd7469699584980a5bfb5405fb86dae",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+      "bytes": 62783,
+      "sha256": "923f7ca3fa22538d5df2ba9a3cf93aae68f0c165144e5f06be9f51e038efb179",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -840,11 +841,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "87ab157d52fe49bef3776d6dd92270fb8c3d7766"
+        "blob": "ee5d4501cfc2681407cf2093f4f791fbedd9a6b0"
       },
-      "bytes": 64700,
-      "sha256": "338c24b0e9eec847be6a2aa71592f728ee7d6a15739e336f44d188f2ec21b0af",
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+      "bytes": 70711,
+      "sha256": "a39c1983d14ca8fdcdf17a671a4ffbda0afb95f8dff7424f854c7c2f9530a822",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -1033,11 +1034,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4dada46e6515c98ae2869a2e02a9ea273a99db12"
+        "blob": "9a8f6cdb00994c5f8c9dcd5d391baae4872901df"
       },
-      "bytes": 19820,
-      "sha256": "0d207ed92b08a48d28473486b71dac066cb381a4aef48e78077e58fa4683f71a",
-      "reason": "Keep valid ordinary and template HUD attachments while honoring dynamic Lua reads, native slot ownership and sibling ordering."
+      "bytes": 25264,
+      "sha256": "e212f1e5b4e095c2df800678ad771966a7a16d12b4a5830fba48e4b2a7fb4569",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "components/lua_ui/flex.cpp": {
       "before": {
@@ -1059,11 +1060,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "deab793d7dee19f9d1b7d95515c608fc5c50b081"
+        "blob": "937ee3f589c5bf5ec6787313e3b7eaa3e582f385"
       },
-      "bytes": 8193,
-      "sha256": "57045f68b5eb786fff66b57f7d4a21f9bbf16f3632d086a46c02c05afd0c18a3",
-      "reason": "Retain stack-pinned non-nil UI reads and normalize optimized raw nil values through the legacy registry-backed converter, preserving missing-property inheritance, nil sentinels, template validation, error order, owner lifetimes, metatable fallback and stack restoration."
+      "bytes": 8867,
+      "sha256": "06a73823a011e3943509c9d2c7052087c63da97bdc9e267ff548c913bc0b1466",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "components/lua_ui/text.cpp": {
       "before": {
@@ -1111,11 +1112,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "47785088069121e827d588e73e4c592c8033bc3e"
+        "blob": "20c1f617d06aa4ede2b5b8e8704b2f3b926efbfe"
       },
-      "bytes": 30916,
-      "sha256": "68b9fcb008b64d5849a192414d59f965f0a8aa647397f9a7a12ea547afa99d7a",
-      "reason": "Keep valid ordinary and template HUD attachments while honoring dynamic Lua reads, native slot ownership and sibling ordering."
+      "bytes": 31310,
+      "sha256": "f5b8d54f1f6c0029154b34fc991fcc98d5d02bb78a455a31066f2bd66ea81aa0",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "components/lua_ui/widget.hpp": {
       "before": {
@@ -1124,11 +1125,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fa24c2ba3c86cdccfc77015d0a25585462e74e08"
+        "blob": "807d1974de35e26400e615ce22f969982a19bd16"
       },
-      "bytes": 11880,
-      "sha256": "f6799a2ddd00a3617a72f5dd13f0e30413f621f314126d82459e83fd4c5e4bc3",
-      "reason": "Keep valid ordinary and template HUD attachments while honoring dynamic Lua reads, native slot ownership and sibling ordering."
+      "bytes": 12270,
+      "sha256": "b0cd7576f3b82dfe33ebac26db6546b31c2dbce71c5481c63ffc70f524b237f4",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "components/mapmarkers/classification.cpp": {
       "before": null,
@@ -1184,11 +1185,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4f79f94f638f9a469d24a674ca642f401bf4ac83"
+        "blob": "d1e5389ae53de4574c28cfad51338fba636483bd"
       },
-      "bytes": 1205,
-      "sha256": "2dfa9de359125fa6963a1b90ed769ee2b0563340bb4ea9719071e18fe35808a8",
-      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+      "bytes": 1504,
+      "sha256": "0b1dbfc54c3833446834a0d320e9d68995c178172e90b21e68026165a97c4c8c",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -1315,11 +1316,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1aedd48211cea3a0b143add24d02fb65aca7c779"
+        "blob": "1f44032514292a76891200a8de897c0f6302d204"
       },
-      "bytes": 4982,
-      "sha256": "16ed0269621600ed426dbd2db8a70084388ec839f6d9393cb9c8b86a07461693",
-      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
+      "bytes": 5829,
+      "sha256": "f2415c9df5e58243309eb10389c4f156d0efe9391c60835228d847257538e6a4",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -1345,21 +1346,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "8474c50bdfdbb74807be7d08f7b73dcaba94a83e"
+        "blob": "2619500dc3940a6e8e14d2a5093b1dc1edf6a5f4"
       },
-      "bytes": 2837,
-      "sha256": "287798c75226bb44927224425cb377eaf628a9015c19ea64120ac61b525290f2",
-      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+      "bytes": 3090,
+      "sha256": "022d2f787140fbe73fcf0a1fd186321a1684404bcc8fa10a2824cd5ebec06bcf",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6ef42e03237a31ba553614819a43db3b26006218"
+        "blob": "a2c17fdcb49a350a6224f6d4e693b93edcaa222f"
       },
-      "bytes": 5196,
-      "sha256": "812f7643167154a6d303846ae8d8abc5bf52582c6dc212a8048c44a24a9010fc",
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+      "bytes": 5403,
+      "sha256": "9addf2f9a5fc198cf4c9fc52e09e8bbdf23e4f9e22bf66aa8f1bbfc8e5cc64d5",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "custom/combined-performance/complete-windows-distribution.py": {
       "before": null,
@@ -1595,11 +1596,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "f752f246c395fdb490cd13a53145e7faab4d19c4"
+        "blob": "1c8db55e3ab69327ad2101c6fef1b46bc20362b9"
       },
-      "bytes": 11358,
-      "sha256": "fa6120dbe517a15a9b1c8394baa06a2a015e8cd77a3cc412dfb2946d926b8924",
-      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+      "bytes": 11622,
+      "sha256": "cc18a7ea2fadffa1a4ceb000a0731cfec5aacca9bedb2aa95bdabe5f818041fb",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -2183,11 +2184,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4282b7c79b486cf35fa1f95e72f08086ee69e523"
+        "blob": "79fc3031572614d3d933ebe0ccb1e0594c63dc9d"
       },
-      "bytes": 7223,
-      "sha256": "90eeccb68bbdd86d2bef490b5dc2db7ca6cd3598fef6b2dfbb19e8c0491cee00",
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+      "bytes": 7317,
+      "sha256": "1163785e1156c0a526ac362a3dccdaf361a3f4f6a40266df42687e156ce9cbf5",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,
@@ -2976,6 +2977,111 @@
       "bytes": 14276,
       "sha256": "185e7f9e2a518f42f9d11204fb2da9af0cba7516f20f18d56684a5e85cadce8b",
       "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+    },
+    "apps/components_tests/esm/testrefid.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "1911cd1a5a771d55e738327bf37a30c210e88b10"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7c485cc11196848961057f87b2c25f867138bc18"
+      },
+      "bytes": 20268,
+      "sha256": "3664a235e675788cdbb88c13d41ad1061abec7353b992d60838c11492cfab124",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+    },
+    "apps/openmw/mwlua/uibindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "882a6be9c1043b7b8fdc238577de1c273efa29cb"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "db05e1484686aaf3258838beaaaf3d3b711495cc"
+      },
+      "bytes": 24593,
+      "sha256": "d188b30542180e9b5d020f8fe434207681cea4e6fa54cf73de7b9f551a183206",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+    },
+    "components/esm/formid.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "85ef3818e8dc2025b73ede71dc35fc70c3e57bb0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4d6ed5af3adbd4d5ad05c89d97be3fbf51866d13"
+      },
+      "bytes": 1457,
+      "sha256": "dbcbb1bbdd4d2fce06f8a7565f92f4ce5eb63eafabadd856d2bab0bacbbdf1df",
+      "reason": "Format inventory and other form identifiers without allocating a maximum-length buffer."
+    },
+    "components/lua_ui/element.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b276bf9bcc05b2fc6d41372de1225ee12d8827ea"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "abdb7dd3bea1a833b7201c63b61779c6cea8eada"
+      },
+      "bytes": 2081,
+      "sha256": "28f3029a418bc21a99027bd0b6e855ff684a7a29d5e6a41afcbe2c4ee9b35023",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+    },
+    "custom/combined-performance/Proximity Tool - Sparse HUD/README.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2205507761f68f0359a42a09afcfcc7cd0607a22"
+      },
+      "bytes": 893,
+      "sha256": "dfc6765292783410914fd120499c74f9bc5c692485e99fea79353c14cceeacc0",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+    },
+    "custom/combined-performance/Proximity Tool - Sparse HUD/scripts/proximityTool/ui/mainMenu.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9ae16ae733534ff12a09b7cfc223bbc1fdef22d5"
+      },
+      "bytes": 54690,
+      "sha256": "b5b551376aea07aa51abfa94f67468ecbbdf91d6c3a49f1432030bf81bfbcb7e",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+    },
+    "custom/combined-performance/Run-Previous-HUD.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "703c4ac63a8e85e6155a27a4b5c66eb8292c634c"
+      },
+      "bytes": 135,
+      "sha256": "3595f3b82e563874592b3dc1407e0ae9e31a5992e845f22f7126b85143386a68",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+    },
+    "custom/combined-performance/tests/verify-sparse-hud.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3a42b0465c5c2debc2516341e92802bf4a7edaed"
+      },
+      "bytes": 1608,
+      "sha256": "5cb478f4963d56430a9a294c04e90c1871a228bfea5eb16f7756b7cdf096c799",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+    },
+    "files/lua_api/openmw/ui.lua": {
+      "before": {
+        "mode": "100644",
+        "blob": "91a2fd782e277fcb28cfb37f1340a53c713efb28"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4ae8b52e89e3e2a2c61a5eee1c0fa283d93e5947"
+      },
+      "bytes": 14868,
+      "sha256": "1ec27b249c941dc7410903fc12d96b19123fdd226aecb2d7728f3e6bb7f364f0",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
     }
   }
 }

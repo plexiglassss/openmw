@@ -124,14 +124,15 @@ def prepare(destination):
     for name in launcher_reports:
         evidence = json.loads((ROOT / name).read_text(encoding="utf-8-sig"))
         checks = evidence.get("cases", [])
-        if (evidence.get("result") != "PASS" or len(checks) != 4
-                or {case["name"] for case in checks} != {"Combined", "Inherited", "PreviousFrameUpdates", "CollectorFailure"}
+        if (evidence.get("result") != "PASS" or len(checks) != 5
+                or {case["name"] for case in checks} != {"Combined", "Inherited", "PreviousFrameUpdates", "PreviousHud", "CollectorFailure"}
                 or any(case["result"] != "PASS" or case.get("environment_restored") is not True for case in checks)):
             raise ValueError("Launcher mode or environment-restoration checks did not pass: " + name)
 
     target.mkdir(parents=True)
-    for name in ("Start-Combined.ps1", "Run-Combined.cmd", "Run-Inherited.cmd", "Run-Previous-Frame-Updates.cmd"):
+    for name in ("Start-Combined.ps1", "Run-Combined.cmd", "Run-Inherited.cmd", "Run-Previous-Frame-Updates.cmd", "Run-Previous-HUD.cmd"):
         shutil.copy2(HERE / name, target / name)
+    shutil.copytree(HERE / "Proximity Tool - Sparse HUD", target / "Proximity Tool - Sparse HUD")
     (target / "capture").mkdir()
     shutil.copy2(ROOT / "custom/performance-capture-followup/Start-Capture.ps1", target / "capture/Start-Capture.ps1")
 
@@ -160,11 +161,12 @@ def prepare(destination):
                       "lua-ui-legacy-updates-tests.xml", "combined-performance-off-tests.xml",
                       "sanemagic-adapter-parity.json", "native-job-adapter-parity.json",
                       "native-jobs-tests.json", "town-frame-updates.json", "town-previous-components.xml",
-                      "town-previous-engine.xml", *launcher_reports)
+                      "town-previous-engine.xml", "previous-hud-tests.xml", "sparse-hud-tests.json", *launcher_reports)
     for name in evidence_files:
         shutil.copy2(ROOT / name, destination / name)
     for name, command in (("Run-Combined.cmd", "Run-Combined.cmd"), ("Run-Inherited.cmd", "Run-Inherited.cmd"),
-                          ("Run-Previous-Frame-Updates.cmd", "Run-Previous-Frame-Updates.cmd")):
+                          ("Run-Previous-Frame-Updates.cmd", "Run-Previous-Frame-Updates.cmd"),
+                          ("Run-Previous-HUD.cmd", "Run-Previous-HUD.cmd")):
         (destination / name).write_bytes(
             ('@echo off\r\ncall "%~dp0tools\\combined-performance\\' + command + '"\r\n').encode())
     write_root_adapter_command(destination)

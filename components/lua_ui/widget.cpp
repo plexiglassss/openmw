@@ -560,6 +560,8 @@ namespace LuaUi
 
     void WidgetExtension::setProperties(const sol::main_object& props)
     {
+        if (sCollectLayoutStatistics)
+            ++sLayoutStatistics.propertyApplications;
         preserveDynamicLayoutReads(props);
         invalidateLayout();
         mProperties = props;
@@ -592,7 +594,11 @@ namespace LuaUi
         mWidget->setNeedMouseFocus(!propertyValue("ignorePointerEvents", false));
         mWidget->setPointer(propertyValue("pointer", std::string("arrow")));
         mWidget->setAlpha(propertyValue("alpha", 1.f));
-        mWidget->setInheritsAlpha(propertyValue("inheritAlpha", true));
+        const bool inheritAlpha = propertyValue("inheritAlpha", true);
+        // MyGUI always walks the whole native subtree in this setter, even
+        // when its current flag already matches. Reparenting refreshes alpha itself.
+        if (!Misc::useSparseUiUpdates() || mWidget->getInheritsAlpha() != inheritAlpha)
+            mWidget->setInheritsAlpha(inheritAlpha);
         parsePadding();
     }
 

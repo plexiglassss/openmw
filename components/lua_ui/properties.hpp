@@ -5,11 +5,13 @@
 #include <MyGUI_Types.h>
 #include <cstdlib>
 #include <osg/Vec2>
+#include <osg/Vec4f>
 #include <sol/sol.hpp>
 #include <string_view>
 
 #include <components/lua/luastate.hpp>
 #include <components/misc/color.hpp>
+#include <components/misc/combinedperformance.hpp>
 
 namespace LuaUi
 {
@@ -132,10 +134,19 @@ namespace LuaUi
                 // may have changed the template's metatable. Every metatable
                 // retains the established protected lookup and its semantics.
                 const int index = source.stack_index();
+                constexpr bool nilIsAbsent = std::is_arithmetic_v<LuaT>
+                    || std::is_same_v<LuaT, std::string> || std::is_same_v<LuaT, osg::Vec2f>
+                    || std::is_same_v<LuaT, osg::Vec4f> || std::is_same_v<LuaT, Misc::Color>;
+                if constexpr (nilIsAbsent)
+                    if (Misc::useSparseUiUpdates() && lua_isnil(state, index))
+                        return sol::nullopt;
                 if (lua_type(state, index) == LUA_TTABLE && lua_getmetatable(state, index) == 0)
                 {
                     lua_pushlstring(state, field.data(), field.size());
                     lua_rawget(state, index);
+                    if constexpr (nilIsAbsent)
+                        if (Misc::useSparseUiUpdates() && lua_isnil(state, -1))
+                            return sol::nullopt;
                     const sol::stack_object value(state, -1);
                     // Registry and stack objects accept different C++ types for
                     // nil (notably pointers). Preserve the legacy nil checks so

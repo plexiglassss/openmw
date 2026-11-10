@@ -559,6 +559,19 @@ jobs:
           }
           python custom/combined-performance/tests/verify-town-frame-updates.py
           if ($LASTEXITCODE) { throw 'Town update state or attachment checks failed' }
+      - name: Compare sparse and complete HUD refreshes with earlier town improvements enabled
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SPARSE_UI_UPDATES = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.SparsePropertyRequestsMergeAndPreserveFullRefresh:LuaUiLayoutTest.BatchedHudPropertiesBenchmark --gtest_output=xml:previous-hud-tests.xml
+            if ($LASTEXITCODE) { throw 'Previous HUD refresh regression failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SPARSE_UI_UPDATES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-sparse-hud.py
+          if ($LASTEXITCODE) { throw 'Changed widget geometry or count differs' }
       - name: Require executed native tooltip tests
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -718,6 +731,8 @@ jobs:
             town-frame-updates.json
             town-previous-components.xml
             town-previous-engine.xml
+            previous-hud-tests.xml
+            sparse-hud-tests.json
             location-rendering-profile-tests.xml
             install/verification/location-rendering-profile.json
             install/COMBINED-PACKAGE.json

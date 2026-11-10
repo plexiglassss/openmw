@@ -53,6 +53,7 @@ namespace LuaUi
         std::uint64_t calculated = 0;
         std::uint64_t reused = 0;
         std::uint64_t hierarchyWrites = 0;
+        std::uint64_t propertyApplications = 0;
     };
     // Disabled during normal play; used by native regression/benchmark tests.
     void collectLayoutUpdateStatistics(bool enabled);
@@ -98,6 +99,14 @@ namespace LuaUi
 
 
         void setProperties(const sol::main_object& props);
+        bool hasPlainPropertyInputs() const
+        {
+            preserveDynamicLayoutReads(mLayout);
+            preserveDynamicLayoutReads(mTemplateProperties);
+            if (layoutReuseInProgress())
+                preserveDynamicLayoutReads(mLayout.raw_get<sol::object>("props"));
+            return layoutReuseInProgress();
+        }
         void setTemplateProperties(const sol::main_object& props)
         {
             preserveDynamicLayoutReads(props);

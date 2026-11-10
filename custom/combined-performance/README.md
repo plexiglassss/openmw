@@ -41,3 +41,9 @@ The capture launchers use the same executable. A measured town FPS increase and 
 Run `Run-Combined.cmd` from the extracted engine folder. This enables prepared onUpdate callbacks, direct reads of modified actor stats, reuse of repeated actor type checks and retention of stable HUD widget attachments. Each works with ordinary scripts. Existing mod adapters are optional.
 
 For a same-executable comparison with the previous town update code, run `Run-Previous-Frame-Updates.cmd` with the same save and route. Both launchers keep native jobs enabled. Each capture records both switches. Open inventory twice in Seyda Neen if comparing the menu hitches as well.
+
+## Sparse HUD updates
+
+The engine speeds up ordinary property reads and avoids repeating a native alpha update for a widget whose inheritance flag already matches. Mods can also pass the actual changed inline layout tables to `Element:updateProperties`. The engine reapplies their properties, recalculates enclosing sizes, and performs one final root layout for each queued element. Full requests supersede narrower requests.
+
+For the repaired Proximity Tool setup, add `tools/combined-performance/Proximity Tool - Sparse HUD` after the current Proximity scripts in Data Directories. The supplied menu uses this API when only displayed distance labels or direction arrows change. Use `Run-Combined.cmd` for the default behavior and `Run-Previous-HUD.cmd` for the same executable with the previous HUD path. Keep the overlay enabled in both runs.

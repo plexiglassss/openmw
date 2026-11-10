@@ -2,6 +2,10 @@
 
 #include <MyGUI_Gui.h>
 
+#include <algorithm>
+#include <iterator>
+#include <unordered_map>
+
 #include <components/misc/combinedperformance.hpp>
 #include "components/settings/values.hpp"
 #include "content.hpp"
@@ -320,6 +324,64 @@ namespace LuaUi
             ext->updateCoord();
         }
 
+        struct PropertyUpdate
+        {
+            WidgetExtension* widget;
+            bool propertiesChanged;
+        };
+
+        // Do not cross a child Element boundary. Its own update action owns its
+        // property tables. The same inline table can appear in multiple places.
+        bool collectPropertyUpdates(WidgetExtension* widget, std::unordered_map<const void*, bool>& requested,
+            std::vector<PropertyUpdate>& updates)
+        {
+            auto match = requested.find(widget->getLayout().pointer());
+            const bool changed = match != requested.end();
+            if (changed)
+                match->second = true;
+            bool updateBranch = changed;
+            for (const auto& children : { &widget->templateChildren(), &widget->children() })
+                for (auto* child : *children)
+                    if (!child->isRoot() && collectPropertyUpdates(child, requested, updates))
+                        updateBranch = true;
+            if (updateBranch)
+                updates.push_back({ widget, changed });
+            return updateBranch;
+        }
+
+        bool updateChangedProperties(WidgetExtension* root, const sol::table& current,
+            const std::vector<sol::main_table>& changedLayouts)
+        {
+            if (current.pointer() != root->getLayout().pointer() || !layoutReuseInProgress())
+                return false;
+            std::unordered_map<const void*, bool> requested;
+            for (const auto& layout : changedLayouts)
+                requested.emplace(layout.pointer(), false);
+            std::vector<PropertyUpdate> updates;
+            collectPropertyUpdates(root, requested, updates);
+            if (std::any_of(requested.begin(), requested.end(), [](const auto& entry) { return !entry.second; }))
+                return false;
+            for (const auto& [widget, changed] : updates)
+            {
+                // A native LuaWindow can supply the caption for a template child.
+                // Keep that ownership and any live property getters on the full path.
+                if (widget->widget()->getTypeName() == "LuaWindow" || (changed && !widget->hasPlainPropertyInputs()))
+                    return false;
+            }
+            // Validate membership first. Recompute intrinsic sizes from leaves
+            // to root so a changed label can resize all enclosing flexes/containers.
+            // Element::update performs the final root layout, including other
+            // branches affected by a sibling changing size.
+            for (const auto& [widget, changed] : updates)
+            {
+                if (changed)
+                    widget->setProperties(widget->getLayout().get<sol::object>(LayoutKeys::props));
+                if (widget != root)
+                    widget->updateCoord();
+            }
+            return true;
+        }
+
         std::string setLayer(WidgetExtension* ext, const sol::table& layout)
         {
             MyGUI::ILayer* layerNode = ext->widget()->getLayer();
@@ -386,12 +448,54 @@ namespace LuaUi
         }
     }
 
+    void Element::requestUpdate(const sol::table* changedLayouts, const std::function<void()>& enqueue)
+    {
+        if (mState != Created && mState != Update)
+            return;
+        const bool newRequest = mState == Created;
+        std::vector<sol::main_table> incoming;
+        if (changedLayouts)
+        {
+            lua_State* lua = changedLayouts->lua_state();
+            const Detail::RestoreStack restore(lua);
+            changedLayouts->push(lua);
+            if (!lua_istable(lua, -1))
+                throw std::logic_error("updateProperties expects an array of layout tables");
+            const size_t size = lua_rawlen(lua, -1);
+            if (size == 0)
+                return;
+            incoming.reserve(size);
+            for (size_t i = 1; i <= size; ++i)
+            {
+                auto layout = changedLayouts->raw_get<sol::object>(i);
+                if (layout.get_type() != sol::type::table)
+                    throw std::logic_error("updateProperties expects an array of layout tables");
+                incoming.emplace_back(layout.as<sol::table>());
+            }
+        }
+        // addAction can reject reentrant requests. Only commit the state after
+        // scheduling succeeds, and never promote a queued full refresh to partial.
+        if (newRequest)
+            enqueue();
+        if (!changedLayouts || mRetryFullUpdate || !Misc::useSparseUiUpdates())
+            mChangedLayouts.clear();
+        else if (newRequest)
+            mChangedLayouts.swap(incoming);
+        else if (!mChangedLayouts.empty())
+            mChangedLayouts.insert(mChangedLayouts.end(), std::make_move_iterator(incoming.begin()),
+                std::make_move_iterator(incoming.end()));
+        mState = Update;
+    }
+
     void Element::update()
     {
         if (mState == Update)
         {
             LayoutUpdateScope layoutUpdate(mRoot);
             assert(mRoot);
+            // Consume the request once, including if updating the layout throws.
+            std::vector<sol::main_table> changedLayouts;
+            changedLayouts.swap(mChangedLayouts);
             if (mRoot->widget()->getTypeName() != widgetType(layout()))
             {
                 // A root element can either be attached to another UI element or directly to a layer. Keep the
@@ -439,11 +543,24 @@ namespace LuaUi
             else
             {
                 const sol::table current = layout();
-                updateWidget(mRoot, current, 0, canRetainAttachments(current, mRoot));
+                try
+                {
+                    if (changedLayouts.empty() || !updateChangedProperties(mRoot, current, changedLayouts))
+                        updateWidget(mRoot, current, 0, canRetainAttachments(current, mRoot));
+                }
+                catch (...)
+                {
+                    // Some property setters may have run already. A repaired
+                    // request must be able to enqueue a complete refresh.
+                    mRetryFullUpdate = true;
+                    mState = Created;
+                    throw;
+                }
             }
             mLayer = setLayer(mRoot, layout());
             updateRootCoord(mRoot);
             mState = Created;
+            mRetryFullUpdate = false;
             checkWarnings();
         }
     }
@@ -461,6 +578,7 @@ namespace LuaUi
                 destroyRoot(mRoot);
                 mRoot = nullptr;
             }
+            mChangedLayouts.clear();
             mLayout.reset();
         }
         mState = Destroyed;
