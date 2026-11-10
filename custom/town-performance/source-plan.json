@@ -1768,10 +1768,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c38309ba4966769391322a9e4f27a2efd4508d11"
+        "blob": "fce7d10f2e6f00e31dc1680f20748a1ce87128f5"
       },
-      "bytes": 31773,
-      "sha256": "19701b969b0d0f1fdfc5ac26dfb51250afaf968c74828b24ba601333c84b9c87",
+      "bytes": 31981,
+      "sha256": "82d88da3480f58219f32b3aaaf154a56b9de30b91448d4c3a29d9c27613a866c",
       "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
     "custom/loading-repair/apply.py": {
