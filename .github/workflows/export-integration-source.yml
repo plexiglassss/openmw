@@ -21,10 +21,12 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse HEAD > SOURCE-COMMIT.txt
-          tar --exclude=.git -czf "openmw-source-${GITHUB_SHA}.tar.gz" .
+          archive="$RUNNER_TEMP/openmw-source-${GITHUB_SHA}.tar.gz"
+          tar --exclude=.git -czf "$archive" .
+          echo "SOURCE_ARCHIVE=$archive" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
         with:
           name: openmw-integration-source-${{ github.sha }}
-          path: openmw-source-${{ github.sha }}.tar.gz
+          path: ${{ env.SOURCE_ARCHIVE }}
           if-no-files-found: error
           retention-days: 7
