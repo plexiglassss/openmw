@@ -1,0 +1,137 @@
+name: Luminus Lanes Geometry Export
+
+on:
+  push:
+    branches:
+      - audit/luminus-lanes-assets-20261110
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install geometry tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y assimp-utils p7zip-full jq
+
+      - name: Collect support meshes
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p work/project-atlas work/momw out/source out/obj out/logs
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/MelchiorDahrk/Project-Atlas.git work/project-atlas
+          (cd work/project-atlas && git sparse-checkout set '00 Core/Meshes/f' '04 Emperor Parasols - Smoothed')
+          curl -fL --retry 3 -A 'Mozilla/5.0' \
+            https://gitlab.com/modding-openmw/momw-patches/-/archive/3.45.2/momw-patches-3.45.2.zip \
+            -o work/momw.zip
+          unzip -q work/momw.zip -d work/momw
+          find work/project-atlas work/momw -type f -iname '*.nif' \( \
+            -iname 'flora_emp_parasol_*.nif' -o \
+            -iname 'flora_tree_*.nif' -o \
+            -iname 'flora_tree_ai_*.nif' -o \
+            -iname 'furn_de_rope_*.nif' -o \
+            -iname 'furn_pole_support_*.nif' -o \
+            -iname 'furn_roped_pole_*.nif' \
+          \) -print0 | while IFS= read -r -d '' f; do
+            rel="${f#work/}"
+            dest="out/source/$rel"
+            mkdir -p "$(dirname "$dest")"
+            cp "$f" "$dest"
+          done
+
+      - name: Query public Nexus GraphQL and preview metadata
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -x
+          cat > out/logs/query.json <<'JSON'
+          {"query":"query { modFiles(modId: 45779, gameId: 100) { fileId name uri version size sizeInBytes categoryId date } }"}
+          JSON
+          curl -fsSL -A 'Mozilla/5.0' -H 'Content-Type: application/json' \
+            --data @out/logs/query.json https://api.nexusmods.com/v2/graphql \
+            -o out/logs/nexus-modfiles.json || true
+          cat > out/logs/introspection.json <<'JSON'
+          {"query":"query { __type(name: \"ModFile\") { name fields { name type { kind name ofType { kind name } } } } }"}
+          JSON
+          curl -fsSL -A 'Mozilla/5.0' -H 'Content-Type: application/json' \
+            --data @out/logs/introspection.json https://api.nexusmods.com/v2/graphql \
+            -o out/logs/nexus-modfile-schema.json || true
+          if test -s out/logs/nexus-modfiles.json; then
+            jq -r '.data.modFiles[]?.uri // empty' out/logs/nexus-modfiles.json | while IFS= read -r uri; do
+              encoded=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$uri")
+              url="https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/100/45779/${encoded}.json"
+              echo "$url" >> out/logs/preview-urls.txt
+              curl -fsSL -A 'Mozilla/5.0' "$url" -o "out/logs/preview-$(echo "$uri" | sha256sum | cut -d' ' -f1).json" || true
+            done
+          fi
+
+      - name: Try public Remiros archive endpoints
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -x
+          mkdir -p work/remiros
+          filename="Remiros' Ascadian Isles Trees - Vanilla-45779-2-1-1556198681.7z"
+          encoded=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$filename")
+          urls=(
+            "https://file-metadata.nexusmods.com/file/nexus-files-s3-meta/100/45779/${encoded}.json"
+            "https://cf-files.nexusmods.com/cdn/100/45779/${encoded}"
+            "https://supporter-files.nexus-cdn.com/100/45779/${encoded}"
+            "https://premium-files.nexus-cdn.com/100/45779/${encoded}"
+            "https://www.confrerie-des-traducteurs.fr/morrowind/telechargement/2274/0"
+          )
+          i=0
+          for url in "${urls[@]}"; do
+            i=$((i+1))
+            echo "$url" >> out/logs/remiros-attempts.txt
+            curl -L --retry 2 --connect-timeout 30 -A 'Mozilla/5.0' -D "out/logs/remiros-${i}.headers" "$url" -o "work/remiros/remiros-${i}.download" || true
+            file "work/remiros/remiros-${i}.download" >> out/logs/remiros-file-types.txt 2>&1 || true
+            if 7z t "work/remiros/remiros-${i}.download" >/dev/null 2>&1; then
+              mkdir -p work/remiros/extracted-$i
+              7z x -y "work/remiros/remiros-${i}.download" "-owork/remiros/extracted-$i" > "out/logs/remiros-${i}-extract.log"
+            fi
+          done
+          find work/remiros -type f -iname '*.nif' -print0 | while IFS= read -r -d '' f; do
+            rel="${f#work/remiros/}"
+            dest="out/source/remiros/$rel"
+            mkdir -p "$(dirname "$dest")"
+            cp "$f" "$dest"
+          done
+
+      - name: Convert NIF meshes to OBJ
+        shell: bash
+        run: |
+          set -euxo pipefail
+          find out/source -type f -iname '*.nif' -print0 | while IFS= read -r -d '' f; do
+            rel="${f#out/source/}"
+            obj="out/obj/${rel%.nif}.obj"
+            mkdir -p "$(dirname "$obj")"
+            if assimp export "$f" "$obj" > "${obj}.assimp.log" 2>&1; then
+              echo -e "PASS\t$f\t$obj" >> out/logs/conversion.tsv
+            else
+              echo -e "FAIL\t$f\t$obj" >> out/logs/conversion.tsv
+              rm -f "$obj"
+            fi
+          done
+
+      - name: Manifest
+        shell: bash
+        run: |
+          set -euxo pipefail
+          find out -type f -printf '%p\t%s\n' | sort > out/FILES.tsv
+          find out -type f -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
+          cat out/logs/conversion.tsv || true
+
+      - name: Upload geometry
+        uses: actions/upload-artifact@v4
+        with:
+          name: luminus-lanes-geometry-export
+          path: out
+          if-no-files-found: error
+          retention-days: 7
