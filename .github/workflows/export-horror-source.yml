@@ -1,0 +1,32 @@
+name: Export legacy profile source
+
+on:
+  push:
+    branches:
+      - feat/horror-interior-lighting-20261109
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Archive exact source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > SOURCE-COMMIT.txt
+          archive="$RUNNER_TEMP/openmw-source-${GITHUB_SHA}.tar.gz"
+          tar --exclude=.git -czf "$archive" .
+          echo "SOURCE_ARCHIVE=$archive" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openmw-legacy-profile-source-${{ github.sha }}
+          path: ${{ env.SOURCE_ARCHIVE }}
+          if-no-files-found: error
+          retention-days: 7

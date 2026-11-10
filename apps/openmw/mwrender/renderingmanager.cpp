@@ -45,6 +45,9 @@
 
 #include <components/misc/constants.hpp>
 
+#include <components/vfs/manager.hpp>
+#include <components/vfs/recursivedirectoryiterator.hpp>
+
 #include <components/terrain/quadtreeworld.hpp>
 #include <components/terrain/terraingrid.hpp>
 
@@ -326,6 +329,10 @@ namespace MWRender
         mSharedUniformStateUpdater = new SceneUtil::SharedUniformStateUpdater(Settings::fog().mSkyBlendingStart);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
 
+        // A default on the outer root resets this uniform outside the world
+        // subtree. UI/local-map cameras also explicitly override it to false.
+        rootNode->getOrCreateStateSet()->addUniform(new osg::Uniform("classicInteriorLighting", false));
+
         mPerViewUniformStateUpdater = new SceneUtil::PerViewUniformStateUpdater(mResourceSystem->getSceneManager(),
             mResourceSystem->getSceneManager()->getShaderManager().reserveGlobalTextureUnits(
                 Shader::ShaderManager::Slot::OpaqueDepthTexture),
@@ -596,6 +603,51 @@ namespace MWRender
 
         mPostProcessor->getStateUpdater()->setSunPos(osg::Vec4f(position, 0.f), mNight);
         mPostProcessor->getStateUpdater()->setSunVec(osg::Vec4f(-sunlightPos, 0.f));
+    }
+
+    void RenderingManager::loadInteriorLightingProfiles(const std::vector<std::string>& activeContent)
+    {
+        mInteriorLightingProfiles.clear();
+        updateInteriorLighting(nullptr);
+        const VFS::Manager& vfs = *mResourceSystem->getVFS();
+        for (const VFS::Path::Normalized& path : vfs.getRecursiveDirectoryIterator("shader_profiles/"))
+        {
+            const std::string& name = path.value();
+            if (!name.ends_with(".yaml") && !name.ends_with(".yml") && !name.ends_with(".json"))
+                continue;
+            try
+            {
+                auto stream = vfs.get(path);
+                const InteriorLightingProfile profile = parseInteriorLightingProfile(*stream);
+                if (mInteriorLightingProfiles.add(profile, activeContent))
+                    Log(Debug::Info) << "Interior lighting profile: loaded '" << profile.mName << "' from " << name
+                                     << " (" << profile.mInteriors.size() << " interiors)";
+                else
+                    Log(Debug::Info) << "Interior lighting profile: inactive required content for " << name;
+            }
+            catch (const std::exception& error)
+            {
+                Log(Debug::Warning) << "Interior lighting profile: skipping " << name << ": " << error.what();
+            }
+        }
+    }
+
+    void RenderingManager::updateInteriorLighting(const MWWorld::Cell* cell)
+    {
+        const std::string_view profile = cell && Settings::shaders().mInteriorLightingProfiles
+            ? mInteriorLightingProfiles.find(cell->getNameId(), cell->isExterior())
+            : std::string_view{};
+        // StateUpdater owns separate uniforms for its two scene StateSets, so
+        // the update traversal never mutates uniforms used by the render thread.
+        mStateUpdater->setClassicInteriorLighting(!profile.empty());
+        if (profile != mActiveInteriorLightingProfile)
+        {
+            if (profile.empty())
+                Log(Debug::Info) << "Interior lighting profile: ordinary rendering restored";
+            else
+                Log(Debug::Info) << "Interior lighting profile: '" << profile << "' active in " << cell->getNameId();
+            mActiveInteriorLightingProfile = profile;
+        }
     }
 
     void RenderingManager::addCell(const MWWorld::CellStore* store)
@@ -1122,6 +1174,7 @@ namespace MWRender
 
     void RenderingManager::clear()
     {
+        updateInteriorLighting(nullptr);
         mSky->setMoonColour(false);
 
         notifyWorldSpaceChanged();
@@ -1395,6 +1448,11 @@ namespace MWRender
             else if (it->first == "Water")
             {
                 mWater->processChangedSettings(changed);
+            }
+            else if (it->first == "Shaders" && it->second == "interior lighting profiles")
+            {
+                const auto player = MWMechanics::getPlayer();
+                updateInteriorLighting(player.isInCell() ? player.getCell()->getCell() : nullptr);
             }
             else if (it->first == "Shaders" && it->second == "minimum interior brightness")
             {

@@ -108,6 +108,8 @@ namespace SceneUtil
 
         void setWaterEnabled(bool enabled);
 
+        void setClassicInteriorLighting(bool enabled) { mClassicInteriorLighting = enabled; }
+
     private:
         osg::Vec4f mAmbientColor;
         osg::Vec4f mFogColor;
@@ -119,6 +121,7 @@ namespace SceneUtil
         bool mWireframe = false;
         float mWaterHeight = 0.f;
         bool mWaterEnabled = false;
+        bool mClassicInteriorLighting = false;
     };
 }
 

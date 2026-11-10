@@ -688,6 +688,10 @@ namespace Shader
                 : new SamplerProgram(samplers);
             program->addShader(vertexShader);
             program->addShader(fragmentShader);
+            // Object shaders use a second tangent only for differing ordinary/classic UV sets.
+            // Groundcover uses attribute 6 for instance offsets and has no classicTangent input.
+            if (vertexShader && vertexShader->getShaderSource().find("attribute vec4 classicTangent;") != std::string::npos)
+                program->addBindAttribLocation("classicTangent", 6);
             addLinkedShaders(vertexShader, program);
             addLinkedShaders(fragmentShader, program);
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
@@ -860,6 +864,18 @@ namespace Shader
     {
         return {
             { "forcePPL", "0" },
+            { "autoNormalMap", "0" },
+            { "autoSpecularMap", "0" },
+            { "classicNormalMap", "0" },
+            { "classicNormalMapUV", "0" },
+            { "classicNormalMapUnit", "0" },
+            { "classicSpecularMap", "0" },
+            { "classicSpecularMapUV", "0" },
+            { "classicSpecularMapUnit", "0" },
+            { "classicParallax", "0" },
+            { "classicReconstructNormalZ", "0" },
+            { "classicTangent", "0" },
+            { "classicInteriorAvailable", "1" },
             { "clamp", "1" },
             { "preLightEnv", "0" },
             { "radialFog", "0" },

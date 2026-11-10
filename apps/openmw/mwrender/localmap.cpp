@@ -731,6 +731,10 @@ namespace MWRender
         camera->setViewMatrix(mViewMatrix);
 
         auto* stateset = camera->getOrCreateStateSet();
+        // This camera renders the shared world subtree. Its override must win
+        // over that subtree's temporary interior profile, just like UI previews.
+        stateset->addUniform(new osg::Uniform("classicInteriorLighting", false),
+            osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
 
         stateset->setAttribute(new osg::PolygonMode(osg::PolygonMode::FRONT_AND_BACK, osg::PolygonMode::FILL),
             osg::StateAttribute::OVERRIDE);

@@ -608,6 +608,7 @@ namespace MWWorld
         navigatorUpdateGuard.reset();
         assert(mActiveCells.empty());
         mCurrentCell = nullptr;
+        mRendering.updateInteriorLighting(nullptr);
         mLowestPoint = std::numeric_limits<float>::max();
 
         mPreloader->clear();
@@ -949,6 +950,10 @@ namespace MWWorld
     {
         mHalfGridSize = cell.getCell()->isEsm4() ? Constants::ESM4CellGridRadius : Constants::CellGridRadius;
         mCurrentCell = &cell;
+
+        // Covers doors, COC/teleports and direct save loads before the scene is
+        // shown. Exterior grid neighbours do not select a world profile.
+        mRendering.updateInteriorLighting(cell.getCell());
 
         mRendering.enableTerrain(cell.isExterior(), cell.getCell()->getWorldSpace());
 

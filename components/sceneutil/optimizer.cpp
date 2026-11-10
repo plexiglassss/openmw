@@ -41,6 +41,7 @@
 #include <cassert>
 
 #include <components/sceneutil/depth.hpp>
+#include <components/sceneutil/vertexattributes.hpp>
 
 // NOLINTBEGIN(readability-identifier-naming)
 
@@ -384,9 +385,14 @@ void CollectLowestTransformsVisitor::doTransform(osg::Object* obj,osg::Matrix& m
         drawable->accept(tf);
 
         osg::Geometry *geom = drawable->asGeometry();
-        osg::Vec4Array* tangents = geom ? dynamic_cast<osg::Vec4Array*>(geom->getTexCoordArray(7)) : nullptr;
-        if (tangents)
+        bool classicTangent = false;
+        if (geom && geom->getVertexAttribArray(SceneUtil::ClassicTangentAttribute))
+            geom->getVertexAttribArray(SceneUtil::ClassicTangentAttribute)->getUserValue(SceneUtil::ClassicTangentUserValue, classicTangent);
+        for (osg::Vec4Array* tangents : {
+            geom ? dynamic_cast<osg::Vec4Array*>(geom->getTexCoordArray(7)) : nullptr,
+            geom && classicTangent ? dynamic_cast<osg::Vec4Array*>(geom->getVertexAttribArray(SceneUtil::ClassicTangentAttribute)) : nullptr })
         {
+            if (!tangents) continue;
             for (unsigned int i=0; i<tangents->size(); ++i)
             {
                 osg::Vec4f& itr = (*tangents)[i];
@@ -647,6 +653,11 @@ void Optimizer::FlattenStaticTransformsVisitor::apply(osg::Geometry& geometry)
             geometry.setNormalArray(cloneArray(geometry.getNormalArray(), vbo, &geometry));
         if(geometry.getTexCoordArray(7) && geometry.getTexCoordArray(7)->referenceCount() > 1) // tangents
             geometry.setTexCoordArray(7, cloneArray(geometry.getTexCoordArray(7), vbo, &geometry));
+        bool classicTangent = false;
+        auto* classicTangents = geometry.getVertexAttribArray(SceneUtil::ClassicTangentAttribute);
+        if(classicTangents) classicTangents->getUserValue(SceneUtil::ClassicTangentUserValue, classicTangent);
+        if(classicTangent && classicTangents && classicTangents->referenceCount() > 1)
+            geometry.setVertexAttribArray(SceneUtil::ClassicTangentAttribute, cloneArray(classicTangents, vbo, &geometry));
     }
     _drawableSet.insert(&geometry);
 }

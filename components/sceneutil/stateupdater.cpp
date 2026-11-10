@@ -152,6 +152,7 @@ namespace SceneUtil
         stateset->addUniform(new osg::Uniform("waterHeight", mWaterHeight));
         stateset->addUniform(new osg::Uniform("waterEnabled", mWaterEnabled));
         stateset->addUniform(new osg::Uniform("waterSurface", false));
+        stateset->addUniform(new osg::Uniform("classicInteriorLighting", mClassicInteriorLighting));
     }
 
     void StateUpdater::apply(osg::StateSet* stateset, osg::NodeVisitor*)
@@ -167,6 +168,7 @@ namespace SceneUtil
 
         stateset->getUniform("waterHeight")->set(mWaterHeight);
         stateset->getUniform("waterEnabled")->set(mWaterEnabled);
+        stateset->getUniform("classicInteriorLighting")->set(mClassicInteriorLighting);
     }
 
     void StateUpdater::setAmbientColor(const osg::Vec4f& col)

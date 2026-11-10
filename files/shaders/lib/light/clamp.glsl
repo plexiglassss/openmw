@@ -1,8 +1,13 @@
+#include "lib/light/classicinterior.glsl"
+
 void clampLighting(inout vec3 lighting)
 {
 #if @clamp
     lighting = clamp(lighting, vec3(0.0), vec3(1.0));
 #else
-    lighting = max(lighting, 0.0);
+    if (CLASSIC_INTERIOR_LIGHTING)
+        lighting = clamp(lighting, vec3(0.0), vec3(1.0));
+    else
+        lighting = max(lighting, 0.0);
 #endif
 }

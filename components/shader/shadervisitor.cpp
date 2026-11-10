@@ -28,6 +28,7 @@
 #include <components/sceneutil/riggeometryosgaextension.hpp>
 #include <components/sceneutil/texturetype.hpp>
 #include <components/sceneutil/util.hpp>
+#include <components/sceneutil/vertexattributes.hpp>
 #include <components/settings/settings.hpp>
 #include <components/stereo/stereomanager.hpp>
 #include <components/vfs/manager.hpp>
@@ -54,6 +55,8 @@ namespace Shader
             , mUniforms(rhs.mUniforms)
             , mModes(rhs.mModes)
             , mAttributes(rhs.mAttributes)
+            , mTextureAttributes(rhs.mTextureAttributes)
+            , mClassicFallbacks(rhs.mClassicFallbacks)
         {
         }
 
@@ -106,11 +109,31 @@ namespace Shader
             return hasAttribute(osg::StateAttribute::TypeMemberPair(type, member));
         }
 
+        bool hasTextureAttribute(unsigned int unit, osg::StateAttribute::Type type, unsigned int member) const
+        {
+            const auto found = mTextureAttributes.find(unit);
+            return found != mTextureAttributes.end() && found->second.count({ type, member }) != 0;
+        }
+
         const std::set<osg::StateAttribute::TypeMemberPair>& getAttributes() { return mAttributes; }
-        const std::unordered_map<unsigned int, std::set<osg::StateAttribute::TypeMemberPair>>& getTextureAttributes()
+        const std::unordered_map<unsigned int, std::set<osg::StateAttribute::TypeMemberPair>>& getTextureAttributes() const
         {
             return mTextureAttributes;
         }
+
+        struct ClassicFallback
+        {
+            unsigned int mOriginalUnit;
+            unsigned int mBackupUnit;
+            std::string mType;
+            osg::ref_ptr<osg::Texture> mTexture;
+            bool mNormalHeight;
+            bool mReconstructNormalZ;
+            int mTangentUnit;
+        };
+
+        void addClassicFallback(ClassicFallback fallback) { mClassicFallbacks.push_back(std::move(fallback)); }
+        const std::vector<ClassicFallback>& getClassicFallbacks() const { return mClassicFallbacks; }
 
         bool empty()
         {
@@ -141,6 +164,7 @@ namespace Shader
         ModeSet mModes;
         AttributeSet mAttributes;
         std::unordered_map<unsigned int, AttributeSet> mTextureAttributes;
+        std::vector<ClassicFallback> mClassicFallbacks;
     };
 
     ShaderVisitor::ShaderRequirements::ShaderRequirements()
@@ -154,7 +178,10 @@ namespace Shader
         , mDiffuseHeight(false)
         , mNormalHeight(false)
         , mReconstructNormalZ(false)
+        , mClassicNormalHeight(false)
+        , mClassicReconstructNormalZ(false)
         , mTexStageRequiringTangents(-1)
+        , mClassicTexStageRequiringTangents(-1)
         , mSoftParticles(false)
         , mNode(nullptr)
     {
@@ -257,7 +284,25 @@ namespace Shader
         if (std::find(std::begin(defaultTextures), std::end(defaultTextures), name) != std::end(defaultTextures))
             return true;
         else
-            return name == "normalHeightMap";
+            return name == "normalHeightMap" || name == "autoNormalMap" || name == "autoNormalHeightMap"
+                || name == "autoSpecularMap";
+    }
+
+    bool isClassicFallback(const osg::StateSet& stateSet, unsigned int unit)
+    {
+        const auto* type = stateSet.getTextureAttribute(unit, SceneUtil::TextureType::AttributeType);
+        return type && (type->getName() == "classicNormalMap" || type->getName() == "classicSpecularMap");
+    }
+
+    void removeClassicFallbacks(osg::StateSet& stateSet, const AddedState& addedState)
+    {
+        for (const auto& [unit, attributes] : addedState.getTextureAttributes())
+        {
+            if (!isClassicFallback(stateSet, unit))
+                continue; // A later authored material edit may have replaced this binding.
+            for (const auto& attribute : attributes)
+                stateSet.removeTextureAttribute(unit, attribute.first);
+        }
     }
 
     void ShaderVisitor::applyStateSet(osg::ref_ptr<osg::StateSet> stateset, osg::Node& node)
@@ -273,38 +318,89 @@ namespace Shader
 
         // Make sure to disregard any state that came from a previous call to createProgram
         osg::ref_ptr<AddedState> addedState = getAddedState(*stateset);
+        if (addedState)
+        {
+            // Static-transform flattening can remove the ancestor which originally supplied an explicit
+            // texture. Replay the preserved binding before applying any newly authored local material state.
+            for (const auto& fallback : addedState->getClassicFallbacks())
+            {
+                if (!isClassicFallback(*stateset, fallback.mBackupUnit))
+                    continue;
+                const bool restored = mRequirements.back().mClassicTextures
+                                          .try_emplace(fallback.mOriginalUnit,
+                                              ShaderRequirements::TextureBinding{ fallback.mType, fallback.mTexture })
+                                          .second;
+                if (restored && fallback.mType == "normalMap")
+                {
+                    mRequirements.back().mClassicNormalHeight = fallback.mNormalHeight;
+                    mRequirements.back().mClassicReconstructNormalZ = fallback.mReconstructNormalZ;
+                    mRequirements.back().mClassicTexStageRequiringTangents = fallback.mTangentUnit;
+                }
+            }
+        }
 
         if (!texAttributes.empty())
         {
             const osg::Texture* diffuseMap = nullptr;
             const osg::Texture* normalMap = nullptr;
+            const osg::Texture* classicNormalMap = nullptr;
             const osg::Texture* specularMap = nullptr;
             const osg::Texture* bumpMap = nullptr;
             for (unsigned int unit = 0; unit < texAttributes.size(); ++unit)
             {
-                const osg::StateAttribute* attr = stateset->getTextureAttribute(unit, osg::StateAttribute::TEXTURE);
+                // Ignore fallback bindings installed by createProgram on an earlier pass.
+                if (addedState && addedState->hasTextureAttribute(unit, osg::StateAttribute::TEXTURE, 0)
+                    && isClassicFallback(*stateset, unit))
+                    continue;
+                osg::StateAttribute* attr = stateset->getTextureAttribute(unit, osg::StateAttribute::TEXTURE);
                 if (attr)
                 {
-                    const osg::Texture* texture = attr->asTexture();
+                    osg::Texture* texture = attr->asTexture();
                     if (texture)
                     {
                         std::string texName = SceneUtil::getTextureType(*stateset, *texture, unit);
                         if ((texName.empty() || !isTextureNameRecognized(texName)) && unit == 0)
                             texName = "diffuseMap";
 
+                        // Keep automatic-map provenance in the texture-unit StateAttribute. Its name participates
+                        // in state sharing and survives shallow model clones and another ShaderVisitor pass.
+                        // Marking the Texture itself would also mark explicit bindings of that same texture.
+                        const bool automaticMap = texName == "autoNormalMap" || texName == "autoNormalHeightMap"
+                            || texName == "autoSpecularMap";
+                        if (automaticMap)
+                        {
+                            mRequirements.back().mAutomaticMapUnits.insert(unit);
+                            if (texName == "autoSpecularMap")
+                                texName = "specularMap";
+                            else
+                                texName = texName == "autoNormalHeightMap" ? "normalHeightMap" : "normalMap";
+                        }
+                        else
+                            mRequirements.back().mAutomaticMapUnits.erase(unit);
+
                         if (texName == "normalHeightMap")
                         {
+                            // Retain the ordinary visitor's inherited-height behavior exactly.
                             mRequirements.back().mNormalHeight = true;
+                            if (!automaticMap)
+                                mRequirements.back().mClassicNormalHeight = true;
                             texName = "normalMap";
                         }
 
                         if (!texName.empty())
                         {
                             mRequirements.back().mTextures[unit] = texName;
+                            if (!automaticMap)
+                                mRequirements.back().mClassicTextures[unit] = { texName, texture };
                             if (texName == "normalMap")
                             {
                                 mRequirements.back().mTexStageRequiringTangents = unit;
                                 normalMap = texture;
+                                if (!automaticMap)
+                                {
+                                    mRequirements.back().mClassicTexStageRequiringTangents = unit;
+                                    classicNormalMap = texture;
+                                }
                             }
                             else if (texName == "diffuseMap")
                             {
@@ -314,6 +410,7 @@ namespace Shader
                                 {
                                     mRequirements.back().mDiffuseHeight = true;
                                     mRequirements.back().mTexStageRequiringTangents = unit;
+                                    mRequirements.back().mClassicTexStageRequiringTangents = unit;
                                 }
                                 diffuseMap = texture;
                             }
@@ -374,9 +471,10 @@ namespace Shader
                         writableStateSet = getWritableStateSet(node);
                     writableStateSet->setTextureAttribute(unit, normalMapTex, osg::StateAttribute::ON);
                     writableStateSet->setTextureAttribute(unit,
-                        new SceneUtil::TextureType(normalHeight ? "normalHeightMap" : "normalMap"),
+                        new SceneUtil::TextureType(normalHeight ? "autoNormalHeightMap" : "autoNormalMap"),
                         osg::StateAttribute::ON);
                     mRequirements.back().mTextures[unit] = "normalMap";
+                    mRequirements.back().mAutomaticMapUnits.insert(unit);
                     mRequirements.back().mTexStageRequiringTangents = unit;
                     mRequirements.back().mNormalHeight = normalHeight;
                 }
@@ -393,6 +491,18 @@ namespace Shader
                         mRequirements.back().mReconstructNormalZ = true;
                         mRequirements.back().mNormalHeight = false;
                     }
+                }
+            }
+
+            if (classicNormalMap != nullptr && classicNormalMap->getImage(0))
+            {
+                switch (SceneUtil::computeUnsizedPixelFormat(classicNormalMap->getImage(0)->getPixelFormat()))
+                {
+                    case GL_RG:
+                    case GL_RG_INTEGER:
+                        mRequirements.back().mClassicReconstructNormalZ = true;
+                        mRequirements.back().mClassicNormalHeight = false;
+                        break;
                 }
             }
 
@@ -419,8 +529,9 @@ namespace Shader
                         writableStateSet = getWritableStateSet(node);
                     writableStateSet->setTextureAttribute(unit, specularMapTex, osg::StateAttribute::ON);
                     writableStateSet->setTextureAttribute(
-                        unit, new SceneUtil::TextureType("specularMap"), osg::StateAttribute::ON);
+                        unit, new SceneUtil::TextureType("autoSpecularMap"), osg::StateAttribute::ON);
                     mRequirements.back().mTextures[unit] = "specularMap";
+                    mRequirements.back().mAutomaticMapUnits.insert(unit);
                 }
             }
         }
@@ -527,8 +638,11 @@ namespace Shader
         osg::ref_ptr<AddedState> previousAddedState = getAddedState(*writableStateSet);
         if (!previousAddedState)
             previousAddedState = new AddedState;
+        removeClassicFallbacks(*writableStateSet, *previousAddedState);
 
         ShaderManager::DefineMap defineMap;
+        defineMap["autoNormalMap"] = "0";
+        defineMap["autoSpecularMap"] = "0";
         for (unsigned int i = 0; i < sizeof(defaultTextures) / sizeof(defaultTextures[0]); ++i)
         {
             defineMap[defaultTextures[i]] = "0";
@@ -539,7 +653,74 @@ namespace Shader
         {
             defineMap[texIt->second] = "1";
             defineMap[texIt->second + std::string("UV")] = std::to_string(texIt->first);
+            if (texIt->second == "normalMap")
+                defineMap["autoNormalMap"] = reqs.mAutomaticMapUnits.count(texIt->first) ? "1" : "0";
+            else if (texIt->second == "specularMap")
+                defineMap["autoSpecularMap"] = reqs.mAutomaticMapUnits.count(texIt->first) ? "1" : "0";
         }
+
+        // Select the last explicit binding of each semantic, following the same unit order as the
+        // ordinary shader. Merely disabling the last automatic binding could hide an explicit parent.
+        ShaderManager::SamplerBindingMap classicSamplers;
+        std::set<int> occupiedUnits;
+        for (const auto& [unit, type] : reqs.mTextures)
+            occupiedUnits.insert(unit);
+        bool classicFallbackAvailable = true;
+        for (const auto* type : { "normalMap", "specularMap" })
+        {
+            const auto binding = std::find_if(reqs.mClassicTextures.rbegin(), reqs.mClassicTextures.rend(),
+                [type](const auto& item) { return item.second.mType == type; });
+            const std::string sampler = std::string("classic") + (type == std::string_view("normalMap") ? "NormalMap" : "SpecularMap");
+            defineMap[sampler] = binding == reqs.mClassicTextures.rend() ? "0" : "1";
+            defineMap[sampler + "UV"] = "0";
+            defineMap[sampler + "Unit"] = "0";
+            if (binding == reqs.mClassicTextures.rend())
+                continue;
+
+            const int originalUnit = binding->first;
+            int samplerUnit = originalUnit;
+            const auto ordinary = reqs.mTextures.find(originalUnit);
+            if (ordinary == reqs.mTextures.end() || ordinary->second != type
+                || reqs.mAutomaticMapUnits.count(originalUnit))
+            {
+                // An automatic child has physically overwritten the inherited texture unit. Preserve
+                // its explicit alternative once; profile transitions only choose the sampler in GLSL.
+                int spareUnit = 0;
+                while (occupiedUnits.count(spareUnit))
+                    ++spareUnit;
+                if (spareUnit < mShaderManager.getAvailableTextureUnits())
+                {
+                    samplerUnit = spareUnit;
+                    occupiedUnits.insert(spareUnit);
+                    auto textureType = new SceneUtil::TextureType(sampler);
+                    writableStateSet->setTextureAttribute(samplerUnit, binding->second.mTexture, osg::StateAttribute::ON);
+                    writableStateSet->setTextureAttribute(samplerUnit, textureType, osg::StateAttribute::ON);
+                    addedState->setTextureAttribute(samplerUnit, binding->second.mTexture);
+                    addedState->setTextureAttribute(samplerUnit, textureType);
+                    addedState->addClassicFallback({ static_cast<unsigned int>(originalUnit),
+                        static_cast<unsigned int>(samplerUnit), type, binding->second.mTexture,
+                        reqs.mClassicNormalHeight, reqs.mClassicReconstructNormalZ,
+                        reqs.mClassicTexStageRequiringTangents });
+                }
+                else
+                    classicFallbackAvailable = false;
+            }
+            classicSamplers[sampler] = samplerUnit;
+            defineMap[sampler + "UV"] = std::to_string(originalUnit);
+            // Program caching includes the define map. Equal UVs do not imply equal sampler units
+            // when only one of two otherwise identical materials needs a preserved fallback binding.
+            defineMap[sampler + "Unit"] = std::to_string(samplerUnit);
+        }
+        if (!classicFallbackAvailable)
+        {
+            // Never overwrite a reserved shadow/depth texture or change the ordinary material when a
+            // hardware limit prevents retaining its explicit alternative.
+            Log(Debug::Warning) << "Insufficient texture units for classic interior material fallback; preserving "
+                                   "ordinary lighting for "
+                                << node.getName();
+        }
+        // Keep a capacity exception local to this material's program, never an inherited node uniform.
+        defineMap["classicInteriorAvailable"] = classicFallbackAvailable ? "1" : "0";
 
         if (defineMap["diffuseMap"] == "0")
         {
@@ -550,6 +731,12 @@ namespace Shader
         defineMap["diffuseParallax"] = reqs.mDiffuseHeight ? "1" : "0";
         defineMap["parallax"] = reqs.mNormalHeight ? "1" : "0";
         defineMap["reconstructNormalZ"] = reqs.mReconstructNormalZ ? "1" : "0";
+        defineMap["classicParallax"] = reqs.mClassicNormalHeight ? "1" : "0";
+        defineMap["classicReconstructNormalZ"] = reqs.mClassicReconstructNormalZ ? "1" : "0";
+        defineMap["classicTangent"] = reqs.mClassicTexStageRequiringTangents >= 0
+                && reqs.mClassicTexStageRequiringTangents != reqs.mTexStageRequiringTangents
+            ? "1"
+            : "0";
         defineMap["alphaFunc"] = std::to_string(reqs.mAlphaFunc);
         defineMap["additiveBlending"] = reqs.mAdditiveBlending ? "1" : "0";
 
@@ -658,7 +845,7 @@ namespace Shader
         if (!node.getUserValue("shaderPrefix", shaderPrefix))
             shaderPrefix = mDefaultShaderPrefix;
 
-        ShaderManager::SamplerBindingMap samplers;
+        ShaderManager::SamplerBindingMap samplers = std::move(classicSamplers);
         for (const auto& [unit, name] : reqs.mTextures)
             samplers[name] = unit;
 
@@ -712,6 +899,14 @@ namespace Shader
                     changed = true;
                 }
             }
+            for (const auto& [unit, binding] : reqs.mClassicTextures)
+            {
+                if (sourceGeometry.getTexCoordArray(unit) == nullptr)
+                {
+                    sourceGeometry.setTexCoordArray(unit, sourceGeometry.getTexCoordArray(0));
+                    changed = true;
+                }
+            }
 
             bool generateTangents = reqs.mTexStageRequiringTangents != -1;
 
@@ -722,6 +917,31 @@ namespace Shader
 
                 sourceGeometry.setTexCoordArray(7, generator->getTangentArray(), osg::Array::BIND_PER_VERTEX);
                 changed = true;
+            }
+            std::string shaderPrefix;
+            if (!reqs.mNode->getUserValue("shaderPrefix", shaderPrefix))
+                shaderPrefix = mDefaultShaderPrefix;
+            const bool classicObjectShader = shaderPrefix == "objects" || shaderPrefix == "bs/default";
+            if (classicObjectShader && reqs.mClassicTexStageRequiringTangents >= 0
+                && reqs.mClassicTexStageRequiringTangents != reqs.mTexStageRequiringTangents)
+            {
+                osg::ref_ptr<osgUtil::TangentSpaceGenerator> generator = new osgUtil::TangentSpaceGenerator;
+                generator->generate(&sourceGeometry, reqs.mClassicTexStageRequiringTangents);
+                generator->getTangentArray()->setUserValue(SceneUtil::ClassicTangentUserValue, true);
+                sourceGeometry.setVertexAttribArray(
+                    SceneUtil::ClassicTangentAttribute, generator->getTangentArray(), osg::Array::BIND_PER_VERTEX);
+                changed = true;
+            }
+            else if (classicObjectShader)
+            {
+                bool classicTangent = false;
+                const auto* tangents = sourceGeometry.getVertexAttribArray(SceneUtil::ClassicTangentAttribute);
+                if (tangents && tangents->getUserValue(SceneUtil::ClassicTangentUserValue, classicTangent)
+                    && classicTangent)
+                {
+                    sourceGeometry.setVertexAttribArray(SceneUtil::ClassicTangentAttribute, nullptr);
+                    changed = true;
+                }
             }
         }
         return changed;
@@ -850,6 +1070,12 @@ namespace Shader
         // as removed.
         if (node.getStateSet())
         {
+            if (const osg::ref_ptr<AddedState> addedState = getAddedState(*node.getStateSet()))
+            {
+                osg::StateSet* writableStateSet
+                    = mAllowedToModifyStateSets ? node.getStateSet() : getWritableStateSet(node);
+                removeClassicFallbacks(*writableStateSet, *addedState);
+            }
             osg::ref_ptr<osg::StateSet> removedState = getRemovedState(*node.getStateSet());
             if (removedState)
             {

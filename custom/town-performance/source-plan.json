@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Combined native performance candidate on 016577e6e33b16080e9c6828b38a3879526714d7: action-scoped dependency-aware Lua UI geometry reuse; compiled live native magic/effect queries and SaneMagic adapters; immutable typed cell query snapshots and idempotent pointer registration. Preserve native map icons, native travel/key/cleared-cell tooltips and every prior cumulative feature and build-time loading-repair gate. One complete engine package, prepared adapters and same-executable inherited fallback. No plugin, terrain, placement or modlist changes; no claimed gameplay FPS gain before user capture.",
+  "scope": "Combined native performance candidate on 016577e6e33b16080e9c6828b38a3879526714d7: action-scoped dependency-aware Lua UI geometry reuse; compiled live native magic/effect queries and SaneMagic adapters; immutable typed cell query snapshots and idempotent pointer registration. Preserve native map icons, native travel/key/cleared-cell tooltips and every prior cumulative feature and build-time loading-repair gate. One complete engine package, prepared adapters and same-executable inherited fallback. No plugin, terrain, placement or modlist changes; no claimed gameplay FPS gain before user capture. Add the Horror-only interior lighting profile on exact combined head 8bd0d90b2727b8d654288d5c42e45a3edefc7146: strict active-content/exact-cell selection; temporary scene uniform for the four accepted rendering effects; explicit-map and geometry preservation; focused native and real offscreen shader regressions; complete Windows packaging. Preserve all earlier engine changes and native mod bytes. Actual installed gameplay remains separately untested.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -13,7 +13,8 @@
     "ca144536f3dd813f9fb13c832b7396d1554d71f5",
     "016577e6e33b16080e9c6828b38a3879526714d7",
     "6182d81e985763b2fed194d297db601fe1a56dfb",
-    "7024d00c79fb0a88a97ff0b636096a5f3fd316d0"
+    "7024d00c79fb0a88a97ff0b636096a5f3fd316d0",
+    "8bd0d90b2727b8d654288d5c42e45a3edefc7146"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -23,11 +24,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0fa8c0ab0166bfd0cce0d30f146b5627c2868c36"
+        "blob": "e296f083b46226c01720b2f8cf0a7e734aace86e"
       },
-      "bytes": 52996,
-      "sha256": "f9ba92913360f3ba579e17b753ea5703c314771ab96c4f0c23fc151cba1f85fb",
-      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: .github/workflows/push.yml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Combined performance candidate: Build one combined Windows candidate with all inherited source/test gates, adapter parity, three native UI modes, prepared tools and complete packaging."
+      "bytes": 65190,
+      "sha256": "188eca1e09901628570dae99f1935a0416b5566a068494b077a9af1c2d5eacba",
+      "reason": "Native world-map icon feature: .github/workflows/push.yml; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: .github/workflows/push.yml; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Combined performance candidate: Build one combined Windows candidate with all inherited source/test gates, adapter parity, three native UI modes, prepared tools and complete packaging. Horror interior renderer profile: Require executed Horror profile, material/geometry and offscreen shader regressions before publishing the complete Windows package; bundle the exact profile, shader resources and evidence; retain inherited gates and triggers."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -36,11 +37,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "00413fb7b55c115bce7b88eb16f32fbe60bb9013"
+        "blob": "cc8cf291b13ccda97401c9a6cc0d16d6a2277705"
       },
-      "bytes": 4117,
-      "sha256": "20dd43db9a746a08f99b4f9339064d2e0632518fbfc43d56331d7cec368776ea",
-      "reason": "Native world-map icon feature: apps/components_tests/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/components_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 4208,
+      "sha256": "af75bd0887952bace5d3664f02fbaff53fb57eb1e57d1ebae305e09656306dfb",
+      "reason": "Native world-map icon feature: apps/components_tests/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/components_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Horror interior renderer profile: Register the Horror profile implementation, focused native regressions or shader includes in the existing build and installation."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -118,6 +119,36 @@
       "sha256": "0d3970c16ec2a7f355b9a242964079e73e4e27783a729c5c1515d9547daceec3",
       "reason": "Native world-map icon feature: apps/components_tests/settings/testvalues.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "apps/components_tests/shader/classicbindings.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "76c4f6c2ae512dd253c66af4e90ca44da309a208"
+      },
+      "bytes": 13165,
+      "sha256": "a2d37aa1a1d8e59feb3b657412adeffaa1105e493be8f495337ec5697f021bec",
+      "reason": "Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code. Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code."
+    },
+    "apps/components_tests/shader/classicgeometry.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3b0695df51d00387192919000b7078bbe18a00c2"
+      },
+      "bytes": 11728,
+      "sha256": "68b23876a3f59a7b84990570978f6a6ab9b96e90da1040175a2d94bbcb4c0ff9",
+      "reason": "Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code."
+    },
+    "apps/components_tests/shader/shadervisitor.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a52152f8dacd5dea03b80763868b6fcf48a84d6e"
+      },
+      "bytes": 12654,
+      "sha256": "31be4dbcfd14db8e0bf13bc0ce2859f2a7feb0046d7c7149446811509b20c967",
+      "reason": "Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code. Horror interior renderer profile: Exercise automatic-versus-explicit material bindings, shader recreation, cache identity and alternate tangent geometry behavior in actual component code."
+    },
     "apps/openmw/CMakeLists.txt": {
       "before": {
         "mode": "100644",
@@ -125,11 +156,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "56817c69d91becb283c8660c3b32c87752a7f554"
+        "blob": "596dd5fb9c2423942c333933dd13bed66be78f13"
       },
-      "bytes": 11897,
-      "sha256": "5afcfcbce1a3c332dcce5bdebb59c0b268a3023e8ac0886609c39565fa72e0db",
-      "reason": "Native world-map icon feature: apps/openmw/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 11914,
+      "sha256": "aa972920210b83b7125a37771176725dc4e8815af7d7c663f4ea0847a1c8845b",
+      "reason": "Native world-map icon feature: apps/openmw/CMakeLists.txt; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Horror interior renderer profile: Register the Horror profile implementation, focused native regressions or shader includes in the existing build and installation."
     },
     "apps/openmw/mwbase/mechanicsmanager.hpp": {
       "before": {
@@ -508,6 +539,78 @@
       "sha256": "3390da27c14193625538b08ba756585d76697b688c017a0a575f840cd8c72a78",
       "reason": "Native tooltip integration: apps/openmw/mwmechanics/mechanicsmanagerimp.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
     },
+    "apps/openmw/mwrender/characterpreview.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f1d7d1bb9f6ce65c1081459e800ad4dca13706db"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2a69bd39b9f9e730b981fd67784f94baafff1cf7"
+      },
+      "bytes": 24235,
+      "sha256": "0f84de68271039299801ee46cf2d16995d8b03df0738dd2c9e687b739f97aae6",
+      "reason": "Horror interior renderer profile: Keep preview and local-map cameras on ordinary rendering with an explicit overriding scene uniform. Horror interior renderer profile: Keep preview and local-map cameras on ordinary rendering with an explicit overriding scene uniform."
+    },
+    "apps/openmw/mwrender/interiorlighting.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "034270651a7ae4014026b78bcbe2abe1b4836d62"
+      },
+      "bytes": 5792,
+      "sha256": "ebc379412aa7dd0f3673305e780304340a5d9e271f9fe0f6f567d74070543ccb",
+      "reason": "Horror interior renderer profile: Parse strict versioned VFS profiles and bind exact case-insensitive interior names only when all required content files are active. Horror interior renderer profile: Parse strict versioned VFS profiles and bind exact case-insensitive interior names only when all required content files are active."
+    },
+    "apps/openmw/mwrender/interiorlighting.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "df23c10bfbd01b09bfeab0904d7d475376fccd37"
+      },
+      "bytes": 1024,
+      "sha256": "15578bec0c642daa637779e7ea7fc17780c1262c5dd752c83a86a6a66d739aa1",
+      "reason": "Horror interior renderer profile: Parse strict versioned VFS profiles and bind exact case-insensitive interior names only when all required content files are active. Horror interior renderer profile: Parse strict versioned VFS profiles and bind exact case-insensitive interior names only when all required content files are active."
+    },
+    "apps/openmw/mwrender/localmap.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "60beb81d9e7bb7245a9b979e8a27326fd82fb369"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c38efc003cad10ad019d5a60b44489f5ee632135"
+      },
+      "bytes": 30928,
+      "sha256": "c82c04ad1d386c37086178b8d7df2ef6c7ed1b8bb5067c9d271d15b24d00a8ba",
+      "reason": "Horror interior renderer profile: Keep preview and local-map cameras on ordinary rendering with an explicit overriding scene uniform. Horror interior renderer profile: Keep preview and local-map cameras on ordinary rendering with an explicit overriding scene uniform."
+    },
+    "apps/openmw/mwrender/renderingmanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "85dad40d363d128c872fd9b4182537f80ee6c7ba"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "605f3766ba466390c8235deefc26335a2c4974a1"
+      },
+      "bytes": 71992,
+      "sha256": "1ffb8fcbb03551334432ef6c142b969cce535c43275bb6fb32e9470c10f28c19",
+      "reason": "Horror interior renderer profile: Load profiles once and resolve the temporary world lighting mode on native cell changes/settings toggles, with an ordinary-mode default and reset. Horror interior renderer profile: Load profiles once and resolve the temporary world lighting mode on native cell changes/settings toggles, with an ordinary-mode default and reset."
+    },
+    "apps/openmw/mwrender/renderingmanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b23db3b0a836fad203bc5fb4c581bafb32e5f56e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f08e95dbbb84a335865759d8016a839a2b8e9295"
+      },
+      "bytes": 12133,
+      "sha256": "77d112b769a5cf7ea31058a431fd1a52dd3694ccd4477d1f0cc552e8ea15ac4d",
+      "reason": "Horror interior renderer profile: Load profiles once and resolve the temporary world lighting mode on native cell changes/settings toggles, with an ordinary-mode default and reset. Horror interior renderer profile: Load profiles once and resolve the temporary world lighting mode on native cell changes/settings toggles, with an ordinary-mode default and reset."
+    },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
         "mode": "100644",
@@ -629,11 +732,24 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8aaa7fe5e0e6ce56dfd59fb70317b72de85e2aad"
+        "blob": "ec7dd7a6996382aa5189f1eafeb37c8569f108ca"
       },
-      "bytes": 60868,
-      "sha256": "9d6ed609523d608b68e5d39406cda92db1821862005968dba624daeec693324d",
-      "reason": "Native tooltip integration: apps/openmw/mwworld/scene.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 61135,
+      "sha256": "eb20b47ef3767dec87bca104dc1648c40c3a73872507d8f94670fec99a849689",
+      "reason": "Native tooltip integration: apps/openmw/mwworld/scene.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Horror interior renderer profile: Update the profile at every native player-cell transition and clear it with the world, covering doors, teleports and direct save loads."
+    },
+    "apps/openmw/mwworld/worldimp.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b647e89405129cce295e0fe649f5e2b46ad95ba6"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5b5d3f1fd7239f72537c4a432d39d5f912a7c9a2"
+      },
+      "bytes": 140398,
+      "sha256": "4e217a718d82f2cfbfc57bf66bbefc301f072af67421f9f894d50e8f6e3fff9c",
+      "reason": "Horror interior renderer profile: Load profile configuration with actual active content immediately after constructing the renderer. Horror interior renderer profile: Load profile configuration with actual active content immediately after constructing the renderer."
     },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
@@ -642,11 +758,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b01c961f8798369c8a904f434ad35e49223fd0ef"
+        "blob": "696ce3804c27b1020e853ea714b12b1997f08245"
       },
-      "bytes": 3747,
-      "sha256": "999ea63c64d6b6463ebc881e43669f517d2297f8a6eb7d4a77f0e502fc0cbf75",
-      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test; run the same form fixtures early with the production MyGUI ABI definition. Native tooltip integration: apps/openmw_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 3786,
+      "sha256": "de8c24f8852c47c065e68043a460e3b95156982fd43a6b9df7a5892a48168bd8",
+      "reason": "Register the native MyGUI layout and actual ObjectVariant/SafePtr/MagicEffects regression suites alongside every preserved engine test; run the same form fixtures early with the production MyGUI ABI definition. Native tooltip integration: apps/openmw_tests/CMakeLists.txt; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Horror interior renderer profile: Register the Horror profile implementation, focused native regressions or shader includes in the existing build and installation."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -700,6 +816,16 @@
       "bytes": 42280,
       "sha256": "1200ce0569587ebb072e1e211a2cc53088f786fecfff3afa60baf49c312b2e6b",
       "reason": "Test real actor-context, registry, native effect and exception-order semantics with controlled stats/key services; record bounded Release/LTO native-helper comparisons without an FPS claim. Combined performance candidate: Exercise real native combined paths, mutation/snapshot semantics, Lua factory registration and bounded measurements."
+    },
+    "apps/openmw_tests/mwrender/testinteriorlighting.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "fdead42dcf951d9f7fbf0bd1b6ae49791737cf4a"
+      },
+      "bytes": 18944,
+      "sha256": "9a1b7c9d48df43f75d378e55cff710bda51d6ba30531dc9bc685fdc1717e1db0",
+      "reason": "Horror interior renderer profile: Execute strict profile parsing, active-content gating, exact-cell lookup, shared/exterior exclusions and actual scene-uniform transition/reset tests."
     },
     "apps/openmw_tests/mwworld/testcelllookup.cpp": {
       "before": {
@@ -992,6 +1118,94 @@
       "sha256": "1b2bb253877d9bd87f5cff6d873e0b4e4934ade1a3567790c1e8ba8b0b8dda3f",
       "reason": "Combined performance candidate: Provide a default-on combined candidate and one process-scoped same-executable master fallback."
     },
+    "components/sceneutil/optimizer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "606288af5423f7fda2805b5c918ae0dbca573a14"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "0124b7977c5456b10eb135f006a45574920848f0"
+      },
+      "bytes": 77148,
+      "sha256": "0b93556bf617a973d22ad8dc81ee68e818a92dca4665ac252e6af61b50eef66a",
+      "reason": "Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes. Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes."
+    },
+    "components/sceneutil/riggeometry.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "74246a076a8f7d70ab414d966d57321ae3cc3efd"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "478d3f72eab0247f3c585a6dde064b2d225d96b5"
+      },
+      "bytes": 16037,
+      "sha256": "3e16e0b61250abd8d181e57271351d084e4a594eec2d614c20c9fd1cda86ba98",
+      "reason": "Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes. Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes."
+    },
+    "components/sceneutil/riggeometry.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "64f8ac3ce237c46bfb94539e9bb0a4f57525a5de"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d2777fee78874152e154c0cee7db47bb142f3a71"
+      },
+      "bytes": 4380,
+      "sha256": "757968c440bb892f59ddcfbf931a5f979391464e34ba0eac106b51a4cc374d9f",
+      "reason": "Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes. Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes."
+    },
+    "components/sceneutil/riggeometryosgaextension.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "df8975dc3584d9ebf2fa5c5e5cf8fb1fbeaefbb5"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "53635b130b9ced75e27527db3d0e58affd5bf291"
+      },
+      "bytes": 12626,
+      "sha256": "6f9b9d5420d1838193119c843a0c1720d4444581435e168a727b0ec320d64fd6",
+      "reason": "Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes. Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes."
+    },
+    "components/sceneutil/stateupdater.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "51e3690f0b9665bd7ca867545097d07df38cd94d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "eb134c3cce177a4409fdc2694429871b2f4566f7"
+      },
+      "bytes": 7824,
+      "sha256": "ad4120af296d3ed993c5588b307cddbf01f43a6ca9e29ec9c29192f41fd35b3d",
+      "reason": "Horror interior renderer profile: Carry temporary classic-interior lighting through both world StateSet buffers without rewriting saved settings or shared model templates. Horror interior renderer profile: Carry temporary classic-interior lighting through both world StateSet buffers without rewriting saved settings or shared model templates."
+    },
+    "components/sceneutil/stateupdater.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "82d8f05bf7e669adc6deeeb65dcbfa24432a7d96"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8e73bc67da23e25ad77d00b49522737e3541b71f"
+      },
+      "bytes": 3363,
+      "sha256": "45ba8f19fdd550c7caac2face9f12849823dc500bde2c22f4ac035bd083fe029",
+      "reason": "Horror interior renderer profile: Carry temporary classic-interior lighting through both world StateSet buffers without rewriting saved settings or shared model templates. Horror interior renderer profile: Carry temporary classic-interior lighting through both world StateSet buffers without rewriting saved settings or shared model templates."
+    },
+    "components/sceneutil/vertexattributes.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "15d79f565ce7a01731b3a1e0ac0c81b4f5037e41"
+      },
+      "bytes": 382,
+      "sha256": "e508e3818416f865d229405c1636fb05adf62a1951feda4011e33b0f7d5e0e25",
+      "reason": "Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes. Horror interior renderer profile: Preserve the explicit fallback normal map's alternate tangent through cloned, skinned and flattened geometry, using a marked object-only vertex attribute without altering unrelated attributes."
+    },
     "components/settings/categories/gui.hpp": {
       "before": {
         "mode": "100644",
@@ -1017,6 +1231,58 @@
       "bytes": 1867,
       "sha256": "99702fb38072bb3ef7ee5a216a4b300274d5c15010257db10b380d2a2c422e37",
       "reason": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+    },
+    "components/settings/categories/shaders.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "da2cc691260991496992a8701398b9b871b89f3b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "5aa8b20aa003bc891380eeed4b0b43d9277dc3e4"
+      },
+      "bytes": 3302,
+      "sha256": "a937aa87185a880eebeff8197119b41fe95e20f10d248476fae3dbed2df96f07",
+      "reason": "Horror interior renderer profile: Expose the default-enabled interior-profile switch without changing the four user's ordinary lighting preferences. Horror interior renderer profile: Expose the default-enabled interior-profile switch without changing the four user's ordinary lighting preferences."
+    },
+    "components/shader/shadermanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "548a1225ce7ff34747b5990bdf8b52835e645295"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "0bb6168a9a7b5e248fc6bd4e5e126f0def37f3ef"
+      },
+      "bytes": 36458,
+      "sha256": "051fa70afe1b2133d5265e49b0e8ec14acbdb59e0fef6660030953834440aac6",
+      "reason": "Horror interior renderer profile: Provide ordinary defaults for the additional material defines and bind the alternate tangent attribute for object shaders. Horror interior renderer profile: Provide ordinary defaults for the additional material defines and bind the alternate tangent attribute for object shaders."
+    },
+    "components/shader/shadervisitor.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5ecbf17bc9b025292c5ecec840e47183ac23d423"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2d88f72e07acf0ef0a41468e18914c50a931608c"
+      },
+      "bytes": 51639,
+      "sha256": "d521579d12cb7d625d141d3af02131854844804779db5a64a6272bbab300005b",
+      "reason": "Horror interior renderer profile: Track automatic maps per binding and retain counterfactual explicit samplers, UVs and tangent data, including hierarchy, cloning, recreation and cache identity. Horror interior renderer profile: Track automatic maps per binding and retain counterfactual explicit samplers, UVs and tangent data, including hierarchy, cloning, recreation and cache identity."
+    },
+    "components/shader/shadervisitor.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8962a09ae0ef082e4046daa778d1859e1888de31"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8888eadcb7d099ff5367167a230007c0376a2f92"
+      },
+      "bytes": 4918,
+      "sha256": "16f244ccb736e4411e2393d31ee51604bbce2e7cfa30f6787c61e465f4721570",
+      "reason": "Horror interior renderer profile: Track automatic maps per binding and retain counterfactual explicit samplers, UVs and tangent data, including hierarchy, cloning, recreation and cache identity. Horror interior renderer profile: Track automatic maps per binding and retain counterfactual explicit samplers, UVs and tangent data, including hierarchy, cloning, recreation and cache identity."
     },
     "custom/combined-performance/.gitattributes": {
       "before": null,
@@ -1220,6 +1486,26 @@
       "bytes": 15180,
       "sha256": "cb0c658b75ab4de2efae90cae5af226e4cf1bf401fc49d6f28bdf8fac7f24e4e",
       "reason": "Validate current town and exact historical combined manifests, all retained feature tests/resources/defaults/runtime, and recompute native two-mode layout parity before packaging."
+    },
+    "custom/horror-lighting/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "fd9ef7fdf91b2b0d3484449d2fdf4193dafcc38b"
+      },
+      "bytes": 6076,
+      "sha256": "8e5ad5c6dd772a4b5f593f27323214f60783fbfbd6e76a3645e30f5382b03d0d",
+      "reason": "Horror interior renderer profile: Document installation, ordinary global values, profile selection, rollback, preservation of the custom Lua pair, and verification limits. Horror interior renderer profile: Document installation, ordinary global values, profile selection, rollback, preservation of the custom Lua pair, and verification limits."
+    },
+    "custom/horror-lighting/profile/shader_profiles/horror_mod.yaml": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "df07ca04310d8b8320ad0bb2ed132bf6c5abd532"
+      },
+      "bytes": 2079,
+      "sha256": "971a350e0e750a3008403e7120565eb4fdbe6d873b091b02883e9c62a9bb2c99",
+      "reason": "Horror interior renderer profile: Bundle the reviewed 63 exact Horror-only interiors, including renamed cells and excluding shared Suran/exterior/legacy cells, gated on Horror Mod.esp. Horror interior renderer profile: Bundle the reviewed 63 exact Horror-only interiors, including renamed cells and excluding shared Suran/exterior/legacy cells, gated on Horror Mod.esp."
     },
     "custom/loading-repair/apply.py": {
       "before": {
@@ -1656,6 +1942,19 @@
       "sha256": "536591d00d5092ac58e0a8403286c035157d169b47ff27aa3121a5467e3150b6",
       "reason": "Native world-map icon feature: docs/source/reference/modding/settings/map.rst; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
     },
+    "docs/source/reference/modding/settings/shaders.rst": {
+      "before": {
+        "mode": "100644",
+        "blob": "e5aacdc2cab4a6b6431874e78de46526f8272353"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "be20893a4e3f3a3c39e96f48251abe348372e3ff"
+      },
+      "bytes": 8430,
+      "sha256": "dd4ccaf58b74e9e10b6c6e63b044789ba13ba6909a27a852aaaeed9445ba2705",
+      "reason": "Horror interior renderer profile: Document installation, ordinary global values, profile selection, rollback, preservation of the custom Lua pair, and verification limits. Horror interior renderer profile: Document installation, ordinary global values, profile selection, rollback, preservation of the custom Lua pair, and verification limits."
+    },
     "files/data/CMakeLists.txt": {
       "before": {
         "mode": "100644",
@@ -1892,11 +2191,119 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1ea98e90a889b454daf6cff0fb0a83a8abd279b4"
+        "blob": "643da0c17bb3196744f19f85266338acbd910af8"
       },
-      "bytes": 50712,
-      "sha256": "4de6bf1b4a3bcc132aab743762b57baa82f5e0b0c385de98e3e23ec3628e8c76",
-      "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: files/settings-default.cfg; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 50999,
+      "sha256": "b3dda0d5c262dd47d961977b5da6a967754e11752b0c50d59589f17925f112a1",
+      "reason": "Native world-map icon feature: files/settings-default.cfg; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: files/settings-default.cfg; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Horror interior renderer profile: Expose the default-enabled interior-profile switch without changing the four user's ordinary lighting preferences."
+    },
+    "files/shaders/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "0c97fca8e4da804131164c2c96c7368ee079a4e4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d83b41fd51392bd69ae5acbfde01fea3483a96e1"
+      },
+      "bytes": 2934,
+      "sha256": "e163a54952ae2c3b7f2d0e2d9f66f33835c474e91497ba943f3c87c16a0b9c4e",
+      "reason": "Horror interior renderer profile: Register the Horror profile implementation, focused native regressions or shader includes in the existing build and installation. Horror interior renderer profile: Register the Horror profile implementation, focused native regressions or shader includes in the existing build and installation."
+    },
+    "files/shaders/compatibility/bs/default.frag": {
+      "before": {
+        "mode": "100644",
+        "blob": "7a2aecb38788077ed771b1ac1fe7249e996c0a63"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "91f1908400bab1c07e5a1945b05e15a16d3f1c57"
+      },
+      "bytes": 3879,
+      "sha256": "5cd0ea5ba97948e53987eea548392450c533974ac159c8755c9df9a1adfcb2c4",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "files/shaders/compatibility/bs/default.vert": {
+      "before": {
+        "mode": "100644",
+        "blob": "a4b83a17bd6d2889b29ec01a633912879d0c65fb"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "16cbee5f5f1c8ae5f65925be1991041a387ac537"
+      },
+      "bytes": 2301,
+      "sha256": "632bb003375d350cdc321bd4b9953e53036b0a2bd6f7335a25939e60e565f8f5",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "files/shaders/compatibility/objects.frag": {
+      "before": {
+        "mode": "100644",
+        "blob": "17e7c9e6c95f7af7b2d460fb7440b1f6b1200fb8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7017c27c8853212ff87d8ac90e17407e352ecb1a"
+      },
+      "bytes": 8822,
+      "sha256": "45fcc96c45f42495901e7028cf4ff82437e2e60584e838355fbcfc821b54d5fd",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "files/shaders/compatibility/objects.vert": {
+      "before": {
+        "mode": "100644",
+        "blob": "cc02177f609485c0e7d0218bb347bc313db3f330"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "cc63c70966db6bbfef77336e889a6f96ded6f5dc"
+      },
+      "bytes": 6719,
+      "sha256": "6acfbe7f240d61b0dd9d59bbf17bf13df7222a47432ba93f070a8eb2c05969dc",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "files/shaders/lib/light/clamp.glsl": {
+      "before": {
+        "mode": "100644",
+        "blob": "e9a4f6bbf1f7045aacd76a129dee76b7c9091bee"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c391276fcee73231eb15a0821d1169003ad344c2"
+      },
+      "bytes": 306,
+      "sha256": "4b4209883e03e7406c580d9cb66487c005bb1915c56640e242ff5944e67b8a51",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "files/shaders/lib/light/classicinterior.glsl": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "eeeb762739fff81ed281808e78ca7748852c8ccb"
+      },
+      "bytes": 405,
+      "sha256": "52828e6c298293908cec9422fc0b9aa914b83543fbe2e97590ce2a0891cc0c1c",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "files/shaders/lib/light/objectlighting.glsl": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "9cd4adc14b41d188b2f1e0dc47c102f24dbfe4ab"
+      },
+      "bytes": 934,
+      "sha256": "c65b3b3831450323e4da8419ee57defc6776b0bffad749f701b8639e2640ef27",
+      "reason": "Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps. Horror interior renderer profile: Select the four accepted classic-lighting effects through scene state in the same program, preserving ordinary rendering and explicitly assigned maps."
+    },
+    "scripts/test_classic_interior_shaders.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d446087c5b3d7e05d654e85e1d39c9ad199ccd4c"
+      },
+      "bytes": 26762,
+      "sha256": "e6464a2cd9e2f7a0125475c9ae08936d534a864be8dbfaed478706a6715ab81d",
+      "reason": "Horror interior renderer profile: Compile and render real engine shader templates against the exact preserved baseline in legacy and clustered modes, compare entry/exit color and normal outputs, and exercise shadow shader variants. Horror interior renderer profile: Compile and render real engine shader templates against the exact preserved baseline in legacy and clustered modes, compare entry/exit color and normal outputs, and exercise shadow shader variants."
     }
   }
 }
