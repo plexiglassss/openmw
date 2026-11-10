@@ -30,6 +30,12 @@ jobs:
         with:
           ref: ${{ env.CUMULATIVE_COMMIT }}
           fetch-depth: 100
+      - name: Reuse tested engine for eligible packaging-only changes
+        id: existing_engine
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/combined-performance/reuse-windows-engine.py
       - name: Verify historical source gates and complete cumulative source
         shell: pwsh
         run: |
@@ -293,14 +299,15 @@ jobs:
           -D LuaJit_INCLUDE_DIR='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/include/luajit'
           -D LuaJit_LIBRARY='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/lib/lua51.lib'
           -D BUILD_BENCHMARKS=OFF -D BUILD_COMPONENTS_TESTS=ON -D BUILD_OPENMW_TESTS=ON
-          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=OFF -D BUILD_ESSIMPORTER=OFF -D BUILD_BSATOOL=OFF
-          -D BUILD_ESMTOOL=OFF -D BUILD_NIFTEST=OFF -D BUILD_BULLETOBJECTTOOL=OFF
+          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=ON -D BUILD_ESSIMPORTER=ON -D BUILD_BSATOOL=ON
+          -D BUILD_ESMTOOL=ON -D BUILD_NIFTEST=ON -D BUILD_BULLETOBJECTTOOL=ON
           -D OPENMW_USE_SYSTEM_SQLITE3=OFF -D OPENMW_USE_SYSTEM_YAML_CPP=OFF -D OPENMW_LTO_BUILD=ON
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
           -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
       - name: Compile the parallel native engine changes and their tests first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -317,6 +324,7 @@ jobs:
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
           -- -k 0
       - name: Run actual native options forms before engine linking
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           cmake --build build --target openmw-controls-tests
@@ -337,6 +345,7 @@ jobs:
             }
           }
       - name: Compile Lua UI images and native regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -346,12 +355,14 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testmagicbindings.cpp.obj
       - name: Compile native deleveling and its engine regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/levelledlist.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwmechanics/testlevelledlist.cpp.obj
       - name: Compile rest and Continue implementation and regression tests first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -361,6 +372,7 @@ jobs:
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testresttime.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmainmenubutton.cpp.obj
       - name: Compile Lua cache change and lifecycle tests first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -369,9 +381,11 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
       - name: Compile lookup change first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
       - name: Compile message position and preserved tooltip bridge first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -383,6 +397,7 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/interpretercontext.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/scriptmanagerimp.cpp.obj
       - name: Compile preserved colour implementation and focused regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -403,6 +418,7 @@ jobs:
           components/CMakeFiles/components.dir/misc/dialoguetext.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/misc/testdialoguetext.cpp.obj
       - name: Compile native map icons and save regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         run: >-
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
@@ -412,6 +428,7 @@ jobs:
           apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testclassification.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
       - name: Compile native travel, key and cleared-dungeon integration first
+        if: steps.existing_engine.outputs.reused != 'true'
         run: >-
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltip.cpp.obj
@@ -444,7 +461,13 @@ jobs:
             New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
             Copy-Item "$qt/plugins/$plugin" "build/$plugin"
           }
+      - name: Build the Construction Set and all public command-line tools
+        id: distribution_tools
+        shell: pwsh
+        run: >
+          cmake --build build --target openmw-cs openmw-essimporter bsatool esmtool niftest openmw-bulletobjecttool
       - name: Run component regressions before full engine linking
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           cmake --build build --target components-tests
@@ -452,8 +475,10 @@ jobs:
           ./build/components-tests.exe --gtest_output=xml:components-tests-early.xml
           if ($LASTEXITCODE) { throw 'Early component regressions failed' }
       - name: Build engine and regression tests
+        if: steps.existing_engine.outputs.reused != 'true'
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
       - name: All engine tests, UI fallback modes and four lookup configurations before packaging
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
@@ -504,11 +529,13 @@ jobs:
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
       - name: Require executed native tooltip tests
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           python custom/native-tooltips/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Required tooltip forms, selection or save regressions did not execute successfully' }
       - name: Package only after test success
+        if: steps.existing_engine.outputs.reused != 'true'
         id: package
         shell: pwsh
         run: |
@@ -555,12 +582,38 @@ jobs:
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
           Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
+      - name: Verify the full portable Windows distribution
+        id: distribution
+        shell: pwsh
+        run: |
+          ./custom/combined-performance/stage-msvc-runtime.ps1 -PackageRoot install
+          $options = @()
+          if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') { $options += '--preserve-existing' }
+          python custom/combined-performance/complete-windows-distribution.py build install @options
+          if ($LASTEXITCODE) { throw 'Windows tools, public files or dependencies failed verification' }
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot distribution-startup
+          Copy-Item -LiteralPath distribution-startup -Destination install/verification/distribution-startup -Recurse
           python custom/dialogue-colours/package-manifest.py install
-          if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
+          if ($LASTEXITCODE) { throw 'Final Windows distribution inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
           name: openmw-parallel-native-jobs-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
+          if-no-files-found: error
+      - name: Retain compiled companion tools if later packaging verification fails
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-tools-diagnostics-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            build/openmw-cs.exe
+            build/openmw-essimporter.exe
+            build/bsatool.exe
+            build/esmtool.exe
+            build/niftest.exe
+            build/openmw-bulletobjecttool.exe
+            build/defaults-cs.bin
+          retention-days: 3
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
         if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
@@ -575,6 +628,8 @@ jobs:
         with:
           name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
+            install/verification/WINDOWS-DISTRIBUTION.json
+            distribution-startup/
             gameplay-installer-tests.json
             cumulative-source-manifest.json
             cumulative-build-source-manifest.json

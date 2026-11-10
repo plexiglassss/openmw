@@ -14,7 +14,8 @@
     "016577e6e33b16080e9c6828b38a3879526714d7",
     "6182d81e985763b2fed194d297db601fe1a56dfb",
     "7024d00c79fb0a88a97ff0b636096a5f3fd316d0",
-    "8bd0d90b2727b8d654288d5c42e45a3edefc7146"
+    "8bd0d90b2727b8d654288d5c42e45a3edefc7146",
+    "12e5b050cb144396f213bb5ce193b6a7e7e7fce1"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -24,11 +25,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ac94896e88461c283b52a3ae9d92297fcc86faaa"
+        "blob": "6692a52b5685b0ecc1cfd26224d01609fd815ab2"
       },
-      "bytes": 54597,
-      "sha256": "0e702c707aba1467d7d3b0ce6c6c1e25ef397cdc988df0850c30356db1d02b6b",
-      "reason": "Build, run or package the combined candidate and four captured script adapters."
+      "bytes": 57519,
+      "sha256": "80096c5941c8fc9834b50a075228f67fb35a178d58619727b04e6b1d5c3b032a",
+      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -1357,6 +1358,16 @@
       "sha256": "4339f4e7fa0631bd0eed98452fc7dff50c02f152745948a787d92d95a43d1e87",
       "reason": "Build, run or package the combined candidate and four captured script adapters."
     },
+    "custom/combined-performance/complete-windows-distribution.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e571d0d21fdb17c2640aa96e75d830c563fe937a"
+      },
+      "bytes": 9374,
+      "sha256": "6438bbf9be57fc7cad8fc3ba1a617e0bf058e164a404953839be9dbf1739442f",
+      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
+    },
     "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
       "before": null,
       "after": {
@@ -1586,6 +1597,26 @@
       "bytes": 11007,
       "sha256": "7ddd9c37e89a36f388e393e477794750e9276a8c1d04235d9593b74df8763d5b",
       "reason": "Build, run or package the combined candidate and four captured script adapters."
+    },
+    "custom/combined-performance/reuse-windows-engine.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "04e1b1387e2bee7f26e3612eb309e28fffd1c4e6"
+      },
+      "bytes": 3500,
+      "sha256": "50782d89f67499fccb3f67ffa59fccf7e31d2fa9cd8a93debc1894707635204f",
+      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
+    },
+    "custom/combined-performance/stage-msvc-runtime.ps1": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "5d3415aaf09aa48c47abdac2434c4ec9d474bc62"
+      },
+      "bytes": 1332,
+      "sha256": "2ddb940ae42a9f42880a756bba45fe6267075d9b6a451165195a2ea6d97b014e",
+      "reason": "Build and validate the complete Windows product set and x64 runtime; preserve the exact tested engine during this packaging-only repair."
     },
     "custom/combined-performance/tests/fixtures/NativeJobAdapters/AdvancedWorldMap-global.lua.gz": {
       "before": null,
