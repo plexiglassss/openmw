@@ -1,0 +1,30 @@
+name: Luminus Lanes NIF Tools
+
+on:
+  push:
+    branches:
+      - audit/luminus-lanes-assets-20261110
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download parser packages and source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p out/packages out/source
+          python -m pip download --no-deps PyFFI -d out/packages
+          git clone --depth 1 https://github.com/niftools/pyffi.git out/source/pyffi || true
+          git clone --depth 1 https://github.com/niftools/nifxml.git out/source/nifxml || true
+          find out -type f -print0 | sort -z | xargs -0 sha256sum > out/SHA256SUMS.txt
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: luminus-lanes-nif-tools
+          path: out
+          retention-days: 7
