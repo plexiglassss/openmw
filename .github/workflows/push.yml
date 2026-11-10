@@ -300,6 +300,22 @@ jobs:
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
           -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
+      - name: Compile the parallel native engine changes and their tests first
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/cellbindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nativequeryservice.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nearbybindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/activespells.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/objectpaging.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testnativequeryservice.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
+          -- -k 0
       - name: Run actual native options forms before engine linking
         shell: pwsh
         run: |

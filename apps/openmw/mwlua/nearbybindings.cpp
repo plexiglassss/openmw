@@ -3,6 +3,7 @@
 #include <components/detournavigator/navigator.hpp>
 #include <components/detournavigator/navigatorutils.hpp>
 #include <components/lua/luastate.hpp>
+#include <components/lua/util.hpp>
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/constants.hpp>
 #include <components/settings/values.hpp>
