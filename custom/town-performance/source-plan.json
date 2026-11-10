@@ -26,10 +26,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "55d428cb16ebac2b44c6f092277cbef00267fcdc"
+        "blob": "b109b7eba03dd829a84c42545695499b5b4c9817"
       },
-      "bytes": 59901,
-      "sha256": "79d5bd594c9018e95f783d9774f0a25a784e86b4ad8c07bff42b156d5d1bb959",
+      "bytes": 60307,
+      "sha256": "1698de5ec7a954adbc278998ce39dcb90f672cb9bab6301fc1c058bda2e488af",
       "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -1603,10 +1603,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "9551eacc8c7e25fb1f9a80118f86a4dd8a5d3839"
+        "blob": "bf0abc653eb61c5611b9f5a4290bb93d4c72f29a"
       },
       "bytes": 7444,
-      "sha256": "9fd62c3e0542a17e66a94db5d7cbe9cb86ac703d8825866a5a2466cf47ffbb14",
+      "sha256": "ecb4d8ee4c94c23905040c51c51bee8aedcbc01fd5e2c23b0c40e94b94be3cba",
       "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
     },
     "custom/combined-performance/stage-msvc-runtime.ps1": {

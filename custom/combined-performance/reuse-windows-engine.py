@@ -32,7 +32,7 @@ PACKAGING_INPUTS = {
     "custom/gameplay-responsiveness/Install-Fix.ps1",
 }
 TOWN_PACKAGE_FILES = {
-    ".github/workflows/push.yml": "55d428cb16ebac2b44c6f092277cbef00267fcdc",
+    ".github/workflows/push.yml": "b109b7eba03dd829a84c42545695499b5b4c9817",
     "custom/combined-performance/README.md": "cb9a0127d4e35912a5b3b43a67c96ab961e6d04b",
     "custom/combined-performance/Start-Combined.ps1": "8474c50bdfdbb74807be7d08f7b73dcaba94a83e",
     "custom/combined-performance/prepare-package.py": "f752f246c395fdb490cd13a53145e7faab4d19c4",

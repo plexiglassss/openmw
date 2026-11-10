@@ -617,7 +617,12 @@ jobs:
           python custom/combined-performance/complete-windows-distribution.py build install @options
           if ($LASTEXITCODE) { throw 'Windows tools, public files or dependencies failed verification' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot distribution-startup
-          Copy-Item -LiteralPath distribution-startup -Destination install/verification/distribution-startup -Recurse
+          $startupEvidence = 'install/verification/distribution-startup'
+          if (Test-Path -LiteralPath $startupEvidence) { Remove-Item -LiteralPath $startupEvidence -Recurse -Force }
+          Copy-Item -LiteralPath distribution-startup -Destination $startupEvidence -Recurse
+          if ((Get-FileHash 'distribution-startup/startup-report.json').Hash -ne (Get-FileHash "$startupEvidence/startup-report.json").Hash) {
+            throw 'The packaged startup evidence differs from the run just completed'
+          }
           Copy-Item -LiteralPath native-adapter-installer-tests.json -Destination install/verification/
           if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') {
             python custom/combined-performance/complete-windows-distribution.py build install --record-final-preservation
