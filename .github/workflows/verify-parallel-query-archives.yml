@@ -105,4 +105,42 @@ jobs:
               assert len([n for n in component if n.startswith("ParallelWorker.")]) == 2
               result = dict(status="PASS",commit=current_head,previous=previous_head,build_id=ca["id"],evidence_id=ea["id"],bytes=ca["size_in_bytes"],sha256=ca["digest"],previous_paths=len(earlier),files=len(names),missing_previous=[],preserved_resources=len(keep),public_apps=len(builds["public_applications"]),checked_modules=len(builds["imports"]),engine_tests=len(engine),component_tests=len(component),overlay_paths=sorted(overlay),horror_selected_interiors=63,horror_profile_sha256=hp,gameplay_fps_measured=False)
               print("OPENMW_ARCHIVE_VERIFIED " + json.dumps(result,sort_keys=True))
+          from shutil import copytree
+          delivery = root / "parallel-query-delivery"
+          copytree(src / "Advanced World Map - Async Door Queries", delivery / "awm")
+          copytree(src / "Quest Guider Lite - Parallel Quest Sorting", delivery / "qgl")
+          evidence_dir = delivery / "validation"
+          evidence_dir.mkdir(parents=True)
+          with zipfile.ZipFile(proof) as z:
+              for member in z.infolist():
+                  target = Path(member.filename)
+                  assert not target.is_absolute() and ".." not in target.parts
+                  z.extract(member, evidence_dir)
+          history = evidence_dir / "history"
+          history.mkdir(exist_ok=True)
+          before_ci, before_ci_item = grab(previous_run, previous_head, "cumulative-native-evidence-", "previous-ci.zip")
+          (history / "official-windows-ci-26e7cebd.zip").write_bytes(before_ci.read_bytes())
+          report = evidence_dir / "delivery"
+          report.mkdir(exist_ok=True)
+          (report / "verified-package.json").write_text(json.dumps(result,indent=2)+"\n")
+          (report / "history.json").write_text(json.dumps({"previous_complete_windows_run":previous_run,"previous_commit":previous_head,"previous_windows_zip_sha256":pa["digest"],"embedded_previous_official_validation_sha256":before_ci_item["digest"],"current_complete_windows_run":current_run,"current_official_validation_sha256":ea["digest"],"earlier_private_evidence_name":"cumulative-native-evidence-26e7cebd.zip"},indent=2)+"\n")
+          (report / "README.txt").write_text("Windows x64 cumulative engine cb0af729\n\nAll 676 paths in the previous portable distribution are present. Tests and artifact hashes are in verified-package.json. The current official CI reports are at the archive root. The previous official CI ZIP is retained under history. The prior, separately delivered cumulative-native-evidence-26e7cebd.zip retains its earlier historical and local verification materials. Actual FPS on the player installation is unmeasured.\n")
           PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Advanced_World_Map_Async_Door_Queries_cb0af729
+          path: ${{ runner.temp }}/parallel-query-delivery/awm/
+          if-no-files-found: error
+          compression-level: 6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Quest_Guider_Lite_Parallel_Quest_Sorting_cb0af729
+          path: ${{ runner.temp }}/parallel-query-delivery/qgl/
+          if-no-files-found: error
+          compression-level: 6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenMW_Parallel_Queries_Validation_cb0af729
+          path: ${{ runner.temp }}/parallel-query-delivery/validation/
+          if-no-files-found: error
+          compression-level: 6
