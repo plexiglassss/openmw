@@ -12,6 +12,15 @@ namespace Misc
     {
         virtual ~OwnedJobState() = default;
         virtual void discard() = 0;
+        // Cancellation never waits for the computation. Only publishing a finished value takes this lock.
+        void cancel()
+        {
+            mCancelled.store(true);
+            std::lock_guard lock(mPublication);
+            if (mDone.load(std::memory_order_acquire))
+                discard();
+        }
+        std::mutex mPublication;
         std::atomic_bool mDone{ false };
         std::atomic_bool mCancelled{ false };
         bool mPublished = false; // Owner-thread fields below.
@@ -48,14 +57,22 @@ namespace Misc
             auto job = std::make_shared<OwnedJob<T>>();
             mActive.emplace_back(job);
             if (mPool.trySubmit([job, work = std::move(work)]() mutable {
+                    std::optional<T> value;
+                    std::exception_ptr error;
                     try
                     {
                         if (!job->mCancelled.load())
-                            job->mResult.emplace(work(job->mCancelled));
+                            value.emplace(work(job->mCancelled));
                     }
                     catch (...)
                     {
-                        job->mError = std::current_exception();
+                        error = std::current_exception();
+                    }
+                    std::lock_guard lock(job->mPublication);
+                    if (!job->mCancelled.load())
+                    {
+                        job->mResult = std::move(value);
+                        job->mError = std::move(error);
                     }
                     job->mDone.store(true, std::memory_order_release);
                 }))
@@ -88,11 +105,7 @@ namespace Misc
         {
             for (const auto& weak : mActive)
                 if (auto state = weak.lock())
-                {
-                    state->mCancelled.store(true);
-                    if (state->mDone.load(std::memory_order_acquire))
-                        state->discard();
-                }
+                    state->cancel();
             mActive.clear();
         }
 

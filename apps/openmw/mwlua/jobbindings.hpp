@@ -30,7 +30,7 @@ namespace MWLua
     {
         type["cancel"] = [&service](JobTicket<T>& ticket) {
             if (ticket.mState)
-                ticket.mState->mCancelled.store(true);
+                ticket.mState->cancel();
             service.mAsync.publish();
             ticket.mState.reset();
         };

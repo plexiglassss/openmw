@@ -111,16 +111,24 @@ namespace MWLua
                     if (count > LuaUtil::maxWorkerValues)
                         throw std::invalid_argument("worker input exceeds item limit");
                     Numbers values(count);
+                    lua_State* vm = input.lua_state();
+                    const int top = lua_gettop(vm);
+                    input.push();
+                    lua_pushnil(vm);
                     std::size_t keys = 0;
-                    input.for_each([&](sol::object key, sol::object value) {
-                        if (key.get_type() != sol::type::number || value.get_type() != sol::type::number)
+                    while (lua_next(vm, -2))
+                    {
+                        const double i = lua_type(vm, -2) == LUA_TNUMBER ? lua_tonumber(vm, -2) : 0;
+                        if (!(i >= 1 && i <= count && i == std::floor(i)) || lua_type(vm, -1) != LUA_TNUMBER)
+                        {
+                            lua_settop(vm, top);
                             throw std::invalid_argument("worker inputs must be dense number arrays");
-                        const double i = key.as<double>();
-                        if (!(i >= 1 && i <= count && i == std::floor(i)))
-                            throw std::invalid_argument("worker input has an invalid array index");
-                        values[static_cast<std::size_t>(i) - 1] = value.as<double>();
+                        }
+                        values[static_cast<std::size_t>(i) - 1] = lua_tonumber(vm, -1);
                         ++keys;
-                    });
+                        lua_pop(vm, 1);
+                    }
+                    lua_settop(vm, top);
                     if (keys != count)
                         throw std::invalid_argument("worker input has missing array entries");
                     auto job = jobs->mAsync.submit<Numbers>([text, data = std::move(values)](const auto& cancelled) {

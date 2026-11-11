@@ -526,10 +526,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b8b804b4d9ca221a8c2a9a493d84a8cf6671a393"
+        "blob": "95a4c87cee89a12bc0f3528eab577f248456c2ce"
       },
-      "bytes": 53235,
-      "sha256": "f9ad9da03104a7ae75b83656ee5587c98d94cf9f13f30a5dbc81eef29781958f",
+      "bytes": 53240,
+      "sha256": "c5d340a6ce47830ca02b22ad8d2d4b4b040fbdc2c59214c7543173c9c56d1030",
       "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage."
     },
     "apps/openmw/mwlua/luamanagerimp.hpp": {
@@ -3207,10 +3207,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "df5ba6bb7d3c1226ffbc10a2b284fd3abbcc3620"
+        "blob": "80ef5bb7afa9fedd336cae09b7b82b5d61b3b99e"
       },
-      "bytes": 12937,
-      "sha256": "ac7beecf252d29ea94790592fee50bf5260b247f4c20fb03108f228aec3eec3f",
+      "bytes": 13158,
+      "sha256": "2ac2d2bda3af69f1112c1b082caf9bfcdf0714f3b7ff80aff72758a1b73da4c0",
       "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
     },
     "apps/openmw/mwlua/corebindings.hpp": {
@@ -3230,10 +3230,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "043e47da4c96839ed597993c78946157b1d6175f"
+        "blob": "b4ca2c63a1e6559ffdac97395a0f791cd5883f13"
       },
-      "bytes": 2216,
-      "sha256": "4357bf807d75f6ddb10bc12dd6233c861c2c17150909b3b3215dee32e9c44782",
+      "bytes": 2202,
+      "sha256": "64e8efa994e776fb4b56371fa315363dd643e75cd35497ca577651569374ccfa",
       "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
     },
     "apps/openmw/mwlua/nearbybindings.hpp": {
@@ -3296,10 +3296,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "5155fde2c6fd5e6ad1c30ea4ff2a3dd702118f55"
+        "blob": "6228faca70c4f23f8f375f6de80614ed3882b867"
       },
-      "bytes": 3172,
-      "sha256": "46c96f3217526d9c71a3c5d86604af0906340224f4988853facfc1fe114e8b6b",
+      "bytes": 3702,
+      "sha256": "ac79ca83c6a16c04b8a1f12521e25f607d5eb6a735c0ddd4d7c41ae16070a64d",
       "reason": "Provide bounded nonblocking submission, completion ordering or independent comparison flags."
     },
     "components/sceneutil/visualraybatch.cpp": {

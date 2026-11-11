@@ -1094,7 +1094,7 @@ namespace MWLua
     void LuaManager::applyRenderingRays(std::size_t begin)
     {
         const auto& first = mRenderingRays[begin];
-        auto* world = MWBase::Environment::get().getWorld();
+        const auto world = MWBase::Environment::get().getWorld();
         auto deliver = [&](const QueuedRay& request, const MWPhysics::RayCastingResult& hit) {
             queueCallback(request.callback, sol::main_object(mLua.unsafeState(), sol::in_place, hit));
         };
