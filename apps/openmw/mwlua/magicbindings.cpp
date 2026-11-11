@@ -213,7 +213,7 @@ namespace MWLua
 
     public:
         ActiveSpellIterator(const ObjectVariant& actor, bool share, ActiveSpellReadStats* stats)
-            : mActor(actor.object())
+            : mActor(actor.handle())
             , mGlobal(actor.isGObject())
             , mShare(share)
             , mStats(stats)
@@ -983,7 +983,7 @@ namespace MWLua
             if (spells.isLObject())
                 throw std::runtime_error("Local scripts can modify effect only on the actor they are attached to.");
 
-            context.mLuaManager->addAction([actor = spells.mActor.object(), id = ESM::RefId::deserializeText(idStr)]() {
+            context.mLuaManager->addAction([actor = Object(spells.mActor.handle().id()), id = ESM::RefId::deserializeText(idStr)]() {
                 const auto& ptr = actor.ptr();
                 if (auto* stats = MagicBindings::getActorStats(ptr))
                 {

@@ -1007,7 +1007,10 @@ namespace MWLua
                 assert(retainedIterator() == nil and (pairs(view))() == nil)
                 assert(view:getByActiveSpellId('instance_one') == nil and old.effects[1].durationLeft == 20)
             )");
+            const auto globalHandle = object(victim, 1);
             mWorld.deregisterLiveCellRef(*victim.mRef);
+            EXPECT_EQ(globalHandle.handle().id(), getId(victim));
+            EXPECT_THROW(globalHandle.ptr(), std::runtime_error);
             runSpellScript(R"(
                 assert(old.effects[1].magnitudeThisFrame == 10 and old.name == selfSpell.name)
                 assert(not pcall(function() return (pairs(view))() end))

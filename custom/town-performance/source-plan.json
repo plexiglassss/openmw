@@ -551,10 +551,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a92ecd5b0924c83924feba098fed16997a79fa5e"
+        "blob": "17c4fb12975339f52afda4fc471b870689873a68"
       },
-      "bytes": 56778,
-      "sha256": "8a62eb07d35e9ed4a5a184d8195d9484bc67e34feb75fdee392296858f409a78",
+      "bytes": 56791,
+      "sha256": "550dd2db8dfb96a1ec3786d87416e25f3bf195a2b2df5ae888e2f9ad60044edf",
       "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Return independent public Lua spell values with shared details and revalidate retained iterators after world changes."
     },
     "apps/openmw/mwlua/magicbindingshelper.hpp": {
@@ -875,10 +875,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "f0d6410bdde56aa8e37a5c2d11676053e8ccde4b"
+        "blob": "0bbb866eccfb86ccc9e4d18672ffce3b51ddfd53"
       },
-      "bytes": 61200,
-      "sha256": "5753fa669e13526749d75f533704dd33f4439fb2b374d7f7a92379dfa4ac374b",
+      "bytes": 61389,
+      "sha256": "ed8627ef0e0cbf81e0367f0b510264b9b09ea846d2d0ab5caf28fd4ffdea9de5",
       "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies."
     },
     "apps/openmw_tests/mwlua/testnativequeryservice.cpp": {
@@ -3096,6 +3096,19 @@
       "bytes": 791,
       "sha256": "37b704fe4a5856ce32b0d8b82e3a0034255dda18656bb4aeeb1bab166654e8de",
       "reason": "Define capture metrics for ordinary Lua spell traversal and point queries."
+    },
+    "apps/openmw/mwlua/objectvariant.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "238ad7cfafe32030274989acec713d55aa7d3681"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "42f2ff4e07515c08a87c7c16bdac7152e5004a9e"
+      },
+      "bytes": 1885,
+      "sha256": "d67e5ce74153a6aa4aa97a590b234414914ff081a25563c637ab2affca389fb1",
+      "reason": "Copy a durable actor identity for delayed removal without forcing an earlier world lookup."
     },
     "apps/openmw/mwlua/types/actor.cpp": {
       "before": {
