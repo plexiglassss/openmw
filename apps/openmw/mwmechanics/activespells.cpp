@@ -93,6 +93,7 @@ namespace MWMechanics
     ActiveSpells::IterationGuard::IterationGuard(ActiveSpells& spells)
         : mActiveSpells(spells)
     {
+        mActiveSpells.mReadEpoch = 0;
         mActiveSpells.mIterating = true;
     }
 
@@ -523,6 +524,16 @@ namespace MWMechanics
         return sequence.fetch_add(1, std::memory_order_relaxed) + 1;
     }
 
+    std::uint64_t ActiveSpells::getReadEpoch() const
+    {
+        // A callback nested in native effect processing must compare the current values on every read.
+        if (mIterating)
+            return 0;
+        if (mReadEpoch == 0)
+            mReadEpoch = EffectRevision::next();
+        return mReadEpoch;
+    }
+
     ActiveSpells::ActiveSpells()
         : mIterating(false)
     {
@@ -717,6 +728,7 @@ namespace MWMechanics
 
     void ActiveSpells::readState(const ESM::ActiveSpells& state)
     {
+        mReadEpoch = 0;
         for (const ESM::ActiveSpells::ActiveSpellParams& spell : state.mSpells)
         {
             mSpells.emplace_back(ActiveSpellParams{ spell });
@@ -736,7 +748,11 @@ namespace MWMechanics
                     for (ESM::ActiveEffect& effect : params.mEffects)
                     {
                         if (ESM::RefNum* refNum = std::get_if<ESM::RefNum>(&effect.mArg))
+                        {
+                            // Older saves may resolve this reference after readState, outside the mechanics update.
+                            params.mMayHaveDeferredEffectArgs = true;
                             converter->convert(*refNum, refNum->mIndex);
+                        }
                     }
                 }
             };

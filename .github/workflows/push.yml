@@ -572,6 +572,17 @@ jobs:
           }
           python custom/combined-performance/tests/verify-sparse-hud.py
           if ($LASTEXITCODE) { throw 'Changed widget geometry or count differs' }
+      - name: Compare ordinary active-spell reads in the same Windows executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_ACTIVE_SPELL_READS = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=MWLuaMagicBindingsTest.OrdinarySpellReads*:MWLuaMagicBindingsTest.SpellReadDetailsValidateMutableEffectsAndLegacySaveReferences --gtest_output=xml:previous-spell-reads.xml
+            if ($LASTEXITCODE) { throw 'Independent spell-copy control failed' }
+          } finally { Remove-Item Env:OPENMW_SHARED_ACTIVE_SPELL_READS -ErrorAction SilentlyContinue }
+          python custom/combined-performance/tests/verify-spell-reads.py
+          if ($LASTEXITCODE) { throw 'Spell read contents, copy counts or benchmark comparison failed' }
       - name: Require executed native tooltip tests
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -733,6 +744,8 @@ jobs:
             town-previous-engine.xml
             previous-hud-tests.xml
             sparse-hud-tests.json
+            previous-spell-reads.xml
+            active-spell-reads.json
             location-rendering-profile-tests.xml
             install/verification/location-rendering-profile.json
             install/COMBINED-PACKAGE.json

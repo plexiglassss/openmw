@@ -22,6 +22,7 @@
 #include "loadscripts.hpp"
 #include "localscripts.hpp"
 #include "luaevents.hpp"
+#include "magicbindings.hpp"
 #include "menuscripts.hpp"
 #include "object.hpp"
 #include "objectlists.hpp"
@@ -191,6 +192,8 @@ namespace MWLua
         bool isProcessingInputEvents() const { return mProcessingInputEvents; }
 
         void reportStats(unsigned int frameNumber, osg::Stats& stats) const;
+        ActiveSpellReadStats* activeSpellReadStats();
+        void reportActiveSpellReads(unsigned int frameNumber, osg::Stats& stats);
         std::string formatResourceUsageStats() const override;
 
         LuaUtil::InputAction::Registry& inputActions() { return mInputActions; }
@@ -202,6 +205,8 @@ namespace MWLua
         bool isSynchronizedUpdateRunning() const { return mRunningSynchronizedUpdates; }
 
     private:
+        ActiveSpellReadStats mSpellReadStats;
+
         void initConfiguration(bool reload);
         LocalScripts* createLocalScripts(const MWWorld::Ptr& ptr,
             std::optional<LuaUtil::ScriptIdsWithInitializationData> autoStartConf = std::nullopt);

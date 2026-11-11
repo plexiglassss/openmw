@@ -34,6 +34,15 @@ namespace Misc
         return enabled;
     }
 
+    inline bool useSharedActiveSpellReads()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_SHARED_ACTIVE_SPELL_READS");
+            return useCombinedPerformance() && (value == nullptr || std::string_view(value) != "0");
+        }();
+        return enabled;
+    }
+
     inline bool useSparseUiUpdates()
     {
         static const bool enabled = [] {

@@ -28,6 +28,9 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <components/esm3/actoridconverter.hpp>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -139,6 +142,7 @@ namespace MWLua
             VFS::Manager mVfs;
             ToUTF8::Utf8Encoder mEncoder{ ToUTF8::WINDOWS_1252 };
             std::unique_ptr<Resource::ResourceSystem> mResources;
+            ActiveSpellReadStats mReadMetrics;
             LuaUtil::LuaState mLua{ nullptr, nullptr };
             ESM::NPC mNpc;
             Observations mObservations;
@@ -147,6 +151,30 @@ namespace MWLua
             std::vector<std::unique_ptr<MWWorld::LiveCellRef<ESM::NPC>>> mRefs;
             std::vector<std::unique_ptr<SelfObject>> mSelfObjects;
             std::uint32_t mNextRef = 1;
+
+            void installSpellReadBindings()
+            {
+                ESM::MagicEffect effect;
+                effect.blank();
+                effect.mId = ESM::RefId::stringRefId("fixture_effect");
+                effect.mData.mFlags = 0;
+                mStore.insertStatic(effect);
+                Context context{ Context::Local };
+                context.mLua = &mLua;
+                sol::state_view lua = mLua.unsafeState();
+                mResources = std::make_unique<Resource::ResourceSystem>(&mVfs, 1.0, &mEncoder.getStatelessEncoder());
+                mEnvironment.setResourceSystem(*mResources);
+                lua["magic"] = initCoreMagicBindings(context);
+                sol::table api(lua, sol::create);
+                addActorMagicBindings(api, context, &mReadMetrics);
+                lua["actorAPI"] = api;
+            }
+
+            void runSpellScript(const char* script)
+            {
+                sol::state_view lua = mLua.unsafeState();
+                LuaUtil::LuaState::throwIfError(lua.safe_script(script, sol::script_pass_on_error));
+            }
 
             void SetUp() override
             {
@@ -890,6 +918,215 @@ namespace MWLua
             record("compiled_query", after);
             RecordProperty(
                 "scope", "72 actors x six spells x four effects; unchanged result; no Lua callback dispatch or FPS");
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, OrdinarySpellReadsPreserveValuesAndIndependentIterators)
+        {
+            installSpellReadBindings();
+            sol::state_view lua = mLua.unsafeState();
+            const auto victim = actor(false), caster = actor(false);
+            lua["victim"] = LObject(victim);
+            lua["globalVictim"] = GObject(victim);
+            lua["selfVictim"] = object(victim, 2).asSelfObject();
+            ESM::ActiveSpells state;
+            auto first = spell(getId(caster), "instance_one", { applied("fixture_effect"), applied("hidden", false) });
+            first.mSourceSpellId = ESM::RefId::stringRefId("same_source");
+            first.mItem = getId(caster);
+            auto second = first;
+            second.mActiveSpellId = ESM::RefId::stringRefId("instance_two");
+            state.mSpells = { first, second };
+            setSpells(victim, state);
+            runSpellScript(R"(
+                local function iter(view) return (pairs(view)) end
+                view = actorAPI.activeSpells(victim)
+                walk = iter(view)
+                local independent = iter(view)
+                local key, entry = walk()
+                old = entry
+                assert(key == 'same_source' and old.id == key and old.activeSpellId == 'instance_one')
+                assert(old.temporary and not old.fromEquipment and not old.stackable)
+                assert(old.name == 'Native query fixture spell with an owned display-name string')
+                assert(select(2, independent()).activeSpellId == 'instance_one')
+                oldEffects = old.effects
+                assert(#oldEffects == 1 and oldEffects[1].durationLeft == 20 and oldEffects[1].magnitudeThisFrame == 10)
+                oldEffects[1] = 'changed in script'
+                assert(old.effects[1].durationLeft == 20 and oldEffects[1] == 'changed in script')
+                same = view:getByActiveSpellId('instance_one')
+                assert(not rawequal(same, old) and same.activeSpellId == old.activeSpellId)
+                assert(view:getByActiveSpellId('missing') == nil)
+                globalSpell = actorAPI.activeSpells(globalVictim):getByActiveSpellId('instance_one')
+                selfSpell = actorAPI.activeSpells(selfVictim):getByActiveSpellId('instance_one')
+                assert(selfSpell.name == old.name)
+                local secondKey, second = independent()
+                assert(secondKey == key and second.activeSpellId == 'instance_two')
+                assert(select('#', independent()) == 2 and independent() == nil)
+                globalCaster = globalSpell.caster; globalItem = globalSpell.item
+                localCaster = old.caster; localItem = selfSpell.item
+            )");
+            EXPECT_TRUE(lua["globalCaster"].get<sol::object>().is<GObject>());
+            EXPECT_TRUE(lua["globalItem"].get<sol::object>().is<GObject>());
+            EXPECT_TRUE(lua["localCaster"].get<sol::object>().is<LObject>());
+            EXPECT_TRUE(lua["localItem"].get<sol::object>().is<LObject>());
+            EXPECT_EQ(mReadMetrics.mScans, 2u);
+            EXPECT_EQ(mReadMetrics.mCopies + mReadMetrics.mReuses, mReadMetrics.mYielded + mReadMetrics.mLookupHits);
+            EXPECT_EQ(mReadMetrics.mCopies, Misc::useSharedActiveSpellReads() ? 2u : 6u);
+            EXPECT_EQ(mReadMetrics.mEffectsTables, 2u);
+            EXPECT_EQ(mReadMetrics.mEffectsExported, 2u);
+
+            auto& spells = stats(victim).getActiveSpells();
+            const auto epoch = spells.getReadEpoch();
+            const auto sourceRevision = spells.getEffectSourceRevision();
+            spells.purge([&](const MWMechanics::ActiveSpells::ActiveSpellParams&) {
+                EXPECT_EQ(spells.getReadEpoch(), 0u);
+                return false;
+            }, victim);
+            EXPECT_NE(spells.getReadEpoch(), epoch);
+            EXPECT_EQ(spells.getEffectSourceRevision(), sourceRevision);
+            state.mSpells[0].mEffects[0].mTimeLeft = 5.f;
+            state.mSpells[0].mEffects[0].mMagnitude = 3.f;
+            state.mSpells[1].mDisplayName = "new second name";
+            setSpells(victim, state);
+            runSpellScript(R"(
+                local current = view:getByActiveSpellId('instance_one')
+                assert(current.effects[1].durationLeft == 5 and current.effects[1].magnitudeThisFrame == 3)
+                assert(old.effects[1].durationLeft == 20 and old.effects[1].magnitudeThisFrame == 10)
+                local key, second = walk()
+                assert(key == 'same_source' and second.activeSpellId == 'instance_two' and second.name == 'new second name')
+                assert(walk() == nil)
+                retainedIterator = (pairs(view))
+            )");
+            state.mSpells.erase(state.mSpells.begin());
+            setSpells(victim, state);
+            runSpellScript(R"(
+                local key, second = retainedIterator()
+                assert(key == 'same_source' and second.activeSpellId == 'instance_two')
+                retainedIterator = (pairs(view))
+            )");
+            setSpells(victim, {});
+            runSpellScript(R"(
+                assert(retainedIterator() == nil and (pairs(view))() == nil)
+                assert(view:getByActiveSpellId('instance_one') == nil and old.effects[1].durationLeft == 20)
+            )");
+            mWorld.deregisterLiveCellRef(*victim.mRef);
+            runSpellScript(R"(
+                assert(old.effects[1].magnitudeThisFrame == 10 and old.name == selfSpell.name)
+                assert(not pcall(function() return (pairs(view))() end))
+            )");
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, SpellReadDetailsValidateMutableEffectsAndLegacySaveReferences)
+        {
+            MWMechanics::ActiveSpellReadCache cache;
+            std::vector<ESM::ActiveEffect> effects{ applied("fixture_effect") };
+            std::uint64_t epoch = 1;
+            std::string name = "a spell";
+            auto initial = cache.read(name, effects, epoch);
+            EXPECT_FALSE(initial.mReused);
+            EXPECT_TRUE(cache.read(name, effects, epoch).mReused);
+            EXPECT_TRUE(cache.read(name, effects, ++epoch).mReused);
+            const auto change = [&](auto edit) {
+                auto old = cache.read(name, effects, epoch);
+                edit();
+                auto fresh = cache.read(name, effects, ++epoch);
+                EXPECT_FALSE(fresh.mReused);
+                EXPECT_NE(old.mSnapshot, fresh.mSnapshot);
+            };
+            change([&] { effects[0].mTimeLeft = 5.f; });
+            change([&] { effects[0].mDuration = 12.f; });
+            change([&] { effects[0].mMagnitude = 2.f; });
+            change([&] { effects[0].mMinMagnitude = -0.f; });
+            change([&] { effects[0].mMaxMagnitude = std::bit_cast<float>(std::uint32_t{ 0x7fc00001 }); });
+            EXPECT_TRUE(cache.read(name, effects, ++epoch).mReused);
+            change([&] { effects[0].mEffectId = ESM::RefId::generated(4); });
+            change([&] { effects[0].mEffectIndex = 3; });
+            change([&] { effects[0].mFlags = 0; });
+            change([&] { effects[0].mArg = ESM::RefNum{ 12, 1 }; });
+            change([&] { name = "renamed spell"; });
+            change([&] { effects.clear(); });
+            EXPECT_FLOAT_EQ(initial.mSnapshot->mEffects.at(0).mTimeLeft, 20.f);
+            EXPECT_EQ(initial.mSnapshot->mDisplayName, "a spell");
+
+            const auto victim = actor(false);
+            ESM::ActorIdConverter converter;
+            ESM::ActiveSpells saved;
+            saved.mSpells.push_back(spell({}, "legacy", { applied("summon") }));
+            saved.mSpells[0].mEffects[0].mArg = ESM::RefNum{ 17, 0 };
+            saved.mActorIdConverter = &converter;
+            setSpells(victim, saved);
+            auto& native = stats(victim).getActiveSpells();
+            const auto before = native.shareReadDetails(*native.begin());
+            const ESM::RefNum resolved{ 250, 3 };
+            converter.mMappings[17] = resolved;
+            converter.apply();
+            const auto after = native.shareReadDetails(*native.begin());
+            EXPECT_FALSE(after.mReused);
+            EXPECT_EQ(std::get<ESM::RefNum>(after.mSnapshot->mEffects.at(0).mArg), resolved);
+            EXPECT_EQ(std::get<ESM::RefNum>(before.mSnapshot->mEffects.at(0).mArg).mIndex, 17u);
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, OrdinarySpellReadsBenchmark)
+        {
+            installSpellReadBindings();
+            sol::state_view lua = mLua.unsafeState();
+            sol::table actors(lua, sol::create);
+            constexpr int actorCount = 32;
+            for (int i = 0; i < actorCount; ++i)
+            {
+                const auto victim = actor(false);
+                ESM::ActiveSpells state;
+                for (int j = 0; j < i % 4; ++j)
+                    state.mSpells.push_back(spell({}, "instance_" + std::to_string(j),
+                        { applied("fixture_effect"), applied("fixture_effect"), applied("hidden", false) }));
+                setSpells(victim, state);
+                actors[i + 1] = LObject(victim);
+            }
+            lua["objects"] = actors;
+            runSpellScript(R"(
+                views = {}
+                for i, actor in ipairs(objects) do views[i] = actorAPI.activeSpells(actor) end
+                function scanActors(passes)
+                    local checksum = 0
+                    for pass=1,passes do
+                        for i, view in ipairs(views) do
+                            for key, spell in pairs(view) do
+                                checksum = checksum + #key + #spell.activeSpellId
+                                if pass == 2 then checksum = checksum + #spell.effects end
+                            end
+                        end
+                    end
+                    return checksum
+                end
+            )");
+            const sol::protected_function scan = lua["scanActors"];
+            std::array<std::int64_t, 9> timings{};
+            constexpr int groups = 8;
+            int checksum = 0;
+            for (auto& ns : timings)
+            {
+                const auto started = std::chrono::steady_clock::now();
+                for (int i = 0; i < groups; ++i)
+                {
+                    auto result = LuaUtil::LuaState::throwIfError(scan(4));
+                    checksum += result.get<int>();
+                }
+                ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - started).count() / groups;
+            }
+            std::sort(timings.begin(), timings.end());
+            const auto groupsRun = timings.size() * groups;
+            EXPECT_EQ(mReadMetrics.mScans, groupsRun * actorCount * 4);
+            EXPECT_EQ(mReadMetrics.mEmptyScans, groupsRun * 8 * 4);
+            EXPECT_EQ(mReadMetrics.mYielded, groupsRun * 48 * 4);
+            EXPECT_EQ(mReadMetrics.mCopies, Misc::useSharedActiveSpellReads() ? 48u : mReadMetrics.mYielded);
+            EXPECT_EQ(mReadMetrics.mCopies + mReadMetrics.mReuses, mReadMetrics.mYielded);
+            EXPECT_EQ(mReadMetrics.mEffectsExported, groupsRun * 48 * 2);
+            RecordProperty("median_ns_per_four_scans", std::to_string(timings[timings.size()/2]));
+            RecordProperty("actors", std::to_string(actorCount));
+            RecordProperty("entries", std::to_string(mReadMetrics.mYielded));
+            RecordProperty("copies", std::to_string(mReadMetrics.mCopies));
+            RecordProperty("effects_copied", std::to_string(mReadMetrics.mEffectsCopied));
+            RecordProperty("reuses", std::to_string(mReadMetrics.mReuses));
+            RecordProperty("effects_exported", std::to_string(mReadMetrics.mEffectsExported));
+            RecordProperty("checksum", std::to_string(checksum));
         }
 
         TEST_F(MWLuaMagicBindingsTest, nativeHelperBenchmark)

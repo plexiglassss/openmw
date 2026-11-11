@@ -14,6 +14,7 @@
 #include "../mwworld/ptr.hpp"
 #include "../mwworld/timestamp.hpp"
 
+#include "activespellreadcache.hpp"
 #include "spellcasting.hpp"
 
 namespace ESM
@@ -44,6 +45,8 @@ namespace MWMechanics
             int mWorsenings;
             MWWorld::TimeStamp mNextWorsening;
             MWWorld::Ptr mSource;
+            ActiveSpellReadCache mReadCache;
+            bool mMayHaveDeferredEffectArgs = false;
 
             ActiveSpellParams(const ESM::ActiveSpells::ActiveSpellParams& params);
 
@@ -69,6 +72,8 @@ namespace MWMechanics
 
             const std::vector<ActiveEffect>& getEffects() const { return mEffects; }
             std::vector<ActiveEffect>& getEffects() { return mEffects; }
+
+            ESM::ActiveSpells::Flags getFlags() const { return mFlags; }
 
             ESM::RefNum getCaster() const { return mCaster; }
 
@@ -101,6 +106,13 @@ namespace MWMechanics
 
         TIterator end() const;
 
+        ActiveSpellReadCache::Result shareReadDetails(const ActiveSpellParams& spell) const
+        {
+            return spell.mReadCache.read(spell.mDisplayName, spell.mEffects,
+                spell.mMayHaveDeferredEffectArgs ? 0 : getReadEpoch());
+        }
+
+        std::uint64_t getReadEpoch() const;
         std::uint64_t getEffectSourceRevision() const { return mEffectSourceRevision.mValue; }
 
         TIterator getActiveSpellById(const ESM::RefId& id);
@@ -125,6 +137,7 @@ namespace MWMechanics
         std::vector<ActiveSpellParams> mQueue;
         std::queue<Predicate> mPurges;
         bool mIterating;
+        mutable std::uint64_t mReadEpoch = 0;
         struct EffectRevision
         {
             static std::uint64_t next();

@@ -1,6 +1,9 @@
 #include <components/diagnostics/timing.hpp>
 #include "luamanagerimp.hpp"
 
+#include <cstdlib>
+#include <utility>
+
 #include <cassert>
 #include <filesystem>
 #include <functional>
@@ -1057,6 +1060,32 @@ namespace MWLua
     void LuaManager::reportStats(unsigned int frameNumber, osg::Stats& stats) const
     {
         stats.setAttribute(frameNumber, "Lua UsedMemory", static_cast<double>(mLua.getTotalMemoryUsage()));
+    }
+
+    ActiveSpellReadStats* LuaManager::activeSpellReadStats()
+    {
+        static const bool capture = std::getenv("OPENMW_OSG_STATS_FILE") != nullptr;
+        return capture ? &mSpellReadStats : nullptr;
+    }
+
+    void LuaManager::reportActiveSpellReads(unsigned int frameNumber, osg::Stats& stats)
+    {
+        if (!activeSpellReadStats())
+            return;
+        const auto values = std::exchange(mSpellReadStats, ActiveSpellReadStats{});
+        const auto record = [&](const char* name, std::uint64_t value) {
+            stats.setAttribute(frameNumber, name, static_cast<double>(value));
+        };
+        record("Lua Active Spell Scans", values.mScans);
+        record("Lua Active Spell Empty Scans", values.mEmptyScans);
+        record("Lua Active Spell Entries", values.mYielded);
+        record("Lua Active Spell Lookups", values.mLookups);
+        record("Lua Active Spell Lookup Hits", values.mLookupHits);
+        record("Lua Active Spell Snapshot Copies", values.mCopies);
+        record("Lua Active Spell Native Effects Copied", values.mEffectsCopied);
+        record("Lua Active Spell Snapshot Reuses", values.mReuses);
+        record("Lua Active Spell Effects Tables", values.mEffectsTables);
+        record("Lua Active Spell Effects Exported", values.mEffectsExported);
     }
 
     std::string LuaManager::formatResourceUsageStats() const

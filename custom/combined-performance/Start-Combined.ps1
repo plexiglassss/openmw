@@ -1,7 +1,7 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Combined', 'Inherited', 'PreviousFrameUpdates', 'PreviousHud')][string]$Variant = 'Combined',
+    [ValidateSet('Combined', 'Inherited', 'PreviousFrameUpdates', 'PreviousHud', 'PreviousSpellReads')][string]$Variant = 'Combined',
     [string]$OpenMWExe,
     [string]$UserConfigDir,
     [string]$OutputRoot,
@@ -33,8 +33,9 @@ if (-not [string]::IsNullOrWhiteSpace($OutputRoot)) { $parameters.OutputRoot = $
 $overrides = @{
     OPENMW_COMBINED_PERFORMANCE = '1'
     OPENMW_NATIVE_JOBS = $(if ($Variant -eq 'Inherited') { '0' } else { '1' })
-    OPENMW_SPARSE_UI_UPDATES = $(if ($Variant -eq 'Combined') { '1' } else { '0' })
-    OPENMW_TOWN_FRAME_UPDATES = $(if ($Variant -in @('Combined','PreviousHud')) { '1' } else { '0' })
+    OPENMW_SHARED_ACTIVE_SPELL_READS = $(if ($Variant -eq 'Combined') { '1' } else { '0' })
+    OPENMW_SPARSE_UI_UPDATES = $(if ($Variant -in @('Combined','PreviousSpellReads')) { '1' } else { '0' })
+    OPENMW_TOWN_FRAME_UPDATES = $(if ($Variant -in @('Combined','PreviousHud','PreviousSpellReads')) { '1' } else { '0' })
     OPENMW_LUA_CELL_QUERY_CACHE = '1'
     OPENMW_LUA_UI_LEGACY_UPDATES = '0'
     OPENMW_LUA_UI_LEGACY_LAYOUT = '0'
@@ -55,6 +56,7 @@ try {
         Write-Host 'Inherited mode uses the same executable with native jobs and the new generic query APIs disabled.'
         Write-Host 'The cumulative Sane Magic queries remain available. The three new adapters use their prior paths.'
     }
+    if ($Variant -eq 'PreviousSpellReads') { Write-Host 'Copying spell details separately for every read. Earlier HUD and town improvements are enabled.' }
     if ($Variant -eq 'PreviousHud') { Write-Host 'Using the previous HUD update path with town optimizations and native jobs enabled.' }
     if ($Variant -eq 'PreviousFrameUpdates') {
         Write-Host 'Comparison mode keeps native jobs enabled and uses the previous actor and HUD update paths.'

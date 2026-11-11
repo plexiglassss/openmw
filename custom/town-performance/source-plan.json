@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Cumulative native jobs, actor/HUD updates, editable Horror rendering, and selective property updates for sparse Lua HUD changes.",
+  "scope": "Cumulative native jobs, actor and HUD improvements, editable location lighting, and shared read-only active spell details in the ordinary Lua API.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -19,7 +19,8 @@
     "3db8987d9dd58729025ee11b2f3b60652c6cf5d4",
     "5e66b560876f3c86c612faf413f46fdd8a91395d",
     "a0395b811024a0ee9fe97345464f167247f92aaa",
-    "39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7"
+    "39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7",
+    "7234ad470020e814a1503b3549a1d332f81606b4"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -29,11 +30,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d2a3b0c83f552459b30f43b47a9087cc43db2b81"
+        "blob": "64a454e5058f7cfee8468c37df20d4520c6dc4d6"
       },
-      "bytes": 62783,
-      "sha256": "923f7ca3fa22538d5df2ba9a3cf93aae68f0c165144e5f06be9f51e038efb179",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+      "bytes": 63687,
+      "sha256": "d9ce9434b47b58a8779377b027371d70d95ac284eade973f879e4efd498c4a71",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -524,11 +525,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0ba5f04400db592d8766cc98e7246b0f5b68e522"
+        "blob": "9abec37afb8beabb893d90e27bb5dee2f2d0c046"
       },
-      "bytes": 47917,
-      "sha256": "38d32ed9ab8bac06d96e41ea23bac0aa83342ef729022c8222b9eff3f5519b38",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 49258,
+      "sha256": "8a359b2152841fb7ff433e55a2ee6ae41c5f981c8ad7d36e1250dc4aac3e6b5e",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture."
     },
     "apps/openmw/mwlua/luamanagerimp.hpp": {
       "before": {
@@ -537,11 +538,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "49da1ea7d1502003a68d53362baeb10e1773ebf6"
+        "blob": "5cbd99af3460d8b556ebed543b62a6fe23742d2d"
       },
-      "bytes": 13592,
-      "sha256": "7eb36e9435aec44c3dc68b3538bacad6015d066cea6365fd5c87c79fda8e8408",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 13804,
+      "sha256": "f0e9947d3b9e34299b9e8d6b22e007f3cd6668d305145bf1289cac3c462377e1",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Own the spell read counters alongside the serialized Lua runtime."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -550,21 +551,21 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f1b537e0cfef49a90c66d58b532597ed81205f68"
+        "blob": "a92ecd5b0924c83924feba098fed16997a79fa5e"
       },
-      "bytes": 51815,
-      "sha256": "d6c1ecaa544ce5fc26eeb76a46624e1237b780351a373ff4c9fb4fbc5fa1b6ec",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 56778,
+      "sha256": "8a62eb07d35e9ed4a5a184d8195d9484bc67e34feb75fdee392296858f409a78",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Return independent public Lua spell values with shared details and revalidate retained iterators after world changes."
     },
     "apps/openmw/mwlua/magicbindingshelper.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "035d1aedebb182847c1c52a9917ca974a1421104"
+        "blob": "354210a01b397e281348df498bf8212eba056aef"
       },
-      "bytes": 1859,
-      "sha256": "a484eb16c309d1b3a48fbe0e8e9e4710db3547a77582e3c7cff28cf213606b70",
-      "reason": "Share the actual per-call actor/stats/effect lookup implementation with native regression fixtures; no persistent pointer or effect cache."
+      "bytes": 1958,
+      "sha256": "f673a835d754dadbb547d9d2726142b521ae1e2f20610ee696f82db019557b8a",
+      "reason": "Share the actual per-call actor/stats/effect lookup implementation with native regression fixtures; no persistent pointer or effect cache. Resolve actor stats from a durable object handle using the existing validity and class checks."
     },
     "apps/openmw/mwlua/magicqueries.hpp": {
       "before": null,
@@ -616,11 +617,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4ab8dce7732143468eecd3c1b050c8b0c79d859b"
+        "blob": "207e132f09ca8a1653b0efdc21dfb6a7cd7fd795"
       },
-      "bytes": 29718,
-      "sha256": "19cdb97860634ca27ffdac707962845d2f35037de461294480dfd078fa23acf0",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 30340,
+      "sha256": "05b3c9c644a5eac1ea59629f106aa5838e434fe6577781fda906b671c692b01c",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Expose native spell read epochs and preserve externally resolved actor ID arguments in older saves."
     },
     "apps/openmw/mwmechanics/activespells.hpp": {
       "before": {
@@ -629,11 +630,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "094e3af370520541137ee0a7c9f6f176f965147b"
+        "blob": "7ca237e8dd3ff8d3294996c7372617e61fee4bae"
       },
-      "bytes": 6967,
-      "sha256": "9b0fa494500838d5d9d4a6fac1cd4a21d958e8189a191654d73383925a1cd963",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 7527,
+      "sha256": "9807037b8ef10f1423c8c5fb017387ab6c256d638b6a8a3b0b9e3dbcd03882ff",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Keep bounded read data with its owning spell and distinguish native effect-update phases."
     },
     "apps/openmw/mwmechanics/actors.cpp": {
       "before": {
@@ -874,11 +875,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0ddbad5058f3d3fe025875ce7dfddb5dfb466a23"
+        "blob": "f0d6410bdde56aa8e37a5c2d11676053e8ccde4b"
       },
-      "bytes": 48168,
-      "sha256": "3885b8a9c44a9a8efcd01e2bb184e187f8cb4b104facba7e4994f0831b11e16f",
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors."
+      "bytes": 61200,
+      "sha256": "5753fa669e13526749d75f533704dd33f4439fb2b374d7f7a92379dfa4ac374b",
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies."
     },
     "apps/openmw_tests/mwlua/testnativequeryservice.cpp": {
       "before": null,
@@ -1185,11 +1186,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "d1e5389ae53de4574c28cfad51338fba636483bd"
+        "blob": "d80db9bee29f415f0412c132e6379a1e0de4969e"
       },
-      "bytes": 1504,
-      "sha256": "0b1dbfc54c3833446834a0d320e9d68995c178172e90b21e68026165a97c4c8c",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+      "bytes": 1821,
+      "sha256": "59f502d2ef435f87d134a3d51a09e9c250edd0ccfc6a2688c150cd1832d8fc41",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Expose a process-local comparison switch for sharing active spell details."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -1316,11 +1317,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1f44032514292a76891200a8de897c0f6302d204"
+        "blob": "8b2f7a4312105cffa105486fa7db220d4d2ab5c2"
       },
-      "bytes": 5829,
-      "sha256": "f2415c9df5e58243309eb10389c4f156d0efe9391c60835228d847257538e6a4",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+      "bytes": 6611,
+      "sha256": "a9e34c36c87664e459dda3b81427b0bbd959d9beee371f6c45389f91639c66f7",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -1346,21 +1347,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2619500dc3940a6e8e14d2a5093b1dc1edf6a5f4"
+        "blob": "0facb49e20dea248825608c18ccdf071b641f2b7"
       },
-      "bytes": 3090,
-      "sha256": "022d2f787140fbe73fcf0a1fd186321a1684404bcc8fa10a2824cd5ebec06bcf",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+      "bytes": 3405,
+      "sha256": "eb2361cc3c4656b3a5a297928b00777de6d2c058a178b4edaee719624532e2db",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Keep previous engine improvements active in the independent spell-copy comparison mode."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "a2c17fdcb49a350a6224f6d4e693b93edcaa222f"
+        "blob": "86ae055ef27c27a98767d304ddf21f0a11d3ce81"
       },
-      "bytes": 5403,
-      "sha256": "9addf2f9a5fc198cf4c9fc52e09e8bbdf23e4f9e22bf66aa8f1bbfc8e5cc64d5",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+      "bytes": 5671,
+      "sha256": "bcbab7cceb82f7485447bc2e3832b2b2921d964cde13a939e6b881da1a7b6e32",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Check launcher switches and restore the inherited environment for every mode."
     },
     "custom/combined-performance/complete-windows-distribution.py": {
       "before": null,
@@ -1596,11 +1597,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1c8db55e3ab69327ad2101c6fef1b46bc20362b9"
+        "blob": "3cf9fd85591650afbde45df418f2cfc527af7573"
       },
-      "bytes": 11622,
-      "sha256": "cc18a7ea2fadffa1a4ceb000a0731cfec5aacca9bedb2aa95bdabe5f818041fb",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+      "bytes": 11845,
+      "sha256": "4b21d8e73247476a40ef8afe83c7a73b05ebb65b8f600bd374e1c44926d8d8fa",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -2101,11 +2102,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1ca00c0e9a4696cf073999ced4fe8e14728f7f43"
+        "blob": "2e29c2e372dafcedd43aec2d56b72fccb1086104"
       },
-      "bytes": 52752,
-      "sha256": "5bec6c0697e46a7dc09d9a5c6fb4287c92032a5b3a7b582760cdeea784956dee",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+      "bytes": 52787,
+      "sha256": "3fb65f84e32bbe8a57f4294a35346c69804f594e4662472b45a0358f24597d01",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -3082,6 +3083,75 @@
       "bytes": 14868,
       "sha256": "1ec27b249c941dc7410903fc12d96b19123fdd226aecb2d7728f3e6bb7f364f0",
       "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+    },
+    "apps/openmw/mwlua/magicbindings.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "d9c5182d766325768fddc44f7e40c27f957237d9"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "a4e091504b81659d710efcf16cd49180a11cc095"
+      },
+      "bytes": 791,
+      "sha256": "37b704fe4a5856ce32b0d8b82e3a0034255dda18656bb4aeeb1bab166654e8de",
+      "reason": "Define capture metrics for ordinary Lua spell traversal and point queries."
+    },
+    "apps/openmw/mwlua/types/actor.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7d757e5cb7ed61af3542d0cef8dca375a646822a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "456d6f7421103e208ff5e60e0bb79932bcae204c"
+      },
+      "bytes": 24656,
+      "sha256": "5b9181cf86907f08b67ffc0c2c86631674010d57016d3d4b1c36dfbe0a920501",
+      "reason": "Connect generic Lua actor bindings to the optional frame capture."
+    },
+    "apps/openmw/mwlua/worker.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "66116f05172b7f71c4bb47cb36ca862d8ee7ac2a"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "909cc1ae9a1cbb6d965f8b5f75506acff20122d9"
+      },
+      "bytes": 4992,
+      "sha256": "c117e74c8f3b3009cb691f1ca48c03fdd37c2ac14e40553eaf9c4ed07194d1a9",
+      "reason": "Publish spell statistics for the current frame after the Lua worker has finished."
+    },
+    "apps/openmw/mwmechanics/activespellreadcache.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "dbe6d046b7cc381350838add4a3c3dc5d8a98be2"
+      },
+      "bytes": 2861,
+      "sha256": "dde143124832b3c5a9cea39bef0bd73d5b82d60672113ac8e95703719eb39333",
+      "reason": "Share independently owned immutable active spell details, including all effect values, within a stable read epoch or after an exact comparison."
+    },
+    "custom/combined-performance/Run-Previous-Spell-Reads.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "71a340658fbbf94fcc7c7835b5ddb5b4cf8e1591"
+      },
+      "bytes": 142,
+      "sha256": "18d52c594f4fc3972350f0f1e1163874a6a923d0ea119d2156ae023e147e97b5",
+      "reason": "Start the isolated spell-read comparison on the same executable."
+    },
+    "custom/combined-performance/tests/verify-spell-reads.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "59efc99f2d9ff7220f23b10bff9da8aae722aa1e"
+      },
+      "bytes": 1947,
+      "sha256": "d1e1b5c6d92b787e7aa4746df724d2c27f673359d6163ab12c71eeb6af93983e",
+      "reason": "Verify native Lua output parity, copies, reuse, and measured durations for both modes."
     }
   }
 }

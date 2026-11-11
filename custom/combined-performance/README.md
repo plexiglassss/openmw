@@ -47,3 +47,9 @@ For a same-executable comparison with the previous town update code, run `Run-Pr
 The engine speeds up ordinary property reads and avoids repeating a native alpha update for a widget whose inheritance flag already matches. Mods can also pass the actual changed inline layout tables to `Element:updateProperties`. The engine reapplies their properties, recalculates enclosing sizes, and performs one final root layout for each queued element. Full requests supersede narrower requests.
 
 For the repaired Proximity Tool setup, add `tools/combined-performance/Proximity Tool - Sparse HUD` after the current Proximity scripts in Data Directories. The supplied menu uses this API when only displayed distance labels or direction arrows change. Use `Run-Combined.cmd` for the default behavior and `Run-Previous-HUD.cmd` for the same executable with the previous HUD path. Keep the overlay enabled in both runs.
+
+## Ordinary active-spell reads
+
+The standard Lua actor API shares immutable spell names and effect lists across equivalent reads. Each result keeps the values it saw, including the duration and magnitude of its effects. Each access to `spell.effects` produces a fresh Lua table. Mods use their existing scripts and calls.
+
+Use `Run-Combined.cmd` for the enabled mode. For a comparison on the same executable, `Run-Previous-Spell-Reads.cmd` copies the details on every read. Both use the earlier town, HUD and native-job improvements. With frame capture enabled, `openmw-stats.log` records spell scans, empty scans, yielded entries, lookups, copied native effects, reuse and effect tables exported to Lua for each frame. The paired native benchmark is in `active-spell-reads.json`.

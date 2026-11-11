@@ -8,7 +8,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('OpenMW-combined-launcher-' + [Guid]::NewGuid().ToString('N'))
 $tool = Join-Path $fixture 'tools\combined-performance'
 $capture = Join-Path $tool 'capture'
-$names = @('OPENMW_COMBINED_PERFORMANCE', 'OPENMW_NATIVE_JOBS', 'OPENMW_TOWN_FRAME_UPDATES', 'OPENMW_SPARSE_UI_UPDATES', 'OPENMW_LUA_UI_LEGACY_UPDATES', 'OPENMW_LUA_UI_LEGACY_LAYOUT', 'OPENMW_LUA_CELL_QUERY_CACHE')
+$names = @('OPENMW_COMBINED_PERFORMANCE', 'OPENMW_NATIVE_JOBS', 'OPENMW_TOWN_FRAME_UPDATES', 'OPENMW_SPARSE_UI_UPDATES', 'OPENMW_SHARED_ACTIVE_SPELL_READS', 'OPENMW_LUA_UI_LEGACY_UPDATES', 'OPENMW_LUA_UI_LEGACY_LAYOUT', 'OPENMW_LUA_CELL_QUERY_CACHE')
 $original = @{}
 foreach ($name in $names) { $original[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 $cases = @()
@@ -28,13 +28,13 @@ $row = @{
     arguments = @($GameArguments); no_gpu = [bool]$NoGpu; no_prompt = [bool]$NoPrompt;
     config = $UserConfigDir; output = $OutputRoot;
     combined = $env:OPENMW_COMBINED_PERFORMANCE; native_jobs = $env:OPENMW_NATIVE_JOBS; town_updates = $env:OPENMW_TOWN_FRAME_UPDATES;
-    sparse = $env:OPENMW_SPARSE_UI_UPDATES; updates = $env:OPENMW_LUA_UI_LEGACY_UPDATES;
+    spell_reads = $env:OPENMW_SHARED_ACTIVE_SPELL_READS; sparse = $env:OPENMW_SPARSE_UI_UPDATES; updates = $env:OPENMW_LUA_UI_LEGACY_UPDATES;
     layout = $env:OPENMW_LUA_UI_LEGACY_LAYOUT; cell = $env:OPENMW_LUA_CELL_QUERY_CACHE
 }
 $row | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'observed.json') -Encoding UTF8
 '@
     [IO.File]::WriteAllText((Join-Path $capture 'Start-Capture.ps1'), $stub, $utf8)
-    foreach ($variant in @('Combined', 'Inherited', 'PreviousFrameUpdates', 'PreviousHud')) {
+    foreach ($variant in @('Combined', 'Inherited', 'PreviousFrameUpdates', 'PreviousHud', 'PreviousSpellReads')) {
         foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, 'previous-value', 'Process') }
         & (Join-Path $tool 'Start-Combined.ps1') -Variant $variant -UserConfigDir 'fixture-config' -OutputRoot 'fixture-output' -DeclaredFG Off -GameArguments @('--start', 'fixture-cell') -NoGpu -NoPrompt
         $row = Get-Content -LiteralPath (Join-Path $capture 'observed.json') -Raw | ConvertFrom-Json
@@ -49,8 +49,9 @@ $row | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $PSScriptRo
         Assert-Equal $true $row.no_prompt 'prompt flag'
         Assert-Equal '1' $row.combined 'preserved cumulative performance mode'
         Assert-Equal $(if ($variant -eq 'Inherited') { '0' } else { '1' }) $row.native_jobs 'native job mode'
-        Assert-Equal $(if ($variant -in @('Combined','PreviousHud')) { '1' } else { '0' }) $row.town_updates 'town frame updates'
-        Assert-Equal $(if ($variant -eq 'Combined') { '1' } else { '0' }) $row.sparse 'sparse HUD updates'
+        Assert-Equal $(if ($variant -in @('Combined','PreviousHud','PreviousSpellReads')) { '1' } else { '0' }) $row.town_updates 'town frame updates'
+        Assert-Equal $(if ($variant -eq 'Combined') { '1' } else { '0' }) $row.spell_reads 'shared spell reads'
+        Assert-Equal $(if ($variant -in @('Combined','PreviousSpellReads')) { '1' } else { '0' }) $row.sparse 'sparse HUD updates'
         Assert-Equal '0' $row.updates 'native UI fallback reset'
         Assert-Equal '0' $row.layout 'prior property-reader mode'
         Assert-Equal '1' $row.cell 'cell cache mode'
