@@ -2115,11 +2115,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "aa01733cfed3afa5e8fc20e23839b7bdd6c77365"
+        "blob": "e3221ef6be15a800974d0e6466779cbc1ff68158"
       },
-      "bytes": 20701,
-      "sha256": "2ae0b61a734a04151b25ded6965ddaae846eaaa796d5fd9024e3a2216d9d139f",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+      "bytes": 20736,
+      "sha256": "b1e4b12371f89f61af39ff020f30e31f16013673e2d6dcf648462a15803ffa5a",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Verify the new read-mode observation while reconstructing the exact original frame collector."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,
