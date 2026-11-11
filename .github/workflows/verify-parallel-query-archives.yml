@@ -1,0 +1,108 @@
+name: Verify packaged parallel queries
+on:
+  pull_request:
+    branches: [perf/generic-native-jobs-20261109]
+    types: [opened, reopened]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cb0af729d9012a7240d4ece33c634b2d9fef4fe5
+          persist-credentials: false
+      - name: Read and compare the two completed Windows archives
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, subprocess, tempfile, zipfile
+          import xml.etree.ElementTree as ET
+          
+          repo = "plexiglassss/openmw"
+          previous_run, current_run = 42987536367, 43091678240
+          previous_head = "26e7cebdd47143df2087b93d499d077ac0c1f3b9"
+          current_head = "cb0af729d9012a7240d4ece33c634b2d9fef4fe5"
+          root = Path(os.environ["RUNNER_TEMP"])
+          def gh(path):
+              return json.loads(subprocess.check_output(["gh", "api", f"repos/{repo}/{path}"]))
+          def grab(run, head, prefix, name):
+              metadata = gh(f"actions/runs/{run}")
+              assert metadata["head_sha"] == head and metadata["conclusion"] == "success", (run,metadata["status"],metadata["conclusion"])
+              items = gh(f"actions/runs/{run}/artifacts?per_page=100")["artifacts"]
+              item, = [i for i in items if i["name"] == prefix + head]
+              assert not item["expired"]
+              dest = root / name
+              with dest.open("wb") as out:
+                  subprocess.run(["gh","api",f"repos/{repo}/actions/artifacts/{item['id']}/zip"],stdout=out,check=True)
+              digest = hashlib.sha256(dest.read_bytes()).hexdigest()
+              assert dest.stat().st_size == item["size_in_bytes"] and "sha256:" + digest == item["digest"]
+              return dest, item
+          def load(z, path):
+              return json.loads(z.read(path).decode("utf-8-sig"))
+          def tests(z, path):
+              tree = ET.fromstring(z.read(path))
+              assert all(int(tree.attrib.get(n,0)) == 0 for n in ("disabled","failures","errors")), path
+              rows = {t.attrib["classname"] + "." + t.attrib["name"]:t for t in tree.iter("testcase")}
+              assert len(rows) == int(tree.attrib["tests"])
+              assert all(t.get("status") == "run" and t.get("result") == "completed" for t in rows.values())
+              return rows
+          def check_package(z):
+              assert z.testzip() is None
+              members = [p.filename for p in z.infolist() if not p.is_dir()]
+              assert len({n.casefold() for n in members}) == len(members)
+              m = load(z,"PACKAGE-SHA256.json")["files"]
+              assert set(m) | {"PACKAGE-SHA256.json"} == set(members)
+              for n,v in m.items():
+                  assert z.getinfo(n).file_size == v["bytes"] and hashlib.sha256(z.read(n)).hexdigest() == v["sha256"], n
+              return set(members)
+          prefix = "openmw-parallel-native-jobs-windows-complete-"
+          current, ca = grab(current_run, current_head, prefix, "current-win64.zip")
+          previous, pa = grab(previous_run, previous_head, prefix, "previous-win64.zip")
+          proof, ea = grab(current_run, current_head, "cumulative-native-evidence-", "current-evidence.zip")
+          with zipfile.ZipFile(current) as z, zipfile.ZipFile(previous) as old, zipfile.ZipFile(proof) as ci:
+              names, earlier = check_package(z), check_package(old)
+              assert len(earlier) == 676 and earlier <= names, sorted(earlier - names)
+              assert ci.testzip() is None and ci.read("install/PACKAGE-SHA256.json") == z.read("PACKAGE-SHA256.json")
+              builds = load(z, "verification/WINDOWS-DISTRIBUTION.json")
+              package = load(z, "COMBINED-PACKAGE.json")
+              assert builds["result"] == package["result"] == "PASS"
+              assert builds["engine_commit"] == builds["packaging_commit"] == package["candidate_commit"] == current_head
+              assert len(builds["public_applications"]) == 11
+              assert load(z, "verification/distribution-startup/startup-report.json")["result"] == "PASS"
+              tools = "tools/combined-performance/"
+              keep = [n for n in earlier if n.startswith(("resources/shaders/","resources/vfs/shader_profiles/","resources/vfs/mygui/","resources/vfs/textures/", tools + "Proximity Tool - Sparse HUD/")) or n in ("lua51.dll","resources/lua_libs/content.lua","openmw.cfg") or n.startswith(tools) and "/Data Files/" in n]
+              assert all(z.read(n) == old.read(n) for n in keep)
+              profile = load(z,"verification/location-rendering-profile.json")
+              hp = hashlib.sha256(z.read("resources/vfs/shader_profiles/horror_mod.yaml")).hexdigest()
+              assert hp == "a7a165e47f471ccf383ba5b896e512c02f1d532e201663a44825a1f7eb1c1251"
+              assert profile["result"] == "PASS" and profile["selected_interiors"] == 63
+              assert set(package["adapter_manifest_sha256"]) == {"SaneMagic","QuestGuiderLite","AdvancedWorldMap","ProximityTool"}
+              for n in ("Run-Combined.cmd","Run-Previous-Parallel-Queries.cmd","Run-Without-Ray-Batching.cmd","Run-Without-Async-Distances.cmd","Run-Without-Lua-Workers.cmd"):
+                  assert n in names and tools+n in names
+              for n in ("combined-launcher-windows-powershell.json","combined-launcher-pwsh.json"):
+                  checks = load(z,n)
+                  assert checks["result"] == "PASS" and len(checks["cases"]) == 10 and all(x["environment_restored"] for x in checks["cases"])
+              src = Path("custom/combined-performance/Parallel Query Adapters")
+              overlay = {tools + "Parallel Query Adapters/" + p.relative_to(src).as_posix():p for p in src.rglob("*") if p.is_file()}
+              assert overlay and set(overlay) == {n for n in names if n.startswith(tools+"Parallel Query Adapters/")}
+              assert all(z.read(n) == p.read_bytes() for n,p in overlay.items())
+              engine = tests(z,"openmw-tests.xml")
+              component = tests(z,"components-tests.xml")
+              assert tests(old,"openmw-tests.xml").keys() <= engine.keys() and tests(old,"components-tests.xml").keys() <= component.keys()
+              t = "ParallelQueryBindings.PublicWorkerAndDistanceSnapshotRoundTrip"
+              modes = ("async_distances", "isolated_workers", "batched_visual_rays")
+              for row,want in [(engine[t],"1"),(tests(z,"previous-parallel-queries.xml")[t],"0")]:
+                  props = {p.attrib["name"]:p.attrib["value"] for p in row.findall("properties/property")}
+                  assert all(props[k] == want for k in modes)
+              assert len([n for n in component if n.startswith("VisualRayBatch.")]) == 4
+              assert len([n for n in component if n.startswith("ParallelWorker.")]) == 2
+              result = dict(status="PASS",commit=current_head,previous=previous_head,build_id=ca["id"],evidence_id=ea["id"],bytes=ca["size_in_bytes"],sha256=ca["digest"],previous_paths=len(earlier),files=len(names),missing_previous=[],preserved_resources=len(keep),public_apps=len(builds["public_applications"]),checked_modules=len(builds["imports"]),engine_tests=len(engine),component_tests=len(component),overlay_paths=sorted(overlay),horror_selected_interiors=63,horror_profile_sha256=hp,gameplay_fps_measured=False)
+              print("OPENMW_ARCHIVE_VERIFIED " + json.dumps(result,sort_keys=True))
+          PY
