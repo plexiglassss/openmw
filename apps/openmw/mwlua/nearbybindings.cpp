@@ -16,6 +16,7 @@
 #include "../mwworld/scene.hpp"
 
 #include "context.hpp"
+#include "jobbindings.hpp"
 #include "luamanagerimp.hpp"
 #include "nativequeryservice.hpp"
 #include "objectlists.hpp"
@@ -74,12 +75,77 @@ namespace sol
 
 namespace MWLua
 {
-    sol::table initNearbyPackage(const Context& context)
+    static NativeDistanceOptions distanceOptions(const sol::optional<sol::table>& rawOptions)
     {
-        sol::state_view lua = context.sol();
-        sol::table api(lua, sol::create);
-        ObjectLists* objectLists = context.mObjectLists;
+        NativeDistanceOptions options;
+        if (rawOptions)
+        {
+            options.mMaxDistance
+                = rawOptions->get<sol::optional<double>>("maxDistance").value_or(options.mMaxDistance);
+            options.mSortByDistance
+                = rawOptions->get<sol::optional<bool>>("sortByDistance").value_or(false);
+            options.mFilterBy2D = rawOptions->get<sol::optional<bool>>("filterBy2D").value_or(false);
+        }
+        if (std::isnan(options.mMaxDistance) || options.mMaxDistance < 0.f)
+            throw std::invalid_argument("maxDistance must be non-negative");
 
+        return options;
+    }
+
+    static std::vector<NativeDistanceTarget> distanceTargets(const sol::object& targets, bool snapshot = false)
+    {
+        constexpr std::size_t limit = 16384;
+        if (targets.is<LObjectList>())
+        {
+            const auto& ids = targets.as<const LObjectList&>().mIds;
+            if (snapshot && ids && ids->size() > limit)
+                throw std::invalid_argument("too many snapshot targets");
+            return NativeQueryService::copyObjects(ids);
+        }
+        if (snapshot && targets.get_type() != sol::type::table)
+            throw std::invalid_argument("snapshotPositions expects an ObjectList or an array");
+        if (!targets.is<sol::table>())
+            throw std::invalid_argument("queryDistances expects an ObjectList or an array of objects/positions");
+
+        const sol::table table = targets.as<sol::table>();
+        std::vector<NativeDistanceTarget> values;
+        const std::size_t count = snapshot ? rawArraySize(table) : table.size();
+        if (snapshot && count > limit)
+            throw std::invalid_argument("too many snapshot targets");
+        values.reserve(count);
+        for (std::size_t index = 1; index <= count; ++index)
+        {
+            const sol::object value = snapshot ? table.raw_get<sol::object>(index) : table.get<sol::object>(index);
+            if (value.is<LObject>())
+            {
+                const LObject& object = value.as<const LObject&>();
+                const MWWorld::Ptr& ptr = object.ptrOrEmpty();
+                if (!ptr.isEmpty() && !ptr.mRef->isDeleted())
+                {
+                    values.push_back({
+                        .mObjectId = getId(ptr),
+                        .mPosition = ptr.getRefData().getPosition().asVec3(),
+                        .mSourceIndex = index,
+                        .mHasObject = true,
+                    });
+                }
+            }
+            else if (value.is<osg::Vec3f>())
+            {
+                values.push_back({
+                    .mPosition = value.as<osg::Vec3f>(),
+                    .mSourceIndex = index,
+                });
+            }
+            else
+                throw std::invalid_argument("queryDistances array values must be objects or Vec3 positions");
+        }
+        return values;
+    }
+
+    void addNearbyDistanceBindings(sol::table& api, const Context& context)
+    {
+        auto lua = context.sol();
         using DistanceQuery = NativeDistanceQuery<LObject>;
         sol::usertype<DistanceQuery> distanceQuery
             = lua.new_usertype<DistanceQuery>("NativeDistanceQuery");
@@ -135,59 +201,57 @@ namespace MWLua
                 if (nativeQueries == nullptr)
                     throw std::logic_error("Native query service is not available");
 
-                NativeDistanceOptions options;
-                if (rawOptions)
+                if (targets.is<PositionSnapshot>())
                 {
-                    options.mMaxDistance
-                        = rawOptions->get<sol::optional<double>>("maxDistance").value_or(options.mMaxDistance);
-                    options.mSortByDistance
-                        = rawOptions->get<sol::optional<bool>>("sortByDistance").value_or(false);
-                    options.mFilterBy2D = rawOptions->get<sol::optional<bool>>("filterBy2D").value_or(false);
+                    const auto& snapshot = targets.as<const PositionSnapshot&>();
+                    if (snapshot.mSession.expired())
+                        throw std::invalid_argument("position snapshot belongs to an earlier game session");
+                    return { NativeQueryService::compute(*snapshot.mValues, origin, distanceOptions(rawOptions)) };
                 }
-                if (std::isnan(options.mMaxDistance) || options.mMaxDistance < 0.f)
-                    throw std::invalid_argument("maxDistance must be non-negative");
-
-                if (targets.is<LObjectList>())
-                {
-                    const LObjectList& list = targets.as<const LObjectList&>();
-                    return { nativeQueries->queryObjects(list.mIds, origin, options) };
-                }
-                if (!targets.is<sol::table>())
-                    throw std::invalid_argument("queryDistances expects an ObjectList or an array of objects/positions");
-
-                const sol::table table = targets.as<sol::table>();
-                std::vector<NativeDistanceTarget> values;
-                values.reserve(table.size());
-                for (std::size_t index = 1; index <= table.size(); ++index)
-                {
-                    const sol::object value = table.get<sol::object>(index);
-                    if (value.is<LObject>())
-                    {
-                        const LObject& object = value.as<const LObject&>();
-                        const MWWorld::Ptr& ptr = object.ptrOrEmpty();
-                        if (!ptr.isEmpty() && !ptr.mRef->isDeleted())
-                        {
-                            values.push_back({
-                                .mObjectId = getId(ptr),
-                                .mPosition = ptr.getRefData().getPosition().asVec3(),
-                                .mSourceIndex = index,
-                                .mHasObject = true,
-                            });
-                        }
-                    }
-                    else if (value.is<osg::Vec3f>())
-                    {
-                        values.push_back({
-                            .mPosition = value.as<osg::Vec3f>(),
-                            .mSourceIndex = index,
-                        });
-                    }
-                    else
-                        throw std::invalid_argument("queryDistances array values must be objects or Vec3 positions");
-                }
-                return { nativeQueries->queryTargets(std::move(values), origin, options) };
+                return { nativeQueries->queryTargets(distanceTargets(targets), origin, distanceOptions(rawOptions)) };
             };
         }
+
+        if (nativeQueries && Misc::useAsyncDistanceJobs() && Settings::general().mNativeJobsEnabled)
+        {
+            using Job = JobTicket<NativeDistanceSamples>;
+            auto ticket = lua.new_usertype<Job>("NativeDistanceTicket", sol::no_constructor);
+            bindTicket<NativeDistanceSamples>(ticket, *nativeQueries, [](sol::state_view view, NativeDistanceSamples values) {
+                return sol::make_object(view, DistanceQuery{ std::move(values) });
+            });
+            lua.new_usertype<PositionSnapshot>("NativePositionSnapshot", sol::no_constructor);
+            const auto snapshot = [nativeQueries](const sol::object& targets) {
+                return PositionSnapshot{ std::make_shared<const std::vector<NativeDistanceTarget>>(distanceTargets(targets, true)),
+                    nativeQueries->mSession };
+            };
+            api["snapshotPositions"] = snapshot;
+            api["queryDistancesAsync"] = [nativeQueries, snapshot](const sol::object& targets, const osg::Vec3f& origin,
+                const sol::optional<sol::table>& rawOptions) -> sol::optional<Job> {
+                if (!nativeQueries->mAsync.hasRoom())
+                    return sol::nullopt;
+                const auto positions = targets.is<PositionSnapshot>() ? targets.as<PositionSnapshot>() : snapshot(targets);
+                if (positions.mSession.expired())
+                    throw std::invalid_argument("position snapshot belongs to an earlier game session");
+                const auto options = distanceOptions(rawOptions);
+                auto result = nativeQueries->mAsync.submit<NativeDistanceSamples>(
+                    [data = positions.mValues, origin, options](const auto&) {
+                        return NativeQueryService::compute(*data, origin, options);
+                    });
+                if (!result)
+                    return sol::nullopt;
+                ++nativeQueries->mDistanceSubmitted;
+                return Job{ std::move(result) };
+            };
+        }
+    }
+
+    sol::table initNearbyPackage(const Context& context)
+    {
+        sol::state_view lua = context.sol();
+        sol::table api(lua, sol::create);
+        ObjectLists* objectLists = context.mObjectLists;
+
+        addNearbyDistanceBindings(api, context);
 
         sol::usertype<MWPhysics::RayCastingResult> rayResult
             = lua.new_usertype<MWPhysics::RayCastingResult>("RayCastingResult");
@@ -297,14 +361,7 @@ namespace MWLua
                 ignore = parseIgnoreList(*options);
             }
 
-            context.mLuaManager->addAction(
-                [context, ignore = std::move(ignore), callback = LuaUtil::Callback::fromLua(callback), from, to] {
-                    MWPhysics::RayCastingResult res;
-                    MWBase::Environment::get().getWorld()->castRenderingRay(res, from, to, false, false, false, ignore);
-                    context.mLuaManager->queueCallback(
-                        callback, sol::main_object(context.mLua->unsafeState(), sol::in_place, res));
-                },
-                "asyncCastRenderingRay");
+            context.mLuaManager->addRenderingRay(from, to, std::move(ignore), LuaUtil::Callback::fromLua(callback));
         };
 
         api["getObjectByFormId"] = [](std::string_view formIdStr) -> LObject {

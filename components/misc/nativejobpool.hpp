@@ -20,10 +20,8 @@ namespace Misc
 {
     /// A small persistent pool for coarse, read-only native gameplay queries.
     ///
-    /// The pool deliberately does not expose fire-and-forget work. Callers submit
-    /// bounded parallel loops and wait for completion, so snapshots passed to the
-    /// workers remain valid and no job can outlive the owning frame/query. The
-    /// submitted function must be safe to call concurrently for different indices.
+    /// parallelFor joins borrowed input before returning. trySubmit accepts owned work
+    /// without waiting for a worker or a free queue slot.
     class NativeJobPool
     {
     public:
@@ -43,6 +41,7 @@ namespace Misc
         std::size_t workerCount() const { return mThreads.size(); }
         std::size_t minimumItemsPerTask() const { return mMinimumItemsPerTask; }
         Statistics statistics() const;
+        bool trySubmit(std::function<void()> task);
 
         template <class Function>
         void parallelFor(std::size_t count, Function&& function)

@@ -1,7 +1,7 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Combined', 'Inherited', 'PreviousFrameUpdates', 'PreviousHud', 'PreviousSpellReads')][string]$Variant = 'Combined',
+    [ValidateSet('Combined', 'Inherited', 'PreviousFrameUpdates', 'PreviousHud', 'PreviousSpellReads', 'PreviousParallelQueries','WithoutRayBatch','WithoutAsyncDistances','WithoutLuaWorkers')][string]$Variant = 'Combined',
     [string]$OpenMWExe,
     [string]$UserConfigDir,
     [string]$OutputRoot,
@@ -33,9 +33,12 @@ if (-not [string]::IsNullOrWhiteSpace($OutputRoot)) { $parameters.OutputRoot = $
 $overrides = @{
     OPENMW_COMBINED_PERFORMANCE = '1'
     OPENMW_NATIVE_JOBS = $(if ($Variant -eq 'Inherited') { '0' } else { '1' })
+    OPENMW_BATCHED_VISUAL_RAYS = $(if ($Variant -in @('Combined','WithoutAsyncDistances','WithoutLuaWorkers')) { '1' } else { '0' })
+    OPENMW_ASYNC_DISTANCE_JOBS = $(if ($Variant -in @('Combined','WithoutRayBatch','WithoutLuaWorkers')) { '1' } else { '0' })
+    OPENMW_ISOLATED_LUA_WORKERS = $(if ($Variant -in @('Combined','WithoutRayBatch','WithoutAsyncDistances')) { '1' } else { '0' })
     OPENMW_SHARED_ACTIVE_SPELL_READS = $(if ($Variant -in @('PreviousSpellReads','Inherited')) { '0' } else { '1' })
-    OPENMW_SPARSE_UI_UPDATES = $(if ($Variant -in @('Combined','PreviousSpellReads')) { '1' } else { '0' })
-    OPENMW_TOWN_FRAME_UPDATES = $(if ($Variant -in @('Combined','PreviousHud','PreviousSpellReads')) { '1' } else { '0' })
+    OPENMW_SPARSE_UI_UPDATES = $(if ($Variant -in @('Combined','PreviousSpellReads','PreviousParallelQueries','WithoutRayBatch','WithoutAsyncDistances','WithoutLuaWorkers')) { '1' } else { '0' })
+    OPENMW_TOWN_FRAME_UPDATES = $(if ($Variant -in @('Combined','PreviousHud','PreviousSpellReads','PreviousParallelQueries','WithoutRayBatch','WithoutAsyncDistances','WithoutLuaWorkers')) { '1' } else { '0' })
     OPENMW_LUA_CELL_QUERY_CACHE = '1'
     OPENMW_LUA_UI_LEGACY_UPDATES = '0'
     OPENMW_LUA_UI_LEGACY_LAYOUT = '0'

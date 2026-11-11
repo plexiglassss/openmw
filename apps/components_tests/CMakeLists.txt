@@ -30,6 +30,7 @@ file(GLOB UNITTEST_SRC_FILES
     misc/testendianness.cpp
     misc/testmathutil.cpp
     misc/testnativejobpool.cpp
+    lua/testpureworker.cpp
     misc/testresourcehelpers.cpp
     misc/teststringops.cpp
 
@@ -97,6 +98,7 @@ file(GLOB UNITTEST_SRC_FILES
     vfs/testpathutil.cpp
 
     sceneutil/osgacontroller.cpp
+    sceneutil/testvisualraybatch.cpp
 
     bsa/testbsafile.cpp
     bsa/testcompressedbsafile.cpp

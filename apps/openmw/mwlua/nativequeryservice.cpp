@@ -12,15 +12,27 @@
 namespace MWLua
 {
     NativeQueryService::NativeQueryService(Misc::NativeJobPool& jobs)
-        : mJobs(jobs)
+        : mAsync(jobs)
+        , mJobs(jobs)
     {
     }
 
     NativeDistanceSamples NativeQueryService::queryObjects(
         const ObjectIdList& ids, const osg::Vec3f& origin, const NativeDistanceOptions& options)
     {
+        return compute(copyObjects(ids), origin, options, &mJobs);
+    }
+
+    void NativeQueryService::reset()
+    {
+        mAsync.clear();
+        mSession = std::make_shared<const int>(0);
+    }
+
+    std::vector<NativeDistanceTarget> NativeQueryService::copyObjects(const ObjectIdList& ids)
+    {
         if (!ids)
-            return querySnapshot({}, origin, options);
+            return {};
         std::vector<NativeDistanceTarget> targets;
         targets.reserve(ids->size());
         MWWorld::WorldModel& world = *MWBase::Environment::get().getWorldModel();
@@ -38,17 +50,17 @@ namespace MWLua
                 .mHasObject = true,
             });
         }
-        return querySnapshot(targets, origin, options);
+        return targets;
     }
 
     NativeDistanceSamples NativeQueryService::queryTargets(
         std::vector<NativeDistanceTarget> targets, const osg::Vec3f& origin, const NativeDistanceOptions& options)
     {
-        return querySnapshot(targets, origin, options);
+        return compute(targets, origin, options, &mJobs);
     }
 
-    NativeDistanceSamples NativeQueryService::querySnapshot(const std::vector<NativeDistanceTarget>& targets,
-        const osg::Vec3f& origin, const NativeDistanceOptions& options)
+    NativeDistanceSamples NativeQueryService::compute(const std::vector<NativeDistanceTarget>& targets,
+        const osg::Vec3f& origin, const NativeDistanceOptions& options, Misc::NativeJobPool* pool)
     {
         struct Computed
         {
@@ -57,7 +69,7 @@ namespace MWLua
         };
 
         std::vector<Computed> computed(targets.size());
-        mJobs.parallelFor(targets.size(), [&](std::size_t i) {
+        auto measure = [&](std::size_t i) {
             const NativeDistanceTarget& target = targets[i];
             const osg::Vec3f delta = origin - target.mPosition;
             const float distance2DSquared = delta.x() * delta.x() + delta.y() * delta.y();
@@ -76,7 +88,12 @@ namespace MWLua
                 .mHeightDifference = delta.z(),
                 .mHasObject = target.mHasObject,
             };
-        });
+        };
+        if (pool)
+            pool->parallelFor(targets.size(), measure);
+        else
+            for (std::size_t i = 0; i < targets.size(); ++i)
+                measure(i);
 
         auto result = std::make_shared<std::vector<NativeDistanceSample>>();
         result->reserve(computed.size());

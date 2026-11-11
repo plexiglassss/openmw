@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Cumulative native jobs, actor and HUD improvements, editable location lighting, and shared read-only active spell details in the ordinary Lua API.",
+  "scope": "Cumulative engine and editable location lighting with shared visual ray traversals, asynchronous distance snapshots, and isolated pure Lua worker modules on the native pool.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -20,7 +20,8 @@
     "5e66b560876f3c86c612faf413f46fdd8a91395d",
     "a0395b811024a0ee9fe97345464f167247f92aaa",
     "39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7",
-    "7234ad470020e814a1503b3549a1d332f81606b4"
+    "7234ad470020e814a1503b3549a1d332f81606b4",
+    "26e7cebdd47143df2087b93d499d077ac0c1f3b9"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -30,11 +31,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "64a454e5058f7cfee8468c37df20d4520c6dc4d6"
+        "blob": "df33bf4d683216f41bab7f7419910f20af2f3cc8"
       },
-      "bytes": 63687,
-      "sha256": "d9ce9434b47b58a8779377b027371d70d95ac284eade973f879e4efd498c4a71",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence."
+      "bytes": 64409,
+      "sha256": "77d371db675920602c7cb7f3d0cdef1f0d55e15f4c1a6d3614b0bbb81a653355",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence. Execute and verify both controls and all parallel query regressions on the shipping binaries."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -43,11 +44,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e0450f187a2780e86cc56bf8a98dde34c3ce5f8a"
+        "blob": "f35612683b48956a833abc7ac66cd7aa589b6c64"
       },
-      "bytes": 4148,
-      "sha256": "e002d4eecf6ef53ddf40b61b032f1b3ab9fa4cf96ece3654c4438e183566374d",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 4212,
+      "sha256": "d333b698778cb55790e5e6530409ea66bb4e994ee64dbca4ef7c2107e06edb54",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -525,11 +526,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9abec37afb8beabb893d90e27bb5dee2f2d0c046"
+        "blob": "b8b804b4d9ca221a8c2a9a493d84a8cf6671a393"
       },
-      "bytes": 49258,
-      "sha256": "8a359b2152841fb7ff433e55a2ee6ae41c5f981c8ad7d36e1250dc4aac3e6b5e",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture."
+      "bytes": 53235,
+      "sha256": "f9ad9da03104a7ae75b83656ee5587c98d94cf9f13f30a5dbc81eef29781958f",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage."
     },
     "apps/openmw/mwlua/luamanagerimp.hpp": {
       "before": {
@@ -538,11 +539,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5cbd99af3460d8b556ebed543b62a6fe23742d2d"
+        "blob": "30917f4ce8c4d72587eef6522baf895f48a47442"
       },
-      "bytes": 13804,
-      "sha256": "f0e9947d3b9e34299b9e8d6b22e007f3cd6668d305145bf1289cac3c462377e1",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Own the spell read counters alongside the serialized Lua runtime."
+      "bytes": 14368,
+      "sha256": "f6c0503bfdae3ed465e6d4eeca5f18e9e3777af8c287b4911004a06a32c1abbc",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Own the spell read counters alongside the serialized Lua runtime. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -581,21 +582,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "448f2e71a45ddc7422af77d312778fd130ae4ec3"
+        "blob": "97f56e94f646db4fb685e008bc8a8b5adaa71e4e"
       },
-      "bytes": 3574,
-      "sha256": "6067ab1a4ad4ca0733f45419fb2e172f183ded827892e13c8fad29c081dcef5f",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 4012,
+      "sha256": "197c5e9eb0eac019c0e43cb675195e938a756c9458dff619d4dc3ef77202bb28",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
     },
     "apps/openmw/mwlua/nativequeryservice.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6acdf21dbf45fce8ead610dab7dbce25f985d378"
+        "blob": "0efe069c14e55b9ff7fe91921def21d9b2d49598"
       },
-      "bytes": 2070,
-      "sha256": "adae68cbd89221e856ab76504766a8f06c7b670b7c674f9fe00476eb46e09069",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 2655,
+      "sha256": "77ff5fd2990372bed572f2b099d0350beaf72b9c80cb9990fc4368a5cbd3b8fe",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
     },
     "apps/openmw/mwlua/nearbybindings.cpp": {
       "before": {
@@ -604,11 +605,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4778181688c5f947ba75c0fc999d3a6dc49c8ef7"
+        "blob": "2e32a2f61542afb1c459829b6e1feae3837b7190"
       },
-      "bytes": 25418,
-      "sha256": "b952f81e6c389fb6fc8db72ca64688f7a353cd873d14b5d7aa5a9466286cefa3",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 28105,
+      "sha256": "a45ee563e9063f4473bc4fcd5fa4a48c936f4a2552ffec420c25778b94539f35",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
     },
     "apps/openmw/mwmechanics/activespells.cpp": {
       "before": {
@@ -822,11 +823,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c0e40efd3e61559a29229355ee1157ac7f159e57"
+        "blob": "c91f5165c66fad72fff5e3e8c7659b1341d71dbc"
       },
-      "bytes": 3832,
-      "sha256": "7c7b9128003b09f47528a6c7d27cf6da53221c38c17467bc7cad59bf9e9afa51",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+      "bytes": 3866,
+      "sha256": "b77223b3c63a7791af2c9fff346c3f620efabcbbfd607aba6681872d1c672d11",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -911,11 +912,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "726b16868722c362f94d551350a35b594a49f7c7"
+        "blob": "c6f3ca8e8c407f18992bcb13a33a49a5c82b5ea0"
       },
-      "bytes": 20691,
-      "sha256": "361f0c94c1404ea92a6247f48b901cb976ae7c6fae20b20d803454de5076ec06",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 20721,
+      "sha256": "bcda5cf52317dc53648df00494f5f8734089d9a32a477f708f067411f0f03def",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Build the scene intersection helper and isolated Lua worker with the engine."
     },
     "components/esm/defs.hpp": {
       "before": {
@@ -1186,31 +1187,31 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "d80db9bee29f415f0412c132e6379a1e0de4969e"
+        "blob": "097bb707f9d2ea7b6a7d274f358a944ca35da6a0"
       },
-      "bytes": 1821,
-      "sha256": "59f502d2ef435f87d134a3d51a09e9c250edd0ccfc6a2688c150cd1832d8fc41",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Expose a process-local comparison switch for sharing active spell details."
+      "bytes": 2541,
+      "sha256": "d33931c12c3a9b2da980db22f71b74acaab7073d8351a7d18ac36c90bb88fbf4",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Expose a process-local comparison switch for sharing active spell details. Provide bounded nonblocking submission, completion ordering or independent comparison flags."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "b6c2b9f0e02d93cf4f0a653a11242ff55aba3cd9"
+        "blob": "5d681463e9ff7c006752516a0f1e594b90741255"
       },
-      "bytes": 3204,
-      "sha256": "5f93aa81be787bd1d25bdb2c68613d4dbcbdd89677218835b5f66c3e60f312a3",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 3605,
+      "sha256": "ee96399b105b7e4454a244466e43095879e2507dca7e1fe87bb8ee619c6b7c94",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Provide bounded nonblocking submission, completion ordering or independent comparison flags."
     },
     "components/misc/nativejobpool.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "3b6043e85929652d7be88e5cb806ded6e4068227"
+        "blob": "7165d5ff76d9e32210ec08601ed9e64500b05077"
       },
-      "bytes": 6457,
-      "sha256": "aacc243405d51ebd323a46b2287a93e28d4a1142e29f3dd011fdd904635f2536",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 6326,
+      "sha256": "ba99206437794037efc19ab46961ff54fbd208b6212ac751c4d37e9f8730c83e",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Provide bounded nonblocking submission, completion ordering or independent comparison flags."
     },
     "components/resource/niffilemanager.cpp": {
       "before": {
@@ -1317,11 +1318,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "b72d3611209e1f242cd302758b1f2bb252d0c408"
+        "blob": "6296c07e8fcae62ef0e7aaf76f318eca05e9fee8"
       },
-      "bytes": 6777,
-      "sha256": "f1f13dd3007d27b3bc57301cba3e3f1b55efa10ff502e8b371203ae077e03d40",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode."
+      "bytes": 11062,
+      "sha256": "bdbd73f36d00f7e0dc1eebe50e48fc975db1784c12944feef75e5f8bc0b11612",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -1347,21 +1348,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "8ed4f19c4595abaac128ba9cd3de0b99fb0fa96f"
+        "blob": "4047ea59e463e13651be5936b5e93ad92afb635a"
       },
-      "bytes": 3430,
-      "sha256": "b95b58736d28312c5bb1b075ef3e11227adfb2cf6f7977998ba9fc38615f2185",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Keep previous engine improvements active in the independent spell-copy comparison mode."
+      "bytes": 4087,
+      "sha256": "7dfa5654ee1083ac65b5686e5b0ca1fd27372070906de757309009c2248eb9fd",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Keep previous engine improvements active in the independent spell-copy comparison mode. Launch and verify individual and collective controls, preserving historical comparison modes."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "e6874d25124486c3f4cf5c7d4322ee92cf638fbe"
+        "blob": "9b0fd0ac8f33a1f0d6848480a9370e00885e0ec4"
       },
-      "bytes": 5696,
-      "sha256": "63026928c321d715c42d647f2887dd5bd97abeba602eb80891bb9fe0dca32422",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Check launcher switches and restore the inherited environment for every mode."
+      "bytes": 6658,
+      "sha256": "7f78508cb46946e08a4adaa2f21fb8289415efe220cfe4969fd9197814452d69",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Check launcher switches and restore the inherited environment for every mode. Launch and verify individual and collective controls, preserving historical comparison modes."
     },
     "custom/combined-performance/complete-windows-distribution.py": {
       "before": null,
@@ -1597,11 +1598,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "3cf9fd85591650afbde45df418f2cfc527af7573"
+        "blob": "61a85e4015dac367cd0cad2ee172492359d69e2e"
       },
-      "bytes": 11845,
-      "sha256": "4b21d8e73247476a40ef8afe83c7a73b05ebb65b8f600bd374e1c44926d8d8fa",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package."
+      "bytes": 12578,
+      "sha256": "f331dc05b13cb98b301380a9fa2a7c2b5916244b6a6952ef1e7dfe5655540311",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package. Package and document independent controls, complete optional gameplay adapters and API contracts."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -2102,11 +2103,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2e29c2e372dafcedd43aec2d56b72fccb1086104"
+        "blob": "307c45361970043fe74a18cdaab67f737601191d"
       },
-      "bytes": 52787,
-      "sha256": "3fb65f84e32bbe8a57f4294a35346c69804f594e4662472b45a0358f24597d01",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture."
+      "bytes": 52875,
+      "sha256": "04fb809567a272b6b50676b286858305f1ff9e7c144ee42ad30df22acb525b34",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -2115,11 +2116,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e3221ef6be15a800974d0e6466779cbc1ff68158"
+        "blob": "f790ec5ac65bfe8e3e7d2b6a11c5bc7698422527"
       },
-      "bytes": 20736,
-      "sha256": "b1e4b12371f89f61af39ff020f30e31f16013673e2d6dcf648462a15803ffa5a",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Verify the new read-mode observation while reconstructing the exact original frame collector."
+      "bytes": 20824,
+      "sha256": "43e1b5b7df36ef7c5046ee268a8c321ff997f02eed367e61e5588bab43b2cc6e",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Verify the new read-mode observation while reconstructing the exact original frame collector. Launch and verify individual and collective controls, preserving historical comparison modes."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,
@@ -2620,11 +2621,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "850181655517bc1128bcf8acdb744a4b0757b0f8"
+        "blob": "6d1c04512395c1d1a10aa1a2363e04b3b24c55fd"
       },
-      "bytes": 74491,
-      "sha256": "2a864e19015d185488ced62c4e37c378b7d974e51aebd829a484138b204a7e7d",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 75661,
+      "sha256": "d52dd9e0611e085e8034e0d948550915abbd337285140aca0dc52825e79ff489",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "before": {
@@ -2633,11 +2634,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "264da9d7c36588e499df8977b86f1eca6db0a183"
+        "blob": "41832c468edae12f4200f1504db3ed1cd7a7a810"
       },
-      "bytes": 12154,
-      "sha256": "c0b361792ba0c11caa6280c41cc5e5b3af64f2340c034bb8e66e886695955630",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 12306,
+      "sha256": "e7a20b589b537016a50737d069282b5c6448725a561cdc093bfb7641de784bc6",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
     },
     "apps/openmw/mwworld/worldimp.cpp": {
       "before": {
@@ -2646,11 +2647,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2d8f62a4be55e0079d236d7d69f78b77b73a2875"
+        "blob": "5d322155a1befcbf3ea7b196aa070974f368829a"
       },
-      "bytes": 140399,
-      "sha256": "15bea455973125bc43f8e075e078aba6ab3e31361e0980c3747e1e582688733f",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 140945,
+      "sha256": "bc0a9a1e4c3fc59404abd31b78cddfe2b0d118c4f8b281388d37c7f4f7930f23",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
     },
     "apps/openmw_tests/mwrender/testlocationrenderingprofiles.cpp": {
       "before": null,
@@ -3165,6 +3166,271 @@
       "bytes": 1947,
       "sha256": "d1e1b5c6d92b787e7aa4746df724d2c27f673359d6163ab12c71eeb6af93983e",
       "reason": "Verify native Lua output parity, copies, reuse, and measured durations for both modes."
+    },
+    "apps/components_tests/lua/testpureworker.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4d47f131c2bb00a250f58239c5cbaecfe964fe20"
+      },
+      "bytes": 3005,
+      "sha256": "901280004028761c15af959162d04577285ccf22bd6ff3bd2e01e9501016f091",
+      "reason": "Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
+    },
+    "apps/components_tests/sceneutil/testvisualraybatch.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "fcee069b69cda09f6f94c27f1eb44fecdf33dd9f"
+      },
+      "bytes": 12253,
+      "sha256": "716ab1d758063466c63d32a00108192b30735b4cfe3b2647c02985532eeeda34",
+      "reason": "Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
+    },
+    "apps/openmw/mwbase/world.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "91bd63e6a009cbb2e3ad099896233bffa7a47df5"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "715cb19410009e58504f0695c1c416f2342414b2"
+      },
+      "bytes": 25199,
+      "sha256": "5627e6316727051e5c438490f933fc8f32291a78cc3adbc7b934b96b00467339",
+      "reason": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+    },
+    "apps/openmw/mwlua/corebindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7844130d4bb0b8b9dd430fa9ee7906f563c9cff4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "df5ba6bb7d3c1226ffbc10a2b284fd3abbcc3620"
+      },
+      "bytes": 12937,
+      "sha256": "ac7beecf252d29ea94790592fee50bf5260b247f4c20fb03108f228aec3eec3f",
+      "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
+    },
+    "apps/openmw/mwlua/corebindings.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "6d27dd041255ca32dc7ee85c841036cbfe8531d8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8a9f9a0614363f4df81d4314eaa9c4a4a228f524"
+      },
+      "bytes": 365,
+      "sha256": "45d190e7d761c6deed7420c1e151cb999014c8afc4aac56be641d403fdce64f0",
+      "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
+    },
+    "apps/openmw/mwlua/jobbindings.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "043e47da4c96839ed597993c78946157b1d6175f"
+      },
+      "bytes": 2216,
+      "sha256": "4357bf807d75f6ddb10bc12dd6233c861c2c17150909b3b3215dee32e9c44782",
+      "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
+    },
+    "apps/openmw/mwlua/nearbybindings.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "2d8140195ea5f463efc2b49eb9fcb98610c7ca78"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e9c09302f360ff39e45c501a04db60feced08bc4"
+      },
+      "bytes": 301,
+      "sha256": "4f9dafabc5c6c9a8ff241cfbec4df0c3be17682fb28d2c0e2d08bd67fa2019e0",
+      "reason": "Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
+    },
+    "apps/openmw/mwworld/worldimp.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "d5de7b431200ced4ca25a1f9966638c232e43879"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ce1b5c84688e9de0897a89e858da9b2a20df84e8"
+      },
+      "bytes": 28350,
+      "sha256": "ecc5ab8e1a3cba09a3f5b23e6f5c9f97059ff95a2df63bd528d43eac2e6d8912",
+      "reason": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+    },
+    "apps/openmw_tests/mwlua/testparallelqueries.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "85c8ba64b3568750c102a21310d4ebb6895b9005"
+      },
+      "bytes": 4284,
+      "sha256": "c7b8f1c3bd20cec4b1c9ea0611e1c8d8dac556e855192f036421247a70bcde4c",
+      "reason": "Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
+    },
+    "components/lua/pureworker.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7fa6db1c06c1d9c3cdc24c0d1af97dc88f9e2084"
+      },
+      "bytes": 6038,
+      "sha256": "711c4be1ca786a4675037f98fc1e5211e8d07ec46b0cb787734313b541d32ec0",
+      "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
+    },
+    "components/lua/pureworker.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4d12afd3b46ea8781f8375fc165448b7f510b662"
+      },
+      "bytes": 525,
+      "sha256": "04684149fafdb8b629d63d8aa451f62b1bc23574041e631544d57b7fe9faacbe",
+      "reason": "Provide bounded numeric-data Lua worker modules with independent states and polling on the owner."
+    },
+    "components/misc/ownedjobs.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "5155fde2c6fd5e6ad1c30ea4ff2a3dd702118f55"
+      },
+      "bytes": 3172,
+      "sha256": "46c96f3217526d9c71a3c5d86604af0906340224f4988853facfc1fe114e8b6b",
+      "reason": "Provide bounded nonblocking submission, completion ordering or independent comparison flags."
+    },
+    "components/sceneutil/visualraybatch.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "117e85a5737a81b79ca535ebc56d0e254dd3e5fa"
+      },
+      "bytes": 1416,
+      "sha256": "be500d63a493c0b973871267e0fd91553c504846f5c60c3db2242916b16a5bd6",
+      "reason": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+    },
+    "components/sceneutil/visualraybatch.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "bf163826bb71419f97e77d0589df544d59f2110b"
+      },
+      "bytes": 725,
+      "sha256": "987d43909ee6efca0e0af9d4031f740b81f2154ceb0301d9ffca00c832bede54",
+      "reason": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+    },
+    "custom/combined-performance/Parallel Query Adapters/Advanced World Map - Async Door Queries/README.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3738bc5989b125ce1f6e0442e728a947540aebb7"
+      },
+      "bytes": 457,
+      "sha256": "96c9566a36d048b04a29c9a4086feb9e5c77665bde2b6ae1df801918765e2297",
+      "reason": "Ship the ready-to-use optional VFS adapter and worker source for this mod, preserving the earlier adapter and fallback."
+    },
+    "custom/combined-performance/Parallel Query Adapters/Advanced World Map - Async Door Queries/scripts/advanced_world_map/player.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ef3d9e6cc2936cda7edce9b398924dd1bb2ff6fb"
+      },
+      "bytes": 44943,
+      "sha256": "627abbea030fe91126d46e907fb79c116fbee2354e9b47a9143892bf30e7011f",
+      "reason": "Ship the ready-to-use optional VFS adapter and worker source for this mod, preserving the earlier adapter and fallback."
+    },
+    "custom/combined-performance/Parallel Query Adapters/Quest Guider Lite - Parallel Quest Sorting/README.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ce5cce382ff916a96f82d687b16fb90eedbec5a3"
+      },
+      "bytes": 541,
+      "sha256": "a0ce63a34c09235942e4baf9b80d8743b554af03b7dd07446e5540e71cb43311",
+      "reason": "Ship the ready-to-use optional VFS adapter and worker source for this mod, preserving the earlier adapter and fallback."
+    },
+    "custom/combined-performance/Parallel Query Adapters/Quest Guider Lite - Parallel Quest Sorting/scripts/quest_guider_lite/main.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "01fded5c456d5fcb2e9ff133a5afd1adbc7f176f"
+      },
+      "bytes": 36136,
+      "sha256": "969200fdd5553215e226f032881608eb3fb4daabb5c80cd998b4e98cb19229ee",
+      "reason": "Ship the ready-to-use optional VFS adapter and worker source for this mod, preserving the earlier adapter and fallback."
+    },
+    "custom/combined-performance/Parallel Query Adapters/Quest Guider Lite - Parallel Quest Sorting/scripts/quest_guider_lite/parallelPositionRanking.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "907c8548c44e371141741139bb4d10e195f917fc"
+      },
+      "bytes": 2522,
+      "sha256": "f059fc82d4a6747cd5982f2d4adf8ab201b1a3afafb75450a430dacc6ac65828",
+      "reason": "Ship the ready-to-use optional VFS adapter and worker source for this mod, preserving the earlier adapter and fallback."
+    },
+    "custom/combined-performance/Parallel Query Adapters/Quest Guider Lite - Parallel Quest Sorting/scripts/quest_guider_lite/rankQuestPositions.lua": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "09e48dde028b667eb386be421dd4f64eb287ab89"
+      },
+      "bytes": 413,
+      "sha256": "acbb933a8d82dd9b3cf722151fe7aa610c4a15c6e05aa23dc04dac74360f13ef",
+      "reason": "Ship the ready-to-use optional VFS adapter and worker source for this mod, preserving the earlier adapter and fallback."
+    },
+    "custom/combined-performance/Run-Previous-Parallel-Queries.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1038558ec545c15462930bdebbce1ec0417438eb"
+      },
+      "bytes": 147,
+      "sha256": "300821c5aaf6aa3fef3408c753fab1907c5f9bf73294c3a4a733b126a0a944c9",
+      "reason": "Launch and verify individual and collective controls, preserving historical comparison modes."
+    },
+    "custom/combined-performance/Run-Without-Async-Distances.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "605818201200ad203acb7c10dd6d1a77a9d716e1"
+      },
+      "bytes": 145,
+      "sha256": "ecff41b96d9f28efe40d8f83c5bbf35bf20471d0df3886bbb2eca82a29bfc8d6",
+      "reason": "Launch and verify individual and collective controls, preserving historical comparison modes."
+    },
+    "custom/combined-performance/Run-Without-Lua-Workers.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8d9496c939cf6d90639ae7038eb167b5450c454d"
+      },
+      "bytes": 141,
+      "sha256": "e21c910a1bc88e9f21ec300939f5bc0c881a03a52eb55b0eaca99ef8b1051007",
+      "reason": "Launch and verify individual and collective controls, preserving historical comparison modes."
+    },
+    "custom/combined-performance/Run-Without-Ray-Batching.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "95e0ea3feaa23af0d4cd7fc733fa3fab7d6f17a1"
+      },
+      "bytes": 139,
+      "sha256": "c92e8dc3cfc0696808b5586f5d057d59cb7f257f98c7dda3a2ae544bc00f351d",
+      "reason": "Launch and verify individual and collective controls, preserving historical comparison modes."
+    },
+    "custom/combined-performance/tests/verify-parallel-queries.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "640e0dc87dbab0e7a17124aaada47ebe734d6eef"
+      },
+      "bytes": 1291,
+      "sha256": "db29134d3152fc327eda4ff9aee9bebb21ceac92a05ca6b79b17bee9dce3cc90",
+      "reason": "Execute and verify both controls and all parallel query regressions on the shipping binaries."
     }
   }
 }

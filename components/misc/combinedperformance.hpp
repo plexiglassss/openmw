@@ -43,6 +43,30 @@ namespace Misc
         return enabled;
     }
 
+    inline bool enabledUnlessZero(const char* name)
+    {
+        const char* value = std::getenv(name);
+        return !value || std::string_view(value) != "0";
+    }
+
+    inline bool useBatchedVisualRays()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_BATCHED_VISUAL_RAYS");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useAsyncDistanceJobs()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ASYNC_DISTANCE_JOBS");
+        return useNativeJobs() && enabled;
+    }
+
+    inline bool useIsolatedLuaWorkers()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ISOLATED_LUA_WORKERS");
+        return useNativeJobs() && enabled;
+    }
+
     inline bool useSparseUiUpdates()
     {
         static const bool enabled = [] {

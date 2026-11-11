@@ -103,7 +103,7 @@ Check 'Native syntax and HelpersOnly preserve process environment' {
 }
 Check 'Removing only additions exactly reconstructs released v1.0 collector' {
     $text=[IO.File]::ReadAllText($CaptureScript,[Text.Encoding]::UTF8)
-    $performanceObservationBlock="        'OPENMW_LUA_UI_LEGACY_LAYOUT','OPENMW_LUA_UI_LEGACY_UPDATES',`n        'OPENMW_COMBINED_PERFORMANCE','OPENMW_NATIVE_JOBS','OPENMW_TOWN_FRAME_UPDATES','OPENMW_SPARSE_UI_UPDATES','OPENMW_SHARED_ACTIVE_SPELL_READS','OPENMW_LUA_CELL_QUERY_CACHE',`n"
+    $performanceObservationBlock="        'OPENMW_LUA_UI_LEGACY_LAYOUT','OPENMW_LUA_UI_LEGACY_UPDATES',`n        'OPENMW_COMBINED_PERFORMANCE','OPENMW_NATIVE_JOBS','OPENMW_TOWN_FRAME_UPDATES','OPENMW_SPARSE_UI_UPDATES','OPENMW_SHARED_ACTIVE_SPELL_READS','OPENMW_BATCHED_VISUAL_RAYS','OPENMW_ASYNC_DISTANCE_JOBS','OPENMW_ISOLATED_LUA_WORKERS','OPENMW_LUA_CELL_QUERY_CACHE',`n"
     Assert-True ([regex]::Matches($text,[regex]::Escape($performanceObservationBlock)).Count -eq 1) 'Expected exactly one reviewed performance mode observation block.'
     $original=$text.Replace($performanceObservationBlock,'')
     $original=[regex]::Replace($original,'(?s)#region Fixed follow-up evidence\n.*?#endregion Fixed follow-up evidence\n\n','')

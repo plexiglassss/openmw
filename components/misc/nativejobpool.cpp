@@ -78,6 +78,19 @@ namespace Misc
         mWorkAvailable.notify_one();
     }
 
+    bool NativeJobPool::trySubmit(std::function<void()> task)
+    {
+        {
+            std::lock_guard lock(mMutex);
+            if (mStopping || mThreads.empty() || mQueued == mQueue.size())
+                return false;
+            mQueue[(mQueueHead + mQueued) % mQueue.size()] = std::move(task);
+            ++mQueued;
+        }
+        mWorkAvailable.notify_one();
+        return true;
+    }
+
     bool NativeJobPool::isWorkerThread() const
     {
         return sWorkerPool == this;

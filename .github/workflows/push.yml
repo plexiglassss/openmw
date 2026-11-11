@@ -583,6 +583,17 @@ jobs:
           } finally { Remove-Item Env:OPENMW_SHARED_ACTIVE_SPELL_READS -ErrorAction SilentlyContinue }
           python custom/combined-performance/tests/verify-spell-reads.py
           if ($LASTEXITCODE) { throw 'Spell read contents, copy counts or benchmark comparison failed' }
+      - name: Compare the three parallel query features on the same engine
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_BATCHED_VISUAL_RAYS = '0'
+          $env:OPENMW_ASYNC_DISTANCE_JOBS = '0'
+          $env:OPENMW_ISOLATED_LUA_WORKERS = '0'
+          ./build/openmw-tests.exe --gtest_filter=ParallelQueryBindings.* --gtest_output=xml:previous-parallel-queries.xml
+          if ($LASTEXITCODE) { throw 'Parallel query control failed' }
+          python custom/combined-performance/tests/verify-parallel-queries.py
+          if ($LASTEXITCODE) { throw 'Parallel query, worker or adapter regressions failed' }
       - name: Require executed native tooltip tests
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -745,6 +756,7 @@ jobs:
             previous-hud-tests.xml
             sparse-hud-tests.json
             previous-spell-reads.xml
+            previous-parallel-queries.xml
             active-spell-reads.json
             location-rendering-profile-tests.xml
             install/verification/location-rendering-profile.json

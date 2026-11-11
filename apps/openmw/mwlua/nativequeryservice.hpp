@@ -2,6 +2,7 @@
 #define MWLUA_NATIVEQUERYSERVICE_H
 
 #include <osg/Vec3f>
+#include <components/misc/ownedjobs.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -45,6 +46,13 @@ namespace MWLua
         bool mHasObject = false;
     };
 
+    using NativePositions = std::shared_ptr<const std::vector<NativeDistanceTarget>>;
+    struct PositionSnapshot
+    {
+        NativePositions mValues;
+        std::weak_ptr<const int> mSession;
+    };
+
     struct NativeDistanceOptions
     {
         double mMaxDistance = std::numeric_limits<double>::infinity();
@@ -66,10 +74,17 @@ namespace MWLua
         NativeDistanceSamples queryTargets(std::vector<NativeDistanceTarget> targets, const osg::Vec3f& origin,
             const NativeDistanceOptions& options = {});
 
-    private:
-        NativeDistanceSamples querySnapshot(
-            const std::vector<NativeDistanceTarget>& targets, const osg::Vec3f& origin, const NativeDistanceOptions& options);
+        static std::vector<NativeDistanceTarget> copyObjects(const ObjectIdList& ids);
+        static NativeDistanceSamples compute(const std::vector<NativeDistanceTarget>& targets,
+            const osg::Vec3f& origin, const NativeDistanceOptions& options, Misc::NativeJobPool* pool = nullptr);
 
+        Misc::OwnedJobs mAsync;
+        std::shared_ptr<const int> mSession = std::make_shared<const int>(0);
+        std::size_t mDistanceSubmitted = 0;
+        std::size_t mLuaSubmitted = 0;
+        void reset();
+
+    private:
         Misc::NativeJobPool& mJobs;
     };
 }

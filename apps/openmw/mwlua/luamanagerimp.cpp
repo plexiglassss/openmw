@@ -1,5 +1,8 @@
 #include <components/diagnostics/timing.hpp>
 #include "luamanagerimp.hpp"
+#include <array>
+#include <components/misc/combinedperformance.hpp>
+#include "../mwphysics/raycasting.hpp"
 
 #include <cstdlib>
 #include <utility>
@@ -419,10 +422,12 @@ namespace MWLua
     void LuaManager::applyDelayedActions()
     {
         Diagnostics::Scope timing("phase", "LuaManager", "queuedActions");
+        mTailRays.reset();
         BoolScopeGuard applyingGuard(mApplyingDelayedActions);
         for (DelayedAction& action : mActionQueue)
             action.apply();
         mActionQueue.clear();
+        mRenderingRays.clear();
 
         if (mTeleportPlayerAction)
             mTeleportPlayerAction->apply();
@@ -431,7 +436,10 @@ namespace MWLua
 
     void LuaManager::clear()
     {
+        mNativeQueryService.reset();
+        mTailRays.reset();
         mActionQueue.clear();
+        mRenderingRays.clear();
         mTeleportPlayerAction.reset();
         LuaUi::clearGameInterface();
         mUiResourceManager.clear();
@@ -934,6 +942,7 @@ namespace MWLua
 
     void LuaManager::reloadAllScriptsImpl()
     {
+        mNativeQueryService.reset();
         Log(Debug::Info) << "Reload Lua";
 
         LuaUi::clearGameInterface();
@@ -1049,7 +1058,83 @@ namespace MWLua
     {
         if (mApplyingDelayedActions)
             throw std::runtime_error("DelayedAction is not allowed to create another DelayedAction");
+        mTailRays.reset();
         mActionQueue.emplace_back(&mLua, std::move(action), name);
+    }
+
+    void LuaManager::addRenderingRay(const osg::Vec3f& from, const osg::Vec3f& to,
+        std::vector<MWWorld::Ptr> ignore, LuaUtil::Callback callback)
+    {
+        ++mRayRequests;
+        if (!Misc::useBatchedVisualRays())
+        {
+            addAction([this, from, to, ignore = std::move(ignore), cb = std::move(callback)] {
+                MWPhysics::RayCastingResult res;
+                MWBase::Environment::get().getWorld()->castRenderingRay(res, from, to, false, false, false, ignore);
+                queueCallback(cb, sol::main_object(mLua.unsafeState(), sol::in_place, res));
+            }, "asyncCastRenderingRay");
+            return;
+        }
+        if (mApplyingDelayedActions)
+            throw std::runtime_error("DelayedAction is not allowed to create another DelayedAction");
+        const std::size_t next = mRenderingRays.size();
+        const bool append = mTailRays && mRenderingRays[*mTailRays].count < 16
+            && mRenderingRays[*mTailRays].from == from && mRenderingRays[*mTailRays].ignore == ignore;
+        mRenderingRays.push_back({ from, to, std::move(ignore), std::move(callback) });
+        if (append)
+            ++mRenderingRays[*mTailRays].count;
+        else
+        {
+            try { addAction([this, next] { applyRenderingRays(next); }, "asyncCastRenderingRay"); }
+            catch (...) { mRenderingRays.pop_back(); throw; }
+            mTailRays = next;
+        }
+    }
+
+    void LuaManager::applyRenderingRays(std::size_t begin)
+    {
+        const auto& first = mRenderingRays[begin];
+        auto* world = MWBase::Environment::get().getWorld();
+        auto deliver = [&](const QueuedRay& request, const MWPhysics::RayCastingResult& hit) {
+            queueCallback(request.callback, sol::main_object(mLua.unsafeState(), sol::in_place, hit));
+        };
+        if (first.count == 1)
+        {
+            MWPhysics::RayCastingResult hit;
+            world->castRenderingRay(hit, first.from, first.to, false, false, false, first.ignore);
+            deliver(first, hit);
+            return;
+        }
+        std::array<osg::Vec3f, 16> ends;
+        std::array<MWPhysics::RayCastingResult, 16> hits;
+        for (std::size_t i = 0; i < first.count; ++i)
+            ends[i] = mRenderingRays[begin + i].to;
+        bool grouped = false;
+        try
+        {
+            world->castRenderingRays(std::span(hits).first(first.count), first.from,
+                std::span(ends).first(first.count), first.ignore);
+            ++mRayGroups;
+            mRaySaved += first.count - 1;
+            grouped = true;
+        }
+        catch (const std::exception& e)
+        {
+            Log(Debug::Warning) << "Retrying individual visual rays: " << e.what();
+        }
+        for (std::size_t i = 0; i < first.count; ++i)
+        {
+            try
+            {
+                if (!grouped)
+                    world->castRenderingRay(hits[i], first.from, ends[i], false, false, false, first.ignore);
+                deliver(mRenderingRays[begin + i], hits[i]);
+            }
+            catch (const std::exception& e)
+            {
+                Log(Debug::Error) << "Error in asyncCastRenderingRay: " << e.what();
+            }
+        }
     }
 
     void LuaManager::addTeleportPlayerAction(std::function<void()> action)
@@ -1076,6 +1161,11 @@ namespace MWLua
         const auto record = [&](const char* name, std::uint64_t value) {
             stats.setAttribute(frameNumber, name, static_cast<double>(value));
         };
+        record("Lua Async Distance Jobs Submitted", std::exchange(mNativeQueryService.mDistanceSubmitted, 0));
+        record("Lua Isolated Jobs Submitted", std::exchange(mNativeQueryService.mLuaSubmitted, 0));
+        record("Lua Visual Rays Requested", std::exchange(mRayRequests, 0));
+        record("Lua Visual Ray Shared Traversals", std::exchange(mRayGroups, 0));
+        record("Lua Visual Ray Traversals Saved", std::exchange(mRaySaved, 0));
         record("Lua Active Spell Scans", values.mScans);
         record("Lua Active Spell Empty Scans", values.mEmptyScans);
         record("Lua Active Spell Entries", values.mYielded);

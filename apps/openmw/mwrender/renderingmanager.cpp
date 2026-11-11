@@ -12,6 +12,7 @@
 #include <osg/UserDataContainer>
 
 #include <osgUtil/LineSegmentIntersector>
+#include <components/sceneutil/visualraybatch.hpp>
 
 #include <osgViewer/Viewer>
 
@@ -1143,6 +1144,30 @@ namespace MWRender
         }
 
         return getIntersectionResult(intersector, mIntersectionVisitor, ignoreList);
+    }
+
+    std::vector<RenderingManager::RayResult> RenderingManager::castRays(const osg::Vec3f& origin,
+        std::span<const osg::Vec3f> ends, std::span<const MWWorld::Ptr> ignore)
+    {
+        osg::ref_ptr<osgUtil::IntersectorGroup> group = new osgUtil::IntersectorGroup;
+        group->setIntersectionLimit(osgUtil::Intersector::LIMIT_NEAREST);
+        auto visitor = getIntersectionVisitor(group, false, false, false, ignore);
+        SceneUtil::VisualRayBatch batch;
+        {
+            Diagnostics::Scope timing("render", "ray", "traverse");
+            batch = SceneUtil::intersectVisualRays(*mRootNode, *visitor, *group, origin, ends);
+        }
+        std::vector<RayResult> hits;
+        hits.reserve(batch.segments.size());
+        for (const auto& ray : batch.segments)
+            hits.push_back(getIntersectionResult(ray, visitor, ignore));
+        if (hits.size() == ends.size())
+            return hits;
+        std::vector<RayResult> ordered;
+        ordered.reserve(ends.size());
+        for (std::size_t child : batch.order)
+            ordered.push_back(hits[child]);
+        return ordered;
     }
 
     RenderingManager::RayResult RenderingManager::castCameraToViewportRay(

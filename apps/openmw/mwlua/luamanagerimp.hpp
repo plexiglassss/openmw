@@ -152,6 +152,8 @@ namespace MWLua
         // Some changes to the game world can not be done from the scripting thread (because it runs in parallel with
         // OSG Cull), so we need to queue it and apply from the main thread.
         void addAction(std::function<void()> action, std::string_view name = {});
+        void addRenderingRay(const osg::Vec3f& from, const osg::Vec3f& to, std::vector<MWWorld::Ptr> ignore,
+            LuaUtil::Callback callback);
         void addTeleportPlayerAction(std::function<void()> action);
 
         // Saving
@@ -270,6 +272,17 @@ namespace MWLua
             std::string mName;
             std::string mTimingSource;
         };
+        struct QueuedRay
+        {
+            osg::Vec3f from, to;
+            std::vector<MWWorld::Ptr> ignore;
+            LuaUtil::Callback callback;
+            std::size_t count = 1;
+        };
+        std::vector<QueuedRay> mRenderingRays;
+        std::optional<std::size_t> mTailRays;
+        void applyRenderingRays(std::size_t begin);
+        std::size_t mRayRequests = 0, mRayGroups = 0, mRaySaved = 0;
         std::vector<DelayedAction> mActionQueue;
         std::optional<DelayedAction> mTeleportPlayerAction;
         std::vector<std::pair<std::string, MWGui::ShowInDialogueMode>> mUIMessages;

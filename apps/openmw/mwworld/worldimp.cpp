@@ -1756,17 +1756,30 @@ namespace MWWorld
         return focusObject;
     }
 
-    bool World::castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
-        bool ignorePlayer, bool ignoreActors, bool ignoreTerrain, std::span<const MWWorld::Ptr> ignoreList)
+    static void assignRenderingHit(MWPhysics::RayCastingResult& res, const MWRender::RenderingManager::RayResult& rayRes)
     {
-        MWRender::RenderingManager::RayResult rayRes
-            = mRendering->castRay(from, to, ignorePlayer, ignoreActors, ignoreTerrain, ignoreList);
         res.mHit = rayRes.mHit;
         res.mHitPos = rayRes.mHitPointWorld;
         res.mHitNormal = rayRes.mHitNormalWorld;
         res.mHitObject = rayRes.mHitObject;
         if (res.mHitObject.isEmpty() && rayRes.mHitRefnum.isSet())
             res.mHitObject = MWBase::Environment::get().getWorldModel()->getPtr(rayRes.mHitRefnum);
+    }
+
+    void World::castRenderingRays(std::span<MWPhysics::RayCastingResult> out, const osg::Vec3f& origin,
+        std::span<const osg::Vec3f> ends, std::span<const MWWorld::Ptr> ignore)
+    {
+        const auto hits = mRendering->castRays(origin, ends, ignore);
+        for (std::size_t i = 0; i < hits.size(); ++i)
+            assignRenderingHit(out[i], hits[i]);
+    }
+
+    bool World::castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
+        bool ignorePlayer, bool ignoreActors, bool ignoreTerrain, std::span<const MWWorld::Ptr> ignoreList)
+    {
+        MWRender::RenderingManager::RayResult rayRes
+            = mRendering->castRay(from, to, ignorePlayer, ignoreActors, ignoreTerrain, ignoreList);
+        assignRenderingHit(res, rayRes);
         return res.mHit;
     }
 
