@@ -50,7 +50,7 @@ $row | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $PSScriptRo
         Assert-Equal '1' $row.combined 'preserved cumulative performance mode'
         Assert-Equal $(if ($variant -eq 'Inherited') { '0' } else { '1' }) $row.native_jobs 'native job mode'
         Assert-Equal $(if ($variant -in @('Combined','PreviousHud','PreviousSpellReads')) { '1' } else { '0' }) $row.town_updates 'town frame updates'
-        Assert-Equal $(if ($variant -eq 'Combined') { '1' } else { '0' }) $row.spell_reads 'shared spell reads'
+        Assert-Equal $(if ($variant -in @('PreviousSpellReads','Inherited')) { '0' } else { '1' }) $row.spell_reads 'shared spell reads'
         Assert-Equal $(if ($variant -in @('Combined','PreviousSpellReads')) { '1' } else { '0' }) $row.sparse 'sparse HUD updates'
         Assert-Equal '0' $row.updates 'native UI fallback reset'
         Assert-Equal '0' $row.layout 'prior property-reader mode'

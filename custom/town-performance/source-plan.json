@@ -1317,10 +1317,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "8b2f7a4312105cffa105486fa7db220d4d2ab5c2"
+        "blob": "b72d3611209e1f242cd302758b1f2bb252d0c408"
       },
-      "bytes": 6611,
-      "sha256": "a9e34c36c87664e459dda3b81427b0bbd959d9beee371f6c45389f91639c66f7",
+      "bytes": 6777,
+      "sha256": "f1f13dd3007d27b3bc57301cba3e3f1b55efa10ff502e8b371203ae077e03d40",
       "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode."
     },
     "custom/combined-performance/Run-Combined.cmd": {
@@ -1347,20 +1347,20 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0facb49e20dea248825608c18ccdf071b641f2b7"
+        "blob": "8ed4f19c4595abaac128ba9cd3de0b99fb0fa96f"
       },
-      "bytes": 3405,
-      "sha256": "eb2361cc3c4656b3a5a297928b00777de6d2c058a178b4edaee719624532e2db",
+      "bytes": 3430,
+      "sha256": "b95b58736d28312c5bb1b075ef3e11227adfb2cf6f7977998ba9fc38615f2185",
       "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Keep previous engine improvements active in the independent spell-copy comparison mode."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "86ae055ef27c27a98767d304ddf21f0a11d3ce81"
+        "blob": "e6874d25124486c3f4cf5c7d4322ee92cf638fbe"
       },
-      "bytes": 5671,
-      "sha256": "bcbab7cceb82f7485447bc2e3832b2b2921d964cde13a939e6b881da1a7b6e32",
+      "bytes": 5696,
+      "sha256": "63026928c321d715c42d647f2887dd5bd97abeba602eb80891bb9fe0dca32422",
       "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Check launcher switches and restore the inherited environment for every mode."
     },
     "custom/combined-performance/complete-windows-distribution.py": {
