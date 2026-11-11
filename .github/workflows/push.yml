@@ -316,6 +316,9 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/locationrenderingprofiles.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/renderingmanager.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwrender/testlocationrenderingprofiles.cpp.obj
+          components/CMakeFiles/components.dir/lua/pureworker.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/visualraybatch.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testparallelqueries.cpp.obj
           components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
           components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
           components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj

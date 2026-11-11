@@ -31,10 +31,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "df33bf4d683216f41bab7f7419910f20af2f3cc8"
+        "blob": "5b3948702242a385c32cae54f8b8d5b53f9c7120"
       },
-      "bytes": 64409,
-      "sha256": "77d371db675920602c7cb7f3d0cdef1f0d55e15f4c1a6d3614b0bbb81a653355",
+      "bytes": 64649,
+      "sha256": "74427c1ab9c062098558a2e102fcdbf6f6ccb968f9bf7d7af5c3ef2c70796dac",
       "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence. Execute and verify both controls and all parallel query regressions on the shipping binaries."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -3266,10 +3266,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "85c8ba64b3568750c102a21310d4ebb6895b9005"
+        "blob": "c2106778f54242a31560448243576e2041220d73"
       },
-      "bytes": 4284,
-      "sha256": "c7b8f1c3bd20cec4b1c9ea0611e1c8d8dac556e855192f036421247a70bcde4c",
+      "bytes": 4207,
+      "sha256": "eec82e72d9b16b3e23c11fc4a00b7a321d99131793bf230b2b4d33a8b0f7e707",
       "reason": "Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
     },
     "components/lua/pureworker.cpp": {

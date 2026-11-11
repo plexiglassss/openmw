@@ -33,9 +33,7 @@ namespace
         RecordProperty("async_distances", Misc::useAsyncDistanceJobs() ? 1 : 0);
         RecordProperty("isolated_workers", Misc::useIsolatedLuaWorkers() ? 1 : 0);
         auto run = [&](const char* code) {
-            auto call = lua.safe_script(code, sol::script_pass_on_error);
-            if (!call.valid())
-                throw std::runtime_error(sol::error(call).what());
+            LuaUtil::LuaState::throwIfError(lua.safe_script(code, sol::script_pass_on_error));
         };
         run(R"(
             assert((nearby.queryDistancesAsync ~= nil) == expectDistances)
