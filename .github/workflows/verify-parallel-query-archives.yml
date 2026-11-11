@@ -2,7 +2,7 @@ name: Verify packaged parallel queries
 on:
   pull_request:
     branches: [perf/generic-native-jobs-20261109]
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 permissions:
   contents: read
   actions: read
