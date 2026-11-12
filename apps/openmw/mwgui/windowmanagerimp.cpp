@@ -910,9 +910,9 @@ namespace MWGui
 
     void WindowManager::updateMap()
     {
-        mMap->advanceSaveMapRestore(false);
         if (!mLocalMapRender)
             return;
+        mMap->advanceSaveMapRestore(false);
 
         MWWorld::ConstPtr player = MWMechanics::getPlayer();
 

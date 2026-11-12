@@ -8,16 +8,18 @@ from pathlib import Path
 import hashlib
 import json
 
+from reviewed_state import before_map_restore
+
 ROOT = Path(__file__).resolve().parents[2]
 # The native-map dispatcher is preserved. Native cleared history adds only
 # REC_DCLR beside REC_DCOU; removing that one case must reproduce the complete
-# prior native-map state-manager blob. All loading behavior is preserved.
+# prior state-manager blob, after subtracting the separately verified saved-map handoff.
 EXPECTED = {
     # Exact candidate engine with the worker pool constructed in prepareEngine and joined at shutdown.
     'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
     'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
-    'apps/openmw/mwstate/statemanagerimp.cpp': '102b9e0c99229d0e096f47671ff4da350381cc2a',
+    'apps/openmw/mwstate/statemanagerimp.cpp': '98b44cc7fd339a610f6257043a90cb95f18f2521',
     'apps/openmw/mwworld/worldmodel.cpp': '59c7fa345da96f10e73e220b69975bb1fd4f50d7',
     'apps/openmw/mwworld/worldmodel.hpp': '233ca8ff1665323ca6efd96454c4bd3cd8ca88fd',
 }
@@ -33,7 +35,7 @@ for name, sha in EXPECTED.items():
         raise SystemExit(f'Refusing unknown baseline for {name}: {blob(text)} != {sha}')
     sources[name] = text
 
-state = sources['apps/openmw/mwstate/statemanagerimp.cpp']
+state = before_map_restore(sources['apps/openmw/mwstate/statemanagerimp.cpp'])
 added_case = '                case ESM::REC_DCLR:\n'
 if state.count(added_case) != 1 or blob(state.replace(added_case, '', 1)) != '026eaf0b580c46f2559b3b6d24a298a3322d5f55':
     raise SystemExit('Cleared-history dispatcher differs beyond its one reviewed save-record case')

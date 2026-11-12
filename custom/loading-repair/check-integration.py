@@ -3,6 +3,8 @@ from pathlib import Path
 import hashlib
 import json
 
+from reviewed_state import before_map_restore
+
 root = Path(__file__).resolve().parents[2]
 
 def get(name):
@@ -16,7 +18,7 @@ def blob(text):
     data = text.encode('utf-8')
     return hashlib.sha1(b'blob ' + str(len(data)).encode('ascii') + b'\0' + data).hexdigest()
 
-# These complete native files must match the reviewed no-handoff baseline.
+# Bind complete native files to their reviewed versions.
 # StateManager preserves native-map dispatch and adds REC_DCLR beside REC_DCOU.
 # Its exact hash and the removal proof below retain the entire prior loading,
 # input and simulation implementation, including the earlier REC_LMRK case.
@@ -25,11 +27,11 @@ unchanged = {
     'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
     'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
-    'apps/openmw/mwstate/statemanagerimp.cpp': '102b9e0c99229d0e096f47671ff4da350381cc2a',
+    'apps/openmw/mwstate/statemanagerimp.cpp': '98b44cc7fd339a610f6257043a90cb95f18f2521',
 }
 for name, expected in unchanged.items():
     check(blob(get(name)) == expected, 'Original loading/input/simulation behavior changed: ' + name)
-state = get('apps/openmw/mwstate/statemanagerimp.cpp')
+state = before_map_restore(get('apps/openmw/mwstate/statemanagerimp.cpp'))
 added_case = '                case ESM::REC_DCLR:\n'
 check(state.count(added_case) == 1 and blob(state.replace(added_case, '', 1)) == '026eaf0b580c46f2559b3b6d24a298a3322d5f55',
       'Cleared-history dispatcher differs beyond its one reviewed save-record case')
@@ -50,5 +52,5 @@ manifest = json.loads(get('loading-repair-source-manifest.json'))
 changed = {name for name, value in manifest['files'].items() if value['before_blob'] != value['after_blob']}
 check(changed == {'apps/openmw/mwworld/worldmodel.cpp', 'apps/openmw/mwworld/worldmodel.hpp'},
       'Only the two lookup implementation files may be changed by the build-time script')
-print('PASS: no added initializing stage; original loading/input/simulation code restored; lookup optimization retained.')
+print('PASS: saved-map hooks verified; previous loading and simulation source reproduced; lookup patch retained.')
 print('These are source checks, not an in-game performance result.')
