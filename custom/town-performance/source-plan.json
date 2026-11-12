@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the cumulative engine. Pipeline CPU preparation of cold exterior models with ordered scene assembly and cancellation. Avoid duplicate inventory preparation during save loading.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -24,7 +24,8 @@
     "26e7cebdd47143df2087b93d499d077ac0c1f3b9",
     "cb0af729d9012a7240d4ece33c634b2d9fef4fe5",
     "7380a0899f271c60f6262aa67be5b5de1d50dd15",
-    "16d564dee59ccaf21b348e69684cd0a7f273fc10"
+    "16d564dee59ccaf21b348e69684cd0a7f273fc10",
+    "56c3086be9a6bdb402b238e3621b503722c903c4"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -283,11 +284,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c1df5e6883a7af0b68ad4d3d221b5fac6c2f0ab8"
+        "blob": "a816bb1cfafcf42f38d82490f3f78ac7827c0806"
       },
-      "bytes": 82579,
-      "sha256": "b7b402513fdde632c4508eadd5e908734a6113a689792f4172da73f17eb36628",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
+      "bytes": 84923,
+      "sha256": "648e5e753bc38ccaa503e7e2954f4886253f286225b10f1d71118337ba442379",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Keep visited marker state immediately saveable, build native widgets in batches and reuse running group sums."
     },
     "apps/openmw/mwgui/mapwindow.hpp": {
       "before": {
@@ -296,11 +297,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4c295e2512d5bf7f09ffafae7c7ecaeaefef0160"
+        "blob": "cc5e07650672c2c5ce29b81332631cf5e53cec4f"
       },
-      "bytes": 13366,
-      "sha256": "608aafdc9094195d2fc0cfa6865638c0af9eee72d8c2b6b1c39efb553c4dbe60",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
+      "bytes": 13987,
+      "sha256": "ab500d3695ad1af567497a14e6565df95b437ccfb8e57d7d8d90ec6980491596",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Keep visited marker state immediately saveable, build native widgets in batches and reuse running group sums."
     },
     "apps/openmw/mwgui/settingswindow.cpp": {
       "before": {
@@ -477,11 +478,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "336d7e5187de9f53e6b6edf571a2ef48cc2511b0"
+        "blob": "02f676746bf83b3cf425298bd87a07190adf36b5"
       },
-      "bytes": 99730,
-      "sha256": "1788caf7b2c47337de7096627ca7bd974954acd542514add938776a349bfc6c8",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
+      "bytes": 99891,
+      "sha256": "ffb3cab2cfd5df984e21c74f4fdd8cda5b41c179aba80578f42caa2b753bbd74",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers."
     },
     "apps/openmw/mwlua/cellbindings.cpp": {
       "before": {
@@ -699,11 +700,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "102b9e0c99229d0e096f47671ff4da350381cc2a"
+        "blob": "98b44cc7fd339a610f6257043a90cb95f18f2521"
       },
-      "bytes": 37134,
-      "sha256": "98fef726a1b875a400d2f722193935dbfaa81ed0f84259fb5faaec6a78708a1a",
-      "reason": "Native world-map icon feature: apps/openmw/mwstate/statemanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwstate/statemanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 37494,
+      "sha256": "0b1da7c25d3cd3362777ee6108d2dca61079ad521768d292692d74f86386bdb9",
+      "reason": "Native world-map icon feature: apps/openmw/mwstate/statemanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwstate/statemanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers."
     },
     "apps/openmw/mwworld/cellref.cpp": {
       "before": {
@@ -826,11 +827,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c91f5165c66fad72fff5e3e8c7659b1341d71dbc"
+        "blob": "d97eedfc22f96066290695f05ea185b603e8c230"
       },
-      "bytes": 3866,
-      "sha256": "b77223b3c63a7791af2c9fff346c3f620efabcbbfd607aba6681872d1c672d11",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
+      "bytes": 3902,
+      "sha256": "0ab9d178ff1725eeb2ae423d7a2947756b52c8690a6ac0ec045b4bec433d322e",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Exercise original PNG/bounds passthrough, consecutive loads, stale encoding, changed extents and malformed content with real engine resources."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -1321,11 +1322,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "e22a58aff5d5efd04a62614006ee9f5955b070c8"
+        "blob": "903450b6b31811e274280f478ad03c033b36e5fe"
       },
-      "bytes": 13586,
-      "sha256": "f57907b333f35be67f2ac3fa639d98f1372464319c3dc9921e8793ba9e50da22",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Describe generic preparation and how to interpret non-additive trace durations."
+      "bytes": 14441,
+      "sha256": "f03c7847d543a9de8bb3402f9ce518e7772480eb59d26dcb9a4a5ee38a144118",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Describe generic preparation and how to interpret non-additive trace durations. Document the saved world-map stages and comparison procedure."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -3813,6 +3814,68 @@
       "bytes": 3742,
       "sha256": "c690152cc4c6416182bfbfa4622b77415988fc1d7ccca60e2e91157d9080ff05",
       "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "apps/openmw/mwbase/windowmanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "75297c97273141656159a268e7f061e1ebf8229b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "159741cd81a9c7d26c77d762bb85eb758795f7b5"
+      },
+      "bytes": 16370,
+      "sha256": "2feb7462d3aaf177d0ed2936e4d024a4834ddff335ddd6fdaf7fa3c9d6c15b75",
+      "reason": "Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers."
+    },
+    "apps/openmw/mwgui/windowmanagerimp.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "15e3e8cefce19bb3c5f89c67f8bfe075264b355d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "bd091041d0d8bfe61a42e30f36d68dbf4c84b0e7"
+      },
+      "bytes": 23998,
+      "sha256": "bce8b9fcc6574b57fb0c6f2109158c49e501dac3fcd6cfc96dfd3c9184388985",
+      "reason": "Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers."
+    },
+    "apps/openmw/mwrender/globalmap.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "26bf3fe294a820b58276389da38654a88d1d7ebc"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "045db0d3246a0a7ba19698f26fbfec400ab87f8d"
+      },
+      "bytes": 31903,
+      "sha256": "9ef0cf873bd040a649901d1befb1b90e4afe34d4a378651625b82068c7e99334",
+      "reason": "Decode owned PNG bytes on a worker, publish the overlay on the owner, order readbacks, avoid unnecessary encoding, and reuse the authored colour palette."
+    },
+    "apps/openmw/mwrender/globalmap.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "07d7731e313da7e3fcb0677a126cff4f9414857b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f5a400692c8e733aec758a2beec65c1104a33e75"
+      },
+      "bytes": 4268,
+      "sha256": "bd321b30ac971ec4b92ce9820db6b9fe80b5b5b7ba3203d18fcb9bd3faac85f9",
+      "reason": "Decode owned PNG bytes on a worker, publish the overlay on the owner, order readbacks, avoid unnecessary encoding, and reuse the authored colour palette."
+    },
+    "apps/openmw_tests/mwrender/testsavedglobalmap.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d4bee508c537c2a212a9b4cd6124a111920a048c"
+      },
+      "bytes": 6149,
+      "sha256": "32f32ea9f252a508e841b293637ff4351d32c4efbbba8be16488e5ca699b4926",
+      "reason": "Exercise original PNG/bounds passthrough, consecutive loads, stale encoding, changed extents and malformed content with real engine resources."
     }
   }
 }

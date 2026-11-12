@@ -398,6 +398,7 @@ namespace MWGui
         void forceLootMode(const MWWorld::Ptr& ptr) override;
 
         void asyncPrepareSaveMap() override;
+        void advanceSaveMapRestore(bool finish) override;
 
         WindowBase* getActiveControllerWindow() override;
         int getControllerMenuHeight() override;

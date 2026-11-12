@@ -280,6 +280,7 @@ namespace MWGui
         void readRecord(ESM::ESMReader& reader, uint32_t type);
 
         void asyncPrepareSaveMap();
+        void advanceSaveMapRestore(bool finish);
 
         std::string_view getWindowIdForLua() const override { return "Map"; }
 
@@ -302,6 +303,19 @@ namespace MWGui
 
             bool operator<(const MapMarkerType& right) const { return widget < right.widget; }
         };
+
+        struct VisitedGroup
+        {
+            MapMarkerType marker;
+            osg::Vec2f sum{ 0.f, 0.f };
+        };
+        struct VisitedLocation
+        {
+            CellId cell;
+            std::string name;
+            MapMarkers::Category category;
+        };
+        void createVisitedWidgets(const VisitedLocation& location);
 
         struct LocationEntrance
         {
@@ -367,7 +381,12 @@ namespace MWGui
         float mGlobalMapZoom = 1.0f;
         std::unique_ptr<MWRender::GlobalMap> mGlobalMapRender;
 
-        std::map<std::string, MapMarkerType> mGlobalMapMarkersByName;
+        std::map<std::string, VisitedGroup> mGlobalMapMarkersByName;
+        std::vector<VisitedLocation> mRestoringLocations;
+        std::size_t mNextRestoringLocation = 0;
+        std::size_t mRestoreMarkerBatches = 0;
+        double mRestoreMarkerMs = 0;
+        bool mRestoringWorldMap = false;
         std::map<MapMarkerType, std::vector<MapMarkerType>> mGlobalMapMarkers;
 
         // Saved discoveries are compact data, not permanently allocated UI.

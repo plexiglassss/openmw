@@ -91,3 +91,9 @@ For one follow-up with script and frame timings, run `Run-Detailed-Town.cmd`, lo
 The terrain preloader prepares distinct NIF models on the native workers while the terrain thread assembles the scene in reference order. The regular model request owns cache publication and graphics compilation. Cancelling a destination discards unfinished chunks. Foreground traversal retains its existing NIF decoding path.
 
 Use `Run-Combined.cmd` on the same save and route for before/after comparison. In `openmw.log`, compare the whole exterior transition and `mainWaitMs`. The `pagedBatchWallMs` timer includes ordered consumption and overlapping preparation. The `pagedModelCpuMs`, `pagedModelLoadCpuMs` and `pagedModelShaderCpuMs` timers sum helper work. They can overlap, and adding them to the wall time double-counts work. The save-loading player detail reports the time spent building the inventory list and preview, updating spells, and applying magic effects.
+
+### Saved world map
+
+A save's explored-map PNG is decoded on a background worker while the other save stages run. The handoff and any remaining marker widgets finish on the loading screen. The original PNG and its original cell bounds can be saved immediately. After the player explores more territory, subsequent saves use the updated overlay.
+
+In `openmw.log`, `Save load world map record` times reading the record and resolving marker cells. `Save load world map markers` reports the owner-thread widget batches. `Save load world map` reports base construction, the remaining base wait, PNG queue/decode time, the remaining PNG wait, and overlay publication. The worker timers overlap other loading stages. Compare overall save-load time, the first playable frame, first map opening, and an immediate save/reload to assess an individual installation.

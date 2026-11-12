@@ -910,6 +910,7 @@ namespace MWGui
 
     void WindowManager::updateMap()
     {
+        mMap->advanceSaveMapRestore(false);
         if (!mLocalMapRender)
             return;
 
@@ -2717,6 +2718,11 @@ namespace MWGui
     {
         for (const auto& window : mWindows)
             window->onDeleteCustomData(ptr);
+    }
+
+    void WindowManager::advanceSaveMapRestore(bool finish)
+    {
+        mMap->advanceSaveMapRestore(finish);
     }
 
     void WindowManager::asyncPrepareSaveMap()

@@ -19,6 +19,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwmechanics/testlevelledlist.cpp
 
     mwrender/testlocationrenderingprofiles.cpp
+    mwrender/testsavedglobalmap.cpp
 
     mwgui/tooltips.cpp
     mwgui/weightedsearch.cpp

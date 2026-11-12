@@ -1,4 +1,6 @@
 #include "mapwindow.hpp"
+
+#include <chrono>
 #include "mapimagemarker.hpp"
 
 #include <osg/Texture2D>
@@ -39,7 +41,6 @@
 #include "confirmationdialog.hpp"
 
 #include <limits>
-#include <numeric>
 
 namespace
 {
@@ -1255,41 +1256,77 @@ namespace MWGui
 
     void MapWindow::addVisitedLocation(const std::string& name, int x, int y)
     {
-        CellId cell;
-        cell.first = x;
-        cell.second = y;
-        if (mMarkers.insert(cell).second)
+        const CellId cell{ x, y };
+        if (!mMarkers.insert(cell).second)
+            return;
+        const ESM::Cell* metadata = MWBase::Environment::get().getESMStore()->get<ESM::Cell>().search(x, y);
+        VisitedLocation location{ cell, name, MapMarkers::classify(metadata ? metadata->mName : name, name, {}, true) };
+        if (mRestoringWorldMap)
+            mRestoringLocations.push_back(std::move(location));
+        else
+            createVisitedWidgets(location);
+    }
+
+    void MapWindow::createVisitedWidgets(const VisitedLocation& location)
+    {
+        const auto& [cell, name, category] = location;
+        const osg::Vec2f pos(static_cast<float>(cell.first), static_cast<float>(cell.second));
+        const auto individual = createMarker(name, pos, 0, category, cell);
+        mGlobalMapMarkers.emplace(individual, std::vector<MapMarkerType>());
+
+        const std::string groupName = name.substr(0, name.find(','));
+        auto& group = mGlobalMapMarkersByName[groupName];
+        group.sum += pos;
+        if (!group.marker.widget)
         {
-            const osg::Vec2f pos(static_cast<float>(x), static_cast<float>(y));
-            const ESM::Cell* metadata = MWBase::Environment::get().getESMStore()->get<ESM::Cell>().search(x, y);
-            const auto category = MapMarkers::classify(metadata ? metadata->mName : name, name, {}, true);
-            const MapMarkerType mapMarkerWidget = createMarker(name, pos, 0, category, cell);
-            mGlobalMapMarkers.emplace(mapMarkerWidget, std::vector<MapMarkerType>());
+            group.marker = createMarker(groupName, pos, 1, MapMarkers::classify(groupName, {}, {}, true), cell);
+            mGlobalMapMarkers.emplace(group.marker, std::vector<MapMarkerType>{ individual });
+        }
+        else
+        {
+            auto it = mGlobalMapMarkers.find(group.marker);
+            const auto& marker = it->first;
+            auto& members = it->second;
+            members.push_back(individual);
+            marker.position = group.sum / static_cast<float>(members.size());
+            marker.sourceCell = { static_cast<int>(marker.position.x()), static_cast<int>(marker.position.y()) };
+            marker.widget->setCoord(createMarkerCoords(marker, members.size()));
+            marker.widget->setVisible(marker.widget->getHeight() >= 6);
+        }
+    }
 
-            const std::string markerName = name.substr(0, name.find(','));
-            auto& entry = mGlobalMapMarkersByName[markerName];
-            if (!entry.widget)
+    void MapWindow::advanceSaveMapRestore(bool finish)
+    {
+        mGlobalMapRender->update();
+        if (!mRestoringWorldMap)
+            return;
+        using Clock = std::chrono::steady_clock;
+        if (mNextRestoringLocation < mRestoringLocations.size())
+        {
+            const auto start = Clock::now();
+            std::size_t count = 0;
+            do
             {
-                entry = createMarker(markerName, pos, 1, MapMarkers::classify(markerName, {}, {}, true), cell);
-                mGlobalMapMarkers.emplace(entry, std::vector<MapMarkerType>{ mapMarkerWidget });
-            }
-            else
-            {
-                auto it = mGlobalMapMarkers.find(entry);
-                const auto& marker = it->first;
-                auto& elements = it->second;
-                elements.emplace_back(mapMarkerWidget);
-
-                // we compute the barycenter of the entry elements => it will be the place on the world map for the
-                // agregated widget
-                marker.position = std::accumulate(elements.begin(), elements.end(), osg::Vec2f(0.f, 0.f),
-                                      [](const auto& left, const auto& right) { return left + right.position; })
-                    / float(elements.size());
-
-                marker.sourceCell = { static_cast<int>(marker.position.x()), static_cast<int>(marker.position.y()) };
-                marker.widget->setCoord(createMarkerCoords(marker, elements.size()));
-                marker.widget->setVisible(marker.widget->getHeight() >= 6);
-            }
+                createVisitedWidgets(mRestoringLocations[mNextRestoringLocation]);
+                ++mNextRestoringLocation;
+                ++count;
+            } while (mNextRestoringLocation < mRestoringLocations.size()
+                && (finish || (count < 32 && Clock::now() - start < std::chrono::milliseconds(1))));
+            mRestoreMarkerMs += std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+            ++mRestoreMarkerBatches;
+        }
+        if (finish)
+        {
+            mGlobalMapRender->finishRestore();
+            Log(Debug::Info) << "Save load world map markers: widgetsForLocations=" << mRestoringLocations.size()
+                             << " batches=" << mRestoreMarkerBatches << " widgetMs=" << mRestoreMarkerMs;
+            mRestoringLocations.clear();
+            mNextRestoringLocation = 0;
+            mRestoreMarkerMs = 0;
+            mRestoreMarkerBatches = 0;
+            mRestoringWorldMap = false;
+            if (isVisible())
+                ensureGlobalMapLoaded();
         }
     }
 
@@ -1508,6 +1545,8 @@ namespace MWGui
     {
         LocalMapBase::onFrame(dt);
         NoDrop::onFrame(dt);
+        if (!mGlobalMapTexture && isVisible())
+            ensureGlobalMapLoaded();
         // Only two scalar comparisons unless the saved status or setting
         // changed. Actor enumeration is driven by lifecycle events elsewhere.
         refreshDungeonTitle();
@@ -1684,7 +1723,7 @@ namespace MWGui
 
     void MapWindow::ensureGlobalMapLoaded()
     {
-        if (!mGlobalMapTexture.get())
+        if (!mGlobalMapTexture && mGlobalMapRender->readyForDisplay())
         {
             // The generated unexplored map and explored map RTT images are Y-up so the UVs are inverted
             // The unexplored map isn't saved so we *could* consider generating it the "right" way
@@ -1715,6 +1754,11 @@ namespace MWGui
         mEntranceSpatialIndex.clear();
         mLocationIconsDirty = true;
         mMarkers.clear();
+        mRestoringLocations.clear();
+        mNextRestoringLocation = 0;
+        mRestoreMarkerMs = 0;
+        mRestoreMarkerBatches = 0;
+        mRestoringWorldMap = false;
 
         mGlobalMapRender->clear();
         mActiveCell = nullptr;
@@ -1757,18 +1801,25 @@ namespace MWGui
     {
         if (type == ESM::REC_GMAP)
         {
+            using Clock = std::chrono::steady_clock;
+            const auto recordStart = Clock::now();
             ESM::GlobalMap map;
             map.load(reader);
-
+            const auto recordEnd = Clock::now();
             mGlobalMapRender->read(map);
-
+            mRestoringWorldMap = true;
+            const auto markersStart = Clock::now();
+            const auto& cells = MWBase::Environment::get().getESMStore()->get<ESM::Cell>();
             for (const ESM::GlobalMap::CellId& cellId : map.mMarkers)
             {
-                const ESM::Cell* cell
-                    = MWBase::Environment::get().getESMStore()->get<ESM::Cell>().search(cellId.first, cellId.second);
-                if (cell && !cell->mName.empty())
-                    addVisitedLocation(cell->mName, cellId.first, cellId.second);
+                const ESM::Cell* cell = cells.search(cellId.first, cellId.second);
+                if (cell && !cell->mName.empty() && mMarkers.insert(cellId).second)
+                    mRestoringLocations.push_back({ cellId, cell->mName,
+                        MapMarkers::classify(cell->mName, cell->mName, {}, true) });
             }
+            Log(Debug::Info) << "Save load world map record: savedMarkers=" << map.mMarkers.size()
+                             << " recordReadMs=" << std::chrono::duration<double, std::milli>(recordEnd - recordStart).count()
+                             << " markerResolveMs=" << std::chrono::duration<double, std::milli>(Clock::now() - markersStart).count();
         }
         else if (type == ESM::REC_LMRK)
         {
