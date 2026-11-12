@@ -1382,8 +1382,11 @@ namespace MWGui
         }
         if (changeDialogueColours && mDialogueWindow)
             mDialogueWindow->refreshTextColours();
-        if (changeLocationIcons && mMap)
-            mMap->refreshLocationIcons();
+        if (changeLocationIcons)
+        {
+            if (mMap) mMap->refreshLocationIcons();
+            if (mHud) mHud->refreshDoorIcons();
+        }
     }
 
     void WindowManager::windowResized(int x, int y)

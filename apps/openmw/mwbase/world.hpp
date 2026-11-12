@@ -119,6 +119,7 @@ namespace MWBase
             std::string name;
             float x, y; // world position
             ESM::RefId dest;
+            ESM::RefId doorId;
         };
 
         World() {}

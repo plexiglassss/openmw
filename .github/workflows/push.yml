@@ -319,6 +319,11 @@ jobs:
           components/CMakeFiles/components.dir/lua/pureworker.cpp.obj
           components/CMakeFiles/components.dir/sceneutil/visualraybatch.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testparallelqueries.cpp.obj
+          components/CMakeFiles/components.dir/mapmarkers/icons.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testicons.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
           components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
           components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
           components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
@@ -348,7 +353,8 @@ jobs:
           [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
           foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest')) {
             $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
-            if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne 4) {
+            $expectedCases = if ($suiteName -eq 'MapIconControlsTest') { 6 } else { 4 }
+            if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne $expectedCases) {
               throw "Missing required actual controls cases: $suiteName"
             }
             if (@($controlSuites[0].testcase | Where-Object { $_.status -ne 'run' -or $_.result -ne 'completed' }).Count) {
@@ -597,6 +603,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Parallel query control failed' }
           python custom/combined-performance/tests/verify-parallel-queries.py
           if ($LASTEXITCODE) { throw 'Parallel query, worker or adapter regressions failed' }
+      - name: Verify world and local marker selection, size caps and native controls
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          python custom/map-icons/verify-skin-tests.py
+          if ($LASTEXITCODE) { throw 'Native map icon and zoom checks failed' }
       - name: Require executed native tooltip tests
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -760,6 +772,7 @@ jobs:
             sparse-hud-tests.json
             previous-spell-reads.xml
             previous-parallel-queries.xml
+            map-icon-skin-tests.json
             active-spell-reads.json
             location-rendering-profile-tests.xml
             install/verification/location-rendering-profile.json

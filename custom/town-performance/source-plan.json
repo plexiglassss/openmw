@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Cumulative engine and editable location lighting with shared visual ray traversals, asynchronous distance snapshots, and isolated pure Lua worker modules on the native pool.",
+  "scope": "Cumulative engine, parallel jobs and editable location lighting, plus VFS-driven world and local door icon skins, vanilla or type colours, and maximum zoomed icon size.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -21,7 +21,8 @@
     "a0395b811024a0ee9fe97345464f167247f92aaa",
     "39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7",
     "7234ad470020e814a1503b3549a1d332f81606b4",
-    "26e7cebdd47143df2087b93d499d077ac0c1f3b9"
+    "26e7cebdd47143df2087b93d499d077ac0c1f3b9",
+    "cb0af729d9012a7240d4ece33c634b2d9fef4fe5"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -31,11 +32,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5b3948702242a385c32cae54f8b8d5b53f9c7120"
+        "blob": "8d11cf6572ea54cedb44f851cf1bed60ccaa0d23"
       },
-      "bytes": 64649,
-      "sha256": "74427c1ab9c062098558a2e102fcdbf6f6ccb968f9bf7d7af5c3ef2c70796dac",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence. Execute and verify both controls and all parallel query regressions on the shipping binaries."
+      "bytes": 65494,
+      "sha256": "ed633fa321f351f945edea185d816874c6870a0780db63bebe05048df6a93999",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence. Execute and verify both controls and all parallel query regressions on the shipping binaries. Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -44,11 +45,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f35612683b48956a833abc7ac66cd7aa589b6c64"
+        "blob": "595152bcd3d95a77517a39a4b25c55f42d1ec719"
       },
-      "bytes": 4212,
-      "sha256": "d333b698778cb55790e5e6530409ea66bb4e994ee64dbca4ef7c2107e06edb54",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
+      "bytes": 4241,
+      "sha256": "c04cf3c61c9a21b29f63ed5f17bd889630ec6b28dba3138692cfc19b041b35ed",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -257,21 +258,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "e498a42a6dbb9e92bf3ed04bed1177b5f9a7dadb"
+        "blob": "eee0611bf103d50637079912a2e9d8b07ff2947f"
       },
-      "bytes": 9249,
-      "sha256": "d5804b7df57de2e3d955175c285629a7b1a750a87e56f771f6f70559acd10f96",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapiconcontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 10157,
+      "sha256": "cbb938c7bdabac54cc0bca303aadf11d9a0cce40eddcf0d8d85b3794e5592225",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapiconcontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
     },
     "apps/openmw/mwgui/mapiconcontrols.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2c189f293be9683244d3469fd8a92f8854ac1fca"
+        "blob": "ece1278c6a68efeb8651a2648991b57c8368b5e3"
       },
-      "bytes": 1324,
-      "sha256": "7c76a9895050bcb16a8b6e831379965cc7dc0aeac6d216c4da52eab810fae200",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapiconcontrols.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 1618,
+      "sha256": "1da065e0973ffd6339ed2cd7e9329f652b42d93dc1c3b3aa57b186c197644b22",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapiconcontrols.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
     },
     "apps/openmw/mwgui/mapwindow.cpp": {
       "before": {
@@ -280,11 +281,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "32a191201f6c059f0b811b05c8319da99502db01"
+        "blob": "c1df5e6883a7af0b68ad4d3d221b5fac6c2f0ab8"
       },
-      "bytes": 81749,
-      "sha256": "6eb7f2718acc9bacb50cc936a541ef3133f6a63974a6455f27707b0142429045",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 82579,
+      "sha256": "b7b402513fdde632c4508eadd5e908734a6113a689792f4172da73f17eb36628",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
     },
     "apps/openmw/mwgui/mapwindow.hpp": {
       "before": {
@@ -293,11 +294,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "697bc774500fe6eab46e5f40c69a0a1cabe96d7f"
+        "blob": "4c295e2512d5bf7f09ffafae7c7ecaeaefef0160"
       },
-      "bytes": 13171,
-      "sha256": "0caa8d3621c543839e5efe2ea641fdf4dcd3dde30c674e1fa2ae2341a72413ca",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "bytes": 13366,
+      "sha256": "608aafdc9094195d2fc0cfa6865638c0af9eee72d8c2b6b1c39efb553c4dbe60",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
     },
     "apps/openmw/mwgui/settingswindow.cpp": {
       "before": {
@@ -306,11 +307,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c4e308bec68a314c39739db9dbd388f4d6f5e8a1"
+        "blob": "ae8073c92d9d083290722ec141c4c37d660ced3b"
       },
-      "bytes": 75923,
-      "sha256": "16e73d2f1f732d70c300907d8d8ccc2374054dbff3f0d2afb1c8d4c35f317bd6",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 77066,
+      "sha256": "0413f6ad659b63edcaf06263299c1d70a467697faedea2eead679ed84d0e4bfc",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
     },
     "apps/openmw/mwgui/settingswindow.hpp": {
       "before": {
@@ -474,11 +475,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c21a3dff7e45dd10996cae379f9514c8c25e763f"
+        "blob": "336d7e5187de9f53e6b6edf571a2ef48cc2511b0"
       },
-      "bytes": 99660,
-      "sha256": "d6d5237a09632f01884fd27eda7a2fe6e4c5a4696a7e85beb00d44a0258eb7f6",
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression."
+      "bytes": 99730,
+      "sha256": "1788caf7b2c47337de7096627ca7bd974954acd542514add938776a349bfc6c8",
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
     },
     "apps/openmw/mwlua/cellbindings.cpp": {
       "before": {
@@ -856,11 +857,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "88d5dc9741813050a1d2c070cf520e1a03cedae0"
+        "blob": "d2371f78590c3968b42599a1166ae3aeda3a8c8a"
       },
-      "bytes": 63071,
-      "sha256": "b6a34348252fa0f9fa16a43db2beb56ac3b435a8cb832fae7ae629a0bd39ffde",
-      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy."
+      "bytes": 65936,
+      "sha256": "691397851f7ae60725c04e6fac0fec8b56f4e1d3eef7f2393d8b4b974c44742a",
+      "reason": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings."
     },
     "apps/openmw_tests/mwgui/testtraveltooltipdata.cpp": {
       "before": null,
@@ -912,11 +913,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c6f3ca8e8c407f18992bcb13a33a49a5c82b5ea0"
+        "blob": "21888931d2e8632db4ed47df5a08ddc49f628c89"
       },
-      "bytes": 20721,
-      "sha256": "bcda5cf52317dc53648df00494f5f8734089d9a32a477f708f067411f0f03def",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Build the scene intersection helper and isolated Lua worker with the engine."
+      "bytes": 20727,
+      "sha256": "3bbe40048b2b7d71d5675b35043fc4e49e1e6d8a6e79973998693aa0c50a1a12",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Build the scene intersection helper and isolated Lua worker with the engine. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings."
     },
     "components/esm/defs.hpp": {
       "before": {
@@ -1298,11 +1299,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "dce85edc91c0ed2c661cfb909ede3dc29bfd3e8b"
+        "blob": "7a18916e1269018c4241e935979b1e43e312755e"
       },
-      "bytes": 1867,
-      "sha256": "99702fb38072bb3ef7ee5a216a4b300274d5c15010257db10b380d2a2c422e37",
-      "reason": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 2207,
+      "sha256": "1867518851f914031b8aa86066ff17bcf1ac5d6e68159f83d4c02ad30cd03c74",
+      "reason": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
     },
     "custom/combined-performance/.gitattributes": {
       "before": null,
@@ -1598,11 +1599,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "61a85e4015dac367cd0cad2ee172492359d69e2e"
+        "blob": "c97e57b77376037e0ce0b97ec7446558a4e9b804"
       },
-      "bytes": 12578,
-      "sha256": "f331dc05b13cb98b301380a9fa2a7c2b5916244b6a6952ef1e7dfe5655540311",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package. Package and document independent controls, complete optional gameplay adapters and API contracts."
+      "bytes": 12606,
+      "sha256": "c096b2202a8ca594ec5e2e1c8cd940a58668ec81a19c5cfaf79f31d1eecb3035",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package. Package and document independent controls, complete optional gameplay adapters and API contracts. Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -1810,21 +1811,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "a84453113fd52b9f988f9b5ed32e0da04e48a86f"
+        "blob": "87b4e0be9f1371cf80a30a0600c1416797786c93"
       },
-      "bytes": 2191,
-      "sha256": "f11a691068588ed93ac53219ba2a1eff59843e31a29ec5d75b44795d73ce7ade",
-      "reason": "Native world-map icon feature: custom/map-icons/PROVENANCE.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 2458,
+      "sha256": "fe39eedf0fffd0a80d526dd31688a2c43615d573b431af20df615e1bdc8642cb",
+      "reason": "Native world-map icon feature: custom/map-icons/PROVENANCE.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Document native marker skin resources, map controls, private art provenance and the zoom limit."
     },
     "custom/map-icons/README.md": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "14d1b2ec9f02ac222ec03ff70f4d0d9c06998af3"
+        "blob": "fa68aaa248757f8657c51dadeeaf9f5f37bb89a3"
       },
-      "bytes": 5265,
-      "sha256": "8238adc179bb13bf23c8e6df7c781509dd5a34a3b27053f40e8e3df604b6de72",
-      "reason": "Native world-map icon feature: custom/map-icons/README.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 7605,
+      "sha256": "1f2549bffc57c9518ab68c5f89528b5ca92b57789b38494e1b3291c91f350a1d",
+      "reason": "Native world-map icon feature: custom/map-icons/README.md; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Document native marker skin resources, map controls, private art provenance and the zoom limit."
     },
     "custom/map-icons/VALIDATION.md": {
       "before": null,
@@ -2209,11 +2210,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4d3dac594c48a7c8bd7fea5267677bf4ba43974d"
+        "blob": "26317684786a12b4e6268d6263aa8194bc3d0922"
       },
-      "bytes": 2998,
-      "sha256": "536591d00d5092ac58e0a8403286c035157d169b47ff27aa3121a5467e3150b6",
-      "reason": "Native world-map icon feature: docs/source/reference/modding/settings/map.rst; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior."
+      "bytes": 3606,
+      "sha256": "5cb7a5d8a8d6a2f9d3453793efb6430288c8e86da4f53e7e615fc2f4dba163cd",
+      "reason": "Native world-map icon feature: docs/source/reference/modding/settings/map.rst; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Document native marker skin resources, map controls, private art provenance and the zoom limit."
     },
     "files/data/CMakeLists.txt": {
       "before": {
@@ -2235,11 +2236,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d8d39a239bc0e720b3798cc19d8ee9c363a94fca"
+        "blob": "050a8505154a1ed0c8241bbd0437eb02f24f01d1"
       },
-      "bytes": 19048,
-      "sha256": "224798b8a29a88e88128d5e82411330ca82cdef2b681fc50db4c448804c322f7",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 19238,
+      "sha256": "a984dc6905149d80bd7af9acb686a54638b3860d89ceffac4bdc18db189f7fd1",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
     },
     "files/data/textures/mapmarkers/barrow.png": {
       "before": null,
@@ -2451,11 +2452,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "97c15a8c5292f537d95b5a0bcb387d1280846f61"
+        "blob": "2d21465a12134c19db37ddac8ff5d65eac79fb4a"
       },
-      "bytes": 51213,
-      "sha256": "3b6a6d8dfca0d1103570543d78d2862f5afa10bb204d051567ce85e6f60f17c6",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 51534,
+      "sha256": "177eaf447adf349ac0b112d927aae255e79a58e68c1001fa22bfa10e39bdf3c3",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
     },
     "apps/openmw/mwlua/localscripts.hpp": {
       "before": {
@@ -2647,11 +2648,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5d322155a1befcbf3ea7b196aa070974f368829a"
+        "blob": "0e643d57393620903cf5708682f84eb1fe4e8627"
       },
-      "bytes": 140945,
-      "sha256": "bc0a9a1e4c3fc59404abd31b78cddfe2b0d118c4f8b281388d37c7f4f7930f23",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+      "bytes": 141001,
+      "sha256": "6313b495f57b4650a22ae45154a41832f0ed8b6eb236617fc16892292152864b",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells."
     },
     "apps/openmw_tests/mwrender/testlocationrenderingprofiles.cpp": {
       "before": null,
@@ -3194,11 +3195,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "715cb19410009e58504f0695c1c416f2342414b2"
+        "blob": "c824349c71716243ae490cdb65d4325f6e5e98fd"
       },
-      "bytes": 25199,
-      "sha256": "5627e6316727051e5c438490f933fc8f32291a78cc3adbc7b934b96b00467339",
-      "reason": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+      "bytes": 25230,
+      "sha256": "a76e2878d338f2b07d4019a7ce15f62efdd037ee8b7018b3918d6380c047bde2",
+      "reason": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells."
     },
     "apps/openmw/mwlua/corebindings.cpp": {
       "before": {
@@ -3431,6 +3432,56 @@
       "bytes": 1291,
       "sha256": "db29134d3152fc327eda4ff9aee9bebb21ceac92a05ca6b79b17bee9dce3cc90",
       "reason": "Execute and verify both controls and all parallel query regressions on the shipping binaries."
+    },
+    "apps/components_tests/mapmarkers/testicons.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e24ed379c530fb7c83ae199c0fc4772078482965"
+      },
+      "bytes": 3129,
+      "sha256": "2b7c5a02250d9ec1cdb5f134d489dac981fc02ca3e863635be9b8264e5c51d15",
+      "reason": "Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings."
+    },
+    "apps/openmw/mwgui/mapimagemarker.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "02696cb26b765d5d958e3d671e2e0fce335dc42e"
+      },
+      "bytes": 1256,
+      "sha256": "bdd50dc563da2a44e5657bda8fa57eba10fb9fb470c68d480f94b815c696fdf7",
+      "reason": "Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap."
+    },
+    "components/mapmarkers/icons.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "c3a9cbc61fd0e08fc90db82f24d80f7698c6cd16"
+      },
+      "bytes": 4301,
+      "sha256": "8174439afce35208351a2370120038aed47e7d600863f8c52d523b8b29daf050",
+      "reason": "Read data-driven icon resources and ordered rules on the owner and size visible markers after zoom and aggregation."
+    },
+    "components/mapmarkers/icons.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d47046a2b62810aeb952053dd31be870ded7b8f0"
+      },
+      "bytes": 1591,
+      "sha256": "6a9b1059d53d83a63d297640a031fd75588a70aa9851667c887b976d374f8eec",
+      "reason": "Read data-driven icon resources and ordered rules on the owner and size visible markers after zoom and aggregation."
+    },
+    "custom/map-icons/verify-skin-tests.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2716ad4620b0c7d6e43f5e8e23cec5944cb694a7"
+      },
+      "bytes": 1507,
+      "sha256": "4a45986cd1b91fb82d5ed24f7aaf4357a8b33d4b9d8aac558606a1ab92b528be",
+      "reason": "Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery."
     }
   }
 }

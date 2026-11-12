@@ -163,7 +163,7 @@ def prepare(destination):
                       "sanemagic-adapter-parity.json", "native-job-adapter-parity.json",
                       "native-jobs-tests.json", "town-frame-updates.json", "town-previous-components.xml",
                       "town-previous-engine.xml", "previous-hud-tests.xml", "sparse-hud-tests.json",
-                      "previous-spell-reads.xml", "active-spell-reads.json", "previous-parallel-queries.xml", *launcher_reports)
+                      "previous-spell-reads.xml", "active-spell-reads.json", "previous-parallel-queries.xml", "map-icon-skin-tests.json", *launcher_reports)
     for name in evidence_files:
         shutil.copy2(ROOT / name, destination / name)
     for name, command in (("Run-Combined.cmd", "Run-Combined.cmd"), ("Run-Inherited.cmd", "Run-Inherited.cmd"),

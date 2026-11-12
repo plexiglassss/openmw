@@ -22,6 +22,7 @@ file(GLOB UNITTEST_SRC_FILES
     lua/testyaml.cpp
 
     mapmarkers/testclassification.cpp
+    mapmarkers/testicons.cpp
     mapmarkers/testspatialindex.cpp
 
     misc/compression.cpp

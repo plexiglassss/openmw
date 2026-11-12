@@ -13,7 +13,7 @@
 
 #include <components/esm3/custommarkerstate.hpp>
 #include <components/esm3/globalmap.hpp>
-#include <components/mapmarkers/classification.hpp>
+#include <components/mapmarkers/icons.hpp>
 #include <components/mapmarkers/spatialindex.hpp>
 #include <components/misc/constants.hpp>
 
@@ -47,7 +47,7 @@ namespace SceneUtil
 
 namespace MWGui
 {
-    class MarkerWidget;
+    class MapImageMarker;
 
     class CustomMarkerCollection
     {
@@ -91,6 +91,7 @@ namespace MWGui
         void onFrame(float dt);
 
         bool toggleFogOfWar();
+        void refreshDoorIcons();
 
         struct MarkerUserData
         {
@@ -112,6 +113,7 @@ namespace MWGui
             float nY;
             std::vector<std::string> notes;
             std::string caption;
+            std::size_t doorIcon = 0;
         };
 
     protected:
@@ -124,6 +126,7 @@ namespace MWGui
         MyGUI::ScrollView* mLocalMap = nullptr;
         MyGUI::ImageBox* mCompass = nullptr;
         float mLocalMapZoom = 1.f;
+        MapMarkers::IconSet mIconSet;
         bool mFogOfWarToggled = true;
         bool mFogOfWarEnabled;
         bool mNeedDoorMarkersUpdate = false;
@@ -151,14 +154,14 @@ namespace MWGui
         std::vector<MapEntry> mMaps;
 
         // Keep track of created marker widgets, just to easily remove them later.
-        std::vector<MarkerWidget*> mExteriorDoorMarkerWidgets;
-        std::map<std::pair<int, int>, std::vector<MarkerWidget*>> mExteriorDoorsByCell;
-        std::vector<MarkerWidget*> mInteriorDoorMarkerWidgets;
+        std::vector<MapImageMarker*> mExteriorDoorMarkerWidgets;
+        std::map<std::pair<int, int>, std::vector<MapImageMarker*>> mExteriorDoorsByCell;
+        std::vector<MapImageMarker*> mInteriorDoorMarkerWidgets;
         std::vector<MyGUI::Widget*> mMagicMarkerWidgets;
         std::vector<MyGUI::Widget*> mCustomMarkerWidgets;
-        std::vector<MarkerWidget*> mDoorMarkersToRecycle;
+        std::vector<MapImageMarker*> mDoorMarkersToRecycle;
 
-        std::vector<MarkerWidget*>& currentDoorMarkersWidgets();
+        std::vector<MapImageMarker*>& currentDoorMarkersWidgets();
 
         virtual void updateCustomMarkers();
 
@@ -168,7 +171,9 @@ namespace MWGui
         MyGUI::IntPoint getMarkerPosition(float worldX, float worldY, MarkerUserData& markerPos) const;
         MyGUI::IntCoord getMarkerCoordinates(
             float worldX, float worldY, MarkerUserData& markerPos, unsigned short markerSize) const;
-        MarkerWidget* createDoorMarker(const std::string& name, float x, float y) const;
+        MapImageMarker* createDoorMarker() const;
+        void styleDoorMarker(MapImageMarker* widget) const;
+        int doorMarkerSize(const MarkerUserData& data) const;
         void updateMarkerCoordinates(MyGUI::Widget* widget, unsigned short markerSize) const;
 
         virtual void notifyPlayerUpdate() {}

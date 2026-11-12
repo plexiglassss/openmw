@@ -296,7 +296,7 @@ add_component_dir (esm4
     vertex
 )
 
-add_component_dir (mapmarkers classification spatialindex)
+add_component_dir (mapmarkers classification spatialindex icons)
 
 add_component_dir (misc
     barrier budgetmeasurement color compression constants convert coordinateconverter dialoguetext display endianness float16 frameratelimiter

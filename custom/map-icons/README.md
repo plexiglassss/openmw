@@ -1,6 +1,6 @@
-# Native world map icons
+# Native world and local map icons
 
-This cumulative OpenMW build adds location-type icons to the built-in world map.
+This cumulative OpenMW build displays location-type icons on the built-in world map and door symbols on the built-in local map and minimap.
 It does not require Advanced World Map, a Lua icon mod, an ESP, or a regenerated Delta plugin.
 The existing Continue, native deleveler, Lua UI repair and earlier cumulative engine changes remain included.
 
@@ -19,8 +19,8 @@ The existing Continue, native deleveler, Lua UI repair and earlier cumulative en
 - Enable location icons: master switch. Off restores native named-location markers and hides the added entrance markers.
 - Show discovered entrance icons: independently show caves, tombs, mines, ruins and other meaningful destinations. Ordinary settlement house doors are excluded to avoid a crowded map.
 - Show location type in tooltips.
-- Icon size: 16 to 40 logical UI pixels; default 24. Interface scaling applies.
-- Icon colours: map colours, white, or category colours.
+- World base size: 16–40, default 24. Local door base size: 8–40, default 15. Maximum after zoom: 8–64, default 24. All sizes use logical UI pixels.
+- Icon colours apply to both maps: original artwork colours or different colours by type.
 - Location type / Use an icon for this type: configure each of the 19 categories. Off uses a square marker for that type.
 - Reset icon options: resets only these icon settings.
 
@@ -34,7 +34,7 @@ The feature adds a separate optional LMRK save record for discovered entrance me
 
 ## Resource use
 
-There is no map-icon per-frame scan, whole-world discovery pass or Lua service. New entrance widgets exist only while the world map is visible and are restricted to its current view. Closing the map releases them. The small classification table is immutable and is consulted during discovery. The 19 original 64x64 icon PNGs total about 47 KB on disk (304 KiB of base RGBA pixels before graphics-driver overhead).
+There is no map-icon per-frame scan, whole-world discovery pass or Lua service. New entrance widgets exist only while the world map is visible and are restricted to its current view. Closing the map releases them. The small classification table is immutable and is consulted during discovery. The 19 public fallback 64x64 icon PNGs total about 47 KB on disk (304 KiB of base RGBA pixels before graphics-driver overhead).
 
 Benchmarks measure the classifier separately; they do not establish a target-PC FPS improvement. The full native test report and build identity are included with the Windows package.
 
@@ -55,3 +55,13 @@ Exit OpenMW and start your previous engine folder. The previous engine skips the
 ## Limits
 
 This is an icon feature, not an Advanced World Map replacement suite. It does not add AWM tracking, routes, search, grids, map notes or custom-map machinery. Unknown named places can retain a generic marker. Unrecognized entrances are omitted to avoid mislabelling ordinary house doors. Classification is not guaranteed to match every mod author's intended category. The user's installed fonts, full modlist and real gameplay performance require an in-game check.
+
+## World and local marker skins
+
+The native Options > Map icons tab has a shared original-colour/type-colour selector, separate world and local base sizes, and a maximum size after map zoom and world marker grouping. The maximum defaults to 24 logical UI pixels and can be set to 8–64. Local door icons also appear on the HUD minimap. Existing discovery, fog, notes and door tooltips use the same native data as before. The local door switch restores the 8-pixel door marker. Older colour setting values 0 and 1 select original colours, and 2 selects the type palette.
+
+A skin is a VFS data directory. `mapicons/markers.tsv` declares `world<TAB>id` and `local<TAB>id` entries. Use the existing world category IDs, or a local ID containing lowercase ASCII letters, digits, underscores or hyphens. Each entry uses a 32×32 image at `textures/mapmarkers/vanilla/{world|local}/id.dds`. Its optional 32×32 type-colour variant goes at `textures/mapmarkers/type/{world|local}/id.png`. The renderer uses white at rest so the original pixel colours survive a custom menu theme. A missing type variant uses the original image. Missing world artwork uses the previous native fallback; missing local artwork uses the generic door.
+
+After the declarations, `name<TAB>id<TAB>substring` identifies destination names and `door<TAB>id<TAB>substring` identifies fallback door record IDs. Name rules apply from exterior and quasi-exterior cells. Later matching rules take priority and spaces inside the literal pattern are significant. `active_door` is the generic local icon. The renderer classifies a door when binding its widget and reapplies the selected texture and size when reusing widgets or changing options. It does not scan destination cell contents.
+
+The portable build prepared for the user contains the Morrowind-style artwork from their supplied packs. The public source tree provides the skin interface and the existing independently drawn fallback assets. The matching private resource pack can be kept as a separate data directory when upgrading to another compatible build. File credits and the scope of the imported visual assets accompany that pack.

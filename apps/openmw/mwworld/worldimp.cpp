@@ -1881,6 +1881,7 @@ namespace MWWorld
                 World::DoorMarker newMarker;
                 newMarker.name = MWClass::Door::getDestination(ref);
                 newMarker.dest = ref.mRef.getDestCell();
+                newMarker.doorId = ref.mRef.getRefId();
 
                 ESM::Position pos = ref.mData.getPosition();
 

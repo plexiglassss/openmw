@@ -1141,8 +1141,8 @@ namespace MWGui
         mMapIconControls = createMapIconControls(mMapIconTab, mPrefix);
         for (auto* button : mMapIconControls.mToggles)
             button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onMapIconToggled);
-        mMapIconControls.mSize->eventScrollChangePosition
-            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconSizeChanged);
+        for (auto* slider : { mMapIconControls.mSize, mMapIconControls.mLocalSize, mMapIconControls.mMaximum })
+            slider->eventScrollChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onMapIconSizeChanged);
         mMapIconControls.mColours->eventComboChangePosition
             += MyGUI::newDelegate(this, &SettingsWindow::onMapIconColoursChanged);
         mMapIconControls.mCategory->eventComboChangePosition
@@ -1160,14 +1160,19 @@ namespace MWGui
             return;
         mUpdatingMapIcons = true;
         const auto& settings = Settings::map();
-        const std::array<bool, 3> enabled{
-            settings.mLocationIcons.get(), settings.mLocationEntranceIcons.get(), settings.mLocationIconTooltips.get()
+        const std::array<bool, 4> enabled{
+            settings.mLocationIcons.get(), settings.mLocationEntranceIcons.get(), settings.mLocationIconTooltips.get(),
+            settings.mLocalDoorIcons.get()
         };
         for (size_t i = 0; i < enabled.size(); ++i)
             mMapIconControls.mToggles[i]->setCaptionWithReplacing(enabled[i] ? "#{Interface:On}" : "#{Interface:Off}");
         mMapIconControls.mSize->setScrollPosition(static_cast<size_t>(settings.mLocationIconSize.get() - 16));
         mMapIconControls.mSizeValue->setCaption(std::to_string(settings.mLocationIconSize.get()));
-        mMapIconControls.mColours->setIndexSelected(static_cast<size_t>(settings.mLocationIconColours.get()));
+        mMapIconControls.mLocalSize->setScrollPosition(settings.mLocalDoorIconSize.get() - 8);
+        mMapIconControls.mLocalSizeValue->setCaption(std::to_string(settings.mLocalDoorIconSize.get()));
+        mMapIconControls.mMaximum->setScrollPosition(settings.mLocationIconMaximumSize.get() - 8);
+        mMapIconControls.mMaximumValue->setCaption(std::to_string(settings.mLocationIconMaximumSize.get()));
+        mMapIconControls.mColours->setIndexSelected(settings.mLocationIconColours == 2 ? 1 : 0);
         const size_t selected = mMapIconControls.mCategory->getIndexSelected();
         const bool categoryEnabled = selected < MapMarkers::categoryCount
             && (static_cast<unsigned>(settings.mLocationIconCategories.get())
@@ -1189,26 +1194,36 @@ namespace MWGui
             settings.mLocationEntranceIcons.set(!settings.mLocationEntranceIcons.get());
         else if (sender == mMapIconControls.mToggles[2])
             settings.mLocationIconTooltips.set(!settings.mLocationIconTooltips.get());
+        else if (sender == mMapIconControls.mToggles[3])
+            settings.mLocalDoorIcons.set(!settings.mLocalDoorIcons.get());
         else
             return;
         updateMapIconSettings();
         apply();
     }
 
-    void SettingsWindow::onMapIconSizeChanged(MyGUI::ScrollBar* /*sender*/, size_t pos)
+    void SettingsWindow::onMapIconSizeChanged(MyGUI::ScrollBar* sender, size_t pos)
     {
         if (mUpdatingMapIcons)
             return;
-        Settings::map().mLocationIconSize.set(16 + static_cast<int>(std::min(pos, size_t(24))));
+        auto& settings = Settings::map();
+        if (sender == mMapIconControls.mSize)
+            settings.mLocationIconSize.set(16 + static_cast<int>(pos));
+        else if (sender == mMapIconControls.mLocalSize)
+            settings.mLocalDoorIconSize.set(8 + static_cast<int>(pos));
+        else if (sender == mMapIconControls.mMaximum)
+            settings.mLocationIconMaximumSize.set(8 + static_cast<int>(pos));
+        else
+            return;
         updateMapIconSettings();
         apply();
     }
 
     void SettingsWindow::onMapIconColoursChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
     {
-        if (mUpdatingMapIcons || pos >= 3)
+        if (mUpdatingMapIcons || pos >= 2)
             return;
-        Settings::map().mLocationIconColours.set(static_cast<int>(pos));
+        Settings::map().mLocationIconColours.set(pos == 1 ? 2 : 0);
         updateMapIconSettings();
         apply();
     }
@@ -1240,6 +1255,9 @@ namespace MWGui
         settings.mLocationEntranceIcons.reset();
         settings.mLocationIconTooltips.reset();
         settings.mLocationIconSize.reset();
+        settings.mLocalDoorIcons.reset();
+        settings.mLocalDoorIconSize.reset();
+        settings.mLocationIconMaximumSize.reset();
         settings.mLocationIconColours.reset();
         settings.mLocationIconCategories.reset();
         updateMapIconSettings();

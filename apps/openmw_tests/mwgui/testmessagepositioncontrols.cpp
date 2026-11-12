@@ -1,5 +1,6 @@
 #include "apps/openmw/mwgui/messagepositioncontrols.hpp"
 #include "apps/openmw/mwgui/mapiconcontrols.hpp"
+#include "apps/openmw/mwgui/mapimagemarker.hpp"
 #include "apps/openmw/mwgui/tooltipcontrols.hpp"
 #include "apps/openmw/mwgui/tooltipvisibility.hpp"
 #include "apps/openmw/mwgui/traveltooltipview.hpp"
@@ -307,6 +308,10 @@ namespace MWGui
                     { "OMWEngine:MapIconsEnabled", "Enable location icons" },
                     { "OMWEngine:MapIconsEntrances", "Show discovered entrance icons" },
                     { "OMWEngine:MapIconsTooltips", "Show location type in tooltips" },
+                    { "OMWEngine:MapIconsLocalDoors", "Show door icons on the local map and minimap" },
+                    { "OMWEngine:MapIconsLocalSize", "Local door size at normal zoom" },
+                    { "OMWEngine:MapIconsMaximum", "Maximum icon size on both maps" },
+                    { "OMWEngine:MapIconsVanillaColours", "Original vanilla colours" },
                     { "OMWEngine:MapIconsSize", "Icon size" },
                     { "OMWEngine:MapIconsColours", "Icon colours" },
                     { "OMWEngine:MapIconsMapColours", "Map colours" },
@@ -559,8 +564,9 @@ namespace MWGui
                 mPanel->setSize(size);
                 layoutMapIconControls(controls);
                 const std::vector<MyGUI::Widget*> rows{ controls.mDescription,
-                    controls.mToggleLabels[0], controls.mToggleLabels[1], controls.mToggleLabels[2],
-                    controls.mSizeLabel, controls.mSize, controls.mColourLabel, controls.mColours,
+                    controls.mToggleLabels[0], controls.mToggleLabels[1], controls.mToggleLabels[2], controls.mToggleLabels[3],
+                    controls.mSizeLabel, controls.mSize, controls.mLocalSizeLabel, controls.mLocalSize,
+                    controls.mMaximumLabel, controls.mMaximum, controls.mColourLabel, controls.mColours,
                     controls.mCategoryLabel, controls.mCategory, controls.mCategoryToggleLabel,
                     controls.mReset, controls.mHint };
                 int bottom = 0;
@@ -598,7 +604,7 @@ namespace MWGui
                 "", { 0, 0, 360, 240 }, MyGUI::Align::Default, "Settings");
             auto controls = createMapIconControls(mPanel, "MapTest");
             ASSERT_EQ(controls.mCategory->getItemCount(), MapMarkers::categoryCount);
-            ASSERT_EQ(controls.mColours->getItemCount(), 3u);
+            ASSERT_EQ(controls.mColours->getItemCount(), 2u);
             EXPECT_EQ(controls.mSize->getScrollRange(), 25u);
             EXPECT_EQ(controls.mSize->getScrollPosition(), 8u);
             for (auto* choice : { controls.mCategory, controls.mColours })
@@ -619,6 +625,46 @@ namespace MWGui
                 controls.mSize->setScrollPosition(position);
                 layoutMapIconControls(controls);
                 EXPECT_EQ(controls.mSize->getScrollPosition(), position);
+            }
+        }
+
+        TEST_F(MapIconControlsTest, IndependentLocalBaseAndMaximumSlidersRetainTheirValues)
+        {
+            mPanel = mGui.createWidget<MyGUI::Widget>("", { 0, 0, 380, 300 }, MyGUI::Align::Default, "Settings");
+            auto controls = createMapIconControls(mPanel, "MapTest");
+            EXPECT_EQ(controls.mLocalSize->getScrollRange(), 33u);
+            EXPECT_EQ(controls.mMaximum->getScrollRange(), 57u);
+            EXPECT_EQ(controls.mLocalSize->getScrollPosition(), 7u);
+            EXPECT_EQ(controls.mMaximum->getScrollPosition(), 16u);
+            controls.mMaximum->setScrollPosition(0);
+            controls.mLocalSize->setScrollPosition(32);
+            controls.mSize->setScrollPosition(24);
+            controls.mColours->setIndexSelected(1);
+            layoutMapIconControls(controls);
+            EXPECT_EQ(controls.mMaximum->getScrollPosition(), 0u);
+            EXPECT_EQ(controls.mLocalSize->getScrollPosition(), 32u);
+            EXPECT_EQ(controls.mSize->getScrollPosition(), 24u);
+            EXPECT_EQ(controls.mColours->getIndexSelected(), 1u);
+        }
+
+        TEST_F(MapIconControlsTest, RecycledMarkerKeepsOneCompleteTileWhenArtworkSizeChanges)
+        {
+            MyGUI::FactoryManager::getInstance().registerFactory<MapImageMarker>("Widget");
+            auto* marker = mGui.createWidget<MapImageMarker>(
+                "ImageBox", { 20, 20, 24, 24 }, MyGUI::Align::Default, "Settings");
+            // These widths match the ordinary door square, the vanilla map icons and the old native art.
+            for (const int pixels : { 8, 32, 64, 32, 8, 64 })
+            {
+                SCOPED_TRACE(pixels);
+                const std::string path = "MarkerFixture" + std::to_string(pixels);
+                auto* texture = mRenderer.getTexture(path);
+                texture->createManual(pixels, pixels, MyGUI::TextureUsage::Static, MyGUI::PixelFormat::R8G8B8A8);
+                marker->setMarkerImage(path, pixels);
+                EXPECT_EQ(marker->getItemCount(), 1u);
+                EXPECT_EQ(marker->getImageIndex(), 0u);
+                ControlsRenderTarget target(mRenderer.getViewSize());
+                MyGUI::LayerManager::getInstance().renderToTarget(&target, true);
+                EXPECT_EQ(target.verticesFor(texture), 6u);
             }
         }
 
