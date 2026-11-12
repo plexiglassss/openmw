@@ -1,5 +1,9 @@
 #include "scenemanager.hpp"
 
+#include <map>
+#include <tuple>
+#include <utility>
+
 #include <components/misc/nativejobpool.hpp>
 #include <components/diagnostics/timing.hpp>
 #include <components/diagnostics/loading.hpp>
@@ -496,9 +500,88 @@ namespace Resource
         }
     };
 
+    // A lease keeps only an uncommitted model alive. A normal caller can prepare a reserved model itself,
+    // without waiting for a job queued behind it. Only getTemplate's single producer takes the node.
+    class SceneManager::ModelDrafts
+    {
+        using Key = std::tuple<std::uint64_t, std::uint64_t, VFS::Path::Normalized>;
+        struct Model
+        {
+            std::size_t mLeases = 0;
+            std::once_flag mOnce;
+            osg::ref_ptr<osg::Node> mNode;
+        };
+        std::map<Key, Model> mModels;
+        std::mutex mMutex;
+
+    public:
+        class Lease
+        {
+            ModelDrafts* mOwner;
+            decltype(mModels)::iterator mModel;
+
+        public:
+            Lease(ModelDrafts& drafts, VFS::Path::NormalizedView path, std::uint64_t settings, std::uint64_t vfs)
+                : mOwner(&drafts)
+            {
+                const std::lock_guard lock(drafts.mMutex);
+                mModel = drafts.mModels.try_emplace(Key(settings, vfs, VFS::Path::Normalized(path))).first;
+                ++mModel->second.mLeases;
+            }
+
+            Lease(const Lease&) = delete;
+            Lease& operator=(const Lease&) = delete;
+            Lease(Lease&& other) noexcept
+                : mOwner(std::exchange(other.mOwner, nullptr))
+                , mModel(other.mModel)
+            {
+            }
+
+            ~Lease()
+            {
+                if (mOwner)
+                {
+                    // Discard potentially large unused drafts outside the registry lock.
+                    decltype(mModels)::node_type unused;
+                    {
+                        const std::lock_guard lock(mOwner->mMutex);
+                        if (--mModel->second.mLeases == 0)
+                            unused = mOwner->mModels.extract(mModel);
+                    }
+                }
+            }
+
+            VFS::Path::NormalizedView path() const { return std::get<2>(mModel->first); }
+
+            bool isCurrent(std::uint64_t settings, std::uint64_t vfs) const
+            {
+                return settings == std::get<0>(mModel->first) && vfs == std::get<1>(mModel->first);
+            }
+
+            void prepare(SceneManager& manager, bool useErrorMarker)
+            {
+                std::call_once(mModel->second.mOnce, [&] {
+                    mModel->second.mNode = manager.prepareCpuTemplate(path(), useErrorMarker);
+                });
+            }
+
+            osg::ref_ptr<osg::Node> take(SceneManager& manager)
+            {
+                prepare(manager, true);
+                osg::ref_ptr<osg::Node> result;
+                result.swap(mModel->second.mNode);
+                // A previous publication can have failed or its cache entry can have expired during this batch.
+                if (!result)
+                    result = manager.prepareCpuTemplate(path(), true);
+                return result;
+            }
+        };
+    };
+
     SceneManager::SceneManager(const VFS::Manager* vfs, Resource::ImageManager* imageManager,
         Resource::NifFileManager* nifFileManager, Resource::BgsmFileManager* bgsmFileManager, double expiryDelay)
         : ResourceManager(vfs, expiryDelay)
+        , mModelDrafts(std::make_unique<ModelDrafts>())
         , mShaderManager(new Shader::ShaderManager)
         , mSharedStateManager(new SharedStateManager)
         , mImageManager(imageManager)
@@ -514,7 +597,11 @@ namespace Resource
     void SceneManager::recreateShaders(
         osg::ref_ptr<osg::Node> node, const std::string& shaderPrefix, const osg::Program* programTemplate)
     {
-        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor(shaderPrefix));
+        osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor;
+        {
+            const std::shared_lock lock(mModelSettingsMutex);
+            shaderVisitor = createShaderVisitor(shaderPrefix);
+        }
         shaderVisitor->setAllowedToModifyStateSets(false);
         shaderVisitor->setProgramTemplate(programTemplate);
         node->accept(*shaderVisitor);
@@ -529,27 +616,51 @@ namespace Resource
 
     void SceneManager::setAutoUseNormalMaps(bool use)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mAutoUseNormalMaps = use;
     }
 
     void SceneManager::setNormalMapPattern(const std::string& pattern)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mNormalMapPattern = pattern;
     }
 
     void SceneManager::setNormalHeightMapPattern(const std::string& pattern)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mNormalHeightMapPattern = pattern;
     }
 
     void SceneManager::setAutoUseSpecularMaps(bool use)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mAutoUseSpecularMaps = use;
     }
 
     void SceneManager::setSpecularMapPattern(const std::string& pattern)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mSpecularMapPattern = pattern;
+    }
+
+    void SceneManager::setSupportsNormalsRT(bool supports)
+    {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
+        mSupportsNormalsRT = supports;
+    }
+
+    void SceneManager::setWeatherParticleOcclusion(bool value)
+    {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
+        mWeatherParticleOcclusion = value;
     }
 
     void SceneManager::setSupportsClusteredLighting(bool supported)
@@ -564,11 +675,15 @@ namespace Resource
 
     void SceneManager::setConvertAlphaTestToAlphaToCoverage(bool convert)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mConvertAlphaTestToAlphaToCoverage = convert;
     }
 
     void SceneManager::setAdjustCoverageForAlphaTest(bool adjustCoverage)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mAdjustCoverageForAlphaTest = adjustCoverage;
     }
 
@@ -604,6 +719,8 @@ namespace Resource
 
     void SceneManager::setShaderPath(const std::filesystem::path& path)
     {
+        const std::unique_lock lock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mShaderManager->setShaderPath(path);
     }
 
@@ -954,9 +1071,8 @@ namespace Resource
 
     void SceneManager::shareState(osg::ref_ptr<osg::Node> node)
     {
-        mSharedStateMutex.lock();
+        const std::lock_guard lock(mSharedStateMutex);
         mSharedStateManager->share(node.get());
-        mSharedStateMutex.unlock();
     }
 
     osg::ref_ptr<osg::Node> SceneManager::loadErrorMarker()
@@ -1034,6 +1150,128 @@ namespace Resource
                 mNifFileManager->get(cold[i], std::move(decoded[i]));
     }
 
+    void SceneManager::withPreparedPagedModels(std::span<const VFS::Path::NormalizedView> paths,
+        Misc::NativeJobPool& jobs, const std::atomic_bool* abort, const std::function<void()>& consume)
+    {
+        const auto cancelled = [abort] { return abort && abort->load(std::memory_order_relaxed); };
+        if (cancelled())
+            return;
+
+        std::vector<ModelDrafts::Lease> cold;
+        if (jobs.workerCount() && paths.size() >= 2)
+        {
+            const std::shared_lock lock(mModelSettingsMutex);
+            for (const auto path : paths)
+                if (path.extension() == VFS::Path::ExtensionView("nif") && !mCache->getRefFromObjectCache(path))
+                    cold.emplace_back(*mModelDrafts, path, mModelSettingsRevision, mVFS->getIndexRevision());
+        }
+        if (cold.size() < 2)
+        {
+            if (!cancelled())
+                consume();
+            return;
+        }
+
+        using namespace Diagnostics::Loading;
+        Timer wall(Stage::PagedBatchWall);
+        Metrics* totals = currentMetrics;
+        const std::size_t lanes = std::min({ cold.size(), jobs.workerCount() + 1, std::size_t{ 3 } });
+        std::vector<Metrics> workerMetrics(totals ? lanes - 1 : 0);
+        std::atomic_size_t next{ 1 }; // the owner needs the first cold model immediately
+        std::atomic_bool finished{ false };
+        const auto warmAhead = [&] {
+            while (!finished.load(std::memory_order_relaxed) && !cancelled())
+            {
+                const std::size_t index = next.fetch_add(1, std::memory_order_relaxed);
+                if (index >= cold.size())
+                    break;
+                auto& lease = cold[index];
+                const std::shared_lock lock(mModelSettingsMutex);
+                if (!lease.isCurrent(mModelSettingsRevision, mVFS->getIndexRevision())
+                    || mCache->getRefFromObjectCache(lease.path()))
+                    continue;
+                try
+                {
+                    lease.prepare(*this, false);
+                }
+                catch (const std::exception&)
+                {
+                    // The real request retries and applies the usual error-marker or exception policy.
+                }
+            }
+        };
+
+        // NativeJobPool runs lane zero on this thread and joins all lanes, including on failure.
+        // Attach in source order while helpers prepare independent models ahead of the consumer.
+        jobs.parallelFor(lanes, 1, [&](std::size_t lane) {
+            if (lane == 0)
+            {
+                try
+                {
+                    if (!cancelled())
+                        consume();
+                }
+                catch (...)
+                {
+                    finished.store(true, std::memory_order_relaxed);
+                    throw;
+                }
+                finished.store(true, std::memory_order_relaxed);
+            }
+            else if (totals)
+            {
+                Session session(workerMetrics[lane - 1]);
+                warmAhead();
+            }
+            else
+                warmAhead();
+        });
+        if (totals)
+            for (const auto& worker : workerMetrics)
+            {
+                totals->accumulate(Stage::PagedModelCpu, worker, Stage::TemplateCpu);
+                totals->accumulate(Stage::PagedModelLoadCpu, worker, Stage::TemplateLoad);
+                totals->accumulate(Stage::PagedModelShaderCpu, worker, Stage::TemplateShaders);
+            }
+    }
+
+    osg::ref_ptr<osg::Node> SceneManager::prepareCpuTemplate(VFS::Path::NormalizedView path, bool useErrorMarker)
+    {
+        Diagnostics::Loading::Timer cpu(Diagnostics::Loading::Stage::TemplateCpu);
+        osg::ref_ptr<osg::Node> loaded;
+        try
+        {
+            Diagnostics::Scope timing("model", "template", "load");
+            Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateLoad);
+            loaded = load(path, mVFS, mImageManager, mNifFileManager, mBgsmFileManager);
+        }
+        catch (const std::exception& e)
+        {
+            if (!useErrorMarker)
+                throw;
+            Log(Debug::Error) << "Failed to load '" << path << "': " << e.what() << ", using marker_error instead";
+            loaded = cloneErrorMarker();
+        }
+
+        {
+            Diagnostics::Scope timing("model", "template", "filtering");
+            Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateFiltering);
+            // set filtering settings
+            SetFilterSettingsVisitor setFilterSettingsVisitor(mMinFilter, mMagFilter, mMaxAnisotropy);
+            loaded->accept(setFilterSettingsVisitor);
+            SetFilterSettingsControllerVisitor setFilterSettingsControllerVisitor(
+                mMinFilter, mMagFilter, mMaxAnisotropy);
+            loaded->accept(setFilterSettingsControllerVisitor);
+        }
+        {
+            Diagnostics::Scope timing("model", "template", "shaders");
+            Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateShaders);
+            osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor());
+            loaded->accept(*shaderVisitor);
+        }
+        return loaded;
+    }
+
     osg::ref_ptr<const osg::Node> SceneManager::getTemplate(VFS::Path::NormalizedView path, bool compile)
     {
         Diagnostics::Scope requestTiming("model", "template", "request");
@@ -1047,6 +1285,7 @@ namespace Resource
         if (obj)
             return osg::ref_ptr<const osg::Node>(static_cast<osg::Node*>(obj.get()));
         return mPendingTemplates.get(std::string(path.value()), [&]() -> osg::ref_ptr<const osg::Node> {
+            const std::shared_lock settingsLock(mModelSettingsMutex);
             // Another producer may have published between our first lookup and
             // joining the pending registry. Recheck before loading anything.
             if (auto cached = mCache->getRefFromObjectCache(path))
@@ -1054,34 +1293,13 @@ namespace Resource
             Diagnostics::Scope prepareTiming("model", "template", "prepare");
             Diagnostics::Loading::Timer prepareLoading(Diagnostics::Loading::Stage::TemplatePrepare);
             osg::ref_ptr<osg::Node> loaded;
-            try
+            if (path.extension() == VFS::Path::ExtensionView("nif"))
             {
-                Diagnostics::Scope timing("model", "template", "load");
-                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateLoad);
-                loaded = load(path, mVFS, mImageManager, mNifFileManager, mBgsmFileManager);
+                ModelDrafts::Lease lease(*mModelDrafts, path, mModelSettingsRevision, mVFS->getIndexRevision());
+                loaded = lease.take(*this);
             }
-            catch (const std::exception& e)
-            {
-                Log(Debug::Error) << "Failed to load '" << path << "': " << e.what() << ", using marker_error instead";
-                loaded = cloneErrorMarker();
-            }
-
-            {
-                Diagnostics::Scope timing("model", "template", "filtering");
-                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateFiltering);
-                // set filtering settings
-                SetFilterSettingsVisitor setFilterSettingsVisitor(mMinFilter, mMagFilter, mMaxAnisotropy);
-                loaded->accept(setFilterSettingsVisitor);
-                SetFilterSettingsControllerVisitor setFilterSettingsControllerVisitor(
-                    mMinFilter, mMagFilter, mMaxAnisotropy);
-                loaded->accept(setFilterSettingsControllerVisitor);
-            }
-            {
-                Diagnostics::Scope timing("model", "template", "shaders");
-                Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateShaders);
-                osg::ref_ptr<Shader::ShaderVisitor> shaderVisitor(createShaderVisitor());
-                loaded->accept(*shaderVisitor);
-            }
+            else
+                loaded = prepareCpuTemplate(path, true);
             {
                 Diagnostics::Scope timing("model", "template", "optimizeAndShare");
                 Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateOptimize);
@@ -1237,6 +1455,8 @@ namespace Resource
                 min = osg::Texture::LINEAR_MIPMAP_LINEAR;
         }
 
+        const std::unique_lock settingsLock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         mMinFilter = min;
         mMagFilter = mag;
         mMaxAnisotropy = std::max(1.f, maxAnisotropy);
@@ -1290,6 +1510,8 @@ namespace Resource
 
     void SceneManager::clearCache()
     {
+        const std::unique_lock settingsLock(mModelSettingsMutex);
+        ++mModelSettingsRevision;
         ResourceManager::clearCache();
 
         std::lock_guard<std::mutex> lock(mSharedStateMutex);

@@ -265,7 +265,7 @@ namespace Terrain
         {
         }
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& chunkCenter, unsigned char /*lod*/,
-            unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+            unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool*)
         {
             osg::Vec3f center = { chunkCenter.x(), chunkCenter.y(), 0 };
             auto chunkBorder = CellBorder::createBorderGeometry(center.x() - size / 2.f, center.y() - size / 2.f, size,
@@ -369,7 +369,8 @@ namespace Terrain
     }
 
     void QuadTreeWorld::loadRenderingNode(
-        ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const osg::Vec4i& gridbounds, bool compile)
+        ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const osg::Vec4i& gridbounds, bool compile,
+        const std::atomic_bool* abort)
     {
         if (!vd->hasChanged() && entry.mRenderingNode)
             return;
@@ -400,13 +401,16 @@ namespace Terrain
 
             for (QuadTreeWorld::ChunkManager* m : mChunkManagers)
             {
+                if (abort && abort->load(std::memory_order_relaxed))
+                    return;
                 osg::ref_ptr<osg::Node> n = m->getChunk(entry.mNode->getSize(), entry.mNode->getCenter(),
                     static_cast<unsigned char>(DefaultLodCallback::getNativeLodLevel(entry.mNode, mMinSize)),
-                    entry.mLodFlags, activeGrid, vd->getViewPoint(), compile);
+                    entry.mLodFlags, activeGrid, vd->getViewPoint(), compile, abort);
                 if (n)
                     pat->addChild(n);
             }
-            entry.mRenderingNode = pat;
+            if (!abort || !abort->load(std::memory_order_relaxed))
+                entry.mRenderingNode = pat;
         }
     }
 
@@ -594,7 +598,7 @@ namespace Terrain
             ViewDataEntry& entry = vd->getEntry(i);
             {
                 Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
-                loadRenderingNode(entry, vd, cellWorldSize, grid, true);
+                loadRenderingNode(entry, vd, cellWorldSize, grid, true, &abort);
             }
             {
                 Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);

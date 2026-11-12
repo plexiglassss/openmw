@@ -85,3 +85,9 @@ Model preparation reuses the material shader on drawables that inherit a single 
 Whole-world Lua record lookups preserve the original cell and reference order. For an unloaded TES3 cell with no possible matching placement or live reference, the engine can answer without rereading its content. Saved runtime references, unindexed cells and other game formats retain their existing lookup paths.
 
 For one follow-up with script and frame timings, run `Run-Detailed-Town.cmd`, load the same save, take the same route and press Ctrl+Alt+5 on inventory open. Quit normally to finish the capture. The OSG log records the time spent in the GL incremental compile operation, in seconds. Detailed callback timing adds overhead; use `Run-Combined.cmd` for comparable FPS.
+
+### Exterior transitions and loading a save
+
+The terrain preloader prepares distinct NIF models on the native workers while the terrain thread assembles the scene in reference order. The regular model request owns cache publication and graphics compilation. Cancelling a destination discards unfinished chunks. Foreground traversal retains its existing NIF decoding path.
+
+Use `Run-Combined.cmd` on the same save and route for before/after comparison. In `openmw.log`, compare the whole exterior transition and `mainWaitMs`. The `pagedBatchWallMs` timer includes ordered consumption and overlapping preparation. The `pagedModelCpuMs`, `pagedModelLoadCpuMs` and `pagedModelShaderCpuMs` timers sum helper work. They can overlap, and adding them to the wall time double-counts work. The save-loading player detail reports the time spent building the inventory list and preview, updating spells, and applying magic effects.

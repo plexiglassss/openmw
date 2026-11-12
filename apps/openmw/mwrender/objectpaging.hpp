@@ -24,10 +24,10 @@ namespace MWRender
         ~ObjectPaging();
 
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags,
-            bool activeGrid, const osg::Vec3f& viewPoint, bool compile) override;
+            bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort = nullptr) override;
 
         osg::ref_ptr<osg::Node> createChunk(float size, const osg::Vec2f& center, bool activeGrid,
-            const osg::Vec3f& viewPoint, bool compile, unsigned char lod);
+            const osg::Vec3f& viewPoint, bool compile, unsigned char lod, const std::atomic_bool* abort = nullptr);
 
         unsigned int getNodeMask() override;
 

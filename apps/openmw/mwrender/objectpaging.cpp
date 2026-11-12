@@ -134,7 +134,7 @@ namespace MWRender
     }
 
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
-        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort)
     {
         Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::ObjectChunks);
         Diagnostics::Scope chunkTiming("terrain", "objects", "getChunk");
@@ -147,8 +147,9 @@ namespace MWRender
             return static_cast<osg::Node*>(obj.get());
 
         const unsigned char lod = static_cast<unsigned char>(lodFlags >> (4 * 4));
-        osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile, lod);
-        mCache->addEntryToObjectCache(id, node.get());
+        osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile, lod, abort);
+        if (node)
+            mCache->addEntryToObjectCache(id, node.get());
         return node;
     }
 
@@ -637,7 +638,7 @@ namespace MWRender
     }
 
     osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
-        const osg::Vec3f& viewPoint, bool compile, unsigned char lod)
+        const osg::Vec3f& viewPoint, bool compile, unsigned char lod, const std::atomic_bool* abort)
     {
         Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
         const osg::Vec2i startCell(static_cast<int>(std::floor(center.x() - size / 2.f)),
@@ -716,6 +717,7 @@ namespace MWRender
         };
         typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
         NodeMap nodes;
+        std::vector<NodeMap::iterator> firstReferenceOrder;
         // Only retained while building this chunk; paths include the selected LOD.
         std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
         const osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
@@ -785,6 +787,7 @@ namespace MWRender
             const auto emplaced = nodes.emplace(std::move(cnode), InstanceList());
             if (emplaced.second)
             {
+                firstReferenceOrder.push_back(emplaced.first);
                 Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
                 analyzeVisitor.mDistances = lodDistances / ref.mScale;
                 const osg::Node* const nodePtr = emplaced.first->first.get();
@@ -798,23 +801,36 @@ namespace MWRender
             emplaced.first->second.mInstances.push_back(&ref);
         };
 
-        // Requests and template consumption retain the original reference order.
-        // The only parallel phase decodes private NIF records from final VFS paths.
+        // First-use order controls scene attachment. Worker completion order and node addresses do not.
         std::vector<Selected> batch;
         auto flush = [&] {
             std::vector<VFS::Path::NormalizedView> paths;
             for (const auto& entry : batch)
-                if (!chunkTemplates.contains(entry.mModel))
+                if (!chunkTemplates.contains(entry.mModel)
+                    && std::find(paths.begin(), paths.end(), entry.mModel) == paths.end())
                     paths.emplace_back(entry.mModel);
-            std::sort(paths.begin(), paths.end());
-            paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
-            mSceneManager->prepareNifInputs(paths, *jobs);
-            for (const auto& entry : batch)
-                consume(entry.mNumber, *entry.mRef, entry.mModel, entry.mDistanceSquared);
+            const auto consumeBatch = [&] {
+                for (const auto& entry : batch)
+                {
+                    if (abort && abort->load(std::memory_order_relaxed))
+                        return;
+                    consume(entry.mNumber, *entry.mRef, entry.mModel, entry.mDistanceSquared);
+                }
+            };
+            if (compile)
+                mSceneManager->withPreparedPagedModels(paths, *jobs, abort, consumeBatch);
+            else
+            {
+                // Foreground traversal keeps its existing, smaller NIF decoding workload.
+                mSceneManager->prepareNifInputs(paths, *jobs);
+                consumeBatch();
+            }
             batch.clear();
         };
         for (const auto& [refNum, ref] : refs)
         {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return nullptr;
             // Inclusive of template requests and node analysis below.
             Diagnostics::Loading::Timer selectionLoading(Diagnostics::Loading::Stage::ObjectSelection);
             if (size < 1.f)
@@ -893,8 +909,11 @@ namespace MWRender
         osg::ref_ptr<Resource::TemplateMultiRef> templateRefs = new Resource::TemplateMultiRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop(activeGrid, copyMask);
-        for (const auto& pair : nodes)
+        for (const auto entry : firstReferenceOrder)
         {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return nullptr;
+            const auto& pair = *entry;
             Diagnostics::Loading::Timer instancesLoading(Diagnostics::Loading::Stage::ObjectInstances);
             const osg::Node* cnode = pair.first;
 
@@ -995,6 +1014,8 @@ namespace MWRender
 
         const osg::Vec3f relativeViewPoint = viewPoint - worldCenter;
 
+        if (abort && abort->load(std::memory_order_relaxed))
+            return nullptr;
         if (mergeGroup->getNumChildren())
         {
             SceneUtil::Optimizer optimizer;

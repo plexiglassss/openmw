@@ -26,7 +26,9 @@ namespace Diagnostics::Loading
         GroundcoverChunks, ObjectReferences, ObjectReferenceRead, ObjectSelection, ObjectTemplates,
         ObjectAnalysis, ObjectInstances, ObjectMerge, ObjectCompile, ObjectFinish,
         TemplateRequest, TemplateCache, TemplatePrepare, TemplateLoad, TemplateFiltering,
-        TemplateShaders, TemplateOptimize, TemplateCompile, TemplatePublish, TemplateWait, Count
+        TemplateShaders, TemplateOptimize, TemplateCompile, TemplatePublish, TemplateWait, TemplateCpu, PagedBatchWall,
+        PagedModelCpu, PagedModelLoadCpu, PagedModelShaderCpu, PlayerInventoryList, PlayerPreviewRebuild,
+        PlayerPreviewUpdate, PlayerSpellWindow, PlayerMagicEffects, Count
     };
     inline constexpr std::size_t stageCount = static_cast<std::size_t>(Stage::Count);
     inline constexpr std::array<std::string_view, stageCount> stageNames = {
@@ -35,7 +37,9 @@ namespace Diagnostics::Loading
         "terrainChunks", "objectChunks", "groundcoverChunks", "objectReferences", "objectReferenceRead",
         "objectSelection", "objectTemplates", "objectAnalysis", "objectInstances", "objectMerge", "objectCompile",
         "objectFinish", "templateRequest", "templateCache", "templatePrepare", "templateLoad", "templateFiltering",
-        "templateShaders", "templateOptimize", "templateCompile", "templatePublish", "templateWait"
+        "templateShaders", "templateOptimize", "templateCompile", "templatePublish", "templateWait", "templateCpu", "pagedBatchWall",
+        "pagedModelCpu", "pagedModelLoadCpu", "pagedModelShaderCpu", "playerInventoryList", "playerPreviewRebuild",
+        "playerPreviewUpdate", "playerSpellWindow", "playerMagicEffects"
     };
 
     struct Metrics
@@ -43,6 +47,14 @@ namespace Diagnostics::Loading
         std::array<double, stageCount> elapsedMs{};
         std::array<std::uint64_t, stageCount> calls{};
         std::array<unsigned, stageCount> depth{};
+
+        void accumulate(Stage destination, const Metrics& other, Stage source)
+        {
+            const auto to = static_cast<std::size_t>(destination);
+            const auto from = static_cast<std::size_t>(source);
+            elapsedMs[to] += other.elapsedMs[from];
+            calls[to] += other.calls[from];
+        }
     };
     inline thread_local Metrics* currentMetrics = nullptr;
 

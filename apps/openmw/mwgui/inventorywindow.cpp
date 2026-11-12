@@ -12,6 +12,7 @@
 
 #include <osg/Texture2D>
 
+#include <components/diagnostics/loading.hpp>
 #include <components/misc/strings/algorithm.hpp>
 
 #include <components/myguiplatform/myguitexture.hpp>
@@ -181,7 +182,7 @@ namespace MWGui
         {
             auto sortModel = std::make_unique<SortFilterItemModel>(std::move(tradeModel));
             mSortModel = sortModel.get();
-            mItemView->setModel(std::move(sortModel));
+            mItemView->setModel(std::move(sortModel), ItemView::Refresh::OnNextUpdate);
         }
 
         mSortModel->setNameFilter(mFilterEdit->getCaption());
@@ -192,16 +193,18 @@ namespace MWGui
         mFilterMagic->setStateSelected(false);
         mFilterMisc->setStateSelected(false);
 
-        mPreview->updatePtr(mPtr);
-        mPreview->rebuild();
-        mPreview->update();
-
-        dirtyPreview();
-
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerPreviewRebuild);
+            mPreview->updatePtr(mPtr);
+            mPreview->rebuild();
+        }
         updatePreviewSize();
-
         updateEncumbranceBar();
-        mItemView->update();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerInventoryList);
+            mItemView->update();
+        }
+        // This refreshes the equipped preview and armour rating after magic effects are current.
         notifyContentChanged();
     }
 
@@ -796,12 +799,18 @@ namespace MWGui
 
     void InventoryWindow::notifyContentChanged()
     {
-        // update the spell window just in case new enchanted items were added to inventory
-        MWBase::Environment::get().getWindowManager()->updateSpellWindow();
-
-        MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(MWMechanics::getPlayer());
-
-        dirtyPreview();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerSpellWindow);
+            MWBase::Environment::get().getWindowManager()->updateSpellWindow();
+        }
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerMagicEffects);
+            MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(MWMechanics::getPlayer());
+        }
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerPreviewUpdate);
+            dirtyPreview();
+        }
     }
 
     void InventoryWindow::pickUpObject(MWWorld::Ptr object)

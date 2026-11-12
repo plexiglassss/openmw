@@ -64,7 +64,7 @@ namespace Terrain
     }
 
     osg::ref_ptr<osg::Node> ChunkManager::getChunk(float size, const osg::Vec2f& center, unsigned char lod,
-        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool*)
     {
         Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::TerrainChunks);
         Diagnostics::Scope chunkTiming("terrain", "ground", "getChunk");

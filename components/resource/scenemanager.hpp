@@ -2,7 +2,10 @@
 #define OPENMW_COMPONENTS_RESOURCE_SCENEMANAGER_H
 
 #include <array>
+#include <atomic>
+#include <functional>
 #include <memory>
+#include <shared_mutex>
 #include <mutex>
 #include <string>
 #include <span>
@@ -161,6 +164,11 @@ namespace Resource
         /// Decode the uncached NIF inputs of one bounded paging batch.
         void prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs);
 
+        /// Prepare private CPU models ahead of the ordered consumer on the requesting thread. GPU compilation and
+        /// publication follow the first real getTemplate request. An interrupted batch discards unused models.
+        void withPreparedPagedModels(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs,
+            const std::atomic_bool* abort, const std::function<void()>& consume);
+
         /// Clone osg::Node safely.
         /// @note Thread safe.
         static osg::ref_ptr<osg::Node> cloneNode(const osg::Node* base);
@@ -223,17 +231,23 @@ namespace Resource
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) const override;
 
-        void setSupportsNormalsRT(bool supports) { mSupportsNormalsRT = supports; }
+        void setSupportsNormalsRT(bool supports);
         bool getSupportsNormalsRT() const { return mSupportsNormalsRT; }
 
         void setUpNormalsRTForStateSet(osg::StateSet* stateset, bool enabled);
 
-        void setWeatherParticleOcclusion(bool value) { mWeatherParticleOcclusion = value; }
+        void setWeatherParticleOcclusion(bool value);
 
     private:
         osg::ref_ptr<Shader::ShaderVisitor> createShaderVisitor(const std::string& shaderPrefix = "objects");
         osg::ref_ptr<osg::Node> loadErrorMarker();
         osg::ref_ptr<osg::Node> cloneErrorMarker();
+
+        class ModelDrafts;
+        std::unique_ptr<ModelDrafts> mModelDrafts;
+        mutable std::shared_mutex mModelSettingsMutex;
+        std::uint64_t mModelSettingsRevision = 0;
+        osg::ref_ptr<osg::Node> prepareCpuTemplate(VFS::Path::NormalizedView path, bool useErrorMarker);
 
         Misc::SingleFlight<std::string, osg::ref_ptr<const osg::Node>> mPendingTemplates;
         mutable std::mutex mSharedStateMutex;

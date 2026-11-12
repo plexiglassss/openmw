@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the cumulative Windows engine, location profiles and native map icons. Improve town UI and foreground rendering work, shader preparation for paged models, and whole-world record queries on save load.",
+  "scope": "Preserve the cumulative engine. Pipeline CPU preparation of cold exterior models with ordered scene assembly and cancellation. Avoid duplicate inventory preparation during save loading.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -23,7 +23,8 @@
     "7234ad470020e814a1503b3549a1d332f81606b4",
     "26e7cebdd47143df2087b93d499d077ac0c1f3b9",
     "cb0af729d9012a7240d4ece33c634b2d9fef4fe5",
-    "7380a0899f271c60f6262aa67be5b5de1d50dd15"
+    "7380a0899f271c60f6262aa67be5b5de1d50dd15",
+    "16d564dee59ccaf21b348e69684cd0a7f273fc10"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -46,11 +47,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5b895de85812dbbee2c7a9cf46a4d2770284ce1b"
+        "blob": "4b0c5062316e853ae055c4b6d123c6bee2ce5f26"
       },
-      "bytes": 4278,
-      "sha256": "20264583ebba0aa218fe08fa92ebb969dc92d96db122866152865763fe6062d6",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups."
+      "bytes": 4321,
+      "sha256": "35b137c0bba3e49ab6f97157fd093ebbc79e097c812045558527cbf019f1cfe8",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -685,11 +686,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d676fc9f230c69a17266df155629a3b5feefaa92"
+        "blob": "9901d48cf247139220ec38faec5fb4173c14cfb9"
       },
-      "bytes": 51845,
-      "sha256": "2b32979cc149540dcd626c01c51c7f8bea589019333c7953e2e62e22d554e2ff",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 52789,
+      "sha256": "1b838da53b2ee91c842f65c3d68ff0480b5ea076b69d655c519f4ff5c26be81a",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
     },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
@@ -1248,11 +1249,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6adbd56fd9b271b3d04d962831fe0666ef81fa30"
+        "blob": "fb4faf85d1f91bd736e8d26a802e8d2420b232ef"
       },
-      "bytes": 52921,
-      "sha256": "7bc96ce26bc5347ec309fed740c0875ce59a8ea7ed5efa2f763f851c3512ab3c",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 61515,
+      "sha256": "600cb48812010de2b563ea944318f4fe0afd02fc089d5f7b48f64be5112017bc",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path."
     },
     "components/resource/scenemanager.hpp": {
       "before": {
@@ -1261,11 +1262,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "43b0d07ac1db5b7b2191fe0d66a3df4953813bc1"
+        "blob": "2f3b1c3900351b1d67669a91d5f923d330b9175e"
       },
-      "bytes": 10493,
-      "sha256": "be1bc18ce700764e3b7504060a9e46320ea103cf2b5e1a2d09c09eadd28fd7b8",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 11198,
+      "sha256": "953a691076a4c6499df602cdc2d2d20fd6354941d621c1d7140041d41e8bf6b3",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path."
     },
     "components/settings/categories/general.hpp": {
       "before": {
@@ -1320,11 +1321,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "890150c31c0f93958e2d4676d903c493762eef73"
+        "blob": "e22a58aff5d5efd04a62614006ee9f5955b070c8"
       },
-      "bytes": 12665,
-      "sha256": "fbef0fbadd3d13539916fc808a229942cc4e29e4779c7559912eb6b5091e6e3d",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
+      "bytes": 13586,
+      "sha256": "f57907b333f35be67f2ac3fa639d98f1372464319c3dc9921e8793ba9e50da22",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Describe generic preparation and how to interpret non-additive trace durations."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -3659,6 +3660,159 @@
       "bytes": 17125,
       "sha256": "928e6040d92a42f4ff672bd24f7dc20a0a10226486ce2bbd348c28dc7ffde4f1",
       "reason": "Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
+    },
+    "apps/components_tests/resource/testpagedmodelpreparation.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1b751d37be1fa632efd4ed9760e21bcd89091052"
+      },
+      "bytes": 7365,
+      "sha256": "8351dbcc16ba9350e65f3faa46e7f1bca322c4b391c5735325cd70f78ec6e320",
+      "reason": "Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry."
+    },
+    "apps/openmw/mwgui/inventorywindow.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7fde2fe49e033af9ba4bd12979e59eafde85b900"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "02b482537d87f582148bd0a06dc697e827f85ac7"
+      },
+      "bytes": 47262,
+      "sha256": "eb469be1e21973c08cc3d433bf6592a6b030bc5a0fc1b31cbbfdcca17671201b",
+      "reason": "Prepare the save-loaded inventory list once and refresh the player appearance after magic effects, with scoped load timing."
+    },
+    "apps/openmw/mwgui/itemview.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "41e690170bd92b6e7d0ee75e595cd334b082992e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6109c5f644e67c65305817b7f0b923f53e3dd1a3"
+      },
+      "bytes": 10283,
+      "sha256": "4e8f7e998455ab2705a283f063bd46e9f1c119d533080e8a7334e4076eba1423",
+      "reason": "Prepare the save-loaded inventory list once and refresh the player appearance after magic effects, with scoped load timing."
+    },
+    "apps/openmw/mwgui/itemview.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "69d0f885bbf0d215a7a865507d9d14ea36616f58"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "71ef54ba93e74bde15497c8a757ee98facbb4f10"
+      },
+      "bytes": 1949,
+      "sha256": "ecffbdc4cf3247136c2d2ea6d56a537d64abfeeecf2a7d333d433fcdb713ac4b",
+      "reason": "Prepare the save-loaded inventory list once and refresh the player appearance after magic effects, with scoped load timing."
+    },
+    "apps/openmw/mwrender/groundcover.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4c3ec3551de0e6a4cabc8b0b37146fd9227ca1b9"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6ddc282d4f6fb5e32be7c9aef42712d31cbc9ec1"
+      },
+      "bytes": 21689,
+      "sha256": "48fec3a8313efb3f70176ca5c07f43d7037a7c9e94d6407c989bf7521885b59a",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "apps/openmw/mwrender/groundcover.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ecbc990da00b9f2feefc302aafe30f2c0e7697c2"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e8f7fdc9b4e0ba58e901371a4fb689e39d79424c"
+      },
+      "bytes": 2001,
+      "sha256": "39634492cd24ec7e84a9299491666ba951a19c80d49f8fd62b52d7e30339ef8f",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "apps/openmw/mwrender/objectpaging.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4c021fa64472d8a8f088d3bb9bb335e6291b6a92"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d4b150d468c5517b9536485336a5ad76b68de496"
+      },
+      "bytes": 3607,
+      "sha256": "b4017882e48361b384a03de02611a7dcc40ed9923e032d61b094742284bd1714",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "components/diagnostics/loading.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "2f1785dfec7355f946a56e7472ffadc22869c692"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "65cc17932b32847cb9d412659b4fac651fa189e9"
+      },
+      "bytes": 6821,
+      "sha256": "941796ffa77ae9b8c4c998a42678a3d730ec368508ea9d4d44bec10cb380b910",
+      "reason": "Separate overlapped helper CPU work from elapsed batch time; attribute save-loaded inventory setup."
+    },
+    "components/terrain/chunkmanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7ba8565733efd08ef4898cfd6510eeec9ceefc3d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "41d4cfda540b83952ec9308fec22065b32911319"
+      },
+      "bytes": 14577,
+      "sha256": "66885a1b350ed81b964b82f094e5a59c9d841da29ed230a3e35a77d20e6f8abc",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "components/terrain/chunkmanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b4f327e699289e7c1f64be5a88f7e58a82ebf510"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d5b3f8642abd6183d3303ca85b9cc478266b13d9"
+      },
+      "bytes": 3659,
+      "sha256": "dbc0a46a5d2fc6ca233f4a3dfffe065471addfa85b65ffb956b0a2a1a8f4b4c5",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "components/terrain/quadtreeworld.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8a19ce7f4b3b5e889d248e56cdfc04d0457994b9"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "11bbe97d6df6865493fa736e428b32c2ea5dc8df"
+      },
+      "bytes": 26232,
+      "sha256": "01ad0bdb5dca732feb6c16682ad22c6873309c23381c3678a57cd8efd1561430",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+    },
+    "components/terrain/quadtreeworld.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "56962a5529cb2dfae1bbf0d5a35d669e8db69ebc"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8b941632e192a376a2a0a7a6e4c4f5e431ab4845"
+      },
+      "bytes": 3742,
+      "sha256": "c690152cc4c6416182bfbfa4622b77415988fc1d7ccca60e2e91157d9080ff05",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
     }
   }
 }
