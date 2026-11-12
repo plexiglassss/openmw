@@ -1,5 +1,7 @@
 #include "scenemanager.hpp"
 
+#include <set>
+
 #include <map>
 #include <tuple>
 #include <utility>
@@ -1150,6 +1152,48 @@ namespace Resource
                 mNifFileManager->get(cold[i], std::move(decoded[i]));
     }
 
+    void SceneManager::withPagedModelGroups(std::span<const std::vector<VFS::Path::NormalizedView>> chunks,
+        Misc::NativeJobPool& jobs, const std::atomic_bool& abort, const std::function<void(std::size_t, bool)>& consume)
+    {
+        constexpr std::size_t maxColdModels = 64;
+        for (std::size_t begin = 0; begin < chunks.size() && !abort;)
+        {
+            std::set<VFS::Path::NormalizedView> seen;
+            std::vector<VFS::Path::NormalizedView> paths;
+            std::size_t end = begin;
+            for (; end < chunks.size() && !abort; ++end)
+            {
+                const auto prior = paths.size();
+                for (const auto path : chunks[end])
+                {
+                    if (path.extension() == VFS::Path::ExtensionView("nif") && seen.insert(path).second
+                        && !mCache->getRefFromObjectCache(path))
+                        paths.push_back(path);
+                    if (paths.size() > maxColdModels)
+                        break;
+                }
+                if (paths.size() > maxColdModels)
+                {
+                    paths.resize(prior);
+                    break;
+                }
+            }
+            if (abort)
+                return;
+            if (end == begin)
+            {
+                consume(begin++, false);
+                continue;
+            }
+            Diagnostics::Loading::Timer group(Diagnostics::Loading::Stage::PagedChunkGroup);
+            withPreparedPagedModels(paths, jobs, &abort, [&] {
+                for (auto i = begin; i < end && !abort; ++i)
+                    consume(i, true);
+            });
+            begin = end;
+        }
+    }
+
     void SceneManager::withPreparedPagedModels(std::span<const VFS::Path::NormalizedView> paths,
         Misc::NativeJobPool& jobs, const std::atomic_bool* abort, const std::function<void()>& consume)
     {
@@ -1175,7 +1219,7 @@ namespace Resource
         using namespace Diagnostics::Loading;
         Timer wall(Stage::PagedBatchWall);
         Metrics* totals = currentMetrics;
-        const std::size_t lanes = std::min({ cold.size(), jobs.workerCount() + 1, std::size_t{ 3 } });
+        const std::size_t lanes = std::min({ cold.size(), jobs.workerCount() + 1, cold.size() >= 8 ? std::size_t{ 4 } : std::size_t{ 3 } });
         std::vector<Metrics> workerMetrics(totals ? lanes - 1 : 0);
         std::atomic_size_t next{ 1 }; // the owner needs the first cold model immediately
         std::atomic_bool finished{ false };

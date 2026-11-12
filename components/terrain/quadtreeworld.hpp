@@ -4,6 +4,8 @@
 #include "terraingrid.hpp"
 
 #include <atomic>
+#include <functional>
+#include <span>
 #include <memory>
 #include <mutex>
 
@@ -86,13 +88,37 @@ namespace Terrain
             float mViewDistance = 0.f;
             unsigned int mMaxLodLevel = ~0u;
         };
+        struct ChunkRequest
+        {
+            float mSize;
+            osg::Vec2f mCenter;
+            unsigned int mLodFlags;
+            bool mActiveGrid;
+        };
+
+        // A batch may prepare private resources ahead of use. The loader still requests each
+        // scene node at its original position in the ordered terrain traversal.
+        class BatchChunkManager : public ChunkManager
+        {
+        public:
+            using ChunkManager::ChunkManager;
+            using Fetch = std::function<osg::ref_ptr<osg::Node>()>;
+            using Load = std::function<void(std::size_t, const Fetch&)>;
+            virtual bool canPreloadBatches() const = 0;
+            virtual void preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
+                const std::atomic_bool& abort, const Load& load) = 0;
+        };
         void addChunkManager(ChunkManager*);
+        void addBatchChunkManager(BatchChunkManager*);
+
 
     private:
         void ensureQuadTreeBuilt();
-        void loadRenderingNode(
-            ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const osg::Vec4i& gridbounds, bool compile,
-            const std::atomic_bool* abort = nullptr);
+        void updateRenderingLod(ViewDataEntry& entry, ViewData* vd);
+        ChunkRequest getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& gridbounds) const;
+        void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
+            bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr);
+        BatchChunkManager* mBatchChunkManager = nullptr;
 
         osg::ref_ptr<RootNode> mRootNode;
 

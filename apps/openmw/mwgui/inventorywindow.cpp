@@ -210,6 +210,7 @@ namespace MWGui
 
     void InventoryWindow::clear()
     {
+        mArmorCaptionPending = false;
         mPtr = MWWorld::Ptr();
         mTradeModel = nullptr;
         mSortModel = nullptr;
@@ -550,6 +551,16 @@ namespace MWGui
         if (mPtr.isEmpty())
             return;
 
+        // This is a caption for the native inventory. A Lua paper doll only needs the model.
+        // Looking up the combat interface can initialize every player script on a freshly loaded save.
+        if (!mArmorRating->getInheritedVisible())
+        {
+            mArmorCaptionPending = true;
+            Diagnostics::Loading::Timer hidden(Diagnostics::Loading::Stage::PlayerArmorCaptionHidden);
+            return;
+        }
+        mArmorCaptionPending = false;
+        Diagnostics::Loading::Timer caption(Diagnostics::Loading::Stage::PlayerArmorCaption);
         auto rating = MyGUI::utility::toString(static_cast<int>(mPtr.getClass().getArmorRating(mPtr, true)));
         mArmorRating->setCaptionWithReplacing("#{sArmor}: " + rating);
         if (mArmorRating->getTextSize().width > mArmorRating->getSize().width)
@@ -783,6 +794,8 @@ namespace MWGui
             notifyContentChanged();
             mUpdateNextFrame = false;
         }
+        if (mArmorCaptionPending && mArmorRating->getInheritedVisible())
+            updateArmorRating();
     }
 
     void InventoryWindow::setTrading(bool trading)
@@ -792,8 +805,10 @@ namespace MWGui
 
     void InventoryWindow::dirtyPreview()
     {
-        mPreview->update();
-
+        {
+            Diagnostics::Loading::Timer geometry(Diagnostics::Loading::Stage::PlayerPreviewGeometry);
+            mPreview->update();
+        }
         updateArmorRating();
     }
 

@@ -1,6 +1,8 @@
 #include <components/diagnostics/loading.hpp>
 #include "objectpaging.hpp"
 
+#include <optional>
+
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/nativejobpool.hpp>
 #include <components/settings/values.hpp>
@@ -133,24 +135,111 @@ namespace MWRender
         }
     }
 
+    struct ObjectPaging::Selection
+    {
+        struct Item
+        {
+            ESM::RefNum mNumber;
+            PagedCellRef mRef;
+            VFS::Path::Normalized mModel;
+            float mDistanceSquared;
+        };
+        std::vector<Item> mItems;
+        std::uint64_t mRevision;
+        std::uint64_t mVfsRevision;
+    };
+
+    struct ObjectPaging::PendingCompile
+    {
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation::CompileSet> mSet;
+    };
+
+    bool ObjectPaging::canPreloadBatches() const
+    {
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        return jobs && jobs->workerCount() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
+    }
+
+    void ObjectPaging::preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
+        const std::atomic_bool& abort, const Load& load)
+    {
+        auto& jobs = *MWBase::Environment::get().getNativeJobPoolOrNull();
+        std::vector<std::optional<Selection>> selected(chunks.size());
+        std::vector<std::vector<VFS::Path::NormalizedView>> models(chunks.size());
+        for (std::size_t i = 0; i < chunks.size() && !abort; ++i)
+        {
+            const auto& chunk = chunks[i];
+            if ((chunk.mActiveGrid && !mActiveGrid)
+                || mCache->getRefFromObjectCache(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid)))
+                continue;
+            selected[i] = selectChunk(chunk, viewPoint, &abort);
+            for (const auto& item : selected[i]->mItems)
+                models[i].emplace_back(item.mModel);
+        }
+        mSceneManager->withPagedModelGroups(models, jobs, abort, [&](std::size_t i, bool prepared) {
+            load(i, [&] {
+                return fetchChunk(chunks[i], viewPoint, true, &abort, selected[i] ? &*selected[i] : nullptr, prepared);
+            });
+        });
+    }
+
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
         unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort)
     {
+        return fetchChunk({ size, center, lodFlags, activeGrid }, viewPoint, compile, abort, nullptr, false);
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::fetchChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint,
+        bool compile, const std::atomic_bool* abort, const Selection* selected, bool modelsPrepared)
+    {
         Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::ObjectChunks);
         Diagnostics::Scope chunkTiming("terrain", "objects", "getChunk");
-        if (activeGrid && !mActiveGrid)
+        if (chunk.mActiveGrid && !mActiveGrid)
             return nullptr;
+        const ChunkId id(chunk.mCenter, chunk.mSize, chunk.mActiveGrid);
+        for (;;)
+        {
+            if (abort && *abort)
+                return nullptr;
+            {
+                const std::lock_guard lock(mRefTrackerMutex);
+                if (auto cached = mCache->getRefFromObjectCache(id))
+                    return static_cast<osg::Node*>(cached.get());
+            }
 
-        const ChunkId id = std::make_tuple(center, size, activeGrid);
-
-        if (const osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id))
-            return static_cast<osg::Node*>(obj.get());
-
-        const unsigned char lod = static_cast<unsigned char>(lodFlags >> (4 * 4));
-        osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile, lod, abort);
-        if (node)
-            mCache->addEntryToObjectCache(id, node.get());
-        return node;
+            std::optional<Selection> local;
+            if (!selected || selected->mRevision != mSelectionRevision.load()
+                || selected->mVfsRevision != mSceneManager->getVFS()->getIndexRevision())
+            {
+                local.emplace(selectChunk(chunk, viewPoint, abort));
+                selected = &*local;
+                modelsPrepared = false;
+            }
+            if (abort && *abort)
+                return nullptr;
+            PendingCompile pending;
+            auto node = createChunk(chunk, viewPoint, *selected, compile, abort, modelsPrepared, pending);
+            if (!node || (abort && *abort))
+                return nullptr;
+            {
+                // An enable/blacklist change may have evicted an older node during assembly.
+                // Publish against the same tracker revision, or reselect outside the lock.
+                const std::lock_guard lock(mRefTrackerMutex);
+                if (selected->mRevision == mSelectionRevision.load()
+                    && selected->mVfsRevision == mSceneManager->getVFS()->getIndexRevision())
+                {
+                    if (auto cached = mCache->getRefFromObjectCache(id))
+                        return static_cast<osg::Node*>(cached.get());
+                    if (pending.mSet)
+                        pending.mOperation->add(pending.mSet, false);
+                    mCache->addEntryToObjectCache(id, node.get());
+                    return node;
+                }
+            }
+            selected = nullptr;
+            modelsPrepared = false;
+        }
     }
 
     namespace
@@ -490,7 +579,7 @@ namespace MWRender
 
     ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace)
         : GenericResourceManager<ChunkId>(nullptr, Settings::cells().mCacheExpiryDelay)
-        , Terrain::QuadTreeWorld::ChunkManager(worldspace)
+        , Terrain::QuadTreeWorld::BatchChunkManager(worldspace)
         , mReferenceCache(std::make_unique<ReferenceCache>())
         , mSceneManager(sceneManager)
         , mActiveGrid(Settings::terrain().mObjectPagingActiveGrid)
@@ -637,10 +726,15 @@ namespace MWRender
         }
     }
 
-    osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
-        const osg::Vec3f& viewPoint, bool compile, unsigned char lod, const std::atomic_bool* abort)
+    ObjectPaging::Selection ObjectPaging::selectChunk(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort)
     {
-        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
+        Diagnostics::Loading::Timer selectionTimer(Diagnostics::Loading::Stage::PagedCandidateSelection);
+        Selection result{ {}, mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision() };
+        const auto& [size, center, flags, activeGrid] = chunk;
+        const auto lod = static_cast<unsigned char>(flags >> (4 * 4));
+        const auto cellSize = getCellSize(mWorldspace);
+        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         const osg::Vec2i startCell(static_cast<int>(std::floor(center.x() - size / 2.f)),
             static_cast<int>(std::floor(center.y() - size / 2.f)));
         const MWBase::World& world = *MWBase::Environment::get().getWorld();
@@ -709,6 +803,85 @@ namespace MWRender
             static_cast<int>(std::floor(minBound.x())), static_cast<int>(std::floor(minBound.y())));
         const osg::Vec2i ceilMaxBound(
             static_cast<int>(std::ceil(maxBound.x())), static_cast<int>(std::ceil(maxBound.y())));
+        for (const auto& [refNum, ref] : refs)
+        {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return result;
+            if (size < 1.f)
+            {
+                const osg::Vec3f cellPos = ref.mPosition / static_cast<float>(cellSize);
+                if ((minBound.x() > floorMinBound.x() && cellPos.x() < minBound.x())
+                    || (minBound.y() > floorMinBound.y() && cellPos.y() < minBound.y())
+                    || (maxBound.x() < ceilMaxBound.x() && cellPos.x() >= maxBound.x())
+                    || (maxBound.y() < ceilMaxBound.y() && cellPos.y() >= maxBound.y()))
+                    continue;
+            }
+
+            const float dSqr = (viewPoint - ref.mPosition).length2();
+            if (!activeGrid)
+            {
+                std::lock_guard<std::mutex> lock(mSizeCacheMutex);
+                SizeCache::iterator found = mSizeCache.find(refNum);
+                if (found != mSizeCache.end() && found->second < dSqr * minSize * minSize)
+                    continue;
+            }
+
+            if (Misc::ResourceHelpers::isHiddenMarker(ref.mRefId))
+                continue;
+
+            const int type = store.findStatic(ref.mRefId);
+            VFS::Path::Normalized model = getModel(type, ref.mRefId, store);
+            if (model.empty())
+                continue;
+            model = Misc::ResourceHelpers::correctMeshPath(model);
+
+            if (activeGrid && type != ESM::REC_STAT && type != ESM::REC_STAT4)
+            {
+                model = Misc::ResourceHelpers::correctActorModelPath(model, mSceneManager->getVFS());
+                constexpr VFS::Path::ExtensionView nif("nif");
+                if (model.extension() == nif)
+                {
+                    VFS::Path::Normalized kfname = model;
+                    constexpr VFS::Path::ExtensionView kf("kf");
+                    kfname.changeExtension(kf);
+                    if (mSceneManager->getVFS()->exists(kfname))
+                        continue;
+                }
+            }
+
+            if (!activeGrid)
+            {
+                std::lock_guard<std::mutex> lock(mLODNameCacheMutex);
+                const auto revision = mSceneManager->getVFS()->getIndexRevision();
+                if (mLODNameCacheRevision != revision)
+                {
+                    mLODNameCache.clear();
+                    mLODNameCacheRevision = revision;
+                }
+                LODNameCacheKey key{ model, lod };
+                LODNameCache::const_iterator found = mLODNameCache.lower_bound(key);
+                if (found != mLODNameCache.end() && found->first == key)
+                    model = found->second;
+                else
+                    model = mLODNameCache
+                                .emplace_hint(found, std::move(key),
+                                    Misc::ResourceHelpers::getLODMeshName(world.getESMVersions()[refNum.mContentFile],
+                                        model, *mSceneManager->getVFS(), lod))
+                                ->second;
+            }
+
+            result.mItems.push_back({ refNum, ref, std::move(model), dSqr });
+        }
+        return result;
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::createChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Selection& selected,
+        bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending)
+    {
+        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
+        const auto& size = chunk.mSize;
+        const auto& center = chunk.mCenter;
+        const bool activeGrid = chunk.mActiveGrid;
         struct InstanceList
         {
             std::vector<const PagedCellRef*> mInstances;
@@ -737,15 +910,8 @@ namespace MWRender
 
         AnalyzeVisitor analyzeVisitor(copyMask);
         const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
-        struct Selected
-        {
-            ESM::RefNum mNumber;
-            const PagedCellRef* mRef;
-            VFS::Path::Normalized mModel;
-            float mDistanceSquared;
-        };
         auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
-        const bool prepare = jobs && jobs->workerCount() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
+        const bool prepare = !modelsPrepared && canPreloadBatches();
         const auto consume = [&](const ESM::RefNum& refNum, const PagedCellRef& ref,
                                  const VFS::Path::Normalized& model, float dSqr) {
             osg::ref_ptr<const osg::Node> cnode = [&] {
@@ -802,19 +968,19 @@ namespace MWRender
         };
 
         // First-use order controls scene attachment. Worker completion order and node addresses do not.
-        std::vector<Selected> batch;
+        std::vector<const Selection::Item*> batch;
         auto flush = [&] {
             std::vector<VFS::Path::NormalizedView> paths;
             for (const auto& entry : batch)
-                if (!chunkTemplates.contains(entry.mModel)
-                    && std::find(paths.begin(), paths.end(), entry.mModel) == paths.end())
-                    paths.emplace_back(entry.mModel);
+                if (!chunkTemplates.contains(entry->mModel)
+                    && std::find(paths.begin(), paths.end(), entry->mModel) == paths.end())
+                    paths.emplace_back(entry->mModel);
             const auto consumeBatch = [&] {
                 for (const auto& entry : batch)
                 {
                     if (abort && abort->load(std::memory_order_relaxed))
                         return;
-                    consume(entry.mNumber, *entry.mRef, entry.mModel, entry.mDistanceSquared);
+                    consume(entry->mNumber, entry->mRef, entry->mModel, entry->mDistanceSquared);
                 }
             };
             if (compile)
@@ -827,77 +993,19 @@ namespace MWRender
             }
             batch.clear();
         };
-        for (const auto& [refNum, ref] : refs)
+        for (const auto& item : selected.mItems)
         {
             if (abort && abort->load(std::memory_order_relaxed))
                 return nullptr;
-            // Inclusive of template requests and node analysis below.
-            Diagnostics::Loading::Timer selectionLoading(Diagnostics::Loading::Stage::ObjectSelection);
-            if (size < 1.f)
-            {
-                const osg::Vec3f cellPos = ref.mPosition / static_cast<float>(cellSize);
-                if ((minBound.x() > floorMinBound.x() && cellPos.x() < minBound.x())
-                    || (minBound.y() > floorMinBound.y() && cellPos.y() < minBound.y())
-                    || (maxBound.x() < ceilMaxBound.x() && cellPos.x() >= maxBound.x())
-                    || (maxBound.y() < ceilMaxBound.y() && cellPos.y() >= maxBound.y()))
-                    continue;
-            }
-
-            const float dSqr = (viewPoint - ref.mPosition).length2();
-            if (!activeGrid)
-            {
-                std::lock_guard<std::mutex> lock(mSizeCacheMutex);
-                SizeCache::iterator found = mSizeCache.find(refNum);
-                if (found != mSizeCache.end() && found->second < dSqr * minSize * minSize)
-                    continue;
-            }
-
-            if (Misc::ResourceHelpers::isHiddenMarker(ref.mRefId))
-                continue;
-
-            const int type = store.findStatic(ref.mRefId);
-            VFS::Path::Normalized model = getModel(type, ref.mRefId, store);
-            if (model.empty())
-                continue;
-            model = Misc::ResourceHelpers::correctMeshPath(model);
-
-            if (activeGrid && type != ESM::REC_STAT && type != ESM::REC_STAT4)
-            {
-                model = Misc::ResourceHelpers::correctActorModelPath(model, mSceneManager->getVFS());
-                constexpr VFS::Path::ExtensionView nif("nif");
-                if (model.extension() == nif)
-                {
-                    VFS::Path::Normalized kfname = model;
-                    constexpr VFS::Path::ExtensionView kf("kf");
-                    kfname.changeExtension(kf);
-                    if (mSceneManager->getVFS()->exists(kfname))
-                        continue;
-                }
-            }
-
-            if (!activeGrid)
-            {
-                std::lock_guard<std::mutex> lock(mLODNameCacheMutex);
-                LODNameCacheKey key{ model, lod };
-                LODNameCache::const_iterator found = mLODNameCache.lower_bound(key);
-                if (found != mLODNameCache.end() && found->first == key)
-                    model = found->second;
-                else
-                    model = mLODNameCache
-                                .emplace_hint(found, std::move(key),
-                                    Misc::ResourceHelpers::getLODMeshName(world.getESMVersions()[refNum.mContentFile],
-                                        model, *mSceneManager->getVFS(), lod))
-                                ->second;
-            }
-
+            Diagnostics::Loading::Timer selectionTiming(Diagnostics::Loading::Stage::ObjectSelection);
             if (prepare)
             {
-                batch.push_back({ refNum, &ref, std::move(model), dSqr });
+                batch.push_back(&item);
                 if (batch.size() == 32)
                     flush();
             }
             else
-                consume(refNum, ref, model, dSqr);
+                consume(item.mNumber, item.mRef, item.mModel, item.mDistanceSquared);
         }
         if (!batch.empty())
             flush();
@@ -1054,7 +1162,8 @@ namespace MWRender
             Diagnostics::Loading::Timer compileLoading(Diagnostics::Loading::Stage::ObjectCompile);
             auto compileSet = new osgUtil::IncrementalCompileOperation::CompileSet(group);
             compileSet->buildCompileMap(ico->getContextSet(), stateToCompile);
-            ico->add(compileSet, false);
+            pending.mOperation = ico;
+            pending.mSet = std::move(compileSet);
         }
 
         Diagnostics::Loading::Timer finishLoading(Diagnostics::Loading::Stage::ObjectFinish);
@@ -1128,15 +1237,14 @@ namespace MWRender
         if (!typeFilter(type, false))
             return false;
 
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            if (enabled && !getWritableRefTracker().mDisabled.erase(refnum))
-                return false;
-            if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second)
-                return false;
-            if (mRefTrackerLocked)
-                return false;
-        }
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        if (enabled && !getWritableRefTracker().mDisabled.erase(refnum))
+            return false;
+        if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second)
+            return false;
+        if (mRefTrackerLocked)
+            return false;
+        ++mSelectionRevision;
 
         CollectIntersecting ccf(false, pos, cell, mWorldspace);
         mCache->call(ccf);
@@ -1152,13 +1260,12 @@ namespace MWRender
         if (!typeFilter(type, false))
             return false;
 
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            if (!getWritableRefTracker().mBlacklist.insert(refnum).second)
-                return false;
-            if (mRefTrackerLocked)
-                return false;
-        }
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        if (!getWritableRefTracker().mBlacklist.insert(refnum).second)
+            return false;
+        if (mRefTrackerLocked)
+            return false;
+        ++mSelectionRevision;
 
         CollectIntersecting ccf(true, pos, cell, mWorldspace);
         mCache->call(ccf);
@@ -1173,6 +1280,7 @@ namespace MWRender
     {
         mReferenceCache->cells.clear();
         std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        ++mSelectionRevision;
         mRefTrackerNew.mDisabled.clear();
         mRefTrackerNew.mBlacklist.clear();
         mRefTrackerLocked = true;
@@ -1180,16 +1288,14 @@ namespace MWRender
 
     bool ObjectPaging::unlockCache()
     {
+        const std::lock_guard lock(mRefTrackerMutex);
         if (!mRefTrackerLocked)
             return false;
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            mRefTrackerLocked = false;
-            if (mRefTracker == mRefTrackerNew)
-                return false;
-            else
-                mRefTracker = mRefTrackerNew;
-        }
+        mRefTrackerLocked = false;
+        if (mRefTracker == mRefTrackerNew)
+            return false;
+        mRefTracker = mRefTrackerNew;
+        ++mSelectionRevision;
         mCache->clear();
         return true;
     }

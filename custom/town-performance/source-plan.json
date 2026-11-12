@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -26,7 +26,8 @@
     "7380a0899f271c60f6262aa67be5b5de1d50dd15",
     "16d564dee59ccaf21b348e69684cd0a7f273fc10",
     "56c3086be9a6bdb402b238e3621b503722c903c4",
-    "32270e113da3aa60b152443cc4eaaa7e3ddf7251"
+    "32270e113da3aa60b152443cc4eaaa7e3ddf7251",
+    "f36c2d4afdab68f19a4339cd1a6ff53159e69ac3"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -688,11 +689,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9901d48cf247139220ec38faec5fb4173c14cfb9"
+        "blob": "89d051ca091fddb469a726eceebe039e254f8835"
       },
-      "bytes": 52789,
-      "sha256": "1b838da53b2ee91c842f65c3d68ff0480b5ea076b69d655c519f4ff5c26be81a",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+      "bytes": 57631,
+      "sha256": "1ce875cc735c3fe3cd5b382941bedc63a4a90f35424f371c971ebf4ff13b0b9d",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes."
     },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
@@ -989,11 +990,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "478315d13f03fb437ad6544f097bacb8350c5063"
+        "blob": "de2c160e9fbfd3a802f4da9c9520aa6f0ce8d841"
       },
-      "bytes": 35049,
-      "sha256": "54a8d49322afe84823157a0b3cbc4d9994831e794e16d26e9b16b338b6a90005",
-      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+      "bytes": 35190,
+      "sha256": "fa180b42cfe621809e92b552affc52b6c857a8dcee30bb586573e4c51f7874f7",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings."
     },
     "components/lua_ui/container.cpp": {
       "before": {
@@ -1251,11 +1252,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fb4faf85d1f91bd736e8d26a802e8d2420b232ef"
+        "blob": "9a12ceec3e7b7b634acaea0c3a1702d98e287d98"
       },
-      "bytes": 61515,
-      "sha256": "600cb48812010de2b563ea944318f4fe0afd02fc089d5f7b48f64be5112017bc",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path."
+      "bytes": 63245,
+      "sha256": "0fb114e92737c4337bf535e261266d175db64b9f67238dc83cf959fe85929917",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
     },
     "components/resource/scenemanager.hpp": {
       "before": {
@@ -1264,11 +1265,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2f3b1c3900351b1d67669a91d5f923d330b9175e"
+        "blob": "6f453c7ff0fe742260d467b2b9a3f17d1c93156e"
       },
-      "bytes": 11198,
-      "sha256": "953a691076a4c6499df602cdc2d2d20fd6354941d621c1d7140041d41e8bf6b3",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path."
+      "bytes": 11666,
+      "sha256": "2cb99e6e7379b644f104d8fa2375e6ccb44e978ff27b7f012f1354c88ff3d223",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
     },
     "components/settings/categories/general.hpp": {
       "before": {
@@ -2580,11 +2581,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "292f6cf0cbe7510e372404f5bdf3886ae2ab7d80"
+        "blob": "6c9f4c3933c2119ad4a7f40fd69fb81e431da0ec"
       },
-      "bytes": 24242,
-      "sha256": "03cd963cf516fcc943d72ce4a79a115420384650270b453eeaa1f02093f4511a",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 23739,
+      "sha256": "0cde6b467d81557598c5b366be75db04d74342eab11d8fe32cfc7068962fc27c",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form."
     },
     "apps/openmw/mwrender/localmap.cpp": {
       "before": {
@@ -2626,11 +2627,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e1375f967312a75abdab9318b667b651d3734576"
+        "blob": "476d8da3e81103b1bde94b33437ea5e9adbe040a"
       },
-      "bytes": 77104,
-      "sha256": "6e55165513183b2100090b4e88aadfe7751656688edda81ca21b8dba43cfcf5c",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order."
+      "bytes": 77109,
+      "sha256": "007d299b6b753b39718653ad0e9c6a358799bcad4aae3cd7d2305021afa491cb",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "before": {
@@ -3667,11 +3668,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1b751d37be1fa632efd4ed9760e21bcd89091052"
+        "blob": "134287561557dbe03d0939ccb20da44d9e96570e"
       },
-      "bytes": 7365,
-      "sha256": "8351dbcc16ba9350e65f3faa46e7f1bca322c4b391c5735325cd70f78ec6e320",
-      "reason": "Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry."
+      "bytes": 10956,
+      "sha256": "70b092d782c453213c4497aa044dd8f1b256d5383ae78beb7f2fa877957bc6a6",
+      "reason": "Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry. Exercise cold models shared across ordered neighboring chunks, dense fallback, cancellation and private publication."
     },
     "apps/openmw/mwgui/inventorywindow.cpp": {
       "before": {
@@ -3680,11 +3681,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "02b482537d87f582148bd0a06dc697e827f85ac7"
+        "blob": "90fd1e41fa44f313abeb223ef5b66eebb025d0b9"
       },
-      "bytes": 47262,
-      "sha256": "eb469be1e21973c08cc3d433bf6592a6b030bc5a0fc1b31cbbfdcca17671201b",
-      "reason": "Prepare the save-loaded inventory list once and refresh the player appearance after magic effects, with scoped load timing."
+      "bytes": 48095,
+      "sha256": "ba9ebe9317275d42da633dcdc2c4c7688c9b370ed2c342f7cb9c3e693566e71b",
+      "reason": "Prepare the save-loaded inventory list once and refresh the player appearance after magic effects, with scoped load timing. Skip a hidden armor caption and update it on first visibility using the actual player combat interface."
     },
     "apps/openmw/mwgui/itemview.cpp": {
       "before": {
@@ -3745,11 +3746,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d4b150d468c5517b9536485336a5ad76b68de496"
+        "blob": "69003724881385e4dd603de8e2f742216c3fd77e"
       },
-      "bytes": 3607,
-      "sha256": "b4017882e48361b384a03de02611a7dcc40ed9923e032d61b094742284bd1714",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+      "bytes": 4392,
+      "sha256": "0eca2847507a6b168342f140c94ff5c93ad067eaeb71c2e75bb55a53d1fa6d60",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes."
     },
     "components/diagnostics/loading.hpp": {
       "before": {
@@ -3758,11 +3759,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "65cc17932b32847cb9d412659b4fac651fa189e9"
+        "blob": "26de46ab4399a0fff142086e48ac34bf608b114d"
       },
-      "bytes": 6821,
-      "sha256": "941796ffa77ae9b8c4c998a42678a3d730ec368508ea9d4d44bec10cb380b910",
-      "reason": "Separate overlapped helper CPU work from elapsed batch time; attribute save-loaded inventory setup."
+      "bytes": 7113,
+      "sha256": "2ebd23a8b1dd8310838a654c02c2bb10cc3eb179afdccbedce316cbe085e5fd9",
+      "reason": "Separate overlapped helper CPU work from elapsed batch time; attribute save-loaded inventory setup. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings."
     },
     "components/terrain/chunkmanager.cpp": {
       "before": {
@@ -3797,11 +3798,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "11bbe97d6df6865493fa736e428b32c2ea5dc8df"
+        "blob": "1d1ea0925e38c039d24a4a615d24afda02264406"
       },
-      "bytes": 26232,
-      "sha256": "01ad0bdb5dca732feb6c16682ad22c6873309c23381c3678a57cd8efd1561430",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+      "bytes": 28060,
+      "sha256": "64c3115cda50e3514632bd44d40682a1c80b8fb0b88b966f797ad6f6970ac4f5",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
     },
     "components/terrain/quadtreeworld.hpp": {
       "before": {
@@ -3810,11 +3811,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8b941632e192a376a2a0a7a6e4c4f5e431ab4845"
+        "blob": "ca345eafb2a2b7b2b49b68dae085776aba5c3725"
       },
-      "bytes": 3742,
-      "sha256": "c690152cc4c6416182bfbfa4622b77415988fc1d7ccca60e2e91157d9080ff05",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+      "bytes": 4957,
+      "sha256": "b06838229e60d3a85f7733876c056844781f8cd5e5a9cc56874e3c6a8dbc146a",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
     },
     "apps/openmw/mwbase/windowmanager.hpp": {
       "before": {
@@ -3887,6 +3888,45 @@
       "bytes": 2021,
       "sha256": "1cf85691abb05e038153b794eb46e8bd56001f205e32147a3389a2cb6a193367",
       "reason": "Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch."
+    },
+    "apps/openmw/mwgui/inventorywindow.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b1eed55ee37efad23ca3b0b346f16dd6c031fbf7"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e5ae39a1e7c49e88f17c626385cd6a9fc4d5e058"
+      },
+      "bytes": 4792,
+      "sha256": "730d84d18dd44555ca3c859cfb2c81ab0932a1d116647c2d0648b3bb8aba8044",
+      "reason": "Skip a hidden armor caption and update it on first visibility using the actual player combat interface."
+    },
+    "apps/openmw/mwrender/npcanimation.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "fc49369e4a8194034530335edacb02cd70f185b8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "9a9c4c4ffaeee720757fb6854df4458264f6e07c"
+      },
+      "bytes": 52761,
+      "sha256": "54539eafe64fc11d4acf909c1c10b61dc5117ac01ed5b89004f0db8977ccc997",
+      "reason": "Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form."
+    },
+    "apps/openmw/mwrender/npcanimation.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "13f6ec07267220da510b70272bc58a925953f5b1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "b6af1fa2ce54b6e3df26ab169a2153aade52c3a5"
+      },
+      "bytes": 6527,
+      "sha256": "09630bf462973d183c95842e2a7b54f88069bee68d8cbd9d4a30cc3928bea14a",
+      "reason": "Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form."
     }
   }
 }

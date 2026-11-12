@@ -17,7 +17,7 @@ namespace MWRender
 
     typedef std::tuple<osg::Vec2f, float, bool> ChunkId; // Center, Size, ActiveGrid
 
-    class ObjectPaging : public Resource::GenericResourceManager<ChunkId>, public Terrain::QuadTreeWorld::ChunkManager
+    class ObjectPaging : public Resource::GenericResourceManager<ChunkId>, public Terrain::QuadTreeWorld::BatchChunkManager
     {
     public:
         ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace);
@@ -26,8 +26,10 @@ namespace MWRender
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags,
             bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort = nullptr) override;
 
-        osg::ref_ptr<osg::Node> createChunk(float size, const osg::Vec2f& center, bool activeGrid,
-            const osg::Vec3f& viewPoint, bool compile, unsigned char lod, const std::atomic_bool* abort = nullptr);
+        using ChunkRequest = Terrain::QuadTreeWorld::ChunkRequest;
+        bool canPreloadBatches() const override;
+        void preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
+            const std::atomic_bool& abort, const Load& load) override;
 
         unsigned int getNodeMask() override;
 
@@ -48,6 +50,14 @@ namespace MWRender
         void getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out);
 
     private:
+        struct Selection;
+        struct PendingCompile;
+        Selection selectChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort);
+        osg::ref_ptr<osg::Node> fetchChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, bool compile,
+            const std::atomic_bool* abort, const Selection* selected, bool modelsPrepared);
+        osg::ref_ptr<osg::Node> createChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Selection& selected,
+            bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending);
+        std::atomic_uint64_t mSelectionRevision{ 0 };
         struct ReferenceCache;
         std::unique_ptr<ReferenceCache> mReferenceCache;
         Resource::SceneManager* mSceneManager;
@@ -83,6 +93,7 @@ namespace MWRender
         typedef std::pair<std::string, unsigned char> LODNameCacheKey; // Key: mesh name, lod level
         using LODNameCache = std::map<LODNameCacheKey, VFS::Path::Normalized>; // Cache: key, mesh name to use
         LODNameCache mLODNameCache;
+        std::uint64_t mLODNameCacheRevision = 0;
     };
 
     class RefnumMarker : public osg::Object

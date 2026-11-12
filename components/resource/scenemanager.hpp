@@ -9,6 +9,7 @@
 #include <mutex>
 #include <string>
 #include <span>
+#include <vector>
 
 namespace Misc { class NativeJobPool; }
 
@@ -168,6 +169,12 @@ namespace Resource
         /// publication follow the first real getTemplate request. An interrupted batch discards unused models.
         void withPreparedPagedModels(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs,
             const std::atomic_bool* abort, const std::function<void()>& consume);
+
+        /// Pool cold models across adjacent chunks while retaining only a bounded number of private drafts.
+        /// A dense chunk uses its existing per-chunk preparation. Consumers always run in input order.
+        void withPagedModelGroups(std::span<const std::vector<VFS::Path::NormalizedView>> chunks,
+            Misc::NativeJobPool& jobs, const std::atomic_bool& abort,
+            const std::function<void(std::size_t, bool)>& consume);
 
         /// Clone osg::Node safely.
         /// @note Thread safe.

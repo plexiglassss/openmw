@@ -4,6 +4,7 @@
 
 #include "scripttracker.hpp"
 
+#include <components/diagnostics/loading.hpp>
 #include <components/esm/luascripts.hpp>
 #include <components/misc/combinedperformance.hpp>
 
@@ -552,6 +553,7 @@ namespace LuaUtil
         mRequiredLoading = true;
         if (LoadedData* data = std::get_if<LoadedData>(&mData))
             return *data;
+        Diagnostics::Loading::Timer startup(Diagnostics::Loading::Stage::LuaContainerStartup);
         UnloadedData& unloadedData = std::get<UnloadedData>(mData);
         std::vector<ESM::LuaScript> savedScripts = std::move(unloadedData.mScripts);
         LoadedData& data = mData.emplace<LoadedData>();

@@ -173,4 +173,82 @@ namespace
         EXPECT_EQ(metrics.calls[static_cast<std::size_t>(Stage::PagedModelCpu)], 1u);
         EXPECT_EQ(metrics.calls[static_cast<std::size_t>(Stage::TemplateCpu)], 2u);
     }
+
+    TEST(TransitionPreparationTest, AdjacentChunksShareColdModelsWithoutPublishingAhead)
+    {
+        using VFS::Path::NormalizedView;
+        using namespace Diagnostics::Loading;
+        constexpr NormalizedView a("meshes/first.nif"), b("meshes/next.nif");
+        struct WatchedFile : TestingOpenMW::VFSTestFile
+        {
+            using VFSTestFile::VFSTestFile;
+            std::promise<void> mOpened;
+            std::once_flag mFirst;
+            Files::IStreamPtr open() override
+            {
+                std::call_once(mFirst, [&] { mOpened.set_value(); });
+                return VFSTestFile::open();
+            }
+        };
+        TestingOpenMW::VFSTestFile first(makeRootNif("first"));
+        WatchedFile next(makeRootNif("next"));
+        auto opened = next.mOpened.get_future();
+        auto vfs = TestingOpenMW::createTestVFS({ { a, &first }, { b, &next } });
+        TestModels models(vfs.get());
+        Misc::NativeJobPool jobs(2, 16);
+        std::atomic_bool abort{ false };
+        const std::vector<std::vector<NormalizedView>> chunks{ { a, a }, { b, a }, {} };
+        std::vector<std::size_t> order;
+        Metrics metrics;
+        Session timing(metrics);
+        const auto owner = std::this_thread::get_id();
+        models.mScenes.withPagedModelGroups(chunks, jobs, abort, [&](std::size_t i, bool prepared) {
+            EXPECT_TRUE(prepared);
+            EXPECT_EQ(std::this_thread::get_id(), owner);
+            order.push_back(i);
+            if (i == 0)
+            {
+                ASSERT_EQ(opened.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+                EXPECT_FALSE(models.mScenes.checkLoaded(b, 0));
+            }
+            for (const auto path : chunks[i])
+                EXPECT_TRUE(models.mScenes.getTemplate(path, false));
+        });
+        EXPECT_EQ(order, (std::vector<std::size_t>{ 0, 1, 2 }));
+        EXPECT_EQ(metrics.calls[static_cast<std::size_t>(Stage::PagedChunkGroup)], 1u);
+        EXPECT_EQ(metrics.calls[static_cast<std::size_t>(Stage::TemplateCpu)]
+            + metrics.calls[static_cast<std::size_t>(Stage::PagedModelCpu)], 2u);
+    }
+
+    TEST(TransitionPreparationTest, DenseChunkUsesBoundedFallbackAndAbortStopsFollowingChunks)
+    {
+        using VFS::Path::Normalized;
+        using VFS::Path::NormalizedView;
+        constexpr NormalizedView tail("meshes/tail.nif");
+        TestingOpenMW::VFSTestFile model(makeRootNif("tail"));
+        auto vfs = TestingOpenMW::createTestVFS({ { tail, &model } });
+        TestModels models(vfs.get());
+        Misc::NativeJobPool jobs(2, 16);
+        std::atomic_bool abort{ false };
+        std::vector<Normalized> names;
+        for (int i = 0; i < 100; ++i)
+            names.emplace_back("meshes/dense" + std::to_string(i) + ".nif");
+        std::vector<std::vector<NormalizedView>> chunks(4);
+        for (const auto& name : names)
+            chunks[1].emplace_back(name);
+        chunks[2].push_back(tail);
+        std::vector<bool> prepared;
+        models.mScenes.withPagedModelGroups(chunks, jobs, abort, [&](std::size_t i, bool grouped) {
+            EXPECT_EQ(i, prepared.size());
+            prepared.push_back(grouped);
+            if (i == 2)
+            {
+                EXPECT_TRUE(models.mScenes.getTemplate(tail, false));
+                abort = true;
+            }
+        });
+        EXPECT_EQ(prepared, (std::vector<bool>{ true, false, true }));
+        models.mScenes.withPagedModelGroups(chunks, jobs, abort,
+            [](std::size_t, bool) { ADD_FAILURE() << "An aborted group must not consume another chunk"; });
+    }
 }

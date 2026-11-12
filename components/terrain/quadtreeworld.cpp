@@ -1,6 +1,8 @@
 #include <components/diagnostics/loading.hpp>
 #include "quadtreeworld.hpp"
 
+#include <array>
+
 #include <components/diagnostics/timing.hpp>
 
 #include <osg/PolygonMode>
@@ -368,13 +370,8 @@ namespace Terrain
         return lodFlags;
     }
 
-    void QuadTreeWorld::loadRenderingNode(
-        ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const osg::Vec4i& gridbounds, bool compile,
-        const std::atomic_bool* abort)
+    void QuadTreeWorld::updateRenderingLod(ViewDataEntry& entry, ViewData* vd)
     {
-        if (!vd->hasChanged() && entry.mRenderingNode)
-            return;
-
         if (vd->hasChanged())
         {
             vd->buildNodeIndex();
@@ -388,24 +385,36 @@ namespace Terrain
                 entry.mLodFlags = lodFlags;
             }
         }
+    }
 
+    QuadTreeWorld::ChunkRequest QuadTreeWorld::getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& bounds) const
+    {
+        const auto& center = entry.mNode->getCenter();
+        const bool active = center.x() > bounds.x() && center.y() > bounds.y()
+            && center.x() < bounds.z() && center.y() < bounds.w();
+        return { entry.mNode->getSize(), center, entry.mLodFlags, active };
+    }
+
+    void QuadTreeWorld::loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize,
+        const ChunkRequest& request, bool compile, const std::atomic_bool* abort, const BatchChunkManager::Fetch* fetch)
+    {
         if (!entry.mRenderingNode)
         {
             osg::ref_ptr<SceneUtil::PositionAttitudeTransform> pat = new SceneUtil::PositionAttitudeTransform;
             pat->setPosition(osg::Vec3f(
                 entry.mNode->getCenter().x() * cellWorldSize, entry.mNode->getCenter().y() * cellWorldSize, 0.f));
 
-            const osg::Vec2f& center = entry.mNode->getCenter();
-            bool activeGrid = (center.x() > gridbounds.x() && center.y() > gridbounds.y() && center.x() < gridbounds.z()
-                && center.y() < gridbounds.w());
-
             for (QuadTreeWorld::ChunkManager* m : mChunkManagers)
             {
                 if (abort && abort->load(std::memory_order_relaxed))
                     return;
-                osg::ref_ptr<osg::Node> n = m->getChunk(entry.mNode->getSize(), entry.mNode->getCenter(),
-                    static_cast<unsigned char>(DefaultLodCallback::getNativeLodLevel(entry.mNode, mMinSize)),
-                    entry.mLodFlags, activeGrid, vd->getViewPoint(), compile, abort);
+                osg::ref_ptr<osg::Node> n;
+                if (fetch && m == mBatchChunkManager)
+                    n = (*fetch)();
+                else
+                    n = m->getChunk(request.mSize, request.mCenter,
+                        static_cast<unsigned char>(DefaultLodCallback::getNativeLodLevel(entry.mNode, mMinSize)),
+                        request.mLodFlags, request.mActiveGrid, vd->getViewPoint(), compile, abort);
                 if (n)
                     pat->addChild(n);
             }
@@ -512,7 +521,9 @@ namespace Terrain
                 std::optional<Diagnostics::Scope> prepareTiming;
                 if (!isCullVisitor)
                     prepareTiming.emplace("terrain", "ray", "prepareRenderingNode");
-                loadRenderingNode(entry, vd, cellWorldSize, mActiveGrid, false);
+                updateRenderingLod(entry, vd);
+                if (!entry.mRenderingNode)
+                    loadRenderingNode(entry, vd, cellWorldSize, getChunkRequest(entry, mActiveGrid), false);
             }
             {
                 std::optional<Diagnostics::Scope> traverseTiming;
@@ -593,17 +604,44 @@ namespace Terrain
             reporter.addTotal(vd->getNumEntries());
         }
 
-        for (unsigned int i = 0, n = vd->getNumEntries(); i < n && !abort; ++i)
+        const auto advance = [&] {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);
+            reporter.addProgress(1);
+        };
+        constexpr std::size_t groupSize = 4;
+        const bool batch = mBatchChunkManager && mBatchChunkManager->canPreloadBatches();
+        for (unsigned int i = 0, n = vd->getNumEntries(); i < n && !abort;)
         {
-            ViewDataEntry& entry = vd->getEntry(i);
+            std::array<ViewDataEntry*, groupSize> entries;
+            std::array<ChunkRequest, groupSize> chunks;
+            std::size_t count = 0;
+            while (i < n && count < (batch ? groupSize : 1) && !abort)
             {
-                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
-                loadRenderingNode(entry, vd, cellWorldSize, grid, true, &abort);
+                auto& entry = vd->getEntry(i++);
+                updateRenderingLod(entry, vd);
+                if (entry.mRenderingNode)
+                    advance();
+                else
+                {
+                    entries[count] = &entry;
+                    chunks[count++] = getChunkRequest(entry, grid);
+                }
             }
-            {
-                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);
-                reporter.addProgress(1);
-            }
+            if (count == 0 || abort)
+                continue;
+            const auto load = [&](std::size_t index, const BatchChunkManager::Fetch& fetch) {
+                {
+                    Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
+                    loadRenderingNode(*entries[index], vd, cellWorldSize, chunks[index], true, &abort,
+                        fetch ? &fetch : nullptr);
+                }
+                if (!abort)
+                    advance();
+            };
+            if (batch)
+                mBatchChunkManager->preloadChunks(std::span(chunks).first(count), vd->getViewPoint(), abort, load);
+            else
+                load(0, {});
         }
     }
 
@@ -632,6 +670,12 @@ namespace Terrain
             TerrainGrid::unloadCell(x, y);
         else
             World::unloadCell(x, y);
+    }
+
+    void QuadTreeWorld::addBatchChunkManager(BatchChunkManager* manager)
+    {
+        addChunkManager(manager);
+        mBatchChunkManager = manager;
     }
 
     void QuadTreeWorld::addChunkManager(QuadTreeWorld::ChunkManager* m)

@@ -1456,7 +1456,7 @@ namespace MWRender
             {
                 newChunkMgr.mObjectPaging
                     = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), worldspace);
-                quadTreeWorld->addChunkManager(newChunkMgr.mObjectPaging.get());
+                quadTreeWorld->addBatchChunkManager(newChunkMgr.mObjectPaging.get());
                 mResourceSystem->addResourceManager(newChunkMgr.mObjectPaging.get());
             }
             if (groundcover)

@@ -28,7 +28,8 @@ namespace Diagnostics::Loading
         TemplateRequest, TemplateCache, TemplatePrepare, TemplateLoad, TemplateFiltering,
         TemplateShaders, TemplateOptimize, TemplateCompile, TemplatePublish, TemplateWait, TemplateCpu, PagedBatchWall,
         PagedModelCpu, PagedModelLoadCpu, PagedModelShaderCpu, PlayerInventoryList, PlayerPreviewRebuild,
-        PlayerPreviewUpdate, PlayerSpellWindow, PlayerMagicEffects, Count
+        PlayerPreviewUpdate, PlayerSpellWindow, PlayerMagicEffects, PlayerPreviewGeometry, PlayerArmorCaption,
+        PlayerArmorCaptionHidden, LuaContainerStartup, PagedChunkGroup, PagedCandidateSelection, Count
     };
     inline constexpr std::size_t stageCount = static_cast<std::size_t>(Stage::Count);
     inline constexpr std::array<std::string_view, stageCount> stageNames = {
@@ -39,7 +40,8 @@ namespace Diagnostics::Loading
         "objectFinish", "templateRequest", "templateCache", "templatePrepare", "templateLoad", "templateFiltering",
         "templateShaders", "templateOptimize", "templateCompile", "templatePublish", "templateWait", "templateCpu", "pagedBatchWall",
         "pagedModelCpu", "pagedModelLoadCpu", "pagedModelShaderCpu", "playerInventoryList", "playerPreviewRebuild",
-        "playerPreviewUpdate", "playerSpellWindow", "playerMagicEffects"
+        "playerPreviewUpdate", "playerSpellWindow", "playerMagicEffects", "playerPreviewGeometry", "playerArmorCaption",
+        "playerArmorCaptionHidden", "luaContainerStartup", "pagedChunkGroup", "pagedCandidateSelection"
     };
 
     struct Metrics
