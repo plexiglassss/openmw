@@ -95,6 +95,7 @@ file(GLOB UNITTEST_SRC_FILES
 
     resource/testobjectcache.cpp
     resource/testresourcesystem.cpp
+    resource/testtownpreparation.cpp
 
     vfs/testpathutil.cpp
 

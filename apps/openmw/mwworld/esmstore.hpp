@@ -170,6 +170,8 @@ namespace MWWorld
         {
             int mCount = 0;
             std::vector<const ESM::Cell*> mCells;
+            // Includes superseded placements. Only a negative result may skip a preload.
+            std::vector<const ESM::Cell*> mPossibleCells;
         };
 
         std::unordered_map<ESM::RefId, RefInfo> mRefInfo;
@@ -216,6 +218,7 @@ namespace MWWorld
 
         // False only for a fully indexed ESM3 cell with no candidate of this type.
         bool cellMayContainType(const ESM::Cell& cell, uint32_t type) const;
+        bool cellMayContainRecord(const ESM::Cell& cell, const ESM::RefId& id) const;
 
         ESMStore();
         ~ESMStore();

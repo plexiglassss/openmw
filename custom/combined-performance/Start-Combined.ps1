@@ -7,6 +7,7 @@ param(
     [string]$OutputRoot,
     [ValidateSet('Unknown', 'On', 'Off')][string]$DeclaredFG = 'Unknown',
     [string[]]$GameArguments = @(),
+    [switch]$Detailed,
     [switch]$NoGpu,
     [switch]$NoPrompt
 )
@@ -22,7 +23,7 @@ if ([string]::IsNullOrWhiteSpace($OpenMWExe)) {
 $parameters = @{
     OpenMWExe = $OpenMWExe
     RunLabel = ('combined-' + $Variant.ToLowerInvariant())
-    Mode = 'FrameOnly'
+    Mode = $(if ($Detailed) { 'Detailed' } else { 'FrameOnly' })
     DeclaredFG = $DeclaredFG
     GameArguments = $GameArguments
     NoGpu = $NoGpu
@@ -51,9 +52,10 @@ try {
     foreach ($name in $overrides.Keys) {
         [Environment]::SetEnvironmentVariable($name, $overrides[$name], 'Process')
     }
-    Write-Host ('Engine mode: ' + $Variant + '; native jobs ' + $(if ($Variant -eq 'Inherited') { 'disabled' } else { 'enabled' }) + '; FrameOnly recording')
+    Write-Host ('Engine mode: ' + $Variant + '; native jobs ' + $(if ($Variant -eq 'Inherited') { 'disabled' } else { 'enabled' }) + '; ' + $parameters.Mode + ' recording')
     Write-Host 'Load your usual town save, let loading settle, then play your usual short route.'
     Write-Host 'Use the same mods, adapters and settings for each recording.'
+    if ($Detailed) { Write-Host 'Press Ctrl+Alt+5 when opening inventory, or Ctrl+Alt+6 when a hitch is noticeable.' }
     Write-Host 'Quit normally when finished; the capture ZIP is created automatically.'
     if ($Variant -eq 'Inherited') {
         Write-Host 'Inherited mode uses the same executable with native jobs and the new generic query APIs disabled.'

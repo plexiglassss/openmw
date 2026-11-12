@@ -586,7 +586,17 @@ namespace MWWorld
             typeCandidates.addCell(cells.at(i));
         for (const Ref& value : refs)
             if (value.mRefID != deletedRefID)
-                typeCandidates.addCandidate(cells.at(value.mCellIndex), find(refIDs[value.mRefID]));
+            {
+                const ESM::Cell* cell = cells.at(value.mCellIndex);
+                const ESM::RefId& id = refIDs[value.mRefID];
+                typeCandidates.addCandidate(cell, find(id));
+                // readRefs appends all contexts and leased references of one cell together.
+                auto& possible = mRefInfo[id].mPossibleCells;
+                if (possible.empty() || possible.back() != cell)
+                    possible.push_back(cell);
+            }
+        for (auto& [id, info] : mRefInfo)
+            std::sort(info.mPossibleCells.begin(), info.mPossibleCells.end(), std::less<>{});
         const auto lessByRefNum = [](const Ref& l, const Ref& r) { return l.mRefNum < r.mRefNum; };
         std::stable_sort(refs.begin(), refs.end(), lessByRefNum);
         const auto equalByRefNum = [](const Ref& l, const Ref& r) { return l.mRefNum == r.mRefNum; };
@@ -626,6 +636,15 @@ namespace MWWorld
     bool ESMStore::cellMayContainType(const ESM::Cell& cell, uint32_t type) const
     {
         return mCellTypeCandidates.mayContain(&cell, type);
+    }
+
+    bool ESMStore::cellMayContainRecord(const ESM::Cell& cell, const ESM::RefId& id) const
+    {
+        if (!mCellTypeCandidates.covers(&cell))
+            return true;
+        const auto it = mRefInfo.find(id);
+        return it != mRefInfo.end() && std::binary_search(it->second.mPossibleCells.begin(),
+            it->second.mPossibleCells.end(), &cell, std::less<>{});
     }
 
     int ESMStore::getRefCount(const ESM::RefId& id) const

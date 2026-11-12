@@ -97,6 +97,9 @@ namespace Shader
     private:
         osg::ref_ptr<osg::Shader> getShaderInternal(std::string templateName, const DefineMap& defines = {},
             std::optional<osg::Shader::Type> type = std::nullopt);
+        osg::ref_ptr<osg::Program> getProgramInternal(osg::ref_ptr<osg::Shader> vertexShader,
+            osg::ref_ptr<osg::Shader> fragmentShader, const osg::Program* programTemplate,
+            const SamplerBindingMap& samplers);
         void getLinkedShaders(osg::ref_ptr<osg::Shader> shader, const std::vector<std::string>& linkedShaderNames,
             const DefineMap& defines);
         void addLinkedShaders(osg::ref_ptr<osg::Shader> shader, osg::ref_ptr<osg::Program> program);
@@ -110,7 +113,18 @@ namespace Shader
         TemplateMap mShaderTemplates;
 
         typedef std::pair<std::string, DefineMap> MapKey;
-        typedef std::map<MapKey, osg::ref_ptr<osg::Shader>> ShaderMap;
+        using ShaderKeyView = std::pair<const std::string&, const DefineMap&>;
+        struct ShaderKeyLess
+        {
+            using is_transparent = void;
+            bool operator()(ShaderKeyView left, ShaderKeyView right) const
+            {
+                if (left.first != right.first)
+                    return left.first < right.first;
+                return left.second < right.second;
+            }
+        };
+        using ShaderMap = std::map<MapKey, osg::ref_ptr<osg::Shader>, ShaderKeyLess>;
         ShaderMap mShaders;
 
         typedef std::map<std::pair<osg::ref_ptr<osg::Shader>, osg::ref_ptr<osg::Shader>>, osg::ref_ptr<osg::Program>>

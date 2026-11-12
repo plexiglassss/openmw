@@ -134,6 +134,8 @@
 -- @param #table options Optional table, can take the following options:
 --
 --   * `noWarnUnused` - if set to true this element will never generate warnings about unused properties.
+--   * `deferUntilAttached` - for a child element, build its native widgets on first attachment to a
+--     parent layout. Edits made before attachment are used on that first display.
 --
 -- @return #Element
 

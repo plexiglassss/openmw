@@ -323,6 +323,29 @@ namespace LuaUi
             }
         };
 
+        class TownUiPerformanceTest : public LuaUiLayoutTest {};
+
+        TEST_F(TownUiPerformanceTest, UnattachedSettingsGroupUsesLatestLayoutOnFirstDisplay)
+        {
+            run(R"(
+                group = element {name='group',props={size=vec2(20,10)}}
+                roots = {group}
+            )");
+            auto group = mLua["group"].get<std::shared_ptr<Element>>();
+            ASSERT_EQ(group->mRoot, nullptr);
+            bool queued = false;
+            group->requestUpdate(nullptr, [&] { queued = true; });
+            EXPECT_FALSE(queued);
+            run(R"(
+                group.layout.props.size = vec2(77,25)
+                root = element {name='page',props={size=vec2(200,200)},content=content {group}}
+                roots = {root,group}
+                refresh(root)
+            )");
+            ASSERT_TRUE(group->mRoot);
+            EXPECT_EQ(group->mRoot->widget()->getSize(), MyGUI::IntSize(77,25));
+        }
+
         TEST_F(LuaUiLayoutTest, StableTemplateHierarchyAndSiblingOrderRepair)
         {
             run(R"(

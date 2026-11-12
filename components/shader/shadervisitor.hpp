@@ -128,12 +128,13 @@ namespace Shader
 
             // the Node that requested these requirements
             osg::Node* mNode;
+            bool mProgramApplied = false;
         };
         std::vector<ShaderRequirements> mRequirements;
 
         std::string mDefaultShaderPrefix;
 
-        void createProgram(const ShaderRequirements& reqs);
+        void createProgram(ShaderRequirements& reqs);
         bool adjustGeometry(osg::Geometry& sourceGeometry, const ShaderRequirements& reqs);
 
         osg::ref_ptr<const osg::Program> mProgramTemplate;

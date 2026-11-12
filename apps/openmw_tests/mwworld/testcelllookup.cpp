@@ -599,6 +599,67 @@ namespace MWWorld
             EXPECT_EQ(room.getState(), CellStore::State_Loaded);
         }
 
+        class TownWorldLookupTest : public CellLookupTest {};
+
+        TEST_F(TownWorldLookupTest, ColdNegativeLeavesRecordsClosedAndPreservesLiveDuplicates)
+        {
+            CellStore& empty = cell("unrelated indexed room", false);
+            CellStore& live = cell("occupied indexed room");
+            const Ptr a = add(live, "repeated base");
+            const Ptr b = add(live, "repeated base");
+            ESM::Class cls;
+            cls.blank();
+            cls.mId = ESM::RefId::stringRefId("class");
+            mStore.insertStatic(cls);
+            ESM::Race race;
+            race.blank();
+            race.mId = ESM::RefId::stringRefId("race");
+            mStore.insertStatic(race);
+            mStore.setUp();
+            mStore.validateRecords(mReaders);
+            const auto id = ESM::RefId::stringRefId("repeated base");
+            EXPECT_EQ(mWorld.getAll(id, {}, true), (std::vector<Ptr>{ a, b }));
+            const char* indexed = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+            if (!indexed || std::string_view(indexed) != "0")
+                EXPECT_EQ(empty.getState(), CellStore::State_Unloaded);
+            EXPECT_EQ(mWorld.getAll(id, live.getCell()->getId(), false), (std::vector<Ptr>{ a, b }));
+            EXPECT_TRUE(mWorld.getAll(id, empty.getCell()->getId(), false).empty());
+        }
+
+        TEST_F(TownWorldLookupTest, UnreducedLeasedPlacementsRemainCandidates)
+        {
+            const auto first = ESM::RefId::stringRefId("first base");
+            const auto second = ESM::RefId::stringRefId("second base");
+            ESM::Cell record;
+            record.blank();
+            record.mName = "leased room";
+            record.mData.mFlags = ESM::Cell::Interior;
+            record.updateId();
+            ESM::CellRef ref;
+            ref.blank();
+            ref.mRefNum = ESM::RefNum{ 15, 0 };
+            ref.mRefID = first;
+            record.mLeasedRefs.emplace_back(ref, false);
+            ref.mRefID = second;
+            record.mLeasedRefs.emplace_back(ref, false);
+            mStore.insert(record);
+            const ESM::Cell& stored = mWorld.getCell(record.mId, false).getCell()->getEsm3();
+            ESM::Class cls;
+            cls.blank();
+            cls.mId = ESM::RefId::stringRefId("class");
+            mStore.insertStatic(cls);
+            ESM::Race race;
+            race.blank();
+            race.mId = ESM::RefId::stringRefId("race");
+            mStore.insertStatic(race);
+            mStore.setUp();
+            mStore.validateRecords(mReaders);
+            EXPECT_TRUE(mStore.cellMayContainRecord(stored, first));
+            EXPECT_TRUE(mStore.cellMayContainRecord(stored, second));
+            EXPECT_FALSE(mStore.cellMayContainRecord(stored, ESM::RefId::stringRefId("absent")));
+            EXPECT_TRUE(mStore.cellMayContainRecord(record, ESM::RefId::stringRefId("unindexed")));
+        }
+
         TEST_F(CellLookupTest, typedQueryBenchmark)
         {
             CellStore& room = cell("query benchmark");

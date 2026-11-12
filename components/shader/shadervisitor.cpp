@@ -422,26 +422,18 @@ namespace Shader
 
             if (mAutoUseNormalMaps && diffuseMap != nullptr && normalMap == nullptr && diffuseMap->getImage(0))
             {
-                std::string normalMapFileName = diffuseMap->getImage(0)->getFileName();
+                const auto& diffuseName = diffuseMap->getImage(0)->getFileName();
 
                 osg::ref_ptr<osg::Image> image;
                 bool normalHeight = false;
-                std::string normalHeightMap = normalMapFileName;
-                Misc::StringUtils::replaceLast(normalHeightMap, ".", mNormalHeightMapPattern + ".");
-                const VFS::Path::Normalized normalHeightMapPath(normalHeightMap);
-                if (mImageManager.getVFS()->exists(normalHeightMapPath))
+                if (auto path = mImageManager.findCompanion(diffuseName, mNormalHeightMapPattern))
                 {
-                    image = mImageManager.getImage(normalHeightMapPath);
+                    image = mImageManager.getImage(*path);
                     normalHeight = true;
                 }
-                else
+                else if (auto path = mImageManager.findCompanion(diffuseName, mNormalMapPattern))
                 {
-                    Misc::StringUtils::replaceLast(normalMapFileName, ".", mNormalMapPattern + ".");
-                    const VFS::Path::Normalized normalMapPath(normalMapFileName);
-                    if (mImageManager.getVFS()->exists(normalMapPath))
-                    {
-                        image = mImageManager.getImage(normalMapPath);
-                    }
+                    image = mImageManager.getImage(*path);
                 }
                 // Avoid using the auto-detected normal map if it's already being used as a bump map.
                 // It's probably not an actual normal map.
@@ -501,12 +493,9 @@ namespace Shader
 
             if (mAutoUseSpecularMaps && diffuseMap != nullptr && specularMap == nullptr && diffuseMap->getImage(0))
             {
-                std::string specularMapFileName = diffuseMap->getImage(0)->getFileName();
-                Misc::StringUtils::replaceLast(specularMapFileName, ".", mSpecularMapPattern + ".");
-                const VFS::Path::Normalized specularMapPath(specularMapFileName);
-                if (mImageManager.getVFS()->exists(specularMapPath))
+                if (auto path = mImageManager.findCompanion(diffuseMap->getImage(0)->getFileName(), mSpecularMapPattern))
                 {
-                    osg::ref_ptr<osg::Image> image(mImageManager.getImage(specularMapPath));
+                    osg::ref_ptr<osg::Image> image(mImageManager.getImage(*path));
                     osg::ref_ptr<osg::Texture2D> specularMapTex(new osg::Texture2D(image));
                     specularMapTex->setTextureSize(image->s(), image->t());
                     specularMapTex->setWrap(osg::Texture::WRAP_S, diffuseMap->getWrap(osg::Texture::WRAP_S));
@@ -596,6 +585,7 @@ namespace Shader
         else
             mRequirements.push_back(mRequirements.back());
         mRequirements.back().mNode = &node;
+        mRequirements.back().mProgramApplied = false;
     }
 
     void ShaderVisitor::popRequirements()
@@ -603,8 +593,13 @@ namespace Shader
         mRequirements.pop_back();
     }
 
-    void ShaderVisitor::createProgram(const ShaderRequirements& reqs)
+    void ShaderVisitor::createProgram(ShaderRequirements& reqs)
     {
+        // Several drawables without their own state can inherit this exact owner.
+        // Geometry still needs its own UVs/tangents; the owner's shader state is applied once.
+        const osg::StateSet* currentState = reqs.mNode->getStateSet();
+        if (reqs.mProgramApplied && currentState && currentState->getNumParents() == 1)
+            return;
         /**
          * The shader visitor is supposed to be idempotent and undoable.
          * That means we need to back up state we've removed (so it can be restored and/or considered by further
@@ -633,14 +628,16 @@ namespace Shader
             previousAddedState = new AddedState;
         removeLocationProfileFallbacks(*writableStateSet, *previousAddedState);
 
-        ShaderManager::DefineMap defineMap;
-        defineMap["autoNormalMap"] = "0";
-        defineMap["autoSpecularMap"] = "0";
-        for (unsigned int i = 0; i < sizeof(defaultTextures) / sizeof(defaultTextures[0]); ++i)
-        {
-            defineMap[defaultTextures[i]] = "0";
-            defineMap[std::string(defaultTextures[i]) + std::string("UV")] = "0";
-        }
+        static const ShaderManager::DefineMap defaults = [] {
+            ShaderManager::DefineMap values{ { "autoNormalMap", "0" }, { "autoSpecularMap", "0" } };
+            for (const auto& name : defaultTextures)
+            {
+                values.emplace(name, "0");
+                values.emplace(std::string(name) + "UV", "0");
+            }
+            return values;
+        }();
+        ShaderManager::DefineMap defineMap = defaults;
         for (std::map<int, std::string>::const_iterator texIt = reqs.mTextures.begin(); texIt != reqs.mTextures.end();
              ++texIt)
         {
@@ -849,6 +846,7 @@ namespace Shader
 
             updateAddedState(*writableUserData, addedState);
         }
+        reqs.mProgramApplied = writableStateSet->getNumParents() == 1;
     }
 
     bool ShaderVisitor::adjustGeometry(osg::Geometry& sourceGeometry, const ShaderRequirements& reqs)
@@ -943,7 +941,7 @@ namespace Shader
 
         if (!mRequirements.empty())
         {
-            const ShaderRequirements& reqs = mRequirements.back();
+            ShaderRequirements& reqs = mRequirements.back();
 
             adjustGeometry(geometry, reqs);
 
@@ -971,7 +969,7 @@ namespace Shader
                 applyStateSet(drawable.getStateSet(), drawable);
         }
 
-        const ShaderRequirements& reqs = mRequirements.back();
+        ShaderRequirements& reqs = mRequirements.back();
         createProgram(reqs);
 
         if (auto rig = dynamic_cast<SceneUtil::RigGeometry*>(&drawable))

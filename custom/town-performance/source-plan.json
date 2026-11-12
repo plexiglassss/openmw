@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Cumulative engine, parallel jobs and editable location lighting, plus VFS-driven world and local door icon skins, vanilla or type colours, and maximum zoomed icon size.",
+  "scope": "Preserve the cumulative Windows engine, location profiles and native map icons. Improve town UI and foreground rendering work, shader preparation for paged models, and whole-world record queries on save load.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -22,7 +22,8 @@
     "39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7",
     "7234ad470020e814a1503b3549a1d332f81606b4",
     "26e7cebdd47143df2087b93d499d077ac0c1f3b9",
-    "cb0af729d9012a7240d4ece33c634b2d9fef4fe5"
+    "cb0af729d9012a7240d4ece33c634b2d9fef4fe5",
+    "7380a0899f271c60f6262aa67be5b5de1d50dd15"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -45,11 +46,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "595152bcd3d95a77517a39a4b25c55f42d1ec719"
+        "blob": "5b895de85812dbbee2c7a9cf46a4d2770284ce1b"
       },
-      "bytes": 4241,
-      "sha256": "c04cf3c61c9a21b29f63ed5f17bd889630ec6b28dba3138692cfc19b041b35ed",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings."
+      "bytes": 4278,
+      "sha256": "20264583ebba0aa218fe08fa92ebb969dc92d96db122866152865763fe6062d6",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -844,11 +845,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4ffc5811c7ff7d61c06e77227511e33864a7e530"
+        "blob": "cf5cb6e387affc8ee0786084af2413f8f7f6c0ef"
       },
-      "bytes": 71183,
-      "sha256": "a2b04c7c14f5611d00cad8da603d4531b37efee124ed96e3c015d66806379d36",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+      "bytes": 72130,
+      "sha256": "0c798bd8b524422353fe5fac989791b9e08ccb516b541c7b433aa06e85ce4010",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -900,11 +901,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "155dc9a1ee91d4374898ca1810af678b30732ccd"
+        "blob": "82ce98d91ba2d6c2db6993afb92cb09ca05f16c6"
       },
-      "bytes": 44034,
-      "sha256": "64684db08f18d7d49d8db9be400c677e957bafd35d7e7043baa62c9fc852c467",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 46918,
+      "sha256": "4341404bdaddecc295af9e4638a5b7025512dbbcda195045de40155a3938dcde",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups."
     },
     "components/CMakeLists.txt": {
       "before": {
@@ -1076,11 +1077,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "266b474d476e58d712817a4b46c6026e96c2284f"
+        "blob": "7d4e07221d03eeb80baf9ff537972fbc944afb2b"
       },
-      "bytes": 2511,
-      "sha256": "dc090d3315f7e09423b7a279ccf246143e1233a417a860984b3f4578063900ee",
-      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks."
+      "bytes": 3144,
+      "sha256": "3817bb61393586d147844e0ace5bfdbf217acc7523dcf6855a2a8e2d55c52cb4",
+      "reason": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
     },
     "components/lua_ui/textedit.cpp": {
       "before": {
@@ -1319,11 +1320,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6296c07e8fcae62ef0e7aaf76f318eca05e9fee8"
+        "blob": "890150c31c0f93958e2d4676d903c493762eef73"
       },
-      "bytes": 11062,
-      "sha256": "bdbd73f36d00f7e0dc1eebe50e48fc975db1784c12944feef75e5f8bc0b11612",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts."
+      "bytes": 12665,
+      "sha256": "fbef0fbadd3d13539916fc808a229942cc4e29e4779c7559912eb6b5091e6e3d",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "before": null,
@@ -1349,11 +1350,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "4047ea59e463e13651be5936b5e93ad92afb635a"
+        "blob": "364aaec98d51e43669ce5e6b57a820955eec84a2"
       },
-      "bytes": 4087,
-      "sha256": "7dfa5654ee1083ac65b5686e5b0ca1fd27372070906de757309009c2248eb9fd",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Keep previous engine improvements active in the independent spell-copy comparison mode. Launch and verify individual and collective controls, preserving historical comparison modes."
+      "bytes": 4286,
+      "sha256": "f8d74ad82a0bba657046153919703f4025188cdbdaa01b03cec2c0cf38abf9b5",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Keep previous engine improvements active in the independent spell-copy comparison mode. Launch and verify individual and collective controls, preserving historical comparison modes. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
     },
     "custom/combined-performance/Test-Launcher.ps1": {
       "before": null,
@@ -1599,11 +1600,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "c97e57b77376037e0ce0b97ec7446558a4e9b804"
+        "blob": "1e8f72a2f1bdb5b8754465a453f3b416a6e3a0b9"
       },
-      "bytes": 12606,
-      "sha256": "c096b2202a8ca594ec5e2e1c8cd940a58668ec81a19c5cfaf79f31d1eecb3035",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package. Package and document independent controls, complete optional gameplay adapters and API contracts. Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery."
+      "bytes": 12683,
+      "sha256": "95a082dbecf72460abd9c73ab0160706e98713b26a950dc3a95b6a882703158e",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package. Package and document independent controls, complete optional gameplay adapters and API contracts. Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -1788,11 +1789,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a70fd25ddcfce41abf18cac2fd8b8129ef3b8007"
+        "blob": "cc991d117ead8b4d5e6a5a09e73bd5fb34ae9b5d"
       },
       "bytes": 5435,
-      "sha256": "1c343a51905e835b826adb2df5ecb8db70758e3b848bc6011107b58a014ed956",
-      "reason": "Build, run or package the combined candidate and four captured script adapters."
+      "sha256": "b10e9351980f2a165ad1a11ddc4b71fc1adb04a6709681105c810dbe974c8ca1",
+      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -2197,11 +2198,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ac4b0ee4732a384c93cea01e37a204cee3e46c93"
+        "blob": "db7eb08f369bacac16e956a698edaa428e593583"
       },
-      "bytes": 6547,
-      "sha256": "cc67c30d900c15e5caea2b9ba1289da289d2773b7630d8468730493f1aec4eb2",
-      "reason": "Bind the exact reviewed changes against the immutable combined baseline, verify every declared preserved head is an ancestor, retain all other source identities and the existing lookup-only build transformation."
+      "bytes": 6797,
+      "sha256": "7046d93306ace82146f9f471770d6e61045b518b3c3155a19a359a7697394cb1",
+      "reason": "Bind the exact reviewed changes against the immutable combined baseline, verify every declared preserved head is an ancestor, retain all other source identities and the existing lookup-only build transformation. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
     },
     "docs/source/reference/modding/settings/map.rst": {
       "before": {
@@ -2622,11 +2623,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6d1c04512395c1d1a10aa1a2363e04b3b24c55fd"
+        "blob": "e1375f967312a75abdab9318b667b651d3734576"
       },
-      "bytes": 75661,
-      "sha256": "d52dd9e0611e085e8034e0d948550915abbd337285140aca0dc52825e79ff489",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+      "bytes": 77104,
+      "sha256": "6e55165513183b2100090b4e88aadfe7751656688edda81ca21b8dba43cfcf5c",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "before": {
@@ -2772,11 +2773,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ab06b5436b2eaa3f931d8fa89210fbea3e1e7668"
+        "blob": "b1cae4310e147764812869d48f57b19965edea79"
       },
-      "bytes": 36643,
-      "sha256": "c5118c34646e63520db4ec7d87a7af5c79738ddb47c0a85ec5bfa43f9250ff0a",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 37076,
+      "sha256": "0c1037c0431666c1083605031158acc88f17a93647ff032ab27c42d5eae89f28",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
     },
     "components/shader/shadervisitor.cpp": {
       "before": {
@@ -2785,11 +2786,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fd47f8e1f23ad5d86e8e1c9032b653949eccbb23"
+        "blob": "1a95d8ac22baa255cab32ad7f5a73ffebd296d5f"
       },
-      "bytes": 50061,
-      "sha256": "144f105d0aaa8c0f10c1d5c5f13910f79de7de947caab93eb66c32b30e522a9e",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 49889,
+      "sha256": "6e88bb8017b28cf2de9375dec59d37ce2a6367533a78016d5043a5edad7c437f",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
     },
     "components/shader/shadervisitor.hpp": {
       "before": {
@@ -2798,11 +2799,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4247bccb91dae1166b89f3296e9a7edfbd59bed8"
+        "blob": "49bfa2bdb98fc0501f046871313821b54120149c"
       },
-      "bytes": 4922,
-      "sha256": "6bd5371e2121bb62a2599ac6debc1c0c9f5e235ae962063fe73f876eae6feabf",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 4958,
+      "sha256": "00b5914eadc19d12cca99f10b5936de6cd164f220321d0ff6f7bf0dc08708114",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
     },
     "custom/combined-performance/tests/verify-rendering-profile.py": {
       "before": null,
@@ -3001,11 +3002,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "db05e1484686aaf3258838beaaaf3d3b711495cc"
+        "blob": "73eb44b9c0a95cf4e4e4c73563a4a9436d0cb10c"
       },
-      "bytes": 24593,
-      "sha256": "d188b30542180e9b5d020f8fe434207681cea4e6fa54cf73de7b9f551a183206",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+      "bytes": 24709,
+      "sha256": "fc1ff95b0df91bcde9ea15af64dd1aeed8d17aefaa0b61641fb90cb7f54f55fa",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
     },
     "components/esm/formid.cpp": {
       "before": {
@@ -3080,11 +3081,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4ae8b52e89e3e2a2c61a5eee1c0fa283d93e5947"
+        "blob": "b85010c9c9e29935e7e8356a439abdb627a216d1"
       },
-      "bytes": 14868,
-      "sha256": "1ec27b249c941dc7410903fc12d96b19123fdd226aecb2d7728f3e6bb7f364f0",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path."
+      "bytes": 15052,
+      "sha256": "774d75dc451390c25fa0b0426872a1465cade3e65fa9160afa5270defdf72142",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
     },
     "apps/openmw/mwlua/magicbindings.hpp": {
       "before": {
@@ -3482,6 +3483,182 @@
       "bytes": 1507,
       "sha256": "4a45986cd1b91fb82d5ed24f7aaf4357a8b33d4b9d8aac558606a1ab92b528be",
       "reason": "Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery."
+    },
+    "apps/components_tests/resource/testtownpreparation.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "dd3f49e14c2cc91a9dd1da8e4e0ceb9678da7795"
+      },
+      "bytes": 4214,
+      "sha256": "8b59fce8b7241e272e1118e64ab150a044dbcd0ceafda8c2b863ed53831124d7",
+      "reason": "Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups."
+    },
+    "apps/openmw/mwworld/esmstore.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "59654c3bcb3aeff3b5fb49e517d4b280f2f9962d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ba2d99040674602eb315d67345fca074bd7fcafc"
+      },
+      "bytes": 33715,
+      "sha256": "f3419bd13e7b0c239e686778624475f63e5b6705753bd912aa38dbf974da028a",
+      "reason": "Retain conservative content placement membership to avoid rereading unrelated unloaded cells during all-world record lookup."
+    },
+    "apps/openmw/mwworld/esmstore.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e8ab1d9fa9eaf8ee1455e62fc6b9f5d2899252b4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f587406c97337afe504ec06422acba1667ad0614"
+      },
+      "bytes": 11068,
+      "sha256": "8fdf67a0be1954fb2e6b7a95314bf576a6ce4ec01ba337ff47d6682fee4799d7",
+      "reason": "Retain conservative content placement membership to avoid rereading unrelated unloaded cells during all-world record lookup."
+    },
+    "apps/openmw/mwworld/worldmodel.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "d0e9d1c61392dbfa4983dcb28bdb65d35d3dfe35"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "59c7fa345da96f10e73e220b69975bb1fd4f50d7"
+      },
+      "bytes": 30220,
+      "sha256": "6f41ebb9b60dd1ef72f2ed5530805ef7f78c52f3ae2edf9bc2a4cdcde834f690",
+      "reason": "Retain conservative content placement membership to avoid rereading unrelated unloaded cells during all-world record lookup."
+    },
+    "components/misc/celltypeindex.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e685dad94a9435d4b786cec69cb682e8552a013b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "71ce2d9b79a77196e6551a39cdc5d77ec74f9d4b"
+      },
+      "bytes": 2247,
+      "sha256": "cf2fbe736c69523ec292bc93bf9eac3780b36e5b54fbe8234188cd23c9cf1f80",
+      "reason": "Retain conservative content placement membership to avoid rereading unrelated unloaded cells during all-world record lookup."
+    },
+    "components/resource/imagemanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "917bf487bdd3b0e3137ba50246a9e21c320c0cf6"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ceca03e35765ff57cf99caa97abf3e2914649ace"
+      },
+      "bytes": 9593,
+      "sha256": "17cc41dff2c4e8f9410787004c16dab13db7b88267ebddbc6d8d172445e4907c",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+    },
+    "components/resource/imagemanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8183c8db8ec0332a670af0743bc0bc857cfb3a89"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d141c7d5847edd0512a6046802dd3fb59770cdcf"
+      },
+      "bytes": 1791,
+      "sha256": "c0d935fb275b3ea034dacc8e3e97f51c8756408a9535171fc78424f324146f19",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+    },
+    "components/shader/shadermanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "15f1e5b078a18c7ab67f5cc8c08d58371a71d433"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c15502e25296e13065526eed6abbe0ed435f5e2b"
+      },
+      "bytes": 6936,
+      "sha256": "e8d81a60521c0af00dcddf66dbeb51fadbed93584984b5b8a8fbc83c2f9dac7c",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+    },
+    "components/terrain/compositemaprenderer.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "aa6fb862d870535d1226b6ea3219345c1331fe80"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "67c5bbdb1fba7feaa69940a4beb6e3a3901ff04f"
+      },
+      "bytes": 6365,
+      "sha256": "77445028271cfdd3cedd369bf7ccd1b0caf8569cb9c6f3dc5a45d51862ea5953",
+      "reason": "Budget background graphics work, preserve visible work and resume composite terrain texture layers in order."
+    },
+    "components/terrain/compositemaprenderer.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "24849e0e86ca79be79abc71738f7928fa18ee5f3"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2c47444d54ef9786c13a57133f56db44c28c94ed"
+      },
+      "bytes": 2669,
+      "sha256": "182fb6b240fa9f1a5ef6778ea568a1961076d080e19680d449b785466883ad73",
+      "reason": "Budget background graphics work, preserve visible work and resume composite terrain texture layers in order."
+    },
+    "components/vfs/manager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ff25150f672501116e9acca82fe73140c45c9baf"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "79b51c9863788ad971ccd86a737cac1a137a2aea"
+      },
+      "bytes": 4136,
+      "sha256": "ae4bebde5efa89234f6850732997ba1c7cc2fcabae7b9d8bab7f5f530f8cd7de",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+    },
+    "components/vfs/manager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "bbe03d25ca6f602461ee4f869b14260a60e917e0"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "f5fdc8637d36bc29a804b810d533e2dfb69663fe"
+      },
+      "bytes": 3463,
+      "sha256": "cdee268eb299752a8fa17d2acc1539aacf369a4d7cabc99deed304402d3d0c29",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+    },
+    "custom/combined-performance/Run-Detailed-Town.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6a75e58ee54a66569bdf2040cdebdbd8915aec52"
+      },
+      "bytes": 142,
+      "sha256": "cd1af81332d6b5334cf7f80d3db25e221e22772ee02913df27d1a2949bb5156f",
+      "reason": "Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
+    },
+    "files/data/scripts/omw/settings/menu.lua": {
+      "before": {
+        "mode": "100644",
+        "blob": "0149ca79212869cd9971d5d8ac6bc3c505f2e0a8"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4a94f5fdd1416d1bb8e56fd0f4d6df8d19b0a910"
+      },
+      "bytes": 17125,
+      "sha256": "928e6040d92a42f4ff672bd24f7dc20a0a10226486ce2bbd348c28dc7ffde4f1",
+      "reason": "Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
     }
   }
 }

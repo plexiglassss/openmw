@@ -217,7 +217,8 @@ namespace MWLua
         api["create"]
             = [luaManager = context.mLuaManager, menu](const sol::table& layout, sol::optional<sol::table> options) {
                   auto element = LuaUi::Element::make(layout, menu, options);
-                  luaManager->addAction([element] { element->create(); }, "Create UI");
+                  if (!options || !options->raw_get<sol::optional<bool>>("deferUntilAttached").value_or(false))
+                      luaManager->addAction([element] { element->create(); }, "Create UI");
                   return element;
               };
 

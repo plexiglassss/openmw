@@ -4,6 +4,7 @@
 #include <components/files/istreamptr.hpp>
 
 #include <filesystem>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -38,6 +39,7 @@ namespace VFS
 
         /// Build the file index. Should be called when all archives have been registered.
         void buildIndex();
+        std::uint64_t getIndexRevision() const { return mIndexRevision; }
 
         /// Does a file with this name exist?
         /// @note May be called from any thread once the index has been built.
@@ -75,6 +77,7 @@ namespace VFS
         std::vector<std::unique_ptr<Archive>> mArchives;
 
         FileMap mIndex;
+        std::uint64_t mIndexRevision = 1;
 
         inline Files::IStreamPtr findNormalized(std::string_view normalizedPath) const;
 

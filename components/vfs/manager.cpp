@@ -20,6 +20,7 @@ namespace VFS
 
     void Manager::reset()
     {
+        ++mIndexRevision;
         mIndex.clear();
         mArchives.clear();
     }
@@ -31,6 +32,7 @@ namespace VFS
 
     void Manager::buildIndex()
     {
+        ++mIndexRevision;
         mIndex.clear();
 
         for (const auto& archive : mArchives)

@@ -8,10 +8,12 @@
 #include <osg/ClipControl>
 #include <osg/ComputeBoundsVisitor>
 #include <osg/Group>
+#include <osg/GraphicsContext>
 #include <osg/Matrix>
 #include <osg/UserDataContainer>
 
 #include <osgUtil/LineSegmentIntersector>
+#include <osgUtil/IncrementalCompileOperation>
 #include <components/sceneutil/visualraybatch.hpp>
 
 #include <osgViewer/Viewer>
@@ -92,6 +94,35 @@
 
 namespace
 {
+    class GameplayCompileOperation final : public osgUtil::IncrementalCompileOperation
+    {
+    public:
+        GameplayCompileOperation(osg::Stats* stats, double target)
+            : mStats(stats)
+        {
+            setTargetFrameRate(target);
+            // Keep preparing upcoming resources during play. The loading screen temporarily
+            // raises both limits and restores these interactive values when it closes.
+            setMinimumTimeAvailableForGLCompileAndDeletePerFrame(
+                std::min(getMinimumTimeAvailableForGLCompileAndDeletePerFrame(), 0.1 / target));
+            setMaximumNumOfObjectsToCompilePerFrame(std::min(getMaximumNumOfObjectsToCompilePerFrame(), 2u));
+        }
+
+        void operator()(osg::GraphicsContext* context) override
+        {
+            const osg::FrameStamp* stamp = context->getState()->getFrameStamp();
+            if (!stamp || !mStats || !mStats->collectStats("resource"))
+                return osgUtil::IncrementalCompileOperation::operator()(context);
+            const auto frame = stamp->getFrameNumber();
+            osg::Timer clock;
+            osgUtil::IncrementalCompileOperation::operator()(context);
+            mStats->setAttribute(frame, "GL incremental compile operation time", clock.time_s());
+        }
+
+    private:
+        osg::ref_ptr<osg::Stats> mStats;
+    };
+
     class LightManagerUpdateVisitor : public osg::NodeVisitor
     {
     public:
@@ -298,8 +329,8 @@ namespace MWRender
 
         if (getenv("OPENMW_DONT_PRECOMPILE") == nullptr)
         {
-            mViewer->setIncrementalCompileOperation(new osgUtil::IncrementalCompileOperation);
-            mViewer->getIncrementalCompileOperation()->setTargetFrameRate(Settings::cells().mTargetFramerate);
+            mViewer->setIncrementalCompileOperation(new GameplayCompileOperation(mViewer->getViewerStats(),
+                std::max(Settings::cells().mTargetFramerate.get(), Settings::video().mFramerateLimit.get())));
         }
 
         mDebugDraw = new Debug::DebugDrawer(mResourceSystem->getSceneManager()->getShaderManager());

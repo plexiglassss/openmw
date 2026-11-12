@@ -18,7 +18,7 @@ EXPECTED = {
     'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
     'apps/openmw/mwstate/statemanagerimp.cpp': '102b9e0c99229d0e096f47671ff4da350381cc2a',
-    'apps/openmw/mwworld/worldmodel.cpp': 'd0e9d1c61392dbfa4983dcb28bdb65d35d3dfe35',
+    'apps/openmw/mwworld/worldmodel.cpp': '59c7fa345da96f10e73e220b69975bb1fd4f50d7',
     'apps/openmw/mwworld/worldmodel.hpp': '233ca8ff1665323ca6efd96454c4bd3cd8ca88fd',
 }
 
