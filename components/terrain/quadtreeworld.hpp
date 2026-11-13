@@ -26,6 +26,7 @@ namespace Terrain
     struct ViewDataEntry;
 
     class DebugChunkManager;
+    struct RayFootprint;
 
     /// @brief Terrain implementation that loads cells into a Quad Tree, with geometry LOD and texture LOD.
     class QuadTreeWorld
@@ -65,6 +66,14 @@ namespace Terrain
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) override;
 
+        struct ChunkRequest
+        {
+            float mSize;
+            osg::Vec2f mCenter;
+            unsigned int mLodFlags;
+            bool mActiveGrid;
+        };
+
         class ChunkManager
         {
         public:
@@ -80,6 +89,12 @@ namespace Terrain
                 const std::atomic_bool* abort = nullptr)
                 = 0;
             virtual unsigned int getNodeMask() { return 0; }
+            // Called only after the segment misses the landscape tile itself. Other
+            // managers can have meshes extending outside that tile; unknown means keep.
+            virtual bool mayIntersectOutsideTile(const ChunkRequest&, const osg::Vec3f&, const RayFootprint&)
+            {
+                return true;
+            }
 
             void setViewDistance(float viewDistance) { mViewDistance = viewDistance; }
             float getViewDistance() const { return mViewDistance; }
@@ -94,13 +109,6 @@ namespace Terrain
         private:
             float mViewDistance = 0.f;
             unsigned int mMaxLodLevel = ~0u;
-        };
-        struct ChunkRequest
-        {
-            float mSize;
-            osg::Vec2f mCenter;
-            unsigned int mLodFlags;
-            bool mActiveGrid;
         };
 
         // A batch may prepare private resources ahead of use. The loader still requests each

@@ -68,6 +68,8 @@ namespace VFS
         RecursiveDirectoryRange getRecursiveDirectoryIterator(VFS::Path::NormalizedView path) const;
 
         RecursiveDirectoryRange getRecursiveDirectoryIterator() const;
+        /// Snapshot of winning paths under a named directory at any depth, in index order.
+        std::vector<std::string> getPathsInDirectory(std::string_view name) const;
 
         std::filesystem::file_time_type getLastModified(VFS::Path::NormalizedView name) const;
         // Equivalent to std::filesystem::path::stem. The result isn't normalized.

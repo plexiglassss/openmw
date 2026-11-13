@@ -338,6 +338,14 @@ namespace MWLua
 
         api["fileExists"]
             = [vfs](std::string_view fileName) -> bool { return vfs->exists(VFS::Path::Normalized(fileName)); };
+        api["pathsInDirectory"] = [vfs](std::string_view directory) {
+            return sol::as_function([paths = vfs->getPathsInDirectory(directory), i = std::size_t{}]()
+                mutable -> sol::optional<std::string> {
+                if (i == paths.size())
+                    return sol::nullopt;
+                return paths[i++];
+            });
+        };
         api["pathsWithPrefix"] = [vfs](std::string_view prefix) {
             auto iterator = vfs->getRecursiveDirectoryIterator(prefix);
             return sol::as_function([iterator, current = iterator.begin()]() mutable -> sol::optional<std::string> {

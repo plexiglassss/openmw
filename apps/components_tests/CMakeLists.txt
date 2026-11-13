@@ -3,6 +3,7 @@ include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 
 file(GLOB UNITTEST_SRC_FILES
     main.cpp
+    terrain/testpagingray.cpp
     terrain/testrayacceleration.cpp
 
     esm/testfixedstring.cpp
@@ -99,6 +100,7 @@ file(GLOB UNITTEST_SRC_FILES
     resource/testpagedmodelpreparation.cpp
     resource/testtownpreparation.cpp
 
+    vfs/testdirectorycomponent.cpp
     vfs/testpathutil.cpp
 
     sceneutil/osgacontroller.cpp

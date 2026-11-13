@@ -27,6 +27,8 @@ namespace MWRender
             bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort = nullptr) override;
 
         using ChunkRequest = Terrain::QuadTreeWorld::ChunkRequest;
+        bool mayIntersectOutsideTile(
+            const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Terrain::RayFootprint& ray) override;
         bool canPreloadBatches() const override;
         void preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
             const std::atomic_bool& abort, const Load& load) override;

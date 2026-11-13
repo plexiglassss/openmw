@@ -2,6 +2,7 @@
 #include "objectpaging.hpp"
 
 #include <optional>
+#include <typeinfo>
 
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/nativejobpool.hpp>
@@ -15,6 +16,8 @@
 #include <vector>
 
 #include <osg/LOD>
+#include <osg/Geode>
+#include <osg/Geometry>
 #include <osg/MatrixTransform>
 #include <osg/Sequence>
 #include <osg/Switch>
@@ -51,6 +54,7 @@
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/riggeometryosgaextension.hpp>
 #include <components/sceneutil/util.hpp>
+#include <components/terrain/rayfootprint.hpp>
 #include <components/settings/values.hpp>
 #include <components/vfs/manager.hpp>
 
@@ -182,6 +186,97 @@ namespace MWRender
                 return fetchChunk(chunks[i], viewPoint, true, &abort, selected[i] ? &*selected[i] : nullptr, prepared);
             });
         });
+    }
+
+    namespace
+    {
+        // CopyOp may remove Switch/LOD parents or replace special transforms and
+        // drawables. Bound ordinary geometry itself, across all branches, and refuse
+        // to certify other node classes. Never trust authored LOD centres/radii here.
+        bool addPagingVertices(const osg::Node& node, const osg::Matrixd& parent, double& extent)
+        {
+            if (node.getUpdateCallback() || node.getComputeBoundingSphereCallback()
+                || node.getNumChildrenRequiringUpdateTraversal())
+                return false;
+            if (typeid(node) == typeid(osg::Geometry))
+            {
+                const auto& geometry = static_cast<const osg::Geometry&>(node);
+                const auto* vertices = dynamic_cast<const osg::Vec3Array*>(geometry.getVertexArray());
+                if (!vertices || geometry.getComputeBoundingBoxCallback())
+                    return false;
+                const auto& box = geometry.getBoundingBox();
+                if (!box.valid())
+                    return false;
+                for (unsigned i = 0; i < 8; ++i)
+                {
+                    const auto p = osg::Vec3d(box.corner(i)) * parent;
+                    const double length = p.length();
+                    if (!std::isfinite(length))
+                        return false;
+                    extent = std::max(extent, length);
+                }
+                return true;
+            }
+            const auto* group = node.asGroup();
+            if (!group)
+                return false;
+            osg::Matrixd matrix = parent;
+            if (typeid(node) == typeid(osg::MatrixTransform))
+            {
+                const auto& transform = static_cast<const osg::MatrixTransform&>(node);
+                const auto& local = transform.getMatrix();
+                if (transform.getReferenceFrame() != osg::Transform::RELATIVE_RF
+                    || local(0, 3) != 0 || local(1, 3) != 0 || local(2, 3) != 0 || local(3, 3) != 1)
+                    return false;
+                matrix.preMult(local);
+            }
+            else if (typeid(node) != typeid(osg::Group) && typeid(node) != typeid(osg::Geode)
+                && typeid(node) != typeid(osg::LOD) && typeid(node) != typeid(osg::Switch))
+                return false;
+            for (unsigned i = 0; i < group->getNumChildren(); ++i)
+                if (!addPagingVertices(*group->getChild(i), matrix, extent))
+                    return false;
+            return true;
+        }
+    }
+
+    bool ObjectPaging::mayIntersectOutsideTile(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Terrain::RayFootprint& ray)
+    {
+        if (chunk.mActiveGrid && !mActiveGrid)
+            return false;
+        const osg::Vec2f origin = chunk.mCenter * static_cast<float>(getCellSize(mWorldspace));
+        const auto cached = mCache->getRefFromObjectCache(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid));
+        if (cached)
+        {
+            const auto* node = static_cast<const osg::Node*>(cached.get());
+            const auto& b = node->getBound();
+            return !node->isCullingActive() || !b.valid()
+                || ray.intersects(origin.x() + double(b.center().x()), origin.y() + double(b.center().y()), b.radius());
+        }
+
+        // Use the same reference, override, scale and LOD selection as the full chunk.
+        // A placement in a neighbouring cell can reach into the segment's cell.
+        const auto modelRevision = mSceneManager->modelSettingsRevision();
+        const auto selected = selectChunk(chunk, viewPoint, nullptr);
+        std::map<VFS::Path::NormalizedView, double> extents;
+        for (const auto& item : selected.mItems)
+        {
+            auto [it, inserted] = extents.try_emplace(item.mModel, 0.);
+            if (inserted)
+            {
+                const auto model = mSceneManager->getCachedTemplate(item.mModel);
+                if (!model || !addPagingVertices(*model, osg::Matrixd::identity(), it->second))
+                    return true;
+            }
+            const auto& ref = item.mRef;
+            const osg::Vec3f local = ref.mPosition - osg::Vec3f(origin.x(), origin.y(), 0);
+            if (ray.intersects(origin.x() + double(local.x()), origin.y() + double(local.y()),
+                    it->second * std::abs(double(ref.mScale))))
+                return true;
+        }
+        return modelRevision != mSceneManager->modelSettingsRevision() || selected.mRevision != mSelectionRevision.load()
+            || selected.mVfsRevision != mSceneManager->getVFS()->getIndexRevision();
     }
 
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,

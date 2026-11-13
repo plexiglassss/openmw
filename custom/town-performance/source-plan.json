@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -28,7 +28,8 @@
     "56c3086be9a6bdb402b238e3621b503722c903c4",
     "32270e113da3aa60b152443cc4eaaa7e3ddf7251",
     "f36c2d4afdab68f19a4339cd1a6ff53159e69ac3",
-    "b1bacf7f8b9ee25354686939467ae395f21c823c"
+    "b1bacf7f8b9ee25354686939467ae395f21c823c",
+    "ad980e4b4f5e486f7c3758fcc7dc436628e3ee14"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -51,11 +52,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "44aa1b8db5c21825254963c2edbc8db9bf690f0a"
+        "blob": "5f757dadfe6156f05f1da18ebb79e29daef2b117"
       },
-      "bytes": 4358,
-      "sha256": "1fc8e32d471e85fc9e2f0ee22a313c4b2de473769c474b1c9d540d95ef085d84",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry. Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites."
+      "bytes": 4423,
+      "sha256": "cc7f075e4a84d93d429446a23f51a7fa4a86fac08caf5bc502be7a44731cc3e3",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry. Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites. Exercise finite-segment, overhanging scenery, and ordered VFS lookup regressions."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -690,11 +691,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "89d051ca091fddb469a726eceebe039e254f8835"
+        "blob": "11f5df7c84c2069f166785f5b88f94dd5a57f918"
       },
-      "bytes": 57631,
-      "sha256": "1ce875cc735c3fe3cd5b382941bedc63a4a90f35424f371c971ebf4ff13b0b9d",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes."
+      "bytes": 62356,
+      "sha256": "3187c41c7dc4a624ee0a28bda5c49d327125f4be78b1e68d22faea6fdac6d67e",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
@@ -1253,11 +1254,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a367f898709ca8d8fe612dcb1468f4264348a01d"
+        "blob": "170b2aff3e717169ad6f1a7fc9727221d5f5b143"
       },
-      "bytes": 63259,
-      "sha256": "8c482b534f53b1d08e93cc007cb30fc8df93cf92f57c4ebf74d8bc5f9f092ac8",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
+      "bytes": 63495,
+      "sha256": "697598805b22def0afb2fdb4d918f517bafad2dc77b81434825d1ceaaa14e09b",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "components/resource/scenemanager.hpp": {
       "before": {
@@ -1266,11 +1267,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5948ded582281b608fb91566e7516623b1b21ad3"
+        "blob": "af65a904b882835db533ab9a72ac137ef3c819c8"
       },
-      "bytes": 11769,
-      "sha256": "66910d53b9481c0a2b372d61eec7975aa9ba9a130c29894dea8716665079a30e",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
+      "bytes": 11962,
+      "sha256": "b2bd2fbce9018b2a19d807a10278fc9ee6b08d68fadd55b0849a4cfc44e4189c",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "components/settings/categories/general.hpp": {
       "before": {
@@ -3623,11 +3624,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "79b51c9863788ad971ccd86a737cac1a137a2aea"
+        "blob": "c178deea6c1969c74c83c3e25944e868763de439"
       },
-      "bytes": 4136,
-      "sha256": "ae4bebde5efa89234f6850732997ba1c7cc2fcabae7b9d8bab7f5f530f8cd7de",
-      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+      "bytes": 5011,
+      "sha256": "bc35fba8a5c8c9fc028019a8b4fa62006022b9d56c816cf4c9e9e740082df18b",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
     },
     "components/vfs/manager.hpp": {
       "before": {
@@ -3636,11 +3637,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f5fdc8637d36bc29a804b810d533e2dfb69663fe"
+        "blob": "f9d5351d662e245f66b14290b7d1db12a1d0c47f"
       },
-      "bytes": 3463,
-      "sha256": "cdee268eb299752a8fa17d2acc1539aacf369a4d7cabc99deed304402d3d0c29",
-      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+      "bytes": 3638,
+      "sha256": "c2e5840c753af1163839a994fd999c3eaf9ee296721dd772f56fbc951d9e1f8f",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
     },
     "custom/combined-performance/Run-Detailed-Town.cmd": {
       "before": null,
@@ -3747,11 +3748,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "69003724881385e4dd603de8e2f742216c3fd77e"
+        "blob": "6af9a3c2b5c8fc4ea52c8d43bf896d0852f414a9"
       },
-      "bytes": 4392,
-      "sha256": "0eca2847507a6b168342f140c94ff5c93ad067eaeb71c2e75bb55a53d1fa6d60",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes."
+      "bytes": 4542,
+      "sha256": "1b7f4e27c7140ace0cc8a33df69988dca0596f58847f2c239d755271c78a50dd",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "components/diagnostics/loading.hpp": {
       "before": {
@@ -3799,11 +3800,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "29d791a6b7a866b8f79b6660b45e13e735a4a108"
+        "blob": "c099a4473bc1269eafc896c5dabd25946495cb27"
       },
-      "bytes": 37990,
-      "sha256": "cf41e3ab78d536f81693acc1e6bd6825b3d3921ec98d433b7b18cafeb5269ded",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+      "bytes": 39981,
+      "sha256": "ad150c08fb506aaa5a66c62db7c9c8df8d178febf7aa895f15e26610ae4f15b5",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "components/terrain/quadtreeworld.hpp": {
       "before": {
@@ -3812,11 +3813,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "00e463b97e3504cb6341557df2cc569bad854922"
+        "blob": "de8837b1b9715ccab03fe5e0de09b4dfcccd3665"
       },
-      "bytes": 5827,
-      "sha256": "dcf96a266405f544593cc855d435b7545c0c8b90daedae06222b040766ae183a",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+      "bytes": 6194,
+      "sha256": "628ad66588f658a152d865caa9dec2a3b035ec153e1f01ef50dd635641c7ca98",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "apps/openmw/mwbase/windowmanager.hpp": {
       "before": {
@@ -4127,6 +4128,62 @@
       "bytes": 7396,
       "sha256": "5d2b8580d944edd252d504cbc1135ddced54287f12ae43cfdc77fcfa410211f2",
       "reason": "Configure and document targeted exterior prediction independently of broad door scanning."
+    },
+    "apps/components_tests/terrain/testpagingray.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a9cb7f055c634d6b4c7135c2c346c64e113d37c1"
+      },
+      "bytes": 1678,
+      "sha256": "b8edb3f2e769400abb9b0b1b29b1c3f4c97eef946da919f3331eada5adc2fb46",
+      "reason": "Exercise finite-segment, overhanging scenery, and ordered VFS lookup regressions."
+    },
+    "apps/components_tests/vfs/testdirectorycomponent.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1417949e53751a68c02b0010c4fc26842510bad7"
+      },
+      "bytes": 1706,
+      "sha256": "41a2ba5e3ba71bc7a1b94b4ed1685d244db910843acdcc7bb8a24aed79e85d64",
+      "reason": "Exercise finite-segment, overhanging scenery, and ordered VFS lookup regressions."
+    },
+    "apps/openmw/mwlua/vfsbindings.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ccee5aa0d50ff25441ce794be416f5e1e292b231"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8581bb30957f693ee679167ab7b14422bfcee84a"
+      },
+      "bytes": 13606,
+      "sha256": "7e757261bf970dadedb5cf103a151ce779347d134232ce1b84c57c8d43d36f58",
+      "reason": "Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
+    },
+    "components/terrain/rayfootprint.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "97bd01f62066b6729f2245a6acac45d0b5a549da"
+      },
+      "bytes": 2092,
+      "sha256": "8412800309b007ec957f1abbb3ce369c2e0e957a14bcc7efa2e71668e2939d54",
+      "reason": "Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
+    },
+    "files/lua_api/openmw/vfs.lua": {
+      "before": {
+        "mode": "100644",
+        "blob": "017f798574b014c1d7d6621e562f24bbfe882389"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e038a0b970196d509f815b68a7dc9f4b63cef9cd"
+      },
+      "bytes": 6955,
+      "sha256": "86f22434a4d5f963e0b5bbf12f0e45bcf5a921fb1c8708f689223dac6cc219f2",
+      "reason": "Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
     }
   }
 }

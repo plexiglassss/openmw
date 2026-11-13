@@ -3,6 +3,7 @@
 
 #include <array>
 #include <numeric>
+#include <typeinfo>
 #include <unordered_set>
 #include <osg/Texture>
 #include <components/vfs/manager.hpp>
@@ -13,6 +14,8 @@
 #include <osg/PolygonMode>
 #include <osg/ShapeDrawable>
 #include <osgUtil/CullVisitor>
+#include <osgUtil/IntersectionVisitor>
+#include <osgUtil/LineSegmentIntersector>
 
 #include <limits>
 #include <optional>
@@ -29,12 +32,28 @@
 #include "compositemaprenderer.hpp"
 #include "heightcull.hpp"
 #include "quadtreenode.hpp"
+#include "rayfootprint.hpp"
 #include "storage.hpp"
 #include "terraindrawable.hpp"
 #include "viewdata.hpp"
 
 namespace
 {
+    std::optional<Terrain::RayFootprint> getRayFootprint(osg::NodeVisitor& nv)
+    {
+        auto* visitor = dynamic_cast<osgUtil::IntersectionVisitor*>(&nv);
+        if (!visitor || visitor->getNodeMaskOverride() || visitor->getModelMatrix())
+            return {};
+        auto* ray = dynamic_cast<osgUtil::LineSegmentIntersector*>(visitor->getIntersector());
+        if (!ray || typeid(*ray) != typeid(osgUtil::LineSegmentIntersector)
+            || ray->getCoordinateFrame() != osgUtil::Intersector::MODEL)
+            return {};
+        Terrain::RayFootprint result{ ray->getStart(), ray->getEnd() };
+        if (!result.valid())
+            return {};
+        return result;
+    }
+
     unsigned int Log2(unsigned int n)
     {
         unsigned int targetlevel = 0;
@@ -526,7 +545,8 @@ namespace Terrain
 
         const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
 
-        auto arrival = isCullVisitor ? mVisibleArrival.load() : nullptr;
+        const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
+        auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
         if (arrival && (!validArrival(*arrival) || !arrival->matches(viewPoint, mActiveGrid, cellWorldSize, arrival->mRevision)))
             arrival.reset();
         if (arrival && !nv.getFrameStamp())
@@ -548,7 +568,7 @@ namespace Terrain
                     {
                         const ArrivalView::Key key{ entry.mNode, entry.mLodFlags };
                         auto prepared = arrival->find(key);
-                        if (!request.mActiveGrid)
+                        if (isCullVisitor && !request.mActiveGrid)
                         {
                             if (!prepared && arrival->streaming())
                                 continue;
@@ -558,6 +578,22 @@ namespace Terrain
                             attachmentStart = std::chrono::steady_clock::now();
                         }
                         entry.mRenderingNode = std::move(prepared);
+                    }
+                    if (!entry.mRenderingNode && ray
+                        && !ray->intersects(request.mCenter.x() * cellWorldSize,
+                            request.mCenter.y() * cellWorldSize, request.mSize * cellWorldSize * 0.5))
+                    {
+                        // Ground is bounded by the tile, but a paged mesh or an added
+                        // manager may extend across it. Negative results are query-local.
+                        const auto mayHit = [&](ChunkManager* manager) {
+                            if (manager == mChunkManager.get())
+                                return false;
+                            const auto mask = manager->getNodeMask();
+                            return (!mask || (mask & nv.getTraversalMask()))
+                                && manager->mayIntersectOutsideTile(request, vd->getViewPoint(), *ray);
+                        };
+                        if (std::none_of(mChunkManagers.begin(), mChunkManagers.end(), mayHit))
+                            continue;
                     }
                     if (!entry.mRenderingNode)
                         loadRenderingNode(entry, vd, cellWorldSize, request, false);

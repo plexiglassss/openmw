@@ -18,6 +18,27 @@ namespace VFS
 
     Manager::~Manager() = default;
 
+    std::vector<std::string> Manager::getPathsInDirectory(std::string_view name) const
+    {
+        if (name.find_first_of("/\\") != std::string_view::npos)
+            throw std::invalid_argument("Expected one directory name");
+        const auto component = Path::Normalized(name);
+        const std::string& directory = component.value();
+        if (directory.empty() || directory == "." || directory == "..")
+            throw std::invalid_argument("Expected one directory name");
+
+        std::vector<std::string> paths;
+        const auto root = directory + '/';
+        const auto nested = '/' + root;
+        for (const auto& item : mIndex)
+        {
+            const auto& path = item.first.value();
+            if (path.starts_with(root) || path.find(nested) != std::string::npos)
+                paths.emplace_back(path);
+        }
+        return paths;
+    }
+
     void Manager::reset()
     {
         ++mIndexRevision;

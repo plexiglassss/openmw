@@ -1316,6 +1316,12 @@ namespace Resource
         return loaded;
     }
 
+    osg::ref_ptr<const osg::Node> SceneManager::getCachedTemplate(VFS::Path::NormalizedView path) const
+    {
+        auto object = mCache->getRefFromObjectCache(path);
+        return static_cast<const osg::Node*>(object.get());
+    }
+
     osg::ref_ptr<const osg::Node> SceneManager::getTemplate(VFS::Path::NormalizedView path, bool compile)
     {
         Diagnostics::Scope requestTiming("model", "template", "request");
