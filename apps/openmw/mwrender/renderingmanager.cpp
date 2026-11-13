@@ -503,6 +503,11 @@ namespace MWRender
         return mWorkQueue.get();
     }
 
+    Terrain::World* RenderingManager::getTerrainForPreload(ESM::RefId worldspace)
+    {
+        return getWorldspaceChunkMgr(worldspace).mTerrain.get();
+    }
+
     Terrain::World* RenderingManager::getTerrain()
     {
         return mTerrain;
@@ -1251,8 +1256,12 @@ namespace MWRender
         mSky->setMoonColour(false);
 
         notifyWorldSpaceChanged();
-        if (mObjectPaging)
-            mObjectPaging->clear();
+        for (auto& [worldspace, chunks] : mWorldspaceChunks)
+        {
+            if (chunks.mObjectPaging)
+                chunks.mObjectPaging->clear();
+            chunks.mTerrain->rebuildViews();
+        }
     }
 
     MWRender::Animation* RenderingManager::getAnimation(const MWWorld::Ptr& ptr)
@@ -1834,26 +1843,32 @@ namespace MWRender
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
+        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
             return false;
-        if (mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(),
+        auto& chunks = getWorldspaceChunkMgr(ptr.getCell()->getCell()->getWorldSpace());
+        if (!chunks.mObjectPaging)
+            return false;
+        if (chunks.mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(),
                 osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
         {
-            mTerrain->rebuildViews();
+            chunks.mTerrain->rebuildViews();
             return true;
         }
         return false;
     }
     void RenderingManager::pagingBlacklistObject(int type, const MWWorld::ConstPtr& ptr)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
+        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
             return;
         ESM::RefNum refnum = ptr.getCellRef().getRefNum();
         if (!refnum.hasContentFile())
             return;
-        if (mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(),
+        auto& chunks = getWorldspaceChunkMgr(ptr.getCell()->getCell()->getWorldSpace());
+        if (!chunks.mObjectPaging)
+            return;
+        if (chunks.mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(),
                 osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
-            mTerrain->rebuildViews();
+            chunks.mTerrain->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()
     {

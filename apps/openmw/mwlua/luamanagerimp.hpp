@@ -211,7 +211,7 @@ namespace MWLua
 
         void initConfiguration(bool reload);
         LocalScripts* createLocalScripts(const MWWorld::Ptr& ptr,
-            std::optional<LuaUtil::ScriptIdsWithInitializationData> autoStartConf = std::nullopt);
+            LuaUtil::SharedScriptIds autoStartConf = {});
         void reloadAllScriptsImpl();
         void synchronizedUpdateUnsafe();
 

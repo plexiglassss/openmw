@@ -83,8 +83,10 @@ namespace LuaUtil
 
     void ScriptsContainer::addAutoStartedScripts()
     {
+        if (getAutoStartConf().empty())
+            return;
         mLua.protectedCall([&](LuaView& view) {
-            for (const auto& [scriptId, data] : mAutoStartScripts)
+            for (const auto& [scriptId, data] : getAutoStartConf())
             {
                 std::optional<sol::function> onInit, onLoad;
                 bool ok = addScript(view, scriptId, onInit, onLoad);
@@ -485,7 +487,7 @@ namespace LuaUtil
         const ScriptsConfiguration& cfg = mLua.getConfiguration();
 
         std::map<int, ScriptInfo> scripts;
-        for (const auto& [scriptId, initData] : mAutoStartScripts)
+        for (const auto& [scriptId, initData] : getAutoStartConf())
             scripts[scriptId] = { initData, nullptr };
         for (const ESM::LuaScript& s : data.mScripts)
         {
@@ -560,76 +562,95 @@ namespace LuaUtil
 
         const ScriptsConfiguration& cfg = mLua.getConfiguration();
 
-        std::map<int, ScriptInfo> scripts;
-        for (const auto& [scriptId, initData] : mAutoStartScripts)
-            scripts[scriptId] = { initData, nullptr };
-        for (const ESM::LuaScript& s : savedScripts)
+        // Fresh actors start the same immutable, already ordered attachment plan.
+        // Saved objects still merge per-instance script state in its original order.
+        if (savedScripts.empty())
         {
-            auto it = scripts.find(s.mScriptId);
-            if (it != scripts.end())
-                it->second.mSavedData = &s;
-            else if (cfg.isCustomScript(s.mScriptId))
-                scripts[s.mScriptId] = { cfg[s.mScriptId].mInitializationData, &s };
+            mLua.protectedCall([&](LuaView& view) {
+                data.mPublicInterfaces = sol::table(view.sol(), sol::create);
+                addPackage("openmw.interfaces", makeReadOnly(data.mPublicInterfaces));
+                for (const auto& [scriptId, initData] : getAutoStartConf())
+                {
+                    std::optional<sol::function> onInit, onLoad;
+                    if (addScript(view, scriptId, onInit, onLoad) && onInit)
+                        callOnInit(view, scriptId, *onInit, initData);
+                }
+            });
         }
 
-        mLua.protectedCall([&](LuaView& view) {
-            data.mPublicInterfaces = sol::table(view.sol(), sol::create);
-            addPackage("openmw.interfaces", makeReadOnly(data.mPublicInterfaces));
-
-            for (const auto& [scriptId, scriptInfo] : scripts)
+        else
+        {
+            std::map<int, ScriptInfo> scripts;
+            for (const auto& [scriptId, initData] : getAutoStartConf())
+                scripts[scriptId] = { initData, nullptr };
+            for (const ESM::LuaScript& s : savedScripts)
             {
-                std::optional<sol::function> onInit, onLoad;
-                if (!addScript(view, scriptId, onInit, onLoad))
-                    continue;
-                if (scriptInfo.mSavedData == nullptr)
-                {
-                    if (onInit)
-                        callOnInit(view, scriptId, *onInit, scriptInfo.mInitData);
-                    continue;
-                }
-                if (onLoad)
-                {
-                    try
-                    {
-                        sol::object state = deserialize(view.sol(), scriptInfo.mSavedData->mData, mSerializer);
-                        sol::object initializationData = deserialize(view.sol(), scriptInfo.mInitData, mSerializer);
-                        Diagnostics::Callback timingCallback("onLoad");
-                        LuaUtil::call({ this, scriptId }, *onLoad, state, initializationData);
-                    }
-                    catch (std::exception& e)
-                    {
-                        printError(scriptId, "onLoad failed", e);
-                    }
-                }
-                for (const ESM::LuaTimer& savedTimer : scriptInfo.mSavedData->mTimers)
-                {
-                    Timer timer;
-                    timer.mCallback = savedTimer.mCallbackName;
-                    timer.mSerializable = true;
-                    timer.mScriptId = scriptId;
-                    timer.mTime = savedTimer.mTime;
-
-                    try
-                    {
-                        timer.mArg
-                            = sol::main_object(deserialize(view.sol(), savedTimer.mCallbackArgument, mSerializer));
-                        // It is important if the order of content files was changed. The deserialize-serialize
-                        // procedure updates refnums, so timer.mSerializedArg may be not equal to
-                        // savedTimer.mCallbackArgument.
-                        timer.mSerializedArg = serialize(timer.mArg, mSerializer);
-
-                        if (savedTimer.mType == TimerType::GAME_TIME)
-                            data.mGameTimersQueue.push_back(std::move(timer));
-                        else
-                            data.mSimulationTimersQueue.push_back(std::move(timer));
-                    }
-                    catch (std::exception& e)
-                    {
-                        printError(scriptId, "can not load timer", e);
-                    }
-                }
+                auto it = scripts.find(s.mScriptId);
+                if (it != scripts.end())
+                    it->second.mSavedData = &s;
+                else if (cfg.isCustomScript(s.mScriptId))
+                    scripts[s.mScriptId] = { cfg[s.mScriptId].mInitializationData, &s };
             }
-        });
+
+            mLua.protectedCall([&](LuaView& view) {
+                data.mPublicInterfaces = sol::table(view.sol(), sol::create);
+                addPackage("openmw.interfaces", makeReadOnly(data.mPublicInterfaces));
+
+                for (const auto& [scriptId, scriptInfo] : scripts)
+                {
+                    std::optional<sol::function> onInit, onLoad;
+                    if (!addScript(view, scriptId, onInit, onLoad))
+                        continue;
+                    if (scriptInfo.mSavedData == nullptr)
+                    {
+                        if (onInit)
+                            callOnInit(view, scriptId, *onInit, scriptInfo.mInitData);
+                        continue;
+                    }
+                    if (onLoad)
+                    {
+                        try
+                        {
+                            sol::object state = deserialize(view.sol(), scriptInfo.mSavedData->mData, mSerializer);
+                            sol::object initializationData = deserialize(view.sol(), scriptInfo.mInitData, mSerializer);
+                            Diagnostics::Callback timingCallback("onLoad");
+                            LuaUtil::call({ this, scriptId }, *onLoad, state, initializationData);
+                        }
+                        catch (std::exception& e)
+                        {
+                            printError(scriptId, "onLoad failed", e);
+                        }
+                    }
+                    for (const ESM::LuaTimer& savedTimer : scriptInfo.mSavedData->mTimers)
+                    {
+                        Timer timer;
+                        timer.mCallback = savedTimer.mCallbackName;
+                        timer.mSerializable = true;
+                        timer.mScriptId = scriptId;
+                        timer.mTime = savedTimer.mTime;
+
+                        try
+                        {
+                            timer.mArg
+                                = sol::main_object(deserialize(view.sol(), savedTimer.mCallbackArgument, mSerializer));
+                            // It is important if the order of content files was changed. The deserialize-serialize
+                            // procedure updates refnums, so timer.mSerializedArg may be not equal to
+                            // savedTimer.mCallbackArgument.
+                            timer.mSerializedArg = serialize(timer.mArg, mSerializer);
+
+                            if (savedTimer.mType == TimerType::GAME_TIME)
+                                data.mGameTimersQueue.push_back(std::move(timer));
+                            else
+                                data.mSimulationTimersQueue.push_back(std::move(timer));
+                        }
+                        catch (std::exception& e)
+                        {
+                            printError(scriptId, "can not load timer", e);
+                        }
+                    }
+                }
+            });
+        }
 
         std::make_heap(data.mSimulationTimersQueue.begin(), data.mSimulationTimersQueue.end());
         std::make_heap(data.mGameTimersQueue.begin(), data.mGameTimersQueue.end());

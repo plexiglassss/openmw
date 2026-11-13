@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -27,7 +27,8 @@
     "16d564dee59ccaf21b348e69684cd0a7f273fc10",
     "56c3086be9a6bdb402b238e3621b503722c903c4",
     "32270e113da3aa60b152443cc4eaaa7e3ddf7251",
-    "f36c2d4afdab68f19a4339cd1a6ff53159e69ac3"
+    "f36c2d4afdab68f19a4339cd1a6ff53159e69ac3",
+    "b1bacf7f8b9ee25354686939467ae395f21c823c"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -50,11 +51,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4b0c5062316e853ae055c4b6d123c6bee2ce5f26"
+        "blob": "44aa1b8db5c21825254963c2edbc8db9bf690f0a"
       },
-      "bytes": 4321,
-      "sha256": "35b137c0bba3e49ab6f97157fd093ebbc79e097c812045558527cbf019f1cfe8",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry."
+      "bytes": 4358,
+      "sha256": "1fc8e32d471e85fc9e2f0ee22a313c4b2de473769c474b1c9d540d95ef085d84",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry. Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -532,11 +533,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "95a4c87cee89a12bc0f3528eab577f248456c2ce"
+        "blob": "16ccc12e9d7ea8658d10ec8b466e0deffc10a9f1"
       },
-      "bytes": 53240,
-      "sha256": "c5d340a6ce47830ca02b22ad8d2d4b4b040fbdc2c59214c7543173c9c56d1030",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage."
+      "bytes": 54306,
+      "sha256": "fd0cea1011d510577ead47c503c82c92822f4aa2d337a7184cfe68a65ea9f198",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
     },
     "apps/openmw/mwlua/luamanagerimp.hpp": {
       "before": {
@@ -545,11 +546,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "30917f4ce8c4d72587eef6522baf895f48a47442"
+        "blob": "1c239ac279b635c88f3031bf34df92e02bfe6694"
       },
-      "bytes": 14368,
-      "sha256": "f6c0503bfdae3ed465e6d4eeca5f18e9e3777af8c287b4911004a06a32c1abbc",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Own the spell read counters alongside the serialized Lua runtime. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage."
+      "bytes": 14327,
+      "sha256": "9498b787d7a9c854df79ddd24413e6eb3947557516122ccc2edaf8353c93a3f1",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Own the spell read counters alongside the serialized Lua runtime. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
     },
     "apps/openmw/mwlua/magicbindings.cpp": {
       "before": {
@@ -816,11 +817,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "7c1d478f708ca6df082fe2f22c018a9beaaf71bb"
+        "blob": "fccb0add5e7d2387a2a4686027b7aff81f04c473"
       },
-      "bytes": 61151,
-      "sha256": "04c165dd3ccc019c6f2012655c902d27699ddb1f90ffe414efc747792841afb8",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source."
+      "bytes": 66154,
+      "sha256": "c953ec583ac2e084c984832d708c46861f3d647f078f9855d499037b4c64b7fa",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
     },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
@@ -990,11 +991,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "de2c160e9fbfd3a802f4da9c9520aa6f0ce8d841"
+        "blob": "ed0b6cf354861b9e158b49bc2f7c0bb68c7bd09b"
       },
-      "bytes": 35190,
-      "sha256": "fa180b42cfe621809e92b552affc52b6c857a8dcee30bb586573e4c51f7874f7",
-      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings."
+      "bytes": 36332,
+      "sha256": "a5a4c294b244815dc5e5cfbe094b072f9dc8d9eeee0d43f90d1e54b14833a525",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
     },
     "components/lua_ui/container.cpp": {
       "before": {
@@ -1252,11 +1253,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9a12ceec3e7b7b634acaea0c3a1702d98e287d98"
+        "blob": "a367f898709ca8d8fe612dcb1468f4264348a01d"
       },
-      "bytes": 63245,
-      "sha256": "0fb114e92737c4337bf535e261266d175db64b9f67238dc83cf959fe85929917",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
+      "bytes": 63259,
+      "sha256": "8c482b534f53b1d08e93cc007cb30fc8df93cf92f57c4ebf74d8bc5f9f092ac8",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
     },
     "components/resource/scenemanager.hpp": {
       "before": {
@@ -1265,11 +1266,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6f453c7ff0fe742260d467b2b9a3f17d1c93156e"
+        "blob": "5948ded582281b608fb91566e7516623b1b21ad3"
       },
-      "bytes": 11666,
-      "sha256": "2cb99e6e7379b644f104d8fa2375e6ccb44e978ff27b7f012f1354c88ff3d223",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
+      "bytes": 11769,
+      "sha256": "66910d53b9481c0a2b372d61eec7975aa9ba9a130c29894dea8716665079a30e",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
     },
     "components/settings/categories/general.hpp": {
       "before": {
@@ -2457,11 +2458,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2d21465a12134c19db37ddac8ff5d65eac79fb4a"
+        "blob": "73a042d50cd2d3b6ace63f964c5edfd1234dacb1"
       },
-      "bytes": 51534,
-      "sha256": "177eaf447adf349ac0b112d927aae255e79a58e68c1001fa22bfa10e39bdf3c3",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size."
+      "bytes": 51629,
+      "sha256": "468e28a149daa6265a4b8baa76431cef995e19de5374c5d00a4bd697911ae171",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Configure and document targeted exterior prediction independently of broad door scanning."
     },
     "apps/openmw/mwlua/localscripts.hpp": {
       "before": {
@@ -2535,11 +2536,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "318ac7f2d306b75ccc2c374b1bac4b419a8c34e5"
+        "blob": "c3c995cbf935a6e2e2e015fefe01e4dc718ad419"
       },
-      "bytes": 16544,
-      "sha256": "32d17f30328e3853b2511b4c075cbf733c75422ef01df7d556b96197d181ef81",
-      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes."
+      "bytes": 16833,
+      "sha256": "8d63ccd146a891179fd87865039ef883fb24aac9df5347616409aff7c707ea49",
+      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
     },
     "custom/combined-performance/Run-Previous-Frame-Updates.cmd": {
       "before": null,
@@ -2627,11 +2628,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "476d8da3e81103b1bde94b33437ea5e9adbe040a"
+        "blob": "6b9f8e0337ee60fcd6104a120d8af0a01c2906a7"
       },
-      "bytes": 77109,
-      "sha256": "007d299b6b753b39718653ad0e9c6a358799bcad4aae3cd7d2305021afa491cb",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
+      "bytes": 77703,
+      "sha256": "4203f3b7faff87808c11200f9850a5763c09a97603846faa7437d4a84f48704d",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "before": {
@@ -2640,11 +2641,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "41832c468edae12f4200f1504db3ed1cd7a7a810"
+        "blob": "11c441e4d0be464b9a3630183cdbe5ea7890c0ca"
       },
-      "bytes": 12306,
-      "sha256": "e7a20b589b537016a50737d069282b5c6448725a561cdc093bfb7641de784bc6",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries."
+      "bytes": 12375,
+      "sha256": "014d3b95947ad051048ce835809972a590ed922c0bb73c0dcc13c5f5995c1b10",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
     },
     "apps/openmw/mwworld/worldimp.cpp": {
       "before": {
@@ -3798,11 +3799,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1d1ea0925e38c039d24a4a615d24afda02264406"
+        "blob": "29d791a6b7a866b8f79b6660b45e13e735a4a108"
       },
-      "bytes": 28060,
-      "sha256": "64c3115cda50e3514632bd44d40682a1c80b8fb0b88b966f797ad6f6970ac4f5",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
+      "bytes": 37990,
+      "sha256": "cf41e3ab78d536f81693acc1e6bd6825b3d3921ec98d433b7b18cafeb5269ded",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
     },
     "components/terrain/quadtreeworld.hpp": {
       "before": {
@@ -3811,11 +3812,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ca345eafb2a2b7b2b49b68dae085776aba5c3725"
+        "blob": "00e463b97e3504cb6341557df2cc569bad854922"
       },
-      "bytes": 4957,
-      "sha256": "b06838229e60d3a85f7733876c056844781f8cd5e5a9cc56874e3c6a8dbc146a",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner."
+      "bytes": 5827,
+      "sha256": "dcf96a266405f544593cc855d435b7545c0c8b90daedae06222b040766ae183a",
+      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
     },
     "apps/openmw/mwbase/windowmanager.hpp": {
       "before": {
@@ -3927,6 +3928,205 @@
       "bytes": 6527,
       "sha256": "09630bf462973d183c95842e2a7b54f88069bee68d8cbd9d4a30cc3928bea14a",
       "reason": "Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form."
+    },
+    "apps/components_tests/lua/testarrivalconfiguration.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "164666f3f1d21f4104ab627a63a294e3885f1387"
+      },
+      "bytes": 1717,
+      "sha256": "ed3766432aa1d7178d637263502698c30157b5c1c458149a88202a0f526a24df",
+      "reason": "Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites."
+    },
+    "apps/components_tests/terrain/testrayacceleration.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8fa4c1790b05541d6153a7e44b8accaaa6942d23"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c1bd758a85a93a8695a695f17b153027ccfad88f"
+      },
+      "bytes": 5491,
+      "sha256": "29b3a42a0a1c8ebba2f3624da8bd0ec4421cd64f81b87f04589581b7f57d07e4",
+      "reason": "Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites."
+    },
+    "apps/openmw/mwmechanics/character.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "cb402f229c07bf715f17f21f38495d9bf8e42751"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7208dd7df3075c26dc1e59800a184d3150c6ade4"
+      },
+      "bytes": 137299,
+      "sha256": "76f2001854bd54c8acabf197d712374acf43855f3c8ff4076003f391a5069e10",
+      "reason": "Time the start of a teleport, gameplay readiness and the first commanded horizontal movement observed by the engine."
+    },
+    "apps/openmw/mwworld/actionteleport.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4ba070f16a263188122df81df0111fc6d2f4545d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3d8ffc4608ab0318ed23d38fc6df3fff46aa3649"
+      },
+      "bytes": 4149,
+      "sha256": "25d61fc6c5b71162febe337321aa168f2192767939d4d90e98f2bc1ef0c6cb7f",
+      "reason": "Time the start of a teleport, gameplay readiness and the first commanded horizontal movement observed by the engine."
+    },
+    "apps/openmw/mwworld/cellpreloader.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "0af49f85ab7f3c2ee1ae55e05b3af59846ae2654"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "a54e2110bfa1830808bcd0f3812b13833dadcf16"
+      },
+      "bytes": 28922,
+      "sha256": "dd0118ffa70cd87d321a9597ace97fafdecce7b4746b958e6b877a95beb76394",
+      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+    },
+    "apps/openmw/mwworld/cellpreloader.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "405ba96a2e48e2afb7d4fc308b7919e2253e1416"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "bd686a724976e5103e1d150c454607161937fadf"
+      },
+      "bytes": 5140,
+      "sha256": "fdf3076cee90b39bdc5066827f7969d244136ef3103c5c81ef99bd5d473982e5",
+      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+    },
+    "apps/openmw/mwworld/scene.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "2e81325eabaed1ccf1bbd1046a6ba8ed0a5007bc"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3fd0e71fe095967d4afa0c77923da97d80c7fbce"
+      },
+      "bytes": 6033,
+      "sha256": "743b520aea17096cb3b59ce78a1a99d07828a6c43842783b54c95a01ab36b0ea",
+      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+    },
+    "components/diagnostics/exteriorarrival.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3c4f43c4ca91eb1500d54d900f89917a72f5abbf"
+      },
+      "bytes": 1856,
+      "sha256": "0da5d5e120fa4b89e809ab07c22480b6d6d047d2e23ff697c3b3c37c246891d8",
+      "reason": "Time the start of a teleport, gameplay readiness and the first commanded horizontal movement observed by the engine."
+    },
+    "components/lua/configuration.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5a1524d92969694569978829b45619674aa4382b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "ac874624065fa0d8be010aeb4fa37e53230bccb7"
+      },
+      "bytes": 13082,
+      "sha256": "a9b9c58773dbe8c50ffbb2c851fb2753295ab4b4e6d75b52b6c89b8423950099",
+      "reason": "Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
+    },
+    "components/lua/configuration.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3342999e39d281feb01805b536791e600b0fde46"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "22cf07570c3b2ce92e2dcd428f32bc6c710d5fa6"
+      },
+      "bytes": 2953,
+      "sha256": "0061720dec51292bd3704437a990d70a819507b844984938b6bda2c77594be28",
+      "reason": "Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
+    },
+    "components/settings/categories/cells.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "86fe944acfabe1f1398611558598c3705115f495"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e4e899b198ca3f017995879d51d58e1c5d70561a"
+      },
+      "bytes": 2035,
+      "sha256": "ed39b268c0d45616f0e046539ba934892912b65bcf6429863d2bd00b5f069367",
+      "reason": "Configure and document targeted exterior prediction independently of broad door scanning."
+    },
+    "components/terrain/arrivalview.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "0b29105f69eabc22afa3c10f277b642e2bdbac5d"
+      },
+      "bytes": 4268,
+      "sha256": "0876ecddb6a93130f380cf439ac9e34613694f0d663e76afa92f95f4e79c7bd9",
+      "reason": "Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+    },
+    "components/terrain/viewdata.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8e4a0511e1ba4d1f31b423e8794d4f11e626707e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6fdae7402ca355abdcc4d799770fb70a27f2db52"
+      },
+      "bytes": 7038,
+      "sha256": "8203f83c13a992a65780665391f0564fe65c482a53fb6f2cf2902b5cbbe5a648",
+      "reason": "Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+    },
+    "components/terrain/viewdata.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3014ba53f021842b4b7201122aa158bc273f9dcf"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "9e2fd97a528678776c911761f4696561273eff2f"
+      },
+      "bytes": 4028,
+      "sha256": "78c1b887c16d48aec823903a259cd3a0055e46afed23fb66c1a8160c3a17dc1e",
+      "reason": "Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+    },
+    "components/terrain/world.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "cfe9634773f656aec24ceb32097538b21d5bf59b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "cf7d013b2d7fa250635ce9a197fbe85d48660a49"
+      },
+      "bytes": 4910,
+      "sha256": "e5f798e3078b49ee126f33429c940c41b36523e52ff2deca3011cc5ff654b830",
+      "reason": "Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+    },
+    "docs/source/reference/modding/settings/cells.rst": {
+      "before": {
+        "mode": "100644",
+        "blob": "4581918fd654f6b495ef00be1bfd96d3067370f2"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "1af29e7f8937f9ca4526d6511fce00c8a09035ba"
+      },
+      "bytes": 7396,
+      "sha256": "5d2b8580d944edd252d504cbc1135ddced54287f12ae43cfdc77fcfa410211f2",
+      "reason": "Configure and document targeted exterior prediction independently of broad door scanning."
     }
   }
 }

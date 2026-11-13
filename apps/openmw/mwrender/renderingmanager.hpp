@@ -126,6 +126,7 @@ namespace MWRender
 
         SceneUtil::WorkQueue* getWorkQueue();
         Terrain::World* getTerrain();
+        Terrain::World* getTerrainForPreload(ESM::RefId worldspace);
 
         void preloadCommonAssets();
 

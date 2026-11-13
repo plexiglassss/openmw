@@ -2,6 +2,8 @@
 #define COMPONENTS_LUA_CONFIGURATION_H
 
 #include <map>
+#include <memory>
+#include <mutex>
 #include <optional>
 
 #include <components/esm/luascripts.hpp>
@@ -17,6 +19,7 @@ namespace ESM
 namespace LuaUtil
 {
     using ScriptIdsWithInitializationData = std::map<int, std::string_view>;
+    using SharedScriptIds = std::shared_ptr<const ScriptIdsWithInitializationData>;
 
     class ScriptsConfiguration
     {
@@ -37,6 +40,7 @@ namespace LuaUtil
         ScriptIdsWithInitializationData getLoadConf() const { return getConfByFlag(ESM::LuaScriptCfg::sLoad); }
         ScriptIdsWithInitializationData getLocalConf(
             uint32_t type, const ESM::RefId& recordId, ESM::RefNum refnum) const;
+        SharedScriptIds sharedLocalConf(uint32_t type, const ESM::RefId& recordId, ESM::RefNum refnum) const;
 
         void read(ESM::ESMReader&);
         void write(ESM::ESMWriter&) const;
@@ -56,6 +60,10 @@ namespace LuaUtil
         std::map<uint32_t, std::vector<int>> mScriptsPerType;
         std::map<ESM::RefId, std::vector<DetailedConf>, std::less<>> mScriptsPerRecordId;
         std::map<ESM::RefNum, std::vector<DetailedConf>> mScriptsPerRefNum;
+        std::map<uint32_t, SharedScriptIds> mTypeConfigurations;
+        // Only records with explicit overrides need a separate immutable plan.
+        mutable std::mutex mRecordPlansMutex;
+        mutable std::map<std::pair<uint32_t, ESM::RefId>, SharedScriptIds> mRecordPlans;
         std::map<int, int> mScriptIdMapping;
     };
 

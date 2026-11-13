@@ -1207,7 +1207,7 @@ namespace Resource
             const std::shared_lock lock(mModelSettingsMutex);
             for (const auto path : paths)
                 if (path.extension() == VFS::Path::ExtensionView("nif") && !mCache->getRefFromObjectCache(path))
-                    cold.emplace_back(*mModelDrafts, path, mModelSettingsRevision, mVFS->getIndexRevision());
+                    cold.emplace_back(*mModelDrafts, path, mModelSettingsRevision.load(), mVFS->getIndexRevision());
         }
         if (cold.size() < 2)
         {
@@ -1339,7 +1339,7 @@ namespace Resource
             osg::ref_ptr<osg::Node> loaded;
             if (path.extension() == VFS::Path::ExtensionView("nif"))
             {
-                ModelDrafts::Lease lease(*mModelDrafts, path, mModelSettingsRevision, mVFS->getIndexRevision());
+                ModelDrafts::Lease lease(*mModelDrafts, path, mModelSettingsRevision.load(), mVFS->getIndexRevision());
                 loaded = lease.take(*this);
             }
             else

@@ -142,6 +142,7 @@ namespace MWLua
             Log(Debug::Verbose) << "#" << i << " " << LuaUtil::scriptCfgToString(mConfiguration[i]);
         mMenuScripts.setAutoStartConf(mConfiguration.getMenuConf());
         mGlobalScripts.setAutoStartConf(mConfiguration.getGlobalConf());
+        mLoadScripts.setAutoStartConf(mConfiguration.getLoadConf());
     }
 
     void LuaManager::initPreLoad()
@@ -167,7 +168,6 @@ namespace MWLua
     void LuaManager::contentFilesLoaded()
     {
         initConfiguration(false);
-        mLoadScripts.setAutoStartConf(mConfiguration.getLoadConf());
         mLoadScripts.addAutoStartedScripts();
         mLoadScripts.contentFilesLoaded();
         mLoadScripts.removeAllScripts();
@@ -268,12 +268,15 @@ namespace MWLua
 
         mObjectLists.update();
 
-        for (const LuaUtil::ScriptsContainerWeakPtr& ptr : mQueuedAutoStartedScripts)
         {
-            if (LocalScripts* scripts = asLocal(ptr))
-                scripts->addAutoStartedScripts();
+            Diagnostics::Scope timing("lua-arrival", "LuaManager", "attachNewScripts");
+            for (const LuaUtil::ScriptsContainerWeakPtr& ptr : mQueuedAutoStartedScripts)
+            {
+                if (LocalScripts* scripts = asLocal(ptr))
+                    scripts->addAutoStartedScripts();
+            }
+            mQueuedAutoStartedScripts.clear();
         }
-        mQueuedAutoStartedScripts.clear();
 
         std::erase_if(mActiveLocalScripts, [](const LuaUtil::ScriptsContainerWeakPtr& ptr) {
             LocalScripts* l = asLocal(ptr);
@@ -300,12 +303,18 @@ namespace MWLua
 
         mLua.protectedCall([&](LuaUtil::LuaView& lua) {
             // Run queued callbacks
-            for (CallbackWithData& c : mQueuedCallbacks)
-                c.mCallback.tryCall(c.mArg);
-            mQueuedCallbacks.clear();
+            {
+                Diagnostics::Scope timing("lua-arrival", "LuaManager", "queuedCallbacks");
+                for (CallbackWithData& c : mQueuedCallbacks)
+                    c.mCallback.tryCall(c.mArg);
+                mQueuedCallbacks.clear();
+            }
 
             // Run engine handlers
-            mEngineEvents.callEngineHandlers();
+            {
+                Diagnostics::Scope timing("lua-arrival", "LuaManager", "activationAndEngineEvents");
+                mEngineEvents.callEngineHandlers();
+            }
             bool isPaused = timeManager.isPaused();
 
             float frameDuration = MWBase::Environment::get().getFrameDuration();
@@ -779,9 +788,9 @@ namespace MWLua
         LocalScripts* localScripts = ptr.getRefData().getLuaScripts();
         if (!localScripts)
         {
-            LuaUtil::ScriptIdsWithInitializationData autoStartConf
-                = mConfiguration.getLocalConf(getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), getId(ptr));
-            if (!autoStartConf.empty())
+            LuaUtil::SharedScriptIds autoStartConf
+                = mConfiguration.sharedLocalConf(getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), getId(ptr));
+            if (!autoStartConf->empty())
             {
                 localScripts = createLocalScripts(ptr, std::move(autoStartConf));
                 mQueuedAutoStartedScripts.push_back(localScripts->getWeakPointer());
@@ -840,7 +849,7 @@ namespace MWLua
     }
 
     LocalScripts* LuaManager::createLocalScripts(
-        const MWWorld::Ptr& ptr, std::optional<LuaUtil::ScriptIdsWithInitializationData> autoStartConf)
+        const MWWorld::Ptr& ptr, LuaUtil::SharedScriptIds autoStartConf)
     {
         assert(mInitialized);
         std::shared_ptr<LocalScripts> scripts;
@@ -857,9 +866,9 @@ namespace MWLua
         else
         {
             scripts = std::make_shared<LocalScripts>(&mLua, LObject(getId(ptr)), &mScriptTracker);
-            if (!autoStartConf.has_value())
-                autoStartConf = mConfiguration.getLocalConf(type, ptr.getCellRef().getRefId(), getId(ptr));
-            scripts->setAutoStartConf(std::move(*autoStartConf));
+            if (!autoStartConf)
+                autoStartConf = mConfiguration.sharedLocalConf(type, ptr.getCellRef().getRefId(), getId(ptr));
+            scripts->setSharedAutoStartConf(std::move(autoStartConf));
             for (const auto& [name, package] : mLocalPackages)
                 scripts->addPackage(name, package);
         }
@@ -978,6 +987,20 @@ namespace MWLua
         }
 
         initConfiguration(true);
+
+        // Rebind every surviving container before any refreshed menu or player script can
+        // inspect an actor. IDs and the storage behind initialization-data views can both change.
+        for (const auto& [id, ptr] : MWBase::Environment::get().getWorldModel()->getPtrRegistryView())
+        {
+            if (auto* scripts = ptr.getRefData().getLuaScripts())
+            {
+                if (ptr == mPlayer)
+                    scripts->setAutoStartConf(mConfiguration.getPlayerConf());
+                else
+                    scripts->setSharedAutoStartConf(mConfiguration.sharedLocalConf(
+                        getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), id));
+            }
+        }
 
         mMenuScripts.removeAllScripts();
 

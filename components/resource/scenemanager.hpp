@@ -153,6 +153,8 @@ namespace Resource
 
         void setShaderPath(const std::filesystem::path& path);
 
+        std::uint64_t modelSettingsRevision() const { return mModelSettingsRevision.load(); }
+
         /// Check if a given scene is loaded and if so, update its usage timestamp to prevent it from being unloaded
         bool checkLoaded(VFS::Path::NormalizedView name, double referenceTime);
 
@@ -253,7 +255,7 @@ namespace Resource
         class ModelDrafts;
         std::unique_ptr<ModelDrafts> mModelDrafts;
         mutable std::shared_mutex mModelSettingsMutex;
-        std::uint64_t mModelSettingsRevision = 0;
+        std::atomic_uint64_t mModelSettingsRevision{ 0 };
         osg::ref_ptr<osg::Node> prepareCpuTemplate(VFS::Path::NormalizedView path, bool useErrorMarker);
 
         Misc::SingleFlight<std::string, osg::ref_ptr<const osg::Node>> mPendingTemplates;

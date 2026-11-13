@@ -25,6 +25,7 @@ namespace Terrain
 {
     class World;
     class View;
+    class ArrivalView;
 }
 
 namespace MWRender
@@ -41,6 +42,7 @@ namespace MWWorld
 {
     class CellStore;
     class TerrainPreloadItem;
+    class ExteriorArrivalJob;
 
     class CellPreloader
     {
@@ -81,6 +83,15 @@ namespace MWWorld
         void setTerrainPreloadPositions(std::span<const PositionCellGrid> positions);
 
         void syncTerrainLoad(Loading::Listener& listener);
+        void cancelPrediction() { retireArrival(); }
+        void updateArrivalGrid(Terrain::World*, const osg::Vec4i&);
+        void predictArrival(Terrain::World* world, const PositionCellGrid& target);
+        bool ensureArrival(Terrain::World* world, const PositionCellGrid& target, Loading::Listener& listener,
+            double timestamp);
+        bool keepStreamingArrival(std::span<const PositionCellGrid> targets);
+        void leaveExterior(Terrain::World* world, const PositionCellGrid& current, double timestamp);
+        void clearArrivals();
+
         void abortTerrainPreloadExcept(const PositionCellGrid* exceptPos);
         bool isTerrainLoaded(const PositionCellGrid& position, double referenceTime) const;
         void setTerrain(Terrain::World* terrain);
@@ -89,6 +100,15 @@ namespace MWWorld
 
     private:
         void clearAllTasks();
+        void retireArrival();
+        bool startArrival(Terrain::World* world, const PositionCellGrid& target, bool required);
+        osg::ref_ptr<ExteriorArrivalJob> mArrivalJob;
+        std::vector<osg::ref_ptr<ExteriorArrivalJob>> mRetiredArrivals;
+        Terrain::World* mArrivalWorld = nullptr;
+        Terrain::World* mReturnWorld = nullptr;
+        std::shared_ptr<Terrain::ArrivalView> mReturnView;
+        double mReturnTime = 0;
+
 
         Resource::ResourceSystem* mResourceSystem;
         Resource::BulletShapeManager* mBulletShapeManager;

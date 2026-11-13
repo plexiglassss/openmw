@@ -107,8 +107,16 @@ namespace LuaUtil
 
         // `conf` specifies the list of scripts that should be autostarted in this container; the script
         // names themselves are stored in ScriptsConfiguration.
-        void setAutoStartConf(ScriptIdsWithInitializationData conf) { mAutoStartScripts = std::move(conf); }
-        const ScriptIdsWithInitializationData& getAutoStartConf() const { return mAutoStartScripts; }
+        void setAutoStartConf(ScriptIdsWithInitializationData conf)
+        {
+            mAutoStartScripts = std::make_shared<const ScriptIdsWithInitializationData>(std::move(conf));
+        }
+        void setSharedAutoStartConf(SharedScriptIds conf) { mAutoStartScripts = std::move(conf); }
+        const ScriptIdsWithInitializationData& getAutoStartConf() const
+        {
+            static const ScriptIdsWithInitializationData empty;
+            return mAutoStartScripts ? *mAutoStartScripts : empty;
+        }
 
         // Adds package that will be available (via `require`) for all scripts in the container.
         // Automatically applies LuaUtil::makeReadOnly to the package.
@@ -323,7 +331,7 @@ namespace LuaUtil
         void removeInterface(int scriptId, const Script& script);
         void save(LuaView&, ESM::LuaScripts&);
 
-        ScriptIdsWithInitializationData mAutoStartScripts;
+        SharedScriptIds mAutoStartScripts;
         const UserdataSerializer* mSerializer = nullptr;
         const UserdataSerializer* mSavedDataDeserializer = nullptr;
 

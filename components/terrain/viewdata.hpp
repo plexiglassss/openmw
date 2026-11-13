@@ -107,6 +107,7 @@ namespace Terrain
         ViewData* getViewData(
             osg::Object* viewer, const osg::Vec3f& viewPoint, const osg::Vec4i& activeGrid, bool& needsUpdate);
 
+        ViewData* getCompletedView(const osg::Vec4i& grid) const;
         ViewData* createOrReuseView();
         ViewData* createIndependentView() const;
 

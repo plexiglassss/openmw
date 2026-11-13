@@ -54,6 +54,13 @@ namespace Terrain
         View* createView() override;
         void preload(View* view, const osg::Vec3f& eyePoint, const osg::Vec4i& cellgrid, std::atomic<bool>& abort,
             Loading::Reporter& reporter) override;
+        std::shared_ptr<ArrivalView> createArrival(const osg::Vec3f&, const osg::Vec4i&) override;
+        std::shared_ptr<ArrivalView> captureArrival(const osg::Vec3f&, const osg::Vec4i&, std::size_t) override;
+        bool validArrival(const ArrivalView&) const override;
+        void showArrival(std::shared_ptr<ArrivalView>) override;
+        void preloadArrival(View*, const std::shared_ptr<ArrivalView>&, std::atomic_bool&,
+            Loading::Reporter&, const ArrivalView::Progress&) override;
+        void clearAssociatedCaches() override;
         void rebuildViews() override;
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) override;
@@ -114,6 +121,10 @@ namespace Terrain
 
     private:
         void ensureQuadTreeBuilt();
+        void prepareView(View*, const osg::Vec3f&, const osg::Vec4i&, std::atomic_bool&, Loading::Reporter&,
+            const std::shared_ptr<ArrivalView>&, const ArrivalView::Progress&);
+        std::atomic_uint64_t mArrivalRevision{ 0 };
+        std::atomic<std::shared_ptr<ArrivalView>> mVisibleArrival;
         void updateRenderingLod(ViewDataEntry& entry, ViewData* vd);
         ChunkRequest getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& gridbounds) const;
         void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
@@ -130,7 +141,7 @@ namespace Terrain
         bool mQuadTreeBuilt;
         float mLodFactor;
         int mVertexLodMod;
-        float mViewDistance;
+        std::atomic<float> mViewDistance;
         float mMinSize;
         bool mDebugTerrainChunks;
         std::unique_ptr<DebugChunkManager> mDebugChunkManager;
