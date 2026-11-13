@@ -2,7 +2,7 @@
 # Copies prepared files only. Does not patch source, edit configuration, or stop processes.
 [CmdletBinding()]
 param(
-    [string]$PackageRoot = $PSScriptRoot,
+    [string]$PackageRoot = '',
     [string]$LogPath = '',
     [string]$BackupRoot = '',
     [string]$RestoreBackup = '',
@@ -23,7 +23,13 @@ $receiptPath = $null
 
 function Stop-Guard([string]$Message) { throw ('GUARD: ' + $Message) }
 function Get-Sha([string]$Path) {
-    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $algorithm = [Security.Cryptography.SHA256]::Create()
+        try { return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '').ToLowerInvariant() }
+        finally { $algorithm.Dispose() }
+    }
+    finally { $stream.Dispose() }
 }
 function Get-TextSha([string]$Value) {
     $algorithm = [Security.Cryptography.SHA256]::Create()
@@ -347,6 +353,8 @@ function Invoke-Transaction($Items, $Receipt) {
 try {
     if ($PSVersionTable.PSVersion -lt [Version]'5.1') { Stop-Guard 'Windows PowerShell 5.1 or newer is required.' }
     if ($env:OS -ne 'Windows_NT') { Stop-Guard 'Use this installer on the Windows OpenMW computer.' }
+    # Windows PowerShell 5.1 initializes PSScriptRoot after binding -File parameters.
+    if ([string]::IsNullOrEmpty($PackageRoot)) { $PackageRoot = $PSScriptRoot }
     if ([string]::IsNullOrEmpty($BackupRoot)) { $BackupRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'OpenMW Responsiveness Backups' }
     $PackageRoot = [IO.Path]::GetFullPath($PackageRoot)
     $BackupRoot = [IO.Path]::GetFullPath($BackupRoot)

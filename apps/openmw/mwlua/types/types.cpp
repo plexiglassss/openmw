@@ -1,4 +1,5 @@
 #include "types.hpp"
+#include <components/misc/combinedperformance.hpp>
 
 #include <components/lua/luastate.hpp>
 #include <components/misc/resourcehelpers.hpp>
@@ -107,15 +108,49 @@ namespace MWLua
         };
     }
 
+    namespace
+    {
+        std::optional<unsigned int> specialType(const ESM::RefId& id)
+        {
+            if (id == "Player")
+                return ESM::REC_INTERNAL_PLAYER;
+            if (Misc::ResourceHelpers::isHiddenMarker(id))
+                return ESM::REC_INTERNAL_MARKER;
+            return std::nullopt;
+        }
+    }
+
     unsigned int getLiveCellRefType(const MWWorld::LiveCellRefBase* ref)
     {
         if (ref == nullptr)
             throw std::runtime_error("Can't get type name from an empty object.");
-        const ESM::RefId& id = ref->mRef.getRefId();
-        if (id == "Player")
-            return ESM::REC_INTERNAL_PLAYER;
-        if (Misc::ResourceHelpers::isHiddenMarker(id))
-            return ESM::REC_INTERNAL_MARKER;
+        if (const auto type = specialType(ref->mRef.getRefId()))
+            return *type;
+        return ref->getType();
+    }
+
+    unsigned int getLiveCellRefType(const Object& object)
+    {
+        const auto* ref = object.ptr().mRef;
+        if (!Misc::useTownFrameUpdates())
+            return getLiveCellRefType(ref);
+        // Consecutive callbacks commonly test the same actor. Only the special
+        // meaning of a base record ID is immutable. Resolve the live reference
+        // on every call, including after removal or a same-ID replacement.
+        struct LastRecord
+        {
+            ESM::RefId mId;
+            std::optional<unsigned int> mSpecialType;
+        };
+        static thread_local LastRecord last;
+        const auto id = ref->mRef.getRefId();
+        if (id != last.mId)
+        {
+            last.mSpecialType = specialType(id);
+            last.mId = id;
+        }
+        if (last.mSpecialType)
+            return *last.mSpecialType;
         return ref->getType();
     }
 
@@ -187,7 +222,7 @@ namespace MWLua
                 table[sol::metatable_key] = baseMeta;
             }
             table["objectIsInstance"] = [types = recTypes](const Object& o) {
-                unsigned int type = getLiveCellRefType(o.ptr().mRef);
+                unsigned int type = getLiveCellRefType(o);
                 for (ESM::RecNameInts t : types)
                     if (t == type)
                         return true;

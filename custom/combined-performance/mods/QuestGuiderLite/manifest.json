@@ -1,0 +1,21 @@
+{
+  "id": "quest-guider-lite-native-jobs",
+  "name": "Quest Guider Lite native-query adapter",
+  "expected_revision": "8bd0d90b27",
+  "allowed_revisions": [
+    "8bd0d90b27",
+    "8bd0d90b2727b8d654288d5c42e45a3edefc7146"
+  ],
+  "expected_data_order_sha256": "67fa12e2351e54ccc6e9f7d33b887a9f8b286feb31a1b8a6e1665d21b3039e1e",
+  "expected_config_sha256": [
+    "2291eb4e130b803938b26be461475bef76e9f9035e6889e5d778a5b52423ea66",
+    "801ec806dff8a958914b808a24d1140debca30798bbbd318f0e3fc35fba870ca"
+  ],
+  "files": [
+    {
+      "path": "scripts/quest_guider_lite/main.lua",
+      "expected_sha256": "7bd1d408f515a6f0d306951240438602089bca525fb6ccfb60523112a44034de",
+      "installed_sha256": "faf95a0827edc2892471a2d8f51eff39ff7d10745b04d6b704d12576949591af"
+    }
+  ]
+}

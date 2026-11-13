@@ -152,6 +152,18 @@ namespace SceneUtil
         stateset->addUniform(new osg::Uniform("waterHeight", mWaterHeight));
         stateset->addUniform(new osg::Uniform("waterEnabled", mWaterEnabled));
         stateset->addUniform(new osg::Uniform("waterSurface", false));
+        stateset->addUniform(new osg::Uniform("locationRenderingProfileActive", mLocationRenderingProfileActive));
+        stateset->addUniform(new osg::Uniform("locationProfileClampLighting", mLocationProfileClampLighting));
+        stateset->addUniform(
+            new osg::Uniform("locationProfileForcePerPixelLighting", mLocationProfileForcePerPixelLighting));
+        stateset->addUniform(
+            new osg::Uniform("locationProfileAutoUseObjectNormalMaps", mLocationProfileAutoUseObjectNormalMaps));
+        stateset->addUniform(
+            new osg::Uniform("locationProfileAutoUseObjectSpecularMaps", mLocationProfileAutoUseObjectSpecularMaps));
+        stateset->addUniform(
+            new osg::Uniform("ordinaryAutoUseObjectNormalMaps", mOrdinaryAutoUseObjectNormalMaps));
+        stateset->addUniform(
+            new osg::Uniform("ordinaryAutoUseObjectSpecularMaps", mOrdinaryAutoUseObjectSpecularMaps));
     }
 
     void StateUpdater::apply(osg::StateSet* stateset, osg::NodeVisitor*)
@@ -167,6 +179,14 @@ namespace SceneUtil
 
         stateset->getUniform("waterHeight")->set(mWaterHeight);
         stateset->getUniform("waterEnabled")->set(mWaterEnabled);
+        stateset->getUniform("locationRenderingProfileActive")->set(mLocationRenderingProfileActive);
+        stateset->getUniform("locationProfileClampLighting")->set(mLocationProfileClampLighting);
+        stateset->getUniform("locationProfileForcePerPixelLighting")->set(mLocationProfileForcePerPixelLighting);
+        stateset->getUniform("locationProfileAutoUseObjectNormalMaps")->set(mLocationProfileAutoUseObjectNormalMaps);
+        stateset->getUniform("locationProfileAutoUseObjectSpecularMaps")
+            ->set(mLocationProfileAutoUseObjectSpecularMaps);
+        stateset->getUniform("ordinaryAutoUseObjectNormalMaps")->set(mOrdinaryAutoUseObjectNormalMaps);
+        stateset->getUniform("ordinaryAutoUseObjectSpecularMaps")->set(mOrdinaryAutoUseObjectSpecularMaps);
     }
 
     void StateUpdater::setAmbientColor(const osg::Vec4f& col)

@@ -1,4 +1,4 @@
-# Native map icon sources
+# Public fallback artwork and location catalogue
 
 The 19 transparent 64 × 64 PNG glyphs in `files/data/textures/mapmarkers/` are
 original artwork created for this user's OpenMW map feature. They reproduce the
@@ -33,3 +33,5 @@ C++ catalogue. The generator uses the included TSV facts and needs no MWSE mod,
 Lua runtime, internet connection, or game data. Classification uses a static string
 pool and binary-search index at discovery time; it does not scan the world or
 perform work in the frame loop.
+
+User-supplied private map skins are loaded via `mapicons/markers.tsv`. The public repository does not redistribute the artwork from either supplied archive. Credits and resource hashes for the private distribution accompany that distribution.

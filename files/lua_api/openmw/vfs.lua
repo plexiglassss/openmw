@@ -146,6 +146,14 @@
 -- local secondFile = getNextFile();
 
 ---
+-- Iterate over files under a directory with this name at any depth, in VFS order.
+-- Descendants are included. The iterator keeps a snapshot even if the VFS is rebuilt.
+-- @function [parent=#vfs] pathsInDirectory
+-- @param #string name One directory component without separators, matched case-insensitively
+-- @return #function Iterator returning normalized paths
+-- @usage for path in vfs.pathsInDirectory("portraits") do print(path) end
+
+---
 -- Detect a file handle type
 -- @function [parent=#vfs] type
 -- @param #any handle Object to check

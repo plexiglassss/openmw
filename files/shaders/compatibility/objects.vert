@@ -54,9 +54,26 @@ varying vec2 glossMapUV;
 uniform mat4 texMat@glossMapUV;
 #endif
 
-#define PER_PIXEL_LIGHTING (@normalMap || @specularMap || @forcePPL)
+#define HAS_TEXTURE_MATRIX(uv) ((@diffuseMap && @diffuseMapUV == uv) || (@normalMap && @normalMapUV == uv) || (@specularMap && @specularMapUV == uv) || (@emissiveMap && @emissiveMapUV == uv) || (@darkMap && @darkMapUV == uv) || (@detailMap && @detailMapUV == uv) || (@envMap && @envMapUV == uv) || (@decalMap && @decalMapUV == uv) || (@bumpMap && @bumpMapUV == uv) || (@glossMap && @glossMapUV == uv))
+#if @fallbackNormalMap
+varying vec2 fallbackNormalMapUV;
+#if !HAS_TEXTURE_MATRIX(@fallbackNormalMapUV)
+uniform mat4 texMat@fallbackNormalMapUV;
+#endif
+#endif
+#if @fallbackSpecularMap
+varying vec2 fallbackSpecularMapUV;
+#if !HAS_TEXTURE_MATRIX(@fallbackSpecularMapUV) && (!@fallbackNormalMap || @fallbackNormalMapUV != @fallbackSpecularMapUV)
+uniform mat4 texMat@fallbackSpecularMapUV;
+#endif
+#endif
+#if @fallbackTangent
+attribute vec4 fallbackTangent;
+#endif
 
-#if !PER_PIXEL_LIGHTING
+#include "lib/light/objectlighting.glsl"
+
+#if HAS_VERTEX_LIGHTING
 centroid varying vec3 shadedLighting;
 centroid varying vec3 shadedSpecular;
 centroid varying vec3 passLighting;
@@ -65,7 +82,7 @@ centroid varying vec3 passSpecular;
 #endif
 varying vec3 passViewPos;
 varying vec3 passNormal;
-#if @normalMap || @diffuseParallax
+#if @normalMap || @fallbackNormalMap || @diffuseParallax
 varying vec4 passTangent;
 #endif
 
@@ -105,12 +122,16 @@ void main(void)
     passNormal = gl_Normal.xyz;
     normalToViewMatrix = gl_NormalMatrix;
 
-#if @normalMap || @diffuseParallax
+#if @normalMap || @fallbackNormalMap || @diffuseParallax
     passTangent = gl_MultiTexCoord7.xyzw;
+#if @fallbackTangent
+    if (useFallbackNormalMap())
+        passTangent = fallbackTangent;
+#endif
     normalToViewMatrix *= generateTangentSpace(passTangent, passNormal);
 #endif
 
-#if @envMap || !PER_PIXEL_LIGHTING || @shadows_enabled
+#if @envMap || HAS_VERTEX_LIGHTING || @shadows_enabled
     vec3 viewNormal = normalize(gl_NormalMatrix * passNormal);
 #endif
 
@@ -153,37 +174,49 @@ void main(void)
     specularMapUV = (texMat@specularMapUV * gl_MultiTexCoord@specularMapUV).xy;
 #endif
 
+#if @fallbackNormalMap
+    fallbackNormalMapUV = (texMat@fallbackNormalMapUV * gl_MultiTexCoord@fallbackNormalMapUV).xy;
+#endif
+#if @fallbackSpecularMap
+    fallbackSpecularMapUV = (texMat@fallbackSpecularMapUV * gl_MultiTexCoord@fallbackSpecularMapUV).xy;
+#endif
+
 #if @glossMap
     glossMapUV = (texMat@glossMapUV * gl_MultiTexCoord@glossMapUV).xy;
 #endif
 
-#if !PER_PIXEL_LIGHTING
-    vec3 emissionColor = getEmissionColor(material, passColor).rgb;
-    if (skipLighting(material, passColor))
+#if HAS_VERTEX_LIGHTING
+    // One program serves both scenes, including persistent actors and first-person geometry.
+    // Do not run the vertex light loops when the ordinary per-pixel path is selected.
+    if (!useObjectPerPixelLighting())
     {
-        shadedLighting = passLighting = emissionColor * material.emissiveMult;
-        shadedSpecular = passSpecular = vec3(0.0);
-    }
-    else
-    {
-        // Handles edge case of off-screen vertices with clustered shading not being lit due to not mapping to any cluster
-        vec2 screenCoord = clamp(clipToScreen(gl_Position), vec2(0.0), screenRes - vec2(1.0));
-        float shininess = max(1e-4, material.shininess);
-        vec3 viewDir = normalize(passViewPos);
-        vec3 diffuseColor = getDiffuseColor(material, passColor).rgb;
-        vec3 ambientColor = getAmbientColor(material, passColor).rgb;
-        vec3 specularColor = getSpecularColor(material, passColor).rgb;
+        vec3 emissionColor = getEmissionColor(material, passColor).rgb;
+        if (skipLighting(material, passColor))
+        {
+            shadedLighting = passLighting = emissionColor * material.emissiveMult;
+            shadedSpecular = passSpecular = vec3(0.0);
+        }
+        else
+        {
+            // Handles off-screen vertices with clustered shading not mapping to any cluster.
+            vec2 screenCoord = clamp(clipToScreen(gl_Position), vec2(0.0), screenRes - vec2(1.0));
+            float shininess = max(1e-4, material.shininess);
+            vec3 viewDir = normalize(passViewPos);
+            vec3 diffuseColor = getDiffuseColor(material, passColor).rgb;
+            vec3 ambientColor = getAmbientColor(material, passColor).rgb;
+            vec3 specularColor = getSpecularColor(material, passColor).rgb;
 
-        vec3 sunDiffuse, sunAmbient, sunSpecular, pointDiffuse, pointAmbient, pointSpecular;
-        directionalLighting(viewDir, viewNormal, shininess, sunDiffuse, sunAmbient, sunSpecular);
-        pointLighting(screenCoord, viewDir, passViewPos, viewNormal, shininess, pointDiffuse, pointAmbient, pointSpecular);
-        shadedLighting = diffuseColor * pointDiffuse + ambientColor * (pointAmbient + sunAmbient) + emissionColor * material.emissiveMult;
-        shadedSpecular = specularColor * pointSpecular * material.specStrength;
-        passLighting = shadedLighting + diffuseColor * sunDiffuse;
-        passSpecular = shadedSpecular + specularColor * sunSpecular * material.specStrength;
+            vec3 sunDiffuse, sunAmbient, sunSpecular, pointDiffuse, pointAmbient, pointSpecular;
+            directionalLighting(viewDir, viewNormal, shininess, sunDiffuse, sunAmbient, sunSpecular);
+            pointLighting(screenCoord, viewDir, passViewPos, viewNormal, shininess, pointDiffuse, pointAmbient, pointSpecular);
+            shadedLighting = diffuseColor * pointDiffuse + ambientColor * (pointAmbient + sunAmbient) + emissionColor * material.emissiveMult;
+            shadedSpecular = specularColor * pointSpecular * material.specStrength;
+            passLighting = shadedLighting + diffuseColor * sunDiffuse;
+            passSpecular = shadedSpecular + specularColor * sunSpecular * material.specStrength;
+        }
+        clampLighting(shadedLighting);
+        clampLighting(passLighting);
     }
-    clampLighting(shadedLighting);
-    clampLighting(passLighting);
 #endif
 
 #if (@shadows_enabled)

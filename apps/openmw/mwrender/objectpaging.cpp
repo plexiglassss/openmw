@@ -1,6 +1,13 @@
 #include <components/diagnostics/loading.hpp>
 #include "objectpaging.hpp"
 
+#include <optional>
+#include <typeinfo>
+
+#include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
+#include <components/settings/values.hpp>
+
 #include <components/diagnostics/timing.hpp>
 
 #include <limits>
@@ -9,6 +16,8 @@
 #include <vector>
 
 #include <osg/LOD>
+#include <osg/Geode>
+#include <osg/Geometry>
 #include <osg/MatrixTransform>
 #include <osg/Sequence>
 #include <osg/Switch>
@@ -45,6 +54,7 @@
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/riggeometryosgaextension.hpp>
 #include <components/sceneutil/util.hpp>
+#include <components/terrain/rayfootprint.hpp>
 #include <components/settings/values.hpp>
 #include <components/vfs/manager.hpp>
 
@@ -129,23 +139,202 @@ namespace MWRender
         }
     }
 
+    struct ObjectPaging::Selection
+    {
+        struct Item
+        {
+            ESM::RefNum mNumber;
+            PagedCellRef mRef;
+            VFS::Path::Normalized mModel;
+            float mDistanceSquared;
+        };
+        std::vector<Item> mItems;
+        std::uint64_t mRevision;
+        std::uint64_t mVfsRevision;
+    };
+
+    struct ObjectPaging::PendingCompile
+    {
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation::CompileSet> mSet;
+    };
+
+    bool ObjectPaging::canPreloadBatches() const
+    {
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        return jobs && jobs->workerCount() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
+    }
+
+    void ObjectPaging::preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
+        const std::atomic_bool& abort, const Load& load)
+    {
+        auto& jobs = *MWBase::Environment::get().getNativeJobPoolOrNull();
+        std::vector<std::optional<Selection>> selected(chunks.size());
+        std::vector<std::vector<VFS::Path::NormalizedView>> models(chunks.size());
+        for (std::size_t i = 0; i < chunks.size() && !abort; ++i)
+        {
+            const auto& chunk = chunks[i];
+            if ((chunk.mActiveGrid && !mActiveGrid)
+                || mCache->getRefFromObjectCache(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid)))
+                continue;
+            selected[i] = selectChunk(chunk, viewPoint, &abort);
+            for (const auto& item : selected[i]->mItems)
+                models[i].emplace_back(item.mModel);
+        }
+        mSceneManager->withPagedModelGroups(models, jobs, abort, [&](std::size_t i, bool prepared) {
+            load(i, [&] {
+                return fetchChunk(chunks[i], viewPoint, true, &abort, selected[i] ? &*selected[i] : nullptr, prepared);
+            });
+        });
+    }
+
+    namespace
+    {
+        // CopyOp may remove Switch/LOD parents or replace special transforms and
+        // drawables. Bound ordinary geometry itself, across all branches, and refuse
+        // to certify other node classes. Never trust authored LOD centres/radii here.
+        bool addPagingVertices(const osg::Node& node, const osg::Matrixd& parent, double& extent)
+        {
+            if (node.getUpdateCallback() || node.getComputeBoundingSphereCallback()
+                || node.getNumChildrenRequiringUpdateTraversal())
+                return false;
+            if (typeid(node) == typeid(osg::Geometry))
+            {
+                const auto& geometry = static_cast<const osg::Geometry&>(node);
+                const auto* vertices = dynamic_cast<const osg::Vec3Array*>(geometry.getVertexArray());
+                if (!vertices || geometry.getComputeBoundingBoxCallback())
+                    return false;
+                const auto& box = geometry.getBoundingBox();
+                if (!box.valid())
+                    return false;
+                for (unsigned i = 0; i < 8; ++i)
+                {
+                    const auto p = osg::Vec3d(box.corner(i)) * parent;
+                    const double length = p.length();
+                    if (!std::isfinite(length))
+                        return false;
+                    extent = std::max(extent, length);
+                }
+                return true;
+            }
+            const auto* group = node.asGroup();
+            if (!group)
+                return false;
+            osg::Matrixd matrix = parent;
+            if (typeid(node) == typeid(osg::MatrixTransform))
+            {
+                const auto& transform = static_cast<const osg::MatrixTransform&>(node);
+                const auto& local = transform.getMatrix();
+                if (transform.getReferenceFrame() != osg::Transform::RELATIVE_RF
+                    || local(0, 3) != 0 || local(1, 3) != 0 || local(2, 3) != 0 || local(3, 3) != 1)
+                    return false;
+                matrix.preMult(local);
+            }
+            else if (typeid(node) != typeid(osg::Group) && typeid(node) != typeid(osg::Geode)
+                && typeid(node) != typeid(osg::LOD) && typeid(node) != typeid(osg::Switch))
+                return false;
+            for (unsigned i = 0; i < group->getNumChildren(); ++i)
+                if (!addPagingVertices(*group->getChild(i), matrix, extent))
+                    return false;
+            return true;
+        }
+    }
+
+    bool ObjectPaging::mayIntersectOutsideTile(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Terrain::RayFootprint& ray)
+    {
+        if (chunk.mActiveGrid && !mActiveGrid)
+            return false;
+        const osg::Vec2f origin = chunk.mCenter * static_cast<float>(getCellSize(mWorldspace));
+        const auto cached = mCache->getRefFromObjectCache(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid));
+        if (cached)
+        {
+            const auto* node = static_cast<const osg::Node*>(cached.get());
+            const auto& b = node->getBound();
+            return !node->isCullingActive() || !b.valid()
+                || ray.intersects(origin.x() + double(b.center().x()), origin.y() + double(b.center().y()), b.radius());
+        }
+
+        // Use the same reference, override, scale and LOD selection as the full chunk.
+        // A placement in a neighbouring cell can reach into the segment's cell.
+        const auto modelRevision = mSceneManager->modelSettingsRevision();
+        const auto selected = selectChunk(chunk, viewPoint, nullptr);
+        std::map<VFS::Path::NormalizedView, double> extents;
+        for (const auto& item : selected.mItems)
+        {
+            auto [it, inserted] = extents.try_emplace(item.mModel, 0.);
+            if (inserted)
+            {
+                const auto model = mSceneManager->getCachedTemplate(item.mModel);
+                if (!model || !addPagingVertices(*model, osg::Matrixd::identity(), it->second))
+                    return true;
+            }
+            const auto& ref = item.mRef;
+            const osg::Vec3f local = ref.mPosition - osg::Vec3f(origin.x(), origin.y(), 0);
+            if (ray.intersects(origin.x() + double(local.x()), origin.y() + double(local.y()),
+                    it->second * std::abs(double(ref.mScale))))
+                return true;
+        }
+        return modelRevision != mSceneManager->modelSettingsRevision() || selected.mRevision != mSelectionRevision.load()
+            || selected.mVfsRevision != mSceneManager->getVFS()->getIndexRevision();
+    }
+
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
-        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort)
+    {
+        return fetchChunk({ size, center, lodFlags, activeGrid }, viewPoint, compile, abort, nullptr, false);
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::fetchChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint,
+        bool compile, const std::atomic_bool* abort, const Selection* selected, bool modelsPrepared)
     {
         Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::ObjectChunks);
         Diagnostics::Scope chunkTiming("terrain", "objects", "getChunk");
-        if (activeGrid && !mActiveGrid)
+        if (chunk.mActiveGrid && !mActiveGrid)
             return nullptr;
+        const ChunkId id(chunk.mCenter, chunk.mSize, chunk.mActiveGrid);
+        for (;;)
+        {
+            if (abort && *abort)
+                return nullptr;
+            {
+                const std::lock_guard lock(mRefTrackerMutex);
+                if (auto cached = mCache->getRefFromObjectCache(id))
+                    return static_cast<osg::Node*>(cached.get());
+            }
 
-        const ChunkId id = std::make_tuple(center, size, activeGrid);
-
-        if (const osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id))
-            return static_cast<osg::Node*>(obj.get());
-
-        const unsigned char lod = static_cast<unsigned char>(lodFlags >> (4 * 4));
-        osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile, lod);
-        mCache->addEntryToObjectCache(id, node.get());
-        return node;
+            std::optional<Selection> local;
+            if (!selected || selected->mRevision != mSelectionRevision.load()
+                || selected->mVfsRevision != mSceneManager->getVFS()->getIndexRevision())
+            {
+                local.emplace(selectChunk(chunk, viewPoint, abort));
+                selected = &*local;
+                modelsPrepared = false;
+            }
+            if (abort && *abort)
+                return nullptr;
+            PendingCompile pending;
+            auto node = createChunk(chunk, viewPoint, *selected, compile, abort, modelsPrepared, pending);
+            if (!node || (abort && *abort))
+                return nullptr;
+            {
+                // An enable/blacklist change may have evicted an older node during assembly.
+                // Publish against the same tracker revision, or reselect outside the lock.
+                const std::lock_guard lock(mRefTrackerMutex);
+                if (selected->mRevision == mSelectionRevision.load()
+                    && selected->mVfsRevision == mSceneManager->getVFS()->getIndexRevision())
+                {
+                    if (auto cached = mCache->getRefFromObjectCache(id))
+                        return static_cast<osg::Node*>(cached.get());
+                    if (pending.mSet)
+                        pending.mOperation->add(pending.mSet, false);
+                    mCache->addEntryToObjectCache(id, node.get());
+                    return node;
+                }
+            }
+            selected = nullptr;
+            modelsPrepared = false;
+        }
     }
 
     namespace
@@ -485,7 +674,7 @@ namespace MWRender
 
     ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace)
         : GenericResourceManager<ChunkId>(nullptr, Settings::cells().mCacheExpiryDelay)
-        , Terrain::QuadTreeWorld::ChunkManager(worldspace)
+        , Terrain::QuadTreeWorld::BatchChunkManager(worldspace)
         , mReferenceCache(std::make_unique<ReferenceCache>())
         , mSceneManager(sceneManager)
         , mActiveGrid(Settings::terrain().mObjectPagingActiveGrid)
@@ -632,10 +821,15 @@ namespace MWRender
         }
     }
 
-    osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
-        const osg::Vec3f& viewPoint, bool compile, unsigned char lod)
+    ObjectPaging::Selection ObjectPaging::selectChunk(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort)
     {
-        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
+        Diagnostics::Loading::Timer selectionTimer(Diagnostics::Loading::Stage::PagedCandidateSelection);
+        Selection result{ {}, mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision() };
+        const auto& [size, center, flags, activeGrid] = chunk;
+        const auto lod = static_cast<unsigned char>(flags >> (4 * 4));
+        const auto cellSize = getCellSize(mWorldspace);
+        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         const osg::Vec2i startCell(static_cast<int>(std::floor(center.x() - size / 2.f)),
             static_cast<int>(std::floor(center.y() - size / 2.f)));
         const MWBase::World& world = *MWBase::Environment::get().getWorld();
@@ -704,37 +898,10 @@ namespace MWRender
             static_cast<int>(std::floor(minBound.x())), static_cast<int>(std::floor(minBound.y())));
         const osg::Vec2i ceilMaxBound(
             static_cast<int>(std::ceil(maxBound.x())), static_cast<int>(std::ceil(maxBound.y())));
-        struct InstanceList
-        {
-            std::vector<const PagedCellRef*> mInstances;
-            AnalyzeVisitor::Result mAnalyzeResult;
-            bool mNeedCompile = false;
-        };
-        typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
-        NodeMap nodes;
-        // Only retained while building this chunk; paths include the selected LOD.
-        std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
-        const osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
-
-        // Mask_UpdateVisitor is used in such cases in NIF loader:
-        // 1. For collision nodes, which is not supposed to be rendered.
-        // 2. For nodes masked via Flag_Hidden (VisController can change this flag value at runtime).
-        // Since ObjectPaging does not handle VisController, we can just ignore both types of nodes.
-        constexpr auto copyMask = ~Mask_UpdateVisitor;
-
-        const int cellSize = getCellSize(mWorldspace);
-        const float smallestDistanceToChunk = (size > 1 / 8.f) ? (size * cellSize) : 0.f;
-        const float higherDistanceToChunk
-            = activeGrid ? ((size < 1) ? 5 : 3) * cellSize * size + 1 : smallestDistanceToChunk + 1;
-        const LODRange lodDistances = activeGrid ? LODRange{ 0.f, std::numeric_limits<float>::max() }
-                                                 : LODRange{ smallestDistanceToChunk, higherDistanceToChunk };
-
-        AnalyzeVisitor analyzeVisitor(copyMask);
-        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         for (const auto& [refNum, ref] : refs)
         {
-            // Inclusive of template requests and node analysis below.
-            Diagnostics::Loading::Timer selectionLoading(Diagnostics::Loading::Stage::ObjectSelection);
+            if (abort && abort->load(std::memory_order_relaxed))
+                return result;
             if (size < 1.f)
             {
                 const osg::Vec3f cellPos = ref.mPosition / static_cast<float>(cellSize);
@@ -780,6 +947,12 @@ namespace MWRender
             if (!activeGrid)
             {
                 std::lock_guard<std::mutex> lock(mLODNameCacheMutex);
+                const auto revision = mSceneManager->getVFS()->getIndexRevision();
+                if (mLODNameCacheRevision != revision)
+                {
+                    mLODNameCache.clear();
+                    mLODNameCacheRevision = revision;
+                }
                 LODNameCacheKey key{ model, lod };
                 LODNameCache::const_iterator found = mLODNameCache.lower_bound(key);
                 if (found != mLODNameCache.end() && found->first == key)
@@ -792,6 +965,50 @@ namespace MWRender
                                 ->second;
             }
 
+            result.mItems.push_back({ refNum, ref, std::move(model), dSqr });
+        }
+        return result;
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::createChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Selection& selected,
+        bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending)
+    {
+        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
+        const auto& size = chunk.mSize;
+        const auto& center = chunk.mCenter;
+        const bool activeGrid = chunk.mActiveGrid;
+        struct InstanceList
+        {
+            std::vector<const PagedCellRef*> mInstances;
+            AnalyzeVisitor::Result mAnalyzeResult;
+            bool mNeedCompile = false;
+        };
+        typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
+        NodeMap nodes;
+        std::vector<NodeMap::iterator> firstReferenceOrder;
+        // Only retained while building this chunk; paths include the selected LOD.
+        std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
+        const osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
+
+        // Mask_UpdateVisitor is used in such cases in NIF loader:
+        // 1. For collision nodes, which is not supposed to be rendered.
+        // 2. For nodes masked via Flag_Hidden (VisController can change this flag value at runtime).
+        // Since ObjectPaging does not handle VisController, we can just ignore both types of nodes.
+        constexpr auto copyMask = ~Mask_UpdateVisitor;
+
+        const int cellSize = getCellSize(mWorldspace);
+        const float smallestDistanceToChunk = (size > 1 / 8.f) ? (size * cellSize) : 0.f;
+        const float higherDistanceToChunk
+            = activeGrid ? ((size < 1) ? 5 : 3) * cellSize * size + 1 : smallestDistanceToChunk + 1;
+        const LODRange lodDistances = activeGrid ? LODRange{ 0.f, std::numeric_limits<float>::max() }
+                                                 : LODRange{ smallestDistanceToChunk, higherDistanceToChunk };
+
+        AnalyzeVisitor analyzeVisitor(copyMask);
+        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        const bool prepare = !modelsPrepared && canPreloadBatches();
+        const auto consume = [&](const ESM::RefNum& refNum, const PagedCellRef& ref,
+                                 const VFS::Path::Normalized& model, float dSqr) {
             osg::ref_ptr<const osg::Node> cnode = [&] {
                 Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
                 Diagnostics::Loading::Timer modelLoading(Diagnostics::Loading::Stage::ObjectTemplates);
@@ -809,7 +1026,7 @@ namespace MWRender
                     || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
                     || (cnode->getName() == "Collada visual scene group"
                         && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
-                    continue;
+                    return;
                 else
                     refnumSet->mRefnums.push_back(refNum);
             }
@@ -817,7 +1034,7 @@ namespace MWRender
             {
                 std::lock_guard<std::mutex> lock(mRefTrackerMutex);
                 if (getRefTracker().mDisabled.count(refNum))
-                    continue;
+                    return;
             }
 
             const float radius2 = cnode->getBound().radius2() * ref.mScale * ref.mScale;
@@ -825,12 +1042,13 @@ namespace MWRender
             {
                 std::lock_guard<std::mutex> lock(mSizeCacheMutex);
                 mSizeCache[refNum] = radius2;
-                continue;
+                return;
             }
 
             const auto emplaced = nodes.emplace(std::move(cnode), InstanceList());
             if (emplaced.second)
             {
+                firstReferenceOrder.push_back(emplaced.first);
                 Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
                 analyzeVisitor.mDistances = lodDistances / ref.mScale;
                 const osg::Node* const nodePtr = emplaced.first->first.get();
@@ -842,7 +1060,50 @@ namespace MWRender
             else
                 analyzeVisitor.addInstance(emplaced.first->second.mAnalyzeResult);
             emplaced.first->second.mInstances.push_back(&ref);
+        };
+
+        // First-use order controls scene attachment. Worker completion order and node addresses do not.
+        std::vector<const Selection::Item*> batch;
+        auto flush = [&] {
+            std::vector<VFS::Path::NormalizedView> paths;
+            for (const auto& entry : batch)
+                if (!chunkTemplates.contains(entry->mModel)
+                    && std::find(paths.begin(), paths.end(), entry->mModel) == paths.end())
+                    paths.emplace_back(entry->mModel);
+            const auto consumeBatch = [&] {
+                for (const auto& entry : batch)
+                {
+                    if (abort && abort->load(std::memory_order_relaxed))
+                        return;
+                    consume(entry->mNumber, entry->mRef, entry->mModel, entry->mDistanceSquared);
+                }
+            };
+            if (compile)
+                mSceneManager->withPreparedPagedModels(paths, *jobs, abort, consumeBatch);
+            else
+            {
+                // Foreground traversal keeps its existing, smaller NIF decoding workload.
+                mSceneManager->prepareNifInputs(paths, *jobs);
+                consumeBatch();
+            }
+            batch.clear();
+        };
+        for (const auto& item : selected.mItems)
+        {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return nullptr;
+            Diagnostics::Loading::Timer selectionTiming(Diagnostics::Loading::Stage::ObjectSelection);
+            if (prepare)
+            {
+                batch.push_back(&item);
+                if (batch.size() == 32)
+                    flush();
+            }
+            else
+                consume(item.mNumber, item.mRef, item.mModel, item.mDistanceSquared);
         }
+        if (!batch.empty())
+            flush();
 
         const osg::Vec3f worldCenter
             = osg::Vec3f(center.x(), center.y(), 0) * static_cast<float>(getCellSize(mWorldspace));
@@ -851,8 +1112,11 @@ namespace MWRender
         osg::ref_ptr<Resource::TemplateMultiRef> templateRefs = new Resource::TemplateMultiRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop(activeGrid, copyMask);
-        for (const auto& pair : nodes)
+        for (const auto entry : firstReferenceOrder)
         {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return nullptr;
+            const auto& pair = *entry;
             Diagnostics::Loading::Timer instancesLoading(Diagnostics::Loading::Stage::ObjectInstances);
             const osg::Node* cnode = pair.first;
 
@@ -953,6 +1217,8 @@ namespace MWRender
 
         const osg::Vec3f relativeViewPoint = viewPoint - worldCenter;
 
+        if (abort && abort->load(std::memory_order_relaxed))
+            return nullptr;
         if (mergeGroup->getNumChildren())
         {
             SceneUtil::Optimizer optimizer;
@@ -991,7 +1257,8 @@ namespace MWRender
             Diagnostics::Loading::Timer compileLoading(Diagnostics::Loading::Stage::ObjectCompile);
             auto compileSet = new osgUtil::IncrementalCompileOperation::CompileSet(group);
             compileSet->buildCompileMap(ico->getContextSet(), stateToCompile);
-            ico->add(compileSet, false);
+            pending.mOperation = ico;
+            pending.mSet = std::move(compileSet);
         }
 
         Diagnostics::Loading::Timer finishLoading(Diagnostics::Loading::Stage::ObjectFinish);
@@ -1065,15 +1332,14 @@ namespace MWRender
         if (!typeFilter(type, false))
             return false;
 
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            if (enabled && !getWritableRefTracker().mDisabled.erase(refnum))
-                return false;
-            if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second)
-                return false;
-            if (mRefTrackerLocked)
-                return false;
-        }
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        if (enabled && !getWritableRefTracker().mDisabled.erase(refnum))
+            return false;
+        if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second)
+            return false;
+        if (mRefTrackerLocked)
+            return false;
+        ++mSelectionRevision;
 
         CollectIntersecting ccf(false, pos, cell, mWorldspace);
         mCache->call(ccf);
@@ -1089,13 +1355,12 @@ namespace MWRender
         if (!typeFilter(type, false))
             return false;
 
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            if (!getWritableRefTracker().mBlacklist.insert(refnum).second)
-                return false;
-            if (mRefTrackerLocked)
-                return false;
-        }
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        if (!getWritableRefTracker().mBlacklist.insert(refnum).second)
+            return false;
+        if (mRefTrackerLocked)
+            return false;
+        ++mSelectionRevision;
 
         CollectIntersecting ccf(true, pos, cell, mWorldspace);
         mCache->call(ccf);
@@ -1110,6 +1375,7 @@ namespace MWRender
     {
         mReferenceCache->cells.clear();
         std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        ++mSelectionRevision;
         mRefTrackerNew.mDisabled.clear();
         mRefTrackerNew.mBlacklist.clear();
         mRefTrackerLocked = true;
@@ -1117,16 +1383,14 @@ namespace MWRender
 
     bool ObjectPaging::unlockCache()
     {
+        const std::lock_guard lock(mRefTrackerMutex);
         if (!mRefTrackerLocked)
             return false;
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            mRefTrackerLocked = false;
-            if (mRefTracker == mRefTrackerNew)
-                return false;
-            else
-                mRefTracker = mRefTrackerNew;
-        }
+        mRefTrackerLocked = false;
+        if (mRefTracker == mRefTrackerNew)
+            return false;
+        mRefTracker = mRefTrackerNew;
+        ++mSelectionRevision;
         mCache->clear();
         return true;
     }

@@ -5,6 +5,11 @@
 
 #include <memory>
 
+namespace Misc
+{
+    class NativeJobPool;
+}
+
 namespace Resource
 {
     class ResourceSystem;
@@ -58,6 +63,7 @@ namespace MWBase
         LuaManager* mLuaManager = nullptr;
         Resource::ResourceSystem* mResourceSystem = nullptr;
         L10n::Manager* mL10nManager = nullptr;
+        Misc::NativeJobPool* mNativeJobPool = nullptr;
         float mFrameRateLimit = 0;
         float mFrameDuration = 0;
 
@@ -96,6 +102,7 @@ namespace MWBase
         void setResourceSystem(Resource::ResourceSystem& value) { mResourceSystem = &value; }
 
         void setL10nManager(L10n::Manager& value) { mL10nManager = &value; }
+        void setNativeJobPool(Misc::NativeJobPool& value) { mNativeJobPool = &value; }
 
         Misc::NotNullPtr<World> getWorld() const { return mWorld; }
         Misc::NotNullPtr<MWWorld::WorldModel> getWorldModel() const { return mWorldModel; }
@@ -123,6 +130,8 @@ namespace MWBase
         Misc::NotNullPtr<Resource::ResourceSystem> getResourceSystem() const { return mResourceSystem; }
 
         Misc::NotNullPtr<L10n::Manager> getL10nManager() const { return mL10nManager; }
+        Misc::NotNullPtr<Misc::NativeJobPool> getNativeJobPool() const { return mNativeJobPool; }
+        Misc::NativeJobPool* getNativeJobPoolOrNull() const { return mNativeJobPool; }
 
         float getFrameRateLimit() const { return mFrameRateLimit; }
 

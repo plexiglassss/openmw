@@ -5,8 +5,6 @@
     #extension GL_EXT_gpu_shader4: require
 #endif
 
-#define PER_PIXEL_LIGHTING 1
-
 #if @diffuseMap
 uniform sampler2D diffuseMap;
 varying vec2 diffuseMapUV;
@@ -20,6 +18,10 @@ varying vec2 emissiveMapUV;
 #if @normalMap
 uniform sampler2D normalMap;
 varying vec2 normalMapUV;
+#endif
+#if @fallbackNormalMap
+uniform sampler2D fallbackNormalMap;
+varying vec2 fallbackNormalMapUV;
 #endif
 
 varying float euclideanDepth;
@@ -35,6 +37,7 @@ uniform float alphaRef;
 uniform bool useTreeAnim;
 uniform float distortionStrength;
 
+#include "lib/light/objectlighting.glsl"
 #include "lib/core/fragment.h.glsl"
 #include "lib/material/alpha.glsl"
 #include "lib/util/distortion.glsl"
@@ -73,16 +76,30 @@ void main()
     gl_FragData[0].a = alphaTest(gl_FragData[0].a, alphaRef);
 
     vec3 specularColor = getSpecularColor(material, passColor).xyz;
-#if @normalMap
-    vec4 normalTex = texture2D(normalMap, normalMapUV);
-    vec3 normal = normalTex.xyz * 2.0 - 1.0;
-#if @reconstructNormalZ
-    normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
-#endif
-    vec3 viewNormal = normalToView(normal);
-    specularColor *= normalTex.a;
-#else
     vec3 viewNormal = normalize(gl_NormalMatrix * passNormal);
+#if @fallbackNormalMap
+    if (useFallbackNormalMap())
+    {
+        vec4 normalTex = texture2D(fallbackNormalMap, fallbackNormalMapUV);
+        vec3 normal = normalTex.xyz * 2.0 - 1.0;
+#if @fallbackReconstructNormalZ
+        normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+#endif
+        viewNormal = normalToView(normal);
+        specularColor *= normalTex.a;
+    }
+#endif
+#if @normalMap
+    if (useOrdinaryNormalMap())
+    {
+        vec4 normalTex = texture2D(normalMap, normalMapUV);
+        vec3 normal = normalTex.xyz * 2.0 - 1.0;
+#if @reconstructNormalZ
+        normal.z = sqrt(1.0 - dot(normal.xy, normal.xy));
+#endif
+        viewNormal = normalToView(normal);
+        specularColor *= normalTex.a;
+    }
 #endif
 
     float shadowing = unshadowedLightRatio(linearDepth);

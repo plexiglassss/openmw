@@ -3,6 +3,8 @@ if (NOT DEFINED OPENMW_RESOURCES_ROOT)
 endif()
 
 set(BUILTIN_DATA_FILES
+    shader_profiles/horror_mod.yaml
+
     textures/omw_map_color_palette.dds
     textures/omw_menu_scroll_down.dds
     textures/omw_menu_scroll_up.dds

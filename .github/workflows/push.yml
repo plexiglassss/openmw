@@ -1,4 +1,4 @@
-name: OpenMW - native world map icons
+name: OpenMW - combined native performance
 on:
   pull_request:
     branches: [perf/gameplay-activation-20261106]
@@ -30,6 +30,14 @@ jobs:
         with:
           ref: ${{ env.CUMULATIVE_COMMIT }}
           fetch-depth: 100
+      - name: Exercise the actual Windows adapter installer and restore commands
+        run: python custom/combined-performance/tests/test-adapter-entrypoints.py --output native-adapter-installer-tests.json
+      - name: Reuse tested engine for eligible packaging-only changes
+        id: existing_engine
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/combined-performance/reuse-windows-engine.py
       - name: Verify historical source gates and complete cumulative source
         shell: pwsh
         run: |
@@ -131,6 +139,22 @@ jobs:
         run: |
           ./custom/gameplay-responsiveness/Test-Installer.ps1 -InstallerScript ./custom/gameplay-responsiveness/Install-Fix.ps1 -WrapperScript ./custom/gameplay-responsiveness/Install-All.ps1 -TestRoot ./installer-fixtures -ReportPath ./gameplay-installer-tests.json
           if ($LASTEXITCODE) { throw 'Script installer regression tests failed' }
+      - name: Compare SaneMagic adapters with captured originals in both Lua runtimes
+        shell: pwsh
+        run: |
+          python -m pip install -r custom/combined-performance/tests/requirements.txt
+          if ($LASTEXITCODE) { throw 'Lua adapter test runtime installation failed' }
+          python custom/combined-performance/tests/test_sanemagic_adapters.py --output sanemagic-adapter-parity.json
+          if ($LASTEXITCODE) { throw 'SaneMagic native/fallback adapter behavior differs from the captured originals' }
+      - name: Exercise captured map, quest and proximity adapters
+        shell: pwsh
+        run: python custom/combined-performance/tests/test_native_adapters.py --output native-job-adapter-parity.json
+      - name: Test combined launcher in Windows PowerShell
+        shell: powershell
+        run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-windows-powershell.json
+      - name: Test combined launcher in PowerShell 7
+        shell: pwsh
+        run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-pwsh.json
       - name: Test settings editing and rollback in Windows PowerShell
         shell: powershell
         run: |
@@ -277,14 +301,46 @@ jobs:
           -D LuaJit_INCLUDE_DIR='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/include/luajit'
           -D LuaJit_LIBRARY='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/lib/lua51.lib'
           -D BUILD_BENCHMARKS=OFF -D BUILD_COMPONENTS_TESTS=ON -D BUILD_OPENMW_TESTS=ON
-          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=OFF -D BUILD_ESSIMPORTER=OFF -D BUILD_BSATOOL=OFF
-          -D BUILD_ESMTOOL=OFF -D BUILD_NIFTEST=OFF -D BUILD_BULLETOBJECTTOOL=OFF
+          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=ON -D BUILD_ESSIMPORTER=ON -D BUILD_BSATOOL=ON
+          -D BUILD_ESMTOOL=ON -D BUILD_NIFTEST=ON -D BUILD_BULLETOBJECTTOOL=ON
           -D OPENMW_USE_SYSTEM_SQLITE3=OFF -D OPENMW_USE_SYSTEM_YAML_CPP=OFF -D OPENMW_LTO_BUILD=ON
           -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
           -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
           -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
           -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
+      - name: Compile the parallel native engine changes and their tests first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/locationrenderingprofiles.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/renderingmanager.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwrender/testlocationrenderingprofiles.cpp.obj
+          components/CMakeFiles/components.dir/lua/pureworker.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/visualraybatch.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testparallelqueries.cpp.obj
+          components/CMakeFiles/components.dir/mapmarkers/icons.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testicons.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/cellbindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nativequeryservice.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nearbybindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/activespells.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/objectpaging.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testnativequeryservice.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
+          -- -k 0
       - name: Run actual native options forms before engine linking
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           cmake --build build --target openmw-controls-tests
@@ -295,9 +351,10 @@ jobs:
           ./build/openmw-controls-tests.exe --gtest_output=xml:map-icon-controls-early.xml
           if ($LASTEXITCODE) { throw 'Actual native controls regressions failed' }
           [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
-          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest')) {
+          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest')) {
             $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
-            if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne 4) {
+            $expectedCases = if ($suiteName -eq 'MapIconControlsTest') { 6 } else { 4 }
+            if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne $expectedCases) {
               throw "Missing required actual controls cases: $suiteName"
             }
             if (@($controlSuites[0].testcase | Where-Object { $_.status -ne 'run' -or $_.result -ne 'completed' }).Count) {
@@ -305,6 +362,7 @@ jobs:
             }
           }
       - name: Compile Lua UI images and native regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -314,12 +372,14 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testmagicbindings.cpp.obj
       - name: Compile native deleveling and its engine regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/levelledlist.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwmechanics/testlevelledlist.cpp.obj
       - name: Compile rest and Continue implementation and regression tests first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -329,6 +389,7 @@ jobs:
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testresttime.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmainmenubutton.cpp.obj
       - name: Compile Lua cache change and lifecycle tests first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -337,9 +398,11 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
       - name: Compile lookup change first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
       - name: Compile message position and preserved tooltip bridge first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -351,6 +414,7 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/interpretercontext.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/scriptmanagerimp.cpp.obj
       - name: Compile preserved colour implementation and focused regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: >
           cmake --build build --target
@@ -371,6 +435,7 @@ jobs:
           components/CMakeFiles/components.dir/misc/dialoguetext.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/misc/testdialoguetext.cpp.obj
       - name: Compile native map icons and save regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
         run: >-
           cmake --build build --target
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
@@ -379,6 +444,25 @@ jobs:
           apps/components_tests/CMakeFiles/components-tests.dir/esm3/testlocationmarkers.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testclassification.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
+      - name: Compile native travel, key and cleared-dungeon integration first
+        if: steps.existing_engine.outputs.reused != 'true'
+        run: >-
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltip.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltipdata.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltipview.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/tooltipcontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/travelwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/tooltips.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwclass/door.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwclass/container.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/mechanicsmanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwstate/statemanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/scene.cpp.obj
+          components/CMakeFiles/components.dir/esm3/dungeonstates.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/esm3/testdungeonstates.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testtraveltooltipdata.cpp.obj
       - name: Prepare test DLLs
         shell: pwsh
         run: |
@@ -394,7 +478,21 @@ jobs:
             New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
             Copy-Item "$qt/plugins/$plugin" "build/$plugin"
           }
+      - name: Restore matching compiled companions for packaging-only verification
+        id: existing_tools
+        if: steps.existing_engine.outputs.reused == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/combined-performance/reuse-windows-engine.py --companion-tools
+      - name: Build the Construction Set and all public command-line tools
+        id: distribution_tools
+        if: steps.existing_tools.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target openmw-cs openmw-essimporter bsatool esmtool niftest openmw-bulletobjecttool
       - name: Run component regressions before full engine linking
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           cmake --build build --target components-tests
@@ -402,13 +500,15 @@ jobs:
           ./build/components-tests.exe --gtest_output=xml:components-tests-early.xml
           if ($LASTEXITCODE) { throw 'Early component regressions failed' }
       - name: Build engine and regression tests
+        if: steps.existing_engine.outputs.reused != 'true'
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
-      - name: All engine tests, both UI modes and four lookup configurations before packaging
+      - name: All engine tests, UI fallback modes and four lookup configurations before packaging
+        if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
           $componentTestExit = $LASTEXITCODE
-          Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
+          Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT,Env:OPENMW_LUA_UI_LEGACY_UPDATES,Env:OPENMW_COMBINED_PERFORMANCE,Env:OPENMW_LUA_CELL_QUERY_CACHE -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
           if ($componentTestExit) { throw 'Component regressions failed' }
@@ -422,6 +522,26 @@ jobs:
           python custom/town-performance/verify-layout-parity.py openmw-tests.xml lua-ui-legacy-tests.xml lua-ui-layout-parity.json
           if ($LASTEXITCODE) { throw 'Required native UI regressions or layout/Image parity verification failed' }
           try {
+            $env:OPENMW_LUA_UI_LEGACY_UPDATES = '1'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-updates-tests.xml
+            if ($LASTEXITCODE) { throw 'Inherited native update traversal regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_UI_LEGACY_UPDATES -ErrorAction SilentlyContinue
+          }
+          try {
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:MWLuaMagicBindingsTest.nativeQueryFactoriesMatchLuaAdapterCallsAndMasterMode --gtest_output=xml:combined-performance-off-tests.xml
+            if ($LASTEXITCODE) { throw 'Same-executable inherited fallback regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/town-performance/verify-combined-layout.py openmw-tests.xml lua-ui-legacy-updates-tests.xml combined-performance-off-tests.xml combined-layout-parity.json
+          if ($LASTEXITCODE) { throw 'Combined native UI state or fallback parity failed' }
+          python custom/combined-performance/tests/verify-native-jobs.py components-tests.xml openmw-tests.xml native-jobs-tests.json
+          if ($LASTEXITCODE) { throw 'Native job regressions did not run successfully' }
+          python custom/combined-performance/verify-native.py openmw-tests.xml combined-performance-off-tests.xml combined-native-tests.json
+          if ($LASTEXITCODE) { throw 'Required combined query regressions or fallback factory behavior did not execute' }
+          try {
             foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
               $env:OPENMW_CELL_ID_INDEX = $mode[0]
               $env:OPENMW_WORLD_CELL_INDEX = $mode[1]
@@ -433,12 +553,82 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Compare actor and HUD updates with the previous paths in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_TOWN_FRAME_UPDATES = '0'
+          try {
+            ./build/components-tests.exe --gtest_filter=LuaScriptsContainerTest.UpdateHandlersKeepTracebacksOrderAndStateAfterCollection:LuaScriptsContainerTest.RepeatedActorUpdateDispatchBenchmark --gtest_output=xml:town-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous Lua update dispatch tests failed' }
+            ./build/openmw-tests.exe --gtest_filter=MWLuaMagicBindingsTest.ModifiedStatBindingsReadLiveValuesAndPendingSelfWrites:MWLuaMagicBindingsTest.RepeatedLuaTypeQueriesObserveRecordReplacementAndRemoval:LuaUiLayoutTest.* --gtest_output=xml:town-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous actor and HUD regression tests failed' }
+          } finally {
+            Remove-Item Env:OPENMW_TOWN_FRAME_UPDATES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-town-frame-updates.py
+          if ($LASTEXITCODE) { throw 'Town update state or attachment checks failed' }
+      - name: Compare sparse and complete HUD refreshes with earlier town improvements enabled
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SPARSE_UI_UPDATES = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.SparsePropertyRequestsMergeAndPreserveFullRefresh:LuaUiLayoutTest.BatchedHudPropertiesBenchmark --gtest_output=xml:previous-hud-tests.xml
+            if ($LASTEXITCODE) { throw 'Previous HUD refresh regression failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SPARSE_UI_UPDATES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-sparse-hud.py
+          if ($LASTEXITCODE) { throw 'Changed widget geometry or count differs' }
+      - name: Compare ordinary active-spell reads in the same Windows executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_ACTIVE_SPELL_READS = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=MWLuaMagicBindingsTest.OrdinarySpellReads*:MWLuaMagicBindingsTest.SpellReadDetailsValidateMutableEffectsAndLegacySaveReferences --gtest_output=xml:previous-spell-reads.xml
+            if ($LASTEXITCODE) { throw 'Independent spell-copy control failed' }
+          } finally { Remove-Item Env:OPENMW_SHARED_ACTIVE_SPELL_READS -ErrorAction SilentlyContinue }
+          python custom/combined-performance/tests/verify-spell-reads.py
+          if ($LASTEXITCODE) { throw 'Spell read contents, copy counts or benchmark comparison failed' }
+      - name: Compare the three parallel query features on the same engine
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_BATCHED_VISUAL_RAYS = '0'
+          $env:OPENMW_ASYNC_DISTANCE_JOBS = '0'
+          $env:OPENMW_ISOLATED_LUA_WORKERS = '0'
+          ./build/openmw-tests.exe --gtest_filter=ParallelQueryBindings.* --gtest_output=xml:previous-parallel-queries.xml
+          if ($LASTEXITCODE) { throw 'Parallel query control failed' }
+          python custom/combined-performance/tests/verify-parallel-queries.py
+          if ($LASTEXITCODE) { throw 'Parallel query, worker or adapter regressions failed' }
+      - name: Verify world and local marker selection, size caps and native controls
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          python custom/map-icons/verify-skin-tests.py
+          if ($LASTEXITCODE) { throw 'Native map icon and zoom checks failed' }
+      - name: Require executed native tooltip tests
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          python custom/native-tooltips/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
+          if ($LASTEXITCODE) { throw 'Required tooltip forms, selection or save regressions did not execute successfully' }
       - name: Package only after test success
+        if: steps.existing_engine.outputs.reused != 'true'
         id: package
         shell: pwsh
         run: |
           cmake --install build --prefix install
           if ($LASTEXITCODE) { throw 'Installation failed' }
+          $env:OPENMW_TEST_PROFILE_DATA = (Resolve-Path 'install/resources/vfs').Path
+          try {
+            ./build/openmw-tests.exe --gtest_filter=LocationRenderingProfileTest.* --gtest_output=xml:location-rendering-profile-tests.xml
+            if ($LASTEXITCODE) { throw 'Location rendering tests on the installed data failed' }
+          } finally { Remove-Item Env:OPENMW_TEST_PROFILE_DATA -ErrorAction SilentlyContinue }
+          python custom/combined-performance/tests/verify-rendering-profile.py install
+          if ($LASTEXITCODE) { throw 'Installed location rendering resources or native regression proof is incomplete' }
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value 'installed=true'
           Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
           Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
@@ -460,6 +650,8 @@ jobs:
           Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
           Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
           Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
+          Copy-Item custom/native-tooltips/README.md install/NATIVE-TOOLTIPS.md
+          Copy-Item native-tooltip-tests.json install/
           python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-package.json --resources install/resources/vfs
           if ($LASTEXITCODE) { throw 'Installed map icon resource verification failed' }
           Copy-Item map-icons-classification.json,map-icons-package.json install/
@@ -471,17 +663,55 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nNative world map location icons; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          python custom/combined-performance/prepare-package.py install
+          if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
           python custom/cumulative/prepare-upgrade.py install --town-performance
           if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
           ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
           Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
+      - name: Verify the full portable Windows distribution
+        id: distribution
+        shell: pwsh
+        run: |
+          ./custom/combined-performance/stage-msvc-runtime.ps1 -PackageRoot install
+          $options = @()
+          if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') { $options += '--preserve-existing' }
+          python custom/combined-performance/complete-windows-distribution.py build install @options
+          if ($LASTEXITCODE) { throw 'Windows tools, public files or dependencies failed verification' }
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot distribution-startup
+          $startupEvidence = 'install/verification/distribution-startup'
+          if (Test-Path -LiteralPath $startupEvidence) { Remove-Item -LiteralPath $startupEvidence -Recurse -Force }
+          Copy-Item -LiteralPath distribution-startup -Destination $startupEvidence -Recurse
+          if ((Get-FileHash 'distribution-startup/startup-report.json').Hash -ne (Get-FileHash "$startupEvidence/startup-report.json").Hash) {
+            throw 'The packaged startup evidence differs from the run just completed'
+          }
+          Copy-Item -LiteralPath native-adapter-installer-tests.json -Destination install/verification/
+          if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') {
+            python custom/combined-performance/complete-windows-distribution.py build install --record-final-preservation
+            if ($LASTEXITCODE) { throw 'Final preserved file verification failed' }
+          }
           python custom/dialogue-colours/package-manifest.py install
-          if ($LASTEXITCODE) { throw 'Package inventory validation failed' }
+          if ($LASTEXITCODE) { throw 'Final Windows distribution inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-native-map-icons-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: openmw-parallel-native-jobs-windows-complete-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
+          if-no-files-found: error
+      - name: Retain compiled companion tools if later packaging verification fails
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-tools-diagnostics-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            build/openmw-cs.exe
+            build/openmw-essimporter.exe
+            build/bsatool.exe
+            build/esmtool.exe
+            build/niftest.exe
+            build/openmw-bulletobjecttool.exe
+            build/defaults-cs.bin
+          retention-days: 3
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
         if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
@@ -496,6 +726,9 @@ jobs:
         with:
           name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
+            install/verification/WINDOWS-DISTRIBUTION.json
+            native-adapter-installer-tests.json
+            distribution-startup/
             gameplay-installer-tests.json
             cumulative-source-manifest.json
             cumulative-build-source-manifest.json
@@ -507,6 +740,7 @@ jobs:
             town-performance-build-source-manifest.json
             message-position-source-manifest.json
             message-position-tests.txt
+            native-tooltip-tests.json
             map-icons-classification.json
             map-icons-package.json
             map-icon-controls-early.xml
@@ -522,6 +756,27 @@ jobs:
             openmw-tests.xml
             lua-ui-legacy-tests.xml
             lua-ui-layout-parity.json
+            sanemagic-adapter-parity.json
+            combined-launcher-windows-powershell.json
+            combined-launcher-pwsh.json
+            combined-native-tests.json
+            combined-layout-parity.json
+            lua-ui-legacy-updates-tests.xml
+            combined-performance-off-tests.xml
+            native-job-adapter-parity.json
+            native-jobs-tests.json
+            town-frame-updates.json
+            town-previous-components.xml
+            town-previous-engine.xml
+            previous-hud-tests.xml
+            sparse-hud-tests.json
+            previous-spell-reads.xml
+            previous-parallel-queries.xml
+            map-icon-skin-tests.json
+            active-spell-reads.json
+            location-rendering-profile-tests.xml
+            install/verification/location-rendering-profile.json
+            install/COMBINED-PACKAGE.json
             install/PACKAGE-SHA256.json
             loading-repair-source-manifest.json
             loading-repair-applied.patch
@@ -540,6 +795,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl1 libgl1-mesa-dri g++
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
+      - name: Exercise location rendering shaders on Mesa
+        run: python3 scripts/test_location_rendering_shaders.py
+      - uses: actions/upload-artifact@v6
+        with:
+          name: location-rendering-shaders-${{ env.CUMULATIVE_COMMIT }}
+          path: location-rendering-shader-tests.json
+          if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'
     needs: GLRegression

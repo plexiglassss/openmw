@@ -134,6 +134,8 @@
 -- @param #table options Optional table, can take the following options:
 --
 --   * `noWarnUnused` - if set to true this element will never generate warnings about unused properties.
+--   * `deferUntilAttached` - for a child element, build its native widgets on first attachment to a
+--     parent layout. Edits made before attachment are used on that first display.
 --
 -- @return #Element
 
@@ -319,6 +321,15 @@
 -- parent.layout.content[2].props.text = 'parent 2'
 -- parent:update() -- will show 'parent 2', but 'child 1'
 
+
+---
+-- Apply changes to the `props` of existing inline layouts in this Element, then recalculate layout.
+-- Pass the actual layout tables. Multiple requests in the same frame are combined. A full
+-- update takes priority. Use `update()` for changes to content, templates, callbacks, external
+-- properties or layers. Call a nested Element's own method for its internal layouts.
+-- @function [parent=#Element] updateProperties
+-- @param self
+-- @param #list<#Layout> layouts
 
 ---
 -- Destroys the element

@@ -12,6 +12,7 @@
 
 #include <osg/Texture2D>
 
+#include <components/diagnostics/loading.hpp>
 #include <components/misc/strings/algorithm.hpp>
 
 #include <components/myguiplatform/myguitexture.hpp>
@@ -181,7 +182,7 @@ namespace MWGui
         {
             auto sortModel = std::make_unique<SortFilterItemModel>(std::move(tradeModel));
             mSortModel = sortModel.get();
-            mItemView->setModel(std::move(sortModel));
+            mItemView->setModel(std::move(sortModel), ItemView::Refresh::OnNextUpdate);
         }
 
         mSortModel->setNameFilter(mFilterEdit->getCaption());
@@ -192,21 +193,24 @@ namespace MWGui
         mFilterMagic->setStateSelected(false);
         mFilterMisc->setStateSelected(false);
 
-        mPreview->updatePtr(mPtr);
-        mPreview->rebuild();
-        mPreview->update();
-
-        dirtyPreview();
-
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerPreviewRebuild);
+            mPreview->updatePtr(mPtr);
+            mPreview->rebuild();
+        }
         updatePreviewSize();
-
         updateEncumbranceBar();
-        mItemView->update();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerInventoryList);
+            mItemView->update();
+        }
+        // This refreshes the equipped preview and armour rating after magic effects are current.
         notifyContentChanged();
     }
 
     void InventoryWindow::clear()
     {
+        mArmorCaptionPending = false;
         mPtr = MWWorld::Ptr();
         mTradeModel = nullptr;
         mSortModel = nullptr;
@@ -547,6 +551,16 @@ namespace MWGui
         if (mPtr.isEmpty())
             return;
 
+        // This is a caption for the native inventory. A Lua paper doll only needs the model.
+        // Looking up the combat interface can initialize every player script on a freshly loaded save.
+        if (!mArmorRating->getInheritedVisible())
+        {
+            mArmorCaptionPending = true;
+            Diagnostics::Loading::Timer hidden(Diagnostics::Loading::Stage::PlayerArmorCaptionHidden);
+            return;
+        }
+        mArmorCaptionPending = false;
+        Diagnostics::Loading::Timer caption(Diagnostics::Loading::Stage::PlayerArmorCaption);
         auto rating = MyGUI::utility::toString(static_cast<int>(mPtr.getClass().getArmorRating(mPtr, true)));
         mArmorRating->setCaptionWithReplacing("#{sArmor}: " + rating);
         if (mArmorRating->getTextSize().width > mArmorRating->getSize().width)
@@ -780,6 +794,8 @@ namespace MWGui
             notifyContentChanged();
             mUpdateNextFrame = false;
         }
+        if (mArmorCaptionPending && mArmorRating->getInheritedVisible())
+            updateArmorRating();
     }
 
     void InventoryWindow::setTrading(bool trading)
@@ -789,19 +805,27 @@ namespace MWGui
 
     void InventoryWindow::dirtyPreview()
     {
-        mPreview->update();
-
+        {
+            Diagnostics::Loading::Timer geometry(Diagnostics::Loading::Stage::PlayerPreviewGeometry);
+            mPreview->update();
+        }
         updateArmorRating();
     }
 
     void InventoryWindow::notifyContentChanged()
     {
-        // update the spell window just in case new enchanted items were added to inventory
-        MWBase::Environment::get().getWindowManager()->updateSpellWindow();
-
-        MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(MWMechanics::getPlayer());
-
-        dirtyPreview();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerSpellWindow);
+            MWBase::Environment::get().getWindowManager()->updateSpellWindow();
+        }
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerMagicEffects);
+            MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(MWMechanics::getPlayer());
+        }
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerPreviewUpdate);
+            dirtyPreview();
+        }
     }
 
     void InventoryWindow::pickUpObject(MWWorld::Ptr object)

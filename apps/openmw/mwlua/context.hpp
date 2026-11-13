@@ -14,6 +14,7 @@ namespace MWLua
     class LuaEvents;
     class LuaManager;
     class ObjectLists;
+    class NativeQueryService;
 
     struct Context
     {
@@ -29,6 +30,7 @@ namespace MWLua
         LuaUtil::LuaState* mLua = nullptr;
         LuaUtil::UserdataSerializer* mSerializer = nullptr;
         ObjectLists* mObjectLists = nullptr;
+        NativeQueryService* mNativeQueryService = nullptr;
         LuaEvents* mLuaEvents = nullptr;
 
         std::string_view typeName() const

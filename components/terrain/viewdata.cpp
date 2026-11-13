@@ -178,6 +178,16 @@ namespace Terrain
         return vd;
     }
 
+    ViewData* ViewDataMap::getCompletedView(const osg::Vec4i& grid) const
+    {
+        ViewData* latest = nullptr;
+        for (const auto& [camera, view] : mViewers)
+            if (camera && view->suitableToUse(grid) && view->getWorldUpdateRevision() == mWorldUpdateRevision
+                && (!latest || view->getLastUsageTimeStamp() > latest->getLastUsageTimeStamp()))
+                latest = view;
+        return latest;
+    }
+
     ViewData* ViewDataMap::createOrReuseView()
     {
         ViewData* vd = nullptr;

@@ -509,7 +509,8 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         if (version <= ESM::MaxActorIdSaveGameFormatVersion)
             reader.mActorIdConverter = &actorIdConverter;
 
-        Loading::Listener& listener = *MWBase::Environment::get().getWindowManager()->getLoadingScreen();
+        auto& windowManager = *MWBase::Environment::get().getWindowManager();
+        Loading::Listener& listener = *windowManager.getLoadingScreen();
 
         listener.setProgressRange(100);
         listener.setLabel("#{OMWEngine:LoadingInProgress}");
@@ -612,6 +613,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                     break;
 
                 case ESM::REC_DCOU:
+                case ESM::REC_DCLR:
                 case ESM::REC_STLN:
 
                     MWBase::Environment::get().getMechanicsManager()->readRecord(reader, n.toInt());
@@ -638,6 +640,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
             int progressPercent = static_cast<int>(float(reader.getFileOffset()) / total * 100);
             if (progressPercent > currentPercent)
             {
+                windowManager.advanceSaveMapRestore(false);
                 const auto progressStart = LoadClock::now();
                 listener.increaseProgress(progressPercent - currentPercent);
                 progressMs += std::chrono::duration<double, std::milli>(LoadClock::now() - progressStart).count();
@@ -695,6 +698,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                          << " (stages inclusive)" << playerMetrics;
 
         phase("player setup, render and mechanics");
+        windowManager.advanceSaveMapRestore(false);
         MWWorld::ConstPtr ptr = MWMechanics::getPlayer();
 
         if (ptr.isInCell())
@@ -733,6 +737,9 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         MWBase::Environment::get().getWorldScene()->markCellAsUnchanged();
 
         phase("projectiles and startup scripts");
+        // Finish while the loading screen owns the frame, before scripts or the player can open/save the map.
+        windowManager.advanceSaveMapRestore(true);
+        phase("finish saved world map");
         MWBase::Environment::get().getLuaManager()->gameLoaded();
         phase("Lua gameLoaded");
         for (int actorId : actorIdConverter.mGraveyard)

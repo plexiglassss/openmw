@@ -1,5 +1,10 @@
 #include "actors.hpp"
 
+#include <components/misc/actorneighbours.hpp>
+#include <components/misc/combinedperformance.hpp>
+
+#include <optional>
+
 #include <array>
 #include <optional>
 
@@ -1377,8 +1382,23 @@ namespace MWMechanics
             cache.push_back({ ptr, cls.getMaxSpeed(ptr), world->getHalfExtents(ptr), cls.getMovementSettings(ptr) });
         }
 
-        for (const CacheEntry& cached : cache)
+        std::optional<Misc::ActorNeighbours> neighbours;
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        if (jobs && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled && cache.size() >= 48)
         {
+            std::vector<Misc::ActorNeighbours::Position> positions;
+            positions.reserve(cache.size());
+            for (const auto& entry : cache)
+            {
+                const auto pos = entry.mPtr.getRefData().getPosition().asVec3();
+                positions.push_back({ pos.x(), pos.y() });
+            }
+            neighbours.emplace(positions, maxDistForPartialAvoiding, *jobs);
+        }
+
+        for (std::size_t actorIndex = 0; actorIndex < cache.size(); ++actorIndex)
+        {
+            const CacheEntry& cached = cache[actorIndex];
             const MWWorld::Ptr& ptr = cached.mPtr;
             if (ptr == player)
                 continue; // Don't interfere with player controls.
@@ -1441,8 +1461,12 @@ namespace MWMechanics
             float angleToApproachingActor = 0;
 
             // Iterate through all other actors and predict collisions.
-            for (const CacheEntry& otherCached : cache)
+            const auto* row = neighbours ? &(*neighbours)[actorIndex] : nullptr;
+            const bool indexed = row && row->mComplete;
+            const std::size_t count = indexed ? row->mIndices.size() : cache.size();
+            for (std::size_t i = 0; i < count; ++i)
             {
+                const CacheEntry& otherCached = cache[indexed ? row->mIndices[i] : i];
                 const MWWorld::Ptr& otherPtr = otherCached.mPtr;
                 if (otherPtr == ptr || otherPtr == currentTarget)
                     continue;
@@ -1788,6 +1812,8 @@ namespace MWMechanics
         ++mDeathCount[actor.getCellRef().getRefId()];
 
         MWBase::Environment::get().getLuaManager()->actorDied(actor);
+        if (actor.isInCell())
+            MWBase::Environment::get().getMechanicsManager()->queueDungeonStatusUpdate(actor.getCell());
     }
 
     void Actors::resurrect(const MWWorld::Ptr& ptr) const

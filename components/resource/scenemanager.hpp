@@ -2,9 +2,16 @@
 #define OPENMW_COMPONENTS_RESOURCE_SCENEMANAGER_H
 
 #include <array>
+#include <atomic>
+#include <functional>
 #include <memory>
+#include <shared_mutex>
 #include <mutex>
 #include <string>
+#include <span>
+#include <vector>
+
+namespace Misc { class NativeJobPool; }
 
 #include <osg/Texture>
 #include <osg/ref_ptr>
@@ -146,6 +153,8 @@ namespace Resource
 
         void setShaderPath(const std::filesystem::path& path);
 
+        std::uint64_t modelSettingsRevision() const { return mModelSettingsRevision.load(); }
+
         /// Check if a given scene is loaded and if so, update its usage timestamp to prevent it from being unloaded
         bool checkLoaded(VFS::Path::NormalizedView name, double referenceTime);
 
@@ -154,6 +163,22 @@ namespace Resource
         ///  If even the error marker mesh can not be found, an exception is thrown.
         /// @note Thread safe.
         osg::ref_ptr<const osg::Node> getTemplate(VFS::Path::NormalizedView path, bool compile = true);
+        /// Look up an already published template without loading or joining pending preparation.
+        osg::ref_ptr<const osg::Node> getCachedTemplate(VFS::Path::NormalizedView path) const;
+
+        /// Decode the uncached NIF inputs of one bounded paging batch.
+        void prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs);
+
+        /// Prepare private CPU models ahead of the ordered consumer on the requesting thread. GPU compilation and
+        /// publication follow the first real getTemplate request. An interrupted batch discards unused models.
+        void withPreparedPagedModels(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs,
+            const std::atomic_bool* abort, const std::function<void()>& consume);
+
+        /// Pool cold models across adjacent chunks while retaining only a bounded number of private drafts.
+        /// A dense chunk uses its existing per-chunk preparation. Consumers always run in input order.
+        void withPagedModelGroups(std::span<const std::vector<VFS::Path::NormalizedView>> chunks,
+            Misc::NativeJobPool& jobs, const std::atomic_bool& abort,
+            const std::function<void(std::size_t, bool)>& consume);
 
         /// Clone osg::Node safely.
         /// @note Thread safe.
@@ -217,17 +242,23 @@ namespace Resource
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) const override;
 
-        void setSupportsNormalsRT(bool supports) { mSupportsNormalsRT = supports; }
+        void setSupportsNormalsRT(bool supports);
         bool getSupportsNormalsRT() const { return mSupportsNormalsRT; }
 
         void setUpNormalsRTForStateSet(osg::StateSet* stateset, bool enabled);
 
-        void setWeatherParticleOcclusion(bool value) { mWeatherParticleOcclusion = value; }
+        void setWeatherParticleOcclusion(bool value);
 
     private:
         osg::ref_ptr<Shader::ShaderVisitor> createShaderVisitor(const std::string& shaderPrefix = "objects");
         osg::ref_ptr<osg::Node> loadErrorMarker();
         osg::ref_ptr<osg::Node> cloneErrorMarker();
+
+        class ModelDrafts;
+        std::unique_ptr<ModelDrafts> mModelDrafts;
+        mutable std::shared_mutex mModelSettingsMutex;
+        std::atomic_uint64_t mModelSettingsRevision{ 0 };
+        osg::ref_ptr<osg::Node> prepareCpuTemplate(VFS::Path::NormalizedView path, bool useErrorMarker);
 
         Misc::SingleFlight<std::string, osg::ref_ptr<const osg::Node>> mPendingTemplates;
         mutable std::mutex mSharedStateMutex;

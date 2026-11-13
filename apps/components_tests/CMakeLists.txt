@@ -3,6 +3,7 @@ include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 
 file(GLOB UNITTEST_SRC_FILES
     main.cpp
+    terrain/testpagingray.cpp
     terrain/testrayacceleration.cpp
 
     esm/testfixedstring.cpp
@@ -10,6 +11,7 @@ file(GLOB UNITTEST_SRC_FILES
     esm/variant.cpp
 
     lua/testasync.cpp
+    lua/testarrivalconfiguration.cpp
     lua/testconfiguration.cpp
     lua/testinputactions.cpp
     lua/testl10n.cpp
@@ -22,6 +24,7 @@ file(GLOB UNITTEST_SRC_FILES
     lua/testyaml.cpp
 
     mapmarkers/testclassification.cpp
+    mapmarkers/testicons.cpp
     mapmarkers/testspatialindex.cpp
 
     misc/compression.cpp
@@ -29,6 +32,8 @@ file(GLOB UNITTEST_SRC_FILES
     misc/testdialoguetext.cpp
     misc/testendianness.cpp
     misc/testmathutil.cpp
+    misc/testnativejobpool.cpp
+    lua/testpureworker.cpp
     misc/testresourcehelpers.cpp
     misc/teststringops.cpp
 
@@ -84,6 +89,7 @@ file(GLOB UNITTEST_SRC_FILES
     esm3/testinfoorder.cpp
     esm3/testcstringids.cpp
     esm3/testlocationmarkers.cpp
+    esm3/testdungeonstates.cpp
 
     nifosg/testnifloader.cpp
 
@@ -91,10 +97,14 @@ file(GLOB UNITTEST_SRC_FILES
 
     resource/testobjectcache.cpp
     resource/testresourcesystem.cpp
+    resource/testpagedmodelpreparation.cpp
+    resource/testtownpreparation.cpp
 
+    vfs/testdirectorycomponent.cpp
     vfs/testpathutil.cpp
 
     sceneutil/osgacontroller.cpp
+    sceneutil/testvisualraybatch.cpp
 
     bsa/testbsafile.cpp
     bsa/testcompressedbsafile.cpp

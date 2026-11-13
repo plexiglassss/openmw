@@ -7,6 +7,7 @@ namespace MWLua
 {
     struct Context;
 
+    void addIsolatedWorkerBindings(sol::table& api, const Context& context);
     void addCoreTimeBindings(sol::table& api, const Context& context);
 
     sol::table initCorePackage(const Context& context);

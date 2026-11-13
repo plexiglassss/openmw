@@ -32,6 +32,7 @@ about creating new content for OpenMW, please refer to
         sky-system
         doors-and-teleports
         custom-shader-effects
+        location-rendering-profiles
         extended
         animation-blending
         paths

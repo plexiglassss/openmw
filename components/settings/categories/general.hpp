@@ -32,6 +32,11 @@ namespace Settings
         SettingValue<bool> mGmstOverridesL10n{ mIndex, "General", "gmst overrides l10n" };
         SettingValue<std::size_t> mLogBufferSize{ mIndex, "General", "log buffer size" };
         SettingValue<std::size_t> mConsoleHistoryBufferSize{ mIndex, "General", "console history buffer size" };
+        SettingValue<bool> mNativeJobsEnabled{ mIndex, "General", "native jobs enabled" };
+        SettingValue<int> mNativeJobsThreads{ mIndex, "General", "native jobs threads",
+            makeClampSanitizerInt(0, 16) };
+        SettingValue<int> mNativeJobsMinimumItems{ mIndex, "General", "native jobs minimum items",
+            makeClampSanitizerInt(1, 1048576) };
     };
 }
 

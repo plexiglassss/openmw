@@ -100,6 +100,8 @@ namespace MWWorld
 
         bool mPreloadExteriorGrid;
         bool mPreloadDoors;
+        double mNextExitPrediction = 0;
+        void predictExteriorExit(const osg::Vec3f& position, const osg::Vec3f& predicted);
         bool mPreloadFastTravel;
         float mPredictionTime;
         float mLowestPoint;

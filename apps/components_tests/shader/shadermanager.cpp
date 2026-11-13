@@ -41,6 +41,17 @@ namespace
         }
     };
 
+    TEST_F(ShaderManagerTest, get_program_with_null_vertex_shader_does_not_dereference)
+    {
+        osg::ref_ptr<osg::Shader> fragment = new osg::Shader(osg::Shader::FRAGMENT);
+        fragment->setShaderSource("#version 120\nvoid main() {}\n");
+
+        EXPECT_NO_THROW({
+            const osg::ref_ptr<osg::Program> program = mManager.getProgram(nullptr, fragment, nullptr, {});
+            EXPECT_TRUE(program);
+        });
+    }
+
     TEST_F(ShaderManagerTest, get_shader_with_empty_content_should_succeed)
     {
         const std::string content;

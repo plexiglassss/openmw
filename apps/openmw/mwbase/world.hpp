@@ -119,6 +119,7 @@ namespace MWBase
             std::string name;
             float x, y; // world position
             ESM::RefId dest;
+            ESM::RefId doorId;
         };
 
         World() {}
@@ -318,6 +319,10 @@ namespace MWBase
         virtual bool castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
             bool ignorePlayer, bool ignoreActors, bool ignoreTerrain, std::span<const MWWorld::Ptr> ignoreList = {})
             = 0;
+
+        // All endpoints share an origin, ignore set, and reference eye for terrain selection.
+        virtual void castRenderingRays(std::span<MWPhysics::RayCastingResult> out, const osg::Vec3f& origin,
+            std::span<const osg::Vec3f> ends, std::span<const MWWorld::Ptr> ignore) = 0;
 
         virtual void setActorCollisionMode(const MWWorld::Ptr& ptr, bool internal, bool external) = 0;
         virtual bool isActorCollisionEnabled(const MWWorld::Ptr& ptr) = 0;

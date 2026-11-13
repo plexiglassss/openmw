@@ -1,6 +1,8 @@
 #ifndef OPENMW_MWWORLD_CELLREF_H
 #define OPENMW_MWWORLD_CELLREF_H
 
+#include "queryrevision.hpp"
+
 #include <string_view>
 
 #include <components/esm/esmbridge.hpp>
@@ -19,6 +21,8 @@ namespace MWWorld
     /// \brief Encapsulated variant of ESM::CellRef with change tracking
     class CellRef
     {
+        QueryMutation mQueryMutation;
+
     protected:
     public:
         explicit CellRef(const ESM::CellRef& ref);

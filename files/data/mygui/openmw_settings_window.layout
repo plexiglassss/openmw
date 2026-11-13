@@ -716,6 +716,23 @@
                                 </Widget>
                             </Widget>
 
+                            <!-- Location Rendering Profiles -->
+                            <Widget type="HBox" align="Stretch">
+                                <UserString key="HStretch" value="true"/>
+                                <UserString key="VStretch" value="false"/>
+                                <Widget type="AutoSizedButton" skin="MW_Button">
+                                    <UserString key="SettingCategory" value="Shaders"/>
+                                    <UserString key="SettingName" value="location rendering profiles"/>
+                                    <UserString key="SettingType" value="CheckButton"/>
+                                </Widget>
+                                <Widget type="AutoSizedTextBox" skin="SandText">
+                                    <Property key="Caption" value="#{OMWEngine:LocationRenderingProfiles}"/>
+                                    <UserString key="ToolTipType" value="Layout"/>
+                                    <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                    <UserString key="Caption_Text" value="#{OMWEngine:LocationRenderingProfilesTooltip}"/>
+                                </Widget>
+                            </Widget>
+
                             <!-- Match Sunlight To Sun -->
                             <Widget type="HBox" align="Stretch">
                                 <UserString key="HStretch" value="true"/>

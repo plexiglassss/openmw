@@ -59,7 +59,7 @@ list(APPEND COMPONENT_FILES "${OpenMW_BINARY_DIR}/${OSG_PLUGIN_CHECKER_CPP_FILE}
 
 add_component_dir (lua
     luastate scriptscontainer asyncpackage utilpackage serialization configuration l10n storage utf8
-    shapes/box inputactions yamlloader scripttracker luastateptr
+    shapes/box inputactions yamlloader scripttracker luastateptr pureworker
     )
 copy_resource_file("lua/util.lua" "${OPENMW_RESOURCES_ROOT}" "resources/lua_libs/util.lua")
 
@@ -137,6 +137,7 @@ add_component_dir (shader
     )
 
 add_component_dir (sceneutil
+    visualraybatch
     clone attach visitor util statesetupdater stateupdater controller skeleton riggeometry morphgeometry lightcontroller
     lightmanager lightutil positionattitudetransform workqueue pathgridutil waterutil writescene serialize optimizer
     detourdebugdraw navmesh agentpath animblendrules shadow mwshadowtechnique recastmesh shadowsbin osgacontroller rtt
@@ -188,7 +189,7 @@ add_component_dir (esm3
     inventorystate containerstate npcstate creaturestate dialoguestate statstate npcstats creaturestats
     weatherstate quickkeys fogstate spellstate activespells creaturelevliststate doorstate projectilestate debugprofile
     aisequence magiceffects custommarkerstate stolenitems transport animationstate controlsstate mappings readerscache
-    infoorder timestamp formatversion landrecorddata selectiongroup dialoguecondition
+    infoorder timestamp formatversion landrecorddata selectiongroup dialoguecondition dungeonstates
     refnum actoridconverter
     )
 
@@ -295,11 +296,11 @@ add_component_dir (esm4
     vertex
 )
 
-add_component_dir (mapmarkers classification spatialindex)
+add_component_dir (mapmarkers classification spatialindex icons)
 
 add_component_dir (misc
     barrier budgetmeasurement color compression constants convert coordinateconverter dialoguetext display endianness float16 frameratelimiter
-    guarded math mathutil messageformatparser notnullptr objectpool osgpluginchecker osguservalues progressreporter resourcehelpers
+    guarded math mathutil messageformatparser nativejobpool notnullptr objectpool osgpluginchecker osguservalues progressreporter resourcehelpers
     rng strongtypedef thread timeconvert timer tuplehelpers tuplemeta utf8stream weakcache windows
     )
 

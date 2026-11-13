@@ -100,6 +100,11 @@ ClampLighting: "Clamp Lighting"
 ClampLightingTooltip: |-
     Cap lighting brightness at (1, 1, 1) to replicate Morrowind's rendering.
     Prevents overly bright or shifted colors but can dull lighting.
+LocationRenderingProfiles: "Location Rendering Profiles"
+LocationRenderingProfilesTooltip: |-
+    Apply installed shader_profiles configuration files in their matched interior cells.
+
+    Profiles can temporarily override clamp lighting, forced per-pixel lighting, and automatic object normal/specular maps without changing your saved global settings. Disable this to use the global shader settings everywhere.
 ClassicFalloff: "Classic Falloff"
 ClassicFalloffTooltip: |-
     Default: off
@@ -348,16 +353,51 @@ MessagePositionHint: "Offsets use interface pixels and follow your interface sca
 
 # Native world-map location icons
 MapIconsTab: "Map icons"
-MapIconsDescription: "Use location symbols on the built-in world map. Advanced World Map is not required."
-MapIconsEnabled: "Enable location icons"
+MapIconsDescription: "Choose symbols for the built-in world map, local map and minimap."
+MapIconsEnabled: "Show location icons on the world map"
 MapIconsEntrances: "Show discovered entrance icons"
 MapIconsTooltips: "Show location type in tooltips"
-MapIconsSize: "Icon size"
-MapIconsColours: "Icon colours"
+MapIconsLocalDoors: "Show door icons on the local map and minimap"
+MapIconsLocalSize: "Local door size at normal zoom"
+MapIconsMaximum: "Maximum icon size on both maps"
+MapIconsVanillaColours: "Original vanilla colours"
+MapIconsSize: "World icon size at normal zoom"
+MapIconsColours: "Icon colours on both maps"
 MapIconsMapColours: "Map colours"
 MapIconsWhite: "White"
-MapIconsCategoryColours: "Category colours"
+MapIconsCategoryColours: "Different colours by type"
 MapIconsCategory: "Location type"
 MapIconsCategoryEnabled: "Use an icon for this type"
 MapIconsReset: "Reset icon options"
-MapIconsHint: "Entrance markers are discovered in exterior cells you enter. Turning off a type restores a square marker. Sizes follow interface scaling. Changes apply immediately and are saved when you close Options."
+MapIconsHint: "The maximum size applies after zoom and grouping, in logical interface pixels. A disabled world location type uses a square marker."
+
+# Native Travel Tooltips, If The Key Fits and Been There, Done That
+TooltipOptionsTab: "Tooltips"
+TooltipOptionsDescription: "Choose travel previews, matching-key hints and cleared-location labels. Changes apply immediately and are saved when you close Options."
+TravelTooltipSection: "Travel Tooltips"
+TravelTooltipEnabled: "Show illustrated destination previews"
+TravelTooltipOverview: "Show the travel overview map"
+TravelTooltipGondoliers: "Show gondolier destination previews"
+TravelTooltipFallback: "Use Stuporstar art when an image is missing"
+TravelTooltipWide: "Use a wide preview layout"
+TravelTooltipPack: "Destination art pack"
+TravelTooltipOverviewMap: "Overview map"
+TravelTooltipColour: "Artwork tint"
+TravelTooltipTitleFont: "Destination title font"
+TravelTooltipTextFont: "Description font"
+TravelTooltipRoutes: "Travel routes"
+TravelTooltipVvardenfell: "Vvardenfell map"
+TravelTooltipBookMap: "Book map"
+TravelTooltipDefaultFont: "Interface font"
+TravelTooltipMonoFont: "Monospace"
+TravelTooltipDaedricFont: "Daedric"
+TravelTooltipScale: "Preview size"
+KeyTooltipSection: "If The Key Fits"
+KeyTooltipEnabled: "Show when you carry the matching key"
+KeyTooltipUseKey: "(Use Key)"
+ClearedDungeonSection: "Been There, Done That"
+ClearedDungeonTooltips: "Show cleared status on entrance tooltips"
+ClearedDungeonMapTitle: "Show cleared status in the map title"
+ClearedDungeonSuffix: "(Cleared)"
+TooltipOptionsReset: "Reset tooltip options"
+TooltipOptionsHint: "Travel previews require the Travel Tooltips data folder. Cleared status tracks hostiles in each visited interior, rather than quests or loot. Tracking starts with visits in this build; hiding the labels keeps your history. Reset changes only the options on this page."

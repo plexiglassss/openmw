@@ -240,7 +240,7 @@ namespace Shader
                     for (const auto& [templateName, shaderDefines] : shaderKeys)
                     {
                         ShaderManager::ShaderMap::iterator shaderIt
-                            = manager.mShaders.find(std::make_pair(templateName, shaderDefines));
+                            = manager.mShaders.find(ShaderManager::ShaderKeyView{ templateName, shaderDefines });
                         if (shaderIt == manager.mShaders.end())
                         {
                             Log(Debug::Error) << "Failed to find shader " << templateName;
@@ -549,7 +549,7 @@ namespace Shader
             templateIt = mShaderTemplates.insert(std::make_pair(templateName, source)).first;
         }
 
-        ShaderMap::iterator shaderIt = mShaders.find(std::make_pair(templateName, defines));
+        ShaderMap::iterator shaderIt = mShaders.find(ShaderKeyView{ templateName, defines });
         if (shaderIt == mShaders.end())
         {
             std::string shaderSource = templateIt->second;
@@ -664,13 +664,14 @@ namespace Shader
     osg::ref_ptr<osg::Program> ShaderManager::getProgram(const std::string& templateName, const DefineMap& defines,
         const osg::Program* programTemplate, const SamplerBindingMap& samplers)
     {
-        auto vert = getShader(templateName + ".vert", defines);
-        auto frag = getShader(templateName + ".frag", defines);
+        std::lock_guard lock(mMutex);
+        auto vert = getShaderInternal(templateName + ".vert", defines);
+        auto frag = getShaderInternal(templateName + ".frag", defines);
 
         if (!vert || !frag)
             throw std::runtime_error("failed initializing shader: " + templateName);
 
-        return getProgram(std::move(vert), std::move(frag), programTemplate, samplers);
+        return getProgramInternal(std::move(vert), std::move(frag), programTemplate, samplers);
     }
 
     osg::ref_ptr<osg::Program> ShaderManager::getProgram(osg::ref_ptr<osg::Shader> vertexShader,
@@ -678,6 +679,12 @@ namespace Shader
         const SamplerBindingMap& samplers)
     {
         std::lock_guard<std::mutex> lock(mMutex);
+        return getProgramInternal(std::move(vertexShader), std::move(fragmentShader), programTemplate, samplers);
+    }
+
+    osg::ref_ptr<osg::Program> ShaderManager::getProgramInternal(osg::ref_ptr<osg::Shader> vertexShader,
+        osg::ref_ptr<osg::Shader> fragmentShader, const osg::Program* programTemplate, const SamplerBindingMap& samplers)
+    {
         ProgramMap::iterator found = mPrograms.find(std::make_pair(vertexShader, fragmentShader));
         if (found == mPrograms.end())
         {
@@ -686,10 +693,19 @@ namespace Shader
             osg::ref_ptr<SamplerProgram> program = programTemplate
                 ? new SamplerProgram(samplers, *programTemplate, osg::CopyOp::SHALLOW_COPY)
                 : new SamplerProgram(samplers);
-            program->addShader(vertexShader);
-            program->addShader(fragmentShader);
-            addLinkedShaders(vertexShader, program);
-            addLinkedShaders(fragmentShader, program);
+            if (vertexShader)
+                program->addShader(vertexShader);
+            if (fragmentShader)
+                program->addShader(fragmentShader);
+            // Object shaders use a second tangent only for differing ordinary/fallback UV sets.
+            // Groundcover uses attribute 6 for instance offsets and has no fallbackTangent input.
+            if (vertexShader
+                && vertexShader->getShaderSource().find("attribute vec4 fallbackTangent;") != std::string::npos)
+                program->addBindAttribLocation("fallbackTangent", 6);
+            if (vertexShader)
+                addLinkedShaders(vertexShader, program);
+            if (fragmentShader)
+                addLinkedShaders(fragmentShader, program);
             found = mPrograms.insert(std::make_pair(std::make_pair(vertexShader, fragmentShader), program)).first;
         }
         else
@@ -860,6 +876,18 @@ namespace Shader
     {
         return {
             { "forcePPL", "0" },
+            { "autoNormalMap", "0" },
+            { "autoSpecularMap", "0" },
+            { "fallbackNormalMap", "0" },
+            { "fallbackNormalMapUV", "0" },
+            { "fallbackNormalMapUnit", "0" },
+            { "fallbackSpecularMap", "0" },
+            { "fallbackSpecularMapUV", "0" },
+            { "fallbackSpecularMapUnit", "0" },
+            { "fallbackParallax", "0" },
+            { "fallbackReconstructNormalZ", "0" },
+            { "fallbackTangent", "0" },
+            { "locationProfileAvailable", "1" },
             { "clamp", "1" },
             { "preLightEnv", "0" },
             { "radialFog", "0" },

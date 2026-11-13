@@ -235,6 +235,10 @@ namespace MWRender
             },
             resourceSystem);
         osg::ref_ptr<osg::StateSet> stateset = lightManager->getOrCreateStateSet();
+        // Inventory/race previews use the user's ordinary material settings,
+        // independently of the currently displayed game world's cell profile.
+        stateset->addUniform(new osg::Uniform("locationRenderingProfileActive", false),
+            osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
         stateset->setDefine("FORCE_OPAQUE", "1", osg::StateAttribute::ON);
         stateset->setMode(GL_NORMALIZE, osg::StateAttribute::ON);
         stateset->setMode(GL_CULL_FACE, osg::StateAttribute::ON);
@@ -377,47 +381,31 @@ namespace MWRender
         if (!mAnimation.get())
             return;
 
-        mAnimation->showWeapons(true);
-        mAnimation->updateParts();
-
         MWWorld::InventoryStore& inv = mCharacter.getClass().getInventoryStore(mCharacter);
-        MWWorld::ContainerStoreIterator iter = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
-        std::string groupname = "inventoryhandtohand";
-        bool showCarriedLeft = true;
-        if (iter != inv.end())
+        const auto weapon = inv.getSlot(MWWorld::InventoryStore::Slot_CarriedRight);
+        const ESM::WeaponType* weaponInfo = nullptr;
+        if (weapon != inv.end() && weapon->getType() == ESM::Weapon::sRecordId)
+            weaponInfo = MWMechanics::getWeaponType(weapon->get<ESM::Weapon>()->mBase->mData.mType);
+        const bool showCarriedLeft = !weaponInfo || !(weaponInfo->mFlags & ESM::WeaponType::TwoHanded);
+        mAnimation->updateInventoryPreviewParts(showCarriedLeft);
+
+        std::string groupname = weapon == inv.end() ? "inventoryhandtohand" : "inventoryweapononehand";
+        if (weaponInfo)
         {
-            groupname = "inventoryweapononehand";
-            if (iter->getType() == ESM::Weapon::sRecordId)
+            std::string inventoryGroup = "inventory" + weaponInfo->mLongGroup;
+            // A form change can rebuild the animation during updateParts. Resolve its pose afterwards.
+            if (mAnimation->hasAnimation(inventoryGroup))
+                groupname = std::move(inventoryGroup);
+            else
             {
-                MWWorld::LiveCellRef<ESM::Weapon>* ref = iter->get<ESM::Weapon>();
-                const ESM::RefId type = ref->mBase->mData.mType;
-                const ESM::WeaponType* weaponInfo = MWMechanics::getWeaponType(type);
-                showCarriedLeft = !(weaponInfo->mFlags & ESM::WeaponType::TwoHanded);
-
-                std::string inventoryGroup = weaponInfo->mLongGroup;
-                inventoryGroup = "inventory" + inventoryGroup;
-
-                // We still should use one-handed animation as fallback
-                if (mAnimation->hasAnimation(inventoryGroup))
-                    groupname = std::move(inventoryGroup);
-                else
-                {
-                    static const std::string oneHandFallback
-                        = "inventory" + MWMechanics::getWeaponType(ESM::WeaponType::LongBladeOneHand)->mLongGroup;
-                    static const std::string twoHandFallback
-                        = "inventory" + MWMechanics::getWeaponType(ESM::WeaponType::LongBladeTwoHand)->mLongGroup;
-
-                    // For real two-handed melee weapons use 2h swords animations as fallback, otherwise use the 1h ones
-                    if (weaponInfo->mFlags & ESM::WeaponType::TwoHanded
-                        && weaponInfo->mWeaponClass == ESM::WeaponType::Melee)
-                        groupname = twoHandFallback;
-                    else
-                        groupname = oneHandFallback;
-                }
+                static const std::string oneHandFallback
+                    = "inventory" + MWMechanics::getWeaponType(ESM::WeaponType::LongBladeOneHand)->mLongGroup;
+                static const std::string twoHandFallback
+                    = "inventory" + MWMechanics::getWeaponType(ESM::WeaponType::LongBladeTwoHand)->mLongGroup;
+                groupname = !showCarriedLeft && weaponInfo->mWeaponClass == ESM::WeaponType::Melee
+                    ? twoHandFallback : oneHandFallback;
             }
         }
-
-        mAnimation->showCarriedLeft(showCarriedLeft);
 
         mCurrentAnimGroup = std::move(groupname);
         mAnimation->play(mCurrentAnimGroup, 1, BlendMask::BlendMask_All, false, 1.0f, "start", "stop", 0.0f, 0);

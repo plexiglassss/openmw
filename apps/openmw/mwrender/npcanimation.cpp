@@ -570,6 +570,16 @@ namespace MWRender
         return mesh;
     }
 
+    void NpcAnimation::updateInventoryPreviewParts(bool showCarriedLeft)
+    {
+        // A paper doll uses the equipped pose, independently of the live actor's attack animation.
+        // Drop a previously displayed projectile before updating parts for the new weapon.
+        mAmmunition.reset();
+        mShowWeapons = true;
+        mShowCarriedLeft = showCarriedLeft;
+        updateParts();
+    }
+
     void NpcAnimation::updateParts()
     {
         if (!mObjectRoot.get())

@@ -25,11 +25,11 @@ namespace MWGui
     {
     }
 
-    void ItemView::setModel(std::unique_ptr<ItemModel> model)
+    void ItemView::setModel(std::unique_ptr<ItemModel> model, Refresh refresh)
     {
         mModel = std::move(model);
-
-        update();
+        if (refresh == Refresh::Immediate)
+            update();
     }
 
     void ItemView::initialiseOverride()

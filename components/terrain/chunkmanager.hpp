@@ -79,7 +79,7 @@ namespace Terrain
             CompositeMapRenderer* renderer, ESM::RefId worldspace, double expiryDelay);
 
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& center, unsigned char lod, unsigned int lodFlags,
-            bool activeGrid, const osg::Vec3f& viewPoint, bool compile) override;
+            bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort = nullptr) override;
 
         void setCompositeMapSize(unsigned int size) { mCompositeMapSize = size; }
         void setCompositeMapLevel(float level) { mCompositeMapLevel = level; }

@@ -155,6 +155,7 @@ namespace MWWorld
 
     RefData& RefData::operator=(const RefData& refData)
     {
+        mQueryMutation = refData.mQueryMutation;
         try
         {
             cleanup();
@@ -206,6 +207,8 @@ namespace MWWorld
 
     void RefData::setDeletedByContentFile(bool deleted)
     {
+        if (mDeletedByContentFile != deleted)
+            invalidateReferenceQueries();
         mDeletedByContentFile = deleted;
     }
 

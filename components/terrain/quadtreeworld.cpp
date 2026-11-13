@@ -1,11 +1,21 @@
 #include <components/diagnostics/loading.hpp>
 #include "quadtreeworld.hpp"
 
+#include <array>
+#include <numeric>
+#include <typeinfo>
+#include <unordered_set>
+#include <osg/Texture>
+#include <components/vfs/manager.hpp>
+#include <components/resource/scenemanager.hpp>
+
 #include <components/diagnostics/timing.hpp>
 
 #include <osg/PolygonMode>
 #include <osg/ShapeDrawable>
 #include <osgUtil/CullVisitor>
+#include <osgUtil/IntersectionVisitor>
+#include <osgUtil/LineSegmentIntersector>
 
 #include <limits>
 #include <optional>
@@ -22,12 +32,28 @@
 #include "compositemaprenderer.hpp"
 #include "heightcull.hpp"
 #include "quadtreenode.hpp"
+#include "rayfootprint.hpp"
 #include "storage.hpp"
 #include "terraindrawable.hpp"
 #include "viewdata.hpp"
 
 namespace
 {
+    std::optional<Terrain::RayFootprint> getRayFootprint(osg::NodeVisitor& nv)
+    {
+        auto* visitor = dynamic_cast<osgUtil::IntersectionVisitor*>(&nv);
+        if (!visitor || visitor->getNodeMaskOverride() || visitor->getModelMatrix())
+            return {};
+        auto* ray = dynamic_cast<osgUtil::LineSegmentIntersector*>(visitor->getIntersector());
+        if (!ray || typeid(*ray) != typeid(osgUtil::LineSegmentIntersector)
+            || ray->getCoordinateFrame() != osgUtil::Intersector::MODEL)
+            return {};
+        Terrain::RayFootprint result{ ray->getStart(), ray->getEnd() };
+        if (!result.valid())
+            return {};
+        return result;
+    }
+
     unsigned int Log2(unsigned int n)
     {
         unsigned int targetlevel = 0;
@@ -265,7 +291,7 @@ namespace Terrain
         {
         }
         osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& chunkCenter, unsigned char /*lod*/,
-            unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+            unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool*)
         {
             osg::Vec3f center = { chunkCenter.x(), chunkCenter.y(), 0 };
             auto chunkBorder = CellBorder::createBorderGeometry(center.x() - size / 2.f, center.y() - size / 2.f, size,
@@ -368,12 +394,8 @@ namespace Terrain
         return lodFlags;
     }
 
-    void QuadTreeWorld::loadRenderingNode(
-        ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const osg::Vec4i& gridbounds, bool compile)
+    void QuadTreeWorld::updateRenderingLod(ViewDataEntry& entry, ViewData* vd)
     {
-        if (!vd->hasChanged() && entry.mRenderingNode)
-            return;
-
         if (vd->hasChanged())
         {
             vd->buildNodeIndex();
@@ -387,26 +409,41 @@ namespace Terrain
                 entry.mLodFlags = lodFlags;
             }
         }
+    }
 
+    QuadTreeWorld::ChunkRequest QuadTreeWorld::getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& bounds) const
+    {
+        const auto& center = entry.mNode->getCenter();
+        const bool active = center.x() > bounds.x() && center.y() > bounds.y()
+            && center.x() < bounds.z() && center.y() < bounds.w();
+        return { entry.mNode->getSize(), center, entry.mLodFlags, active };
+    }
+
+    void QuadTreeWorld::loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize,
+        const ChunkRequest& request, bool compile, const std::atomic_bool* abort, const BatchChunkManager::Fetch* fetch)
+    {
         if (!entry.mRenderingNode)
         {
             osg::ref_ptr<SceneUtil::PositionAttitudeTransform> pat = new SceneUtil::PositionAttitudeTransform;
             pat->setPosition(osg::Vec3f(
                 entry.mNode->getCenter().x() * cellWorldSize, entry.mNode->getCenter().y() * cellWorldSize, 0.f));
 
-            const osg::Vec2f& center = entry.mNode->getCenter();
-            bool activeGrid = (center.x() > gridbounds.x() && center.y() > gridbounds.y() && center.x() < gridbounds.z()
-                && center.y() < gridbounds.w());
-
             for (QuadTreeWorld::ChunkManager* m : mChunkManagers)
             {
-                osg::ref_ptr<osg::Node> n = m->getChunk(entry.mNode->getSize(), entry.mNode->getCenter(),
-                    static_cast<unsigned char>(DefaultLodCallback::getNativeLodLevel(entry.mNode, mMinSize)),
-                    entry.mLodFlags, activeGrid, vd->getViewPoint(), compile);
+                if (abort && abort->load(std::memory_order_relaxed))
+                    return;
+                osg::ref_ptr<osg::Node> n;
+                if (fetch && m == mBatchChunkManager)
+                    n = (*fetch)();
+                else
+                    n = m->getChunk(request.mSize, request.mCenter,
+                        static_cast<unsigned char>(DefaultLodCallback::getNativeLodLevel(entry.mNode, mMinSize)),
+                        request.mLodFlags, request.mActiveGrid, vd->getViewPoint(), compile, abort);
                 if (n)
                     pat->addChild(n);
             }
-            entry.mRenderingNode = pat;
+            if (!abort || !abort->load(std::memory_order_relaxed))
+                entry.mRenderingNode = pat;
         }
     }
 
@@ -447,6 +484,13 @@ namespace Terrain
             for (unsigned int i = 0; i < vd->getNumEntries(); ++i)
             {
                 ViewDataEntry& entry = vd->getEntry(i);
+                if (!entry.mRenderingNode || !entry.mRenderingNode->asGroup()
+                    || !entry.mRenderingNode->asGroup()->getNumChildren())
+                {
+                    // A far water tile may still be streaming. Keep the water surface visible.
+                    lowZ = -std::numeric_limits<float>::max();
+                    break;
+                }
                 osg::BoundingBox bb = static_cast<TerrainDrawable*>(entry.mRenderingNode->asGroup()->getChild(0))
                                           ->getWaterBoundingBox();
                 if (!bb.valid())
@@ -501,20 +545,71 @@ namespace Terrain
 
         const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
 
+        const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
+        auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
+        if (arrival && (!validArrival(*arrival) || !arrival->matches(viewPoint, mActiveGrid, cellWorldSize, arrival->mRevision)))
+            arrival.reset();
+        if (arrival && !nv.getFrameStamp())
+            arrival.reset(); // offscreen visitors without a frame clock keep normal synchronous semantics
         for (unsigned int i = 0; i < vd->getNumEntries(); ++i)
         {
+            bool firstAttachment = false;
+            std::chrono::steady_clock::time_point attachmentStart;
             ViewDataEntry& entry = vd->getEntry(i);
             {
                 std::optional<Diagnostics::Scope> prepareTiming;
                 if (!isCullVisitor)
                     prepareTiming.emplace("terrain", "ray", "prepareRenderingNode");
-                loadRenderingNode(entry, vd, cellWorldSize, mActiveGrid, false);
+                updateRenderingLod(entry, vd);
+                if (!entry.mRenderingNode)
+                {
+                    const auto request = getChunkRequest(entry, mActiveGrid);
+                    if (arrival)
+                    {
+                        const ArrivalView::Key key{ entry.mNode, entry.mLodFlags };
+                        auto prepared = arrival->find(key);
+                        if (isCullVisitor && !request.mActiveGrid)
+                        {
+                            if (!prepared && arrival->streaming())
+                                continue;
+                            if (!arrival->admitDistant(nv.getFrameStamp()->getFrameNumber(), key))
+                                continue;
+                            firstAttachment = true;
+                            attachmentStart = std::chrono::steady_clock::now();
+                        }
+                        entry.mRenderingNode = std::move(prepared);
+                    }
+                    if (!entry.mRenderingNode && ray
+                        && !ray->intersects(request.mCenter.x() * cellWorldSize,
+                            request.mCenter.y() * cellWorldSize, request.mSize * cellWorldSize * 0.5))
+                    {
+                        // Ground is bounded by the tile, but a paged mesh or an added
+                        // manager may extend across it. Negative results are query-local.
+                        const auto mayHit = [&](ChunkManager* manager) {
+                            if (manager == mChunkManager.get())
+                                return false;
+                            const auto mask = manager->getNodeMask();
+                            return (!mask || (mask & nv.getTraversalMask()))
+                                && manager->mayIntersectOutsideTile(request, vd->getViewPoint(), *ray);
+                        };
+                        if (std::none_of(mChunkManagers.begin(), mChunkManagers.end(), mayHit))
+                            continue;
+                    }
+                    if (!entry.mRenderingNode)
+                        loadRenderingNode(entry, vd, cellWorldSize, request, false);
+                }
             }
             {
                 std::optional<Diagnostics::Scope> traverseTiming;
                 if (!isCullVisitor)
                     traverseTiming.emplace("terrain", "ray", "traverseRenderingNode");
-                entry.mRenderingNode->accept(nv);
+                if (firstAttachment)
+                {
+                    entry.mRenderingNode->accept(nv);
+                    arrival->chargeTraversal(std::chrono::steady_clock::now() - attachmentStart);
+                }
+                else
+                    entry.mRenderingNode->accept(nv);
             }
         }
 
@@ -567,6 +662,138 @@ namespace Terrain
     void QuadTreeWorld::preload(View* view, const osg::Vec3f& viewPoint, const osg::Vec4i& grid,
         std::atomic<bool>& abort, Loading::Reporter& reporter)
     {
+        prepareView(view, viewPoint, grid, abort, reporter, {}, {});
+    }
+
+    std::shared_ptr<ArrivalView> QuadTreeWorld::createArrival(const osg::Vec3f& point, const osg::Vec4i& grid)
+    {
+        return std::make_shared<ArrivalView>(point, grid, mArrivalRevision.load(), mResourceSystem->getVFS()->getIndexRevision(),
+            mResourceSystem->getSceneManager()->modelSettingsRevision());
+    }
+
+    bool QuadTreeWorld::validArrival(const ArrivalView& view) const
+    {
+        return view.mRevision == mArrivalRevision.load() && view.mVfsRevision == mResourceSystem->getVFS()->getIndexRevision()
+            && view.mModelRevision == mResourceSystem->getSceneManager()->modelSettingsRevision();
+    }
+
+    void QuadTreeWorld::showArrival(std::shared_ptr<ArrivalView> view)
+    {
+        mVisibleArrival.store(std::move(view));
+    }
+
+    void QuadTreeWorld::preloadArrival(View* view, const std::shared_ptr<ArrivalView>& arrival,
+        std::atomic_bool& abort, Loading::Reporter& reporter, const ArrivalView::Progress& nearReady)
+    {
+        prepareView(view, arrival->mPoint, arrival->mGrid, abort, reporter, arrival, nearReady);
+    }
+
+    namespace
+    {
+        // Account shared CPU geometry and texture payloads once per view. The estimate is used
+        // for retaining a recent exterior, never for dropping currently required scenery.
+        class ArrivalFootprint : public osg::NodeVisitor
+        {
+            std::unordered_set<const osg::Object*> mSeen;
+            std::size_t mBytes = 0;
+            void buffer(const osg::BufferData* data)
+            {
+                if (data && mSeen.insert(data).second)
+                    mBytes += 128 + data->getTotalDataSize();
+            }
+            void state(const osg::StateSet* set)
+            {
+                if (!set || !mSeen.insert(set).second)
+                    return;
+                mBytes += 512;
+                for (unsigned unit = 0; unit < set->getTextureAttributeList().size(); ++unit)
+                {
+                    const auto* t = dynamic_cast<const osg::Texture*>(set->getTextureAttribute(unit, osg::StateAttribute::TEXTURE));
+                    if (!t || !mSeen.insert(t).second)
+                        continue;
+                    mBytes += 256;
+                    bool hasImage = false;
+                    for (unsigned i = 0; i < t->getNumImages(); ++i)
+                        if (const auto* image = t->getImage(i))
+                        {
+                            hasImage = true;
+                            buffer(image);
+                        }
+                    if (!hasImage)
+                        mBytes += std::size_t(std::max(0, t->getTextureWidth())) * std::max(0, t->getTextureHeight())
+                            * std::max(1, t->getTextureDepth()) * 4;
+                }
+            }
+        public:
+            ArrivalFootprint() : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN) { setNodeMaskOverride(~0u); }
+            void apply(osg::Node& node) override
+            {
+                if (!mSeen.insert(&node).second)
+                    return;
+                mBytes += 512;
+                state(node.getStateSet());
+                if (auto* geometry = node.asGeometry())
+                {
+                    buffer(geometry->getVertexArray());
+                    buffer(geometry->getNormalArray());
+                    buffer(geometry->getColorArray());
+                    buffer(geometry->getSecondaryColorArray());
+                    buffer(geometry->getFogCoordArray());
+                    for (const auto& a : geometry->getTexCoordArrayList()) buffer(a.get());
+                    for (const auto& a : geometry->getVertexAttribArrayList()) buffer(a.get());
+                    for (unsigned i = 0; i < geometry->getNumPrimitiveSets(); ++i) buffer(geometry->getPrimitiveSet(i));
+                    if (auto* land = dynamic_cast<TerrainDrawable*>(geometry))
+                        for (const auto& pass : land->getPasses()) state(pass.get());
+                }
+                traverse(node);
+            }
+            std::size_t measure(osg::Node& node)
+            {
+                const auto before = mBytes;
+                node.accept(*this);
+                return mBytes - before;
+            }
+        };
+    }
+
+    std::shared_ptr<ArrivalView> QuadTreeWorld::captureArrival(const osg::Vec3f& point, const osg::Vec4i& grid,
+        std::size_t budget)
+    {
+        auto* cached = mViewDataMap->getCompletedView(grid);
+        if (!cached || cached->getNumEntries() > 512)
+            return {};
+        auto result = std::make_shared<ArrivalView>(point, grid, mArrivalRevision.load(),
+            mResourceSystem->getVFS()->getIndexRevision(), mResourceSystem->getSceneManager()->modelSettingsRevision());
+        ArrivalFootprint footprint;
+        std::vector<ArrivalView::Entry> batch;
+        std::size_t bytes = 0;
+        std::size_t required = 0;
+        for (unsigned i = 0; i < cached->getNumEntries(); ++i)
+        {
+            const auto& entry = cached->getEntry(i);
+            // An incomplete camera view has no continuation once it is retained indoors.
+            if (!entry.mRenderingNode)
+                return {};
+            const auto payload = footprint.measure(*entry.mRenderingNode);
+            bytes += payload + sizeof(ArrivalView::Entry);
+            if (bytes > budget)
+                return {};
+            required += getChunkRequest(entry, grid).mActiveGrid;
+            batch.push_back({ { entry.mNode, entry.mLodFlags }, entry.mRenderingNode, payload });
+        }
+        if (!required)
+            return {};
+        result->publish(batch);
+        if (result->bytes() > budget)
+            return {};
+        result->finish(true);
+        return result;
+    }
+
+    void QuadTreeWorld::prepareView(View* view, const osg::Vec3f& viewPoint, const osg::Vec4i& grid,
+        std::atomic_bool& abort, Loading::Reporter& reporter, const std::shared_ptr<ArrivalView>& arrival,
+        const ArrivalView::Progress& nearReady)
+    {
         Diagnostics::Scope preloadTiming("terrain", "worker", "preloadView");
         {
             Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::QuadTree);
@@ -589,17 +816,76 @@ namespace Terrain
             reporter.addTotal(vd->getNumEntries());
         }
 
-        for (unsigned int i = 0, n = vd->getNumEntries(); i < n && !abort; ++i)
+        const auto advance = [&] {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);
+            reporter.addProgress(1);
+        };
+        std::vector<unsigned> ordered(vd->getNumEntries());
+        std::iota(ordered.begin(), ordered.end(), 0u);
+        auto boundary = ordered.end();
+        if (arrival)
+            boundary = std::stable_partition(ordered.begin(), ordered.end(), [&](unsigned i) {
+                return getChunkRequest(vd->getEntry(i), grid).mActiveGrid;
+            });
+        const auto near = static_cast<std::size_t>(boundary - ordered.begin());
+        ArrivalFootprint footprint;
+        const auto build = [&](std::size_t first, std::size_t last) {
+            constexpr std::size_t groupSize = 4;
+            const bool batch = mBatchChunkManager && mBatchChunkManager->canPreloadBatches();
+            for (auto i = first; i < last && !abort;)
+            {
+                const auto begin = i;
+                std::array<ViewDataEntry*, groupSize> entries;
+                std::array<ChunkRequest, groupSize> chunks;
+                std::size_t count = 0;
+                while (i < last && i - begin < (batch ? groupSize : 1) && !abort)
+                {
+                    auto& entry = vd->getEntry(ordered[i++]);
+                    updateRenderingLod(entry, vd);
+                    if (entry.mRenderingNode)
+                        advance();
+                    else
+                    {
+                        entries[count] = &entry;
+                        chunks[count++] = getChunkRequest(entry, grid);
+                    }
+                }
+                if (abort)
+                    return;
+                const auto load = [&](std::size_t index, const BatchChunkManager::Fetch& fetch) {
+                    {
+                        Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
+                        loadRenderingNode(*entries[index], vd, cellWorldSize, chunks[index], true, &abort,
+                            fetch ? &fetch : nullptr);
+                    }
+                    if (!abort)
+                        advance();
+                };
+                if (batch && count)
+                    mBatchChunkManager->preloadChunks(std::span(chunks).first(count), vd->getViewPoint(), abort, load);
+                else if (count)
+                    load(0, {});
+                if (arrival && !abort)
+                {
+                    std::vector<ArrivalView::Entry> ready;
+                    for (auto j = begin; j < i; ++j)
+                    {
+                        const auto& entry = vd->getEntry(ordered[j]);
+                        if (entry.mRenderingNode)
+                            ready.push_back({ { entry.mNode, entry.mLodFlags }, entry.mRenderingNode,
+                                footprint.measure(*entry.mRenderingNode) });
+                    }
+                    arrival->publish(ready);
+                }
+            }
+        };
+        build(0, near);
+        if (arrival && !abort)
         {
-            ViewDataEntry& entry = vd->getEntry(i);
-            {
-                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
-                loadRenderingNode(entry, vd, cellWorldSize, grid, true);
-            }
-            {
-                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::ProgressReporting);
-                reporter.addProgress(1);
-            }
+            nearReady(near, ordered.size() - near);
+            build(near, ordered.size());
+            if (!abort)
+                arrival->finish(true);
         }
     }
 
@@ -630,6 +916,12 @@ namespace Terrain
             World::unloadCell(x, y);
     }
 
+    void QuadTreeWorld::addBatchChunkManager(BatchChunkManager* manager)
+    {
+        addChunkManager(manager);
+        mBatchChunkManager = manager;
+    }
+
     void QuadTreeWorld::addChunkManager(QuadTreeWorld::ChunkManager* m)
     {
         mChunkManagers.push_back(m);
@@ -640,8 +932,16 @@ namespace Terrain
                     mMinSize, mLodFactor, ESM::getCellSize(mWorldspace)));
     }
 
+    void QuadTreeWorld::clearAssociatedCaches()
+    {
+        World::clearAssociatedCaches();
+        rebuildViews();
+    }
+
     void QuadTreeWorld::rebuildViews()
     {
+        ++mArrivalRevision;
+        mVisibleArrival.store(nullptr);
         mViewDataMap->rebuildViews();
     }
 
@@ -650,7 +950,7 @@ namespace Terrain
         if (mViewDistance == viewDistance)
             return;
         mViewDistance = viewDistance;
-        mViewDataMap->rebuildViews();
+        rebuildViews();
     }
 
 }

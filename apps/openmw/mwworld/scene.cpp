@@ -1,4 +1,8 @@
 #include "scene.hpp"
+
+#include <components/diagnostics/exteriorarrival.hpp>
+#include <components/esm4/loaddoor.hpp>
+#include <components/esm4/loadcell.hpp>
 #include <components/diagnostics/timing.hpp>
 
 #include <atomic>
@@ -398,6 +402,8 @@ namespace MWWorld
 
         mPreloader->updateCache(mRendering.getReferenceTime());
         preloadCells(duration);
+        if (Diagnostics::ExteriorArrival::active() && mCurrentCell && mCurrentCell->isExterior())
+            Diagnostics::ExteriorArrival::observe(mWorld.getPlayerPtr().getRefData().getPosition().asVec3());
     }
 
     void Scene::unloadCell(CellStore* cell, const DetourNavigator::UpdateGuard* navigatorUpdateGuard)
@@ -599,6 +605,8 @@ namespace MWWorld
 
     void Scene::clear()
     {
+        Diagnostics::ExteriorArrival::clear();
+        mNextExitPrediction = 0;
         auto navigatorUpdateGuard = mNavigator.makeUpdateGuard();
         for (auto iter = mActiveCells.begin(); iter != mActiveCells.end();)
         {
@@ -608,6 +616,7 @@ namespace MWWorld
         navigatorUpdateGuard.reset();
         assert(mActiveCells.empty());
         mCurrentCell = nullptr;
+        mRendering.updateLocationRenderingProfile(nullptr);
         mLowestPoint = std::numeric_limits<float>::max();
 
         mPreloader->clear();
@@ -721,11 +730,17 @@ namespace MWWorld
         mRendering.setActiveGrid(newGrid);
 
         mPreloader->setTerrain(mRendering.getTerrain());
+        mPreloader->updateArrivalGrid(mRendering.getTerrain(), newGrid);
         if (mRendering.pagingUnlockCache())
             mPreloader->abortTerrainPreloadExcept(nullptr);
+        // Walking grid shifts retain ordinary look-ahead. A newly entered or distant grid can
+        // start as soon as every gameplay cell has its paged references and collision.
+        const bool landing = !mCurrentCell || !mCurrentCell->isExterior()
+            || mCurrentCell->getCell()->getWorldSpace() != playerCellIndex.mWorldspace
+            || !isCellInCollection(playerCellIndex, mActiveCells);
         const bool needsTerrainLoad
             = !mPreloader->isTerrainLoaded(PositionCellGrid{ pos, newGrid }, mRendering.getReferenceTime());
-        if (needsTerrainLoad)
+        if (needsTerrainLoad && !landing)
             preloadTerrain(pos, playerCellIndex.mWorldspace, false);
 
         transition.phase("terrain setup and scheduling");
@@ -761,7 +776,13 @@ namespace MWWorld
         {
             Diagnostics::Scope terrainWait("scene", "exterior", "waitTerrain");
             loadingListener->setLabel("#{OMWEngine:InitializingData}");
-            mPreloader->syncTerrainLoad(*loadingListener);
+            if (!landing || !mPreloader->ensureArrival(mRendering.getTerrain(), { pos, newGrid }, *loadingListener,
+                                 mRendering.getReferenceTime()))
+            {
+                if (landing)
+                    preloadTerrain(pos, playerCellIndex.mWorldspace, false);
+                mPreloader->syncTerrainLoad(*loadingListener);
+            }
         }
         transition.phase("terrain wait");
         mPagedRefs.clear();
@@ -950,6 +971,10 @@ namespace MWWorld
         mHalfGridSize = cell.getCell()->isEsm4() ? Constants::ESM4CellGridRadius : Constants::CellGridRadius;
         mCurrentCell = &cell;
 
+        // Covers doors, COC/teleports and direct save loads before the scene is
+        // shown. Exterior grid neighbours do not select a world profile.
+        mRendering.updateLocationRenderingProfile(cell.getCell());
+
         mRendering.enableTerrain(cell.isExterior(), cell.getCell()->getWorldSpace());
 
         MWWorld::Ptr old = mWorld.getPlayerPtr();
@@ -1052,6 +1077,12 @@ namespace MWWorld
         }
 
         Log(Debug::Info) << "Changing to interior";
+        Diagnostics::ExteriorArrival::clear();
+        mNextExitPrediction = 0;
+        if (mCurrentCell && mCurrentCell->isExterior())
+            mPreloader->leaveExterior(mRendering.getTerrain(),
+                { mWorld.getPlayerPtr().getRefData().getPosition().asVec3(), gridCenterToBounds(mCurrentGridCenter) },
+                mRendering.getReferenceTime());
 
         auto navigatorUpdateGuard = mNavigator.makeUpdateGuard();
 
@@ -1092,6 +1123,7 @@ namespace MWWorld
         if (useFading)
             MWBase::Environment::get().getWindowManager()->fadeScreenIn(0.5);
 
+        MWBase::Environment::get().getMechanicsManager()->updateDungeonStatus(mCurrentCell);
         MWBase::Environment::get().getWindowManager()->changeCell(mCurrentCell);
 
         MWBase::Environment::get().getWorld()->getPostProcessor()->setExteriorFlag(cell.getCell()->isQuasiExterior());
@@ -1102,6 +1134,8 @@ namespace MWWorld
     {
 
         TransitionTimer transition("exterior");
+        if (!Diagnostics::ExteriorArrival::active() || Diagnostics::ExteriorArrival::landed)
+            Diagnostics::ExteriorArrival::begin();
         if (changeEvent)
             MWBase::Environment::get().getWindowManager()->fadeScreenOut(0.5);
         CellStore& current = mWorld.getWorldModel().getCell(extCellId);
@@ -1119,6 +1153,7 @@ namespace MWWorld
             MWBase::Environment::get().getWindowManager()->fadeScreenIn(0.5);
 
         MWBase::Environment::get().getWorld()->getPostProcessor()->setExteriorFlag(true);
+        Diagnostics::ExteriorArrival::ready(mWorld.getPlayerPtr().getRefData().getPosition().asVec3());
     }
 
     CellStore* Scene::getCurrentCell()
@@ -1284,7 +1319,67 @@ namespace MWWorld
                 preloadFastTravelDestinations(playerPos, exteriorPositions);
         }
 
-        mPreloader->setTerrainPreloadPositions(exteriorPositions);
+        if (!mCurrentCell->isExterior() && mPreloadEnabled && Settings::cells().mPredictExteriorExits
+            && mRendering.getReferenceTime() >= mNextExitPrediction)
+        {
+            mNextExitPrediction = mRendering.getReferenceTime() + 0.2;
+            predictExteriorExit(playerPos, predictedPos);
+        }
+        if (!mPreloader->keepStreamingArrival(exteriorPositions))
+            mPreloader->setTerrainPreloadPositions(exteriorPositions);
+    }
+
+    void Scene::predictExteriorExit(const osg::Vec3f& position, const osg::Vec3f& predicted)
+    {
+        const float yaw = mWorld.getPlayerPtr().getRefData().getPosition().rot[2];
+        const osg::Vec3f forward(std::sin(yaw), std::cos(yaw), 0.f);
+        std::optional<ESM::ExteriorCellLocation> best;
+        osg::Vec3f target;
+        float bestScore = std::numeric_limits<float>::max();
+        const auto consider = [&](const MWWorld::ConstPtr& door) {
+            if (!door.getCellRef().getTeleport() || !door.getRefData().isEnabled() || door.mRef->isDeleted())
+                return true;
+            const auto delta = door.getRefData().getPosition().asVec3() - position;
+            const float current = delta.length2();
+            const float next = (door.getRefData().getPosition().asVec3() - predicted).length2();
+            if (current > mPreloadDistance * mPreloadDistance || (delta * forward <= 0 && next >= current))
+                return true;
+            const float facing = (delta * forward) / std::max(1.f, std::sqrt(current));
+            const float score = std::min(current, next) * (1.f - 0.6f * std::clamp(facing, 0.f, 1.f));
+            if (score < bestScore)
+            {
+                const auto id = door.getCellRef().getDestCell();
+                // Speculation must not create runtime cells or send exteriorCreated events.
+                std::optional<ESM::ExteriorCellLocation> location;
+                if (const auto* ext = id.getIf<ESM::ESM3ExteriorCellRefId>())
+                    location.emplace(ext->getX(), ext->getY(), ESM::Cell::sDefaultWorldspaceId);
+                else if (id.is<ESM::FormId>())
+                {
+                    const auto* cell = mWorld.getStore().get<ESM4::Cell>().searchStatic(id);
+                    if (cell && cell->isExterior())
+                        location = cell->getExteriorCellLocation();
+                }
+                if (location)
+                {
+                    bestScore = score;
+                    best = location;
+                    target = door.getCellRef().getDoorDest().asVec3();
+                }
+            }
+            return true;
+        };
+        mCurrentCell->forEachTypeConst<ESM::Door>(consider);
+        mCurrentCell->forEachTypeConst<ESM4::Door>(consider);
+        if (!best)
+        {
+            mPreloader->cancelPrediction();
+            return;
+        }
+        const auto worldspace = best->mWorldspace;
+        const int radius = isEsm4Ext(worldspace) ? Constants::ESM4CellGridRadius : Constants::CellGridRadius;
+        const int x = best->mX, y = best->mY;
+        mPreloader->predictArrival(mRendering.getTerrainForPreload(worldspace),
+            { target, { x-radius, y-radius, x+radius+1, y+radius+1 } });
     }
 
     void Scene::preloadTeleportDoorDestinations(const osg::Vec3f& playerPos, const osg::Vec3f& predictedPos)

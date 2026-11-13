@@ -1,5 +1,8 @@
 #include "cellpreloader.hpp"
 
+#include <chrono>
+#include <components/esm/util.hpp>
+
 #include <components/diagnostics/timing.hpp>
 #include <components/diagnostics/loading.hpp>
 
@@ -254,6 +257,64 @@ namespace MWWorld
     };
 
     /// Worker thread item: update the resource system's cache, effectively deleting unused entries.
+    class ExteriorArrivalJob : public SceneUtil::WorkItem
+    {
+        std::atomic_bool mAbort{ false };
+        std::atomic_bool mReady{ false };
+        Loading::Reporter mProgress;
+        Terrain::World* mWorld;
+        osg::ref_ptr<Terrain::View> mWorkView;
+    public:
+        std::shared_ptr<Terrain::ArrivalView> mView;
+        ExteriorArrivalJob(Terrain::World* world, std::shared_ptr<Terrain::ArrivalView> view)
+            : mWorld(world), mWorkView(world->createView()), mView(std::move(view)) {}
+        void abort() override { mAbort = true; }
+        bool matches(Terrain::World* world, const PositionCellGrid& pos, float tolerance) const
+        {
+            return mWorld == world && !mAbort && world->validArrival(*mView)
+                && mView->matches(pos.mPosition, pos.mCellBounds, tolerance, mView->mRevision);
+        }
+        bool finishedNear() const { return mReady.load(); }
+        bool waitNear(Loading::Listener& listener)
+        {
+            mProgress.wait(listener);
+            return mReady && !mAbort && mWorld->validArrival(*mView);
+        }
+        void doWork() override
+        {
+            using Clock = std::chrono::steady_clock;
+            const auto begin = Clock::now();
+            const auto elapsed = [&] { return std::chrono::duration<double, std::milli>(Clock::now()-begin).count(); };
+            try
+            {
+                mWorld->preloadArrival(mWorkView, mView, mAbort, mProgress, [&](std::size_t near, std::size_t far) {
+                    if (!mAbort && mWorld->validArrival(*mView))
+                    {
+                        mReady = true;
+                        Log(Debug::Info) << "Exterior arrival near ready: nearChunks=" << near
+                            << " distantChunks=" << far << " workerMs=" << elapsed();
+                    }
+                    mProgress.complete();
+                });
+                if (mView->complete() && !mAbort)
+                    Log(Debug::Info) << "Exterior arrival distant ready: workerMs=" << elapsed()
+                        << " estimatedBytes=" << mView->bytes();
+            }
+            catch (const std::exception& e)
+            {
+                Log(Debug::Warning) << "Exterior arrival preparation stopped: " << e.what();
+            }
+            catch (...)
+            {
+                Log(Debug::Warning) << "Exterior arrival preparation stopped with an unknown error";
+            }
+            // A failed or interrupted far pass must allow the normal visitor to complete missing entries.
+            if (!mView->complete())
+                mView->finish(false);
+            mProgress.complete();
+        }
+    };
+
     class UpdateCacheItem : public SceneUtil::WorkItem
     {
     public:
@@ -285,6 +346,7 @@ namespace MWWorld
 
     CellPreloader::~CellPreloader()
     {
+        clearArrivals();
         clearAllTasks();
     }
 
@@ -364,6 +426,7 @@ namespace MWWorld
 
     void CellPreloader::clear()
     {
+        clearArrivals();
         for (PreloadMap::iterator it = mPreloadCells.begin(); it != mPreloadCells.end();)
         {
             if (it->second.mWorkItem)
@@ -378,6 +441,12 @@ namespace MWWorld
 
     void CellPreloader::updateCache(double timestamp)
     {
+        std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
+        if (mReturnView && (timestamp - mReturnTime > 120.0 || !mReturnWorld->validArrival(*mReturnView)))
+        {
+            mReturnWorld = nullptr;
+            mReturnView.reset();
+        }
         for (PreloadMap::iterator it = mPreloadCells.begin(); it != mPreloadCells.end();)
         {
             if (mPreloadCells.size() >= mMinCacheSize && it->second.mTimeStamp < timestamp - mExpiryDelay)
@@ -423,6 +492,138 @@ namespace MWWorld
     void CellPreloader::setWorkQueue(osg::ref_ptr<SceneUtil::WorkQueue> workQueue)
     {
         mWorkQueue = workQueue;
+    }
+
+    void CellPreloader::retireArrival()
+    {
+        if (mArrivalWorld)
+            mArrivalWorld->showArrival({});
+        if (mArrivalJob)
+        {
+            if (!mArrivalJob->isDone())
+            {
+                mArrivalJob->abort();
+                mRetiredArrivals.push_back(mArrivalJob);
+            }
+            mArrivalJob = nullptr;
+        }
+        mArrivalWorld = nullptr;
+    }
+
+    void CellPreloader::updateArrivalGrid(Terrain::World* world, const osg::Vec4i& grid)
+    {
+        if (mArrivalWorld && (mArrivalWorld != world || (mArrivalJob && mArrivalJob->mView->mGrid != grid)
+                || (!mArrivalJob && mReturnView && mReturnView->mGrid != grid)))
+            retireArrival();
+        if (mReturnView && (mReturnWorld != world || mReturnView->mGrid != grid))
+        {
+            mReturnWorld = nullptr;
+            mReturnView.reset();
+        }
+    }
+
+    void CellPreloader::clearArrivals()
+    {
+        retireArrival();
+        for (auto& job : mRetiredArrivals)
+            job->waitTillDone();
+        mRetiredArrivals.clear();
+        mReturnView.reset();
+        mReturnWorld = nullptr;
+    }
+
+    bool CellPreloader::startArrival(Terrain::World* world, const PositionCellGrid& target, bool required)
+    {
+        if (!mWorkQueue || !world)
+            return false;
+        if (mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance))
+            return true;
+        // Changing direction in a room with many exits cannot grow the queue without bound.
+        if (!mRetiredArrivals.empty())
+        {
+            if (!required)
+                return false;
+            for (auto& previous : mRetiredArrivals)
+                previous->waitTillDone();
+            mRetiredArrivals.clear();
+        }
+        retireArrival();
+        auto view = world->createArrival(target.mPosition, target.mCellBounds);
+        if (!view)
+            return false;
+        auto job = osg::ref_ptr<ExteriorArrivalJob>(new ExteriorArrivalJob(world, std::move(view)));
+        mWorkQueue->addWorkItem(job, required);
+        mArrivalWorld = world;
+        mArrivalJob = std::move(job);
+        return true;
+    }
+
+    void CellPreloader::predictArrival(Terrain::World* world, const PositionCellGrid& target)
+    {
+        if (mReturnWorld == world && mReturnView && world->validArrival(*mReturnView)
+            && mReturnView->matches(target.mPosition, target.mCellBounds, ESM::getCellSize(world->getWorldspace()),
+                mReturnView->mRevision))
+            return;
+        startArrival(world, target, false);
+    }
+
+    bool CellPreloader::ensureArrival(Terrain::World* world, const PositionCellGrid& target,
+        Loading::Listener& listener, double timestamp)
+    {
+        if (mReturnView && mReturnWorld == world && world->validArrival(*mReturnView)
+            && timestamp - mReturnTime <= 120.0 && mReturnView->matches(target.mPosition, target.mCellBounds,
+                ESM::getCellSize(world->getWorldspace()), mReturnView->mRevision))
+        {
+            retireArrival();
+            mArrivalWorld = world;
+            mReturnView->presentRetainedView();
+            world->showArrival(mReturnView);
+            Log(Debug::Info) << "Exterior arrival reused last exterior: estimatedBytes=" << mReturnView->bytes();
+            return true;
+        }
+        const bool predicted = mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance);
+        if (!startArrival(world, target, true))
+            return false;
+        const auto begin = std::chrono::steady_clock::now();
+        if ((mArrivalJob->isDone() && !mArrivalJob->finishedNear()) || !mArrivalJob->waitNear(listener))
+        {
+            retireArrival();
+            return false;
+        }
+        world->showArrival(mArrivalJob->mView);
+        Log(Debug::Info) << "Exterior arrival near wait: predicted=" << predicted << " waitMs="
+            << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now()-begin).count();
+        return true;
+    }
+
+    bool CellPreloader::keepStreamingArrival(std::span<const PositionCellGrid> targets)
+    {
+        if (targets.size() != 1 || !mArrivalJob || mArrivalJob->isDone() || !mArrivalWorld)
+            return false;
+        return mArrivalJob->matches(mArrivalWorld, targets.front(), ESM::getCellSize(mArrivalWorld->getWorldspace()));
+    }
+
+    void CellPreloader::leaveExterior(Terrain::World* world, const PositionCellGrid& current, double timestamp)
+    {
+        constexpr std::size_t returnBudget = 128u * 1024u * 1024u;
+        std::shared_ptr<Terrain::ArrivalView> view;
+        if (mArrivalJob && mArrivalJob->matches(world, current, ESM::getCellSize(world->getWorldspace())))
+            view = mArrivalJob->mView;
+        else if (mReturnWorld == world && mReturnView && world->validArrival(*mReturnView)
+            && mReturnView->matches(current.mPosition, current.mCellBounds, ESM::getCellSize(world->getWorldspace()),
+                mReturnView->mRevision))
+            view = mReturnView;
+        if (!view || !view->complete() || view->bytes() > returnBudget)
+            view = world->captureArrival(current.mPosition, current.mCellBounds, returnBudget);
+        mReturnView.reset();
+        mReturnWorld = nullptr;
+        if (view && view->complete() && view->bytes() <= returnBudget)
+        {
+            mReturnWorld = world;
+            mReturnView = std::move(view);
+            mReturnTime = timestamp;
+        }
+        retireArrival();
     }
 
     void CellPreloader::syncTerrainLoad(Loading::Listener& listener)

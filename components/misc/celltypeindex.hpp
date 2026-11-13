@@ -35,6 +35,7 @@ namespace Misc
                 entry.types.push_back(type);
         }
         void complete() { mComplete = true; }
+        bool covers(CellKey cell) const { return mComplete && mCells.contains(cell); }
         void resetTypeCompatibility() { mTypesCompatible = true; }
         void observeTypeChange(std::uint32_t originalType, std::uint32_t currentType)
         {

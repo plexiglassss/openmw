@@ -1,14 +1,13 @@
 #include "formid.hpp"
 
 #include <charconv>
-#include <cstring>
+#include <iterator>
 
 std::string ESM::FormId::toString(std::string_view prefix) const
 {
-    std::string res;
-    res.resize(prefix.length() + 20);
-    std::memcpy(res.data(), prefix.data(), prefix.size());
-    char* buf = res.data() + prefix.size();
+    // The longest generated suffix is '@0x' plus 16 hexadecimal digits.
+    char suffix[19];
+    char* buf = suffix;
     uint64_t value;
     if (hasContentFile())
     {
@@ -19,15 +18,18 @@ std::string ESM::FormId::toString(std::string_view prefix) const
     else
     {
         *(buf++) = '@';
-        value = mIndex | (static_cast<uint64_t>(-mContentFile - 1) << 32);
+        value = mIndex | (static_cast<uint64_t>(-static_cast<int64_t>(mContentFile) - 1) << 32);
     }
     *(buf++) = '0';
     *(buf++) = 'x';
-    const auto r = std::to_chars(buf, res.data() + res.size(), value, 16);
+    const auto r = std::to_chars(buf, std::end(suffix), value, 16);
     if (r.ec != std::errc())
         throw std::system_error(std::make_error_code(r.ec), "ESM::FormId::toString failed");
-    res.resize(r.ptr - res.data());
-    return res;
+    std::string result;
+    result.reserve(prefix.size() + static_cast<size_t>(r.ptr - suffix));
+    result.append(prefix);
+    result.append(suffix, r.ptr);
+    return result;
 }
 
 uint32_t ESM::FormId::toUint32() const

@@ -18,6 +18,9 @@ file(GLOB UNITTEST_SRC_FILES
 
     mwmechanics/testlevelledlist.cpp
 
+    mwrender/testlocationrenderingprofiles.cpp
+    mwrender/testsavedglobalmap.cpp
+
     mwgui/tooltips.cpp
     mwgui/weightedsearch.cpp
     mwgui/test_journaltypography.cpp
@@ -25,6 +28,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testdialoguecolourcontrols.cpp
     mwgui/testmessageboxstate.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
     mwgui/testresttime.cpp
     mwgui/testcontinuegame.cpp
     mwgui/testmainmenubutton.cpp
@@ -32,6 +36,9 @@ file(GLOB UNITTEST_SRC_FILES
 
     mwlua/testobjectcache.cpp
     mwlua/testmagicbindings.cpp
+    mwlua/testnativequeryservice.cpp
+    mwlua/testparallelqueries.cpp
+    mwlua/testvfsiterators.cpp
 
     mwscript/testscripts.cpp
 
@@ -84,8 +91,12 @@ target_compile_definitions(openmw-tests
 openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
     controls-test-main.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
     ../openmw/mwgui/mapiconcontrols.cpp
     ../openmw/mwgui/messagepositioncontrols.cpp
+    ../openmw/mwgui/tooltipcontrols.cpp
+    ../openmw/mwgui/traveltooltipdata.cpp
+    ../openmw/mwgui/traveltooltipview.cpp
     ../openmw/mwgui/resourceskin.cpp
     ${PROJECT_SOURCE_DIR}/components/mapmarkers/classification.cpp
 )

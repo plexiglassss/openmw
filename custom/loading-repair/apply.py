@@ -8,16 +8,19 @@ from pathlib import Path
 import hashlib
 import json
 
+from reviewed_state import before_map_restore
+
 ROOT = Path(__file__).resolve().parents[2]
-# The native-map save dispatcher adds only REC_LMRK beside REC_GMAP.
-# Removing that one line reproduces the prior complete state-manager blob
-# 9c8621e46bce58a84e2c8501d93fad6e02e6bcf4. All loading behavior is preserved.
+# The native-map dispatcher is preserved. Native cleared history adds only
+# REC_DCLR beside REC_DCOU; removing that one case must reproduce the complete
+# prior state-manager blob, after subtracting the separately verified saved-map handoff.
 EXPECTED = {
-    'apps/openmw/engine.cpp': '569b7ea2871e6e756d3ce16a80b9e6cdf8b65964',
+    # Exact candidate engine with the worker pool constructed in prepareEngine and joined at shutdown.
+    'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
     'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
-    'apps/openmw/mwstate/statemanagerimp.cpp': '026eaf0b580c46f2559b3b6d24a298a3322d5f55',
-    'apps/openmw/mwworld/worldmodel.cpp': 'd0e9d1c61392dbfa4983dcb28bdb65d35d3dfe35',
+    'apps/openmw/mwstate/statemanagerimp.cpp': '98b44cc7fd339a610f6257043a90cb95f18f2521',
+    'apps/openmw/mwworld/worldmodel.cpp': '59c7fa345da96f10e73e220b69975bb1fd4f50d7',
     'apps/openmw/mwworld/worldmodel.hpp': '233ca8ff1665323ca6efd96454c4bd3cd8ca88fd',
 }
 
@@ -31,6 +34,11 @@ for name, sha in EXPECTED.items():
     if blob(text) != sha:
         raise SystemExit(f'Refusing unknown baseline for {name}: {blob(text)} != {sha}')
     sources[name] = text
+
+state = before_map_restore(sources['apps/openmw/mwstate/statemanagerimp.cpp'])
+added_case = '                case ESM::REC_DCLR:\n'
+if state.count(added_case) != 1 or blob(state.replace(added_case, '', 1)) != '026eaf0b580c46f2559b3b6d24a298a3322d5f55':
+    raise SystemExit('Cleared-history dispatcher differs beyond its one reviewed save-record case')
 
 edits = []
 def replace(name, old, new):

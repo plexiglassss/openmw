@@ -28,6 +28,7 @@
 #include <components/sceneutil/riggeometryosgaextension.hpp>
 #include <components/sceneutil/texturetype.hpp>
 #include <components/sceneutil/util.hpp>
+#include <components/sceneutil/vertexattributes.hpp>
 #include <components/settings/settings.hpp>
 #include <components/stereo/stereomanager.hpp>
 #include <components/vfs/manager.hpp>
@@ -54,6 +55,8 @@ namespace Shader
             , mUniforms(rhs.mUniforms)
             , mModes(rhs.mModes)
             , mAttributes(rhs.mAttributes)
+            , mTextureAttributes(rhs.mTextureAttributes)
+            , mFallbacks(rhs.mFallbacks)
         {
         }
 
@@ -106,11 +109,31 @@ namespace Shader
             return hasAttribute(osg::StateAttribute::TypeMemberPair(type, member));
         }
 
+        bool hasTextureAttribute(unsigned int unit, osg::StateAttribute::Type type, unsigned int member) const
+        {
+            const auto found = mTextureAttributes.find(unit);
+            return found != mTextureAttributes.end() && found->second.count({ type, member }) != 0;
+        }
+
         const std::set<osg::StateAttribute::TypeMemberPair>& getAttributes() { return mAttributes; }
-        const std::unordered_map<unsigned int, std::set<osg::StateAttribute::TypeMemberPair>>& getTextureAttributes()
+        const std::unordered_map<unsigned int, std::set<osg::StateAttribute::TypeMemberPair>>& getTextureAttributes() const
         {
             return mTextureAttributes;
         }
+
+        struct LocationProfileFallback
+        {
+            unsigned int mOriginalUnit;
+            unsigned int mBackupUnit;
+            std::string mType;
+            osg::ref_ptr<osg::Texture> mTexture;
+            bool mNormalHeight;
+            bool mReconstructNormalZ;
+            int mTangentUnit;
+        };
+
+        void addFallback(LocationProfileFallback fallback) { mFallbacks.push_back(std::move(fallback)); }
+        const std::vector<LocationProfileFallback>& getFallbacks() const { return mFallbacks; }
 
         bool empty()
         {
@@ -141,6 +164,7 @@ namespace Shader
         ModeSet mModes;
         AttributeSet mAttributes;
         std::unordered_map<unsigned int, AttributeSet> mTextureAttributes;
+        std::vector<LocationProfileFallback> mFallbacks;
     };
 
     ShaderVisitor::ShaderRequirements::ShaderRequirements()
@@ -154,7 +178,10 @@ namespace Shader
         , mDiffuseHeight(false)
         , mNormalHeight(false)
         , mReconstructNormalZ(false)
+        , mFallbackNormalHeight(false)
+        , mFallbackReconstructNormalZ(false)
         , mTexStageRequiringTangents(-1)
+        , mFallbackTexStageRequiringTangents(-1)
         , mSoftParticles(false)
         , mNode(nullptr)
     {
@@ -257,7 +284,25 @@ namespace Shader
         if (std::find(std::begin(defaultTextures), std::end(defaultTextures), name) != std::end(defaultTextures))
             return true;
         else
-            return name == "normalHeightMap";
+            return name == "normalHeightMap" || name == "autoNormalMap" || name == "autoNormalHeightMap"
+                || name == "autoSpecularMap";
+    }
+
+    bool isLocationProfileFallback(const osg::StateSet& stateSet, unsigned int unit)
+    {
+        const auto* type = stateSet.getTextureAttribute(unit, SceneUtil::TextureType::AttributeType);
+        return type && (type->getName() == "fallbackNormalMap" || type->getName() == "fallbackSpecularMap");
+    }
+
+    void removeLocationProfileFallbacks(osg::StateSet& stateSet, const AddedState& addedState)
+    {
+        for (const auto& [unit, attributes] : addedState.getTextureAttributes())
+        {
+            if (!isLocationProfileFallback(stateSet, unit))
+                continue;
+            for (const auto& attribute : attributes)
+                stateSet.removeTextureAttribute(unit, attribute.first);
+        }
     }
 
     void ShaderVisitor::applyStateSet(osg::ref_ptr<osg::StateSet> stateset, osg::Node& node)
@@ -273,38 +318,82 @@ namespace Shader
 
         // Make sure to disregard any state that came from a previous call to createProgram
         osg::ref_ptr<AddedState> addedState = getAddedState(*stateset);
+        if (addedState)
+        {
+            for (const auto& fallback : addedState->getFallbacks())
+            {
+                if (!isLocationProfileFallback(*stateset, fallback.mBackupUnit))
+                    continue;
+                const bool restored = mRequirements.back().mFallbackTextures
+                                          .try_emplace(fallback.mOriginalUnit,
+                                              ShaderRequirements::TextureBinding{ fallback.mType, fallback.mTexture })
+                                          .second;
+                if (restored && fallback.mType == "normalMap")
+                {
+                    mRequirements.back().mFallbackNormalHeight = fallback.mNormalHeight;
+                    mRequirements.back().mFallbackReconstructNormalZ = fallback.mReconstructNormalZ;
+                    mRequirements.back().mFallbackTexStageRequiringTangents = fallback.mTangentUnit;
+                }
+            }
+        }
 
         if (!texAttributes.empty())
         {
             const osg::Texture* diffuseMap = nullptr;
             const osg::Texture* normalMap = nullptr;
+            const osg::Texture* fallbackNormalMap = nullptr;
             const osg::Texture* specularMap = nullptr;
             const osg::Texture* bumpMap = nullptr;
             for (unsigned int unit = 0; unit < texAttributes.size(); ++unit)
             {
-                const osg::StateAttribute* attr = stateset->getTextureAttribute(unit, osg::StateAttribute::TEXTURE);
+                if (addedState && addedState->hasTextureAttribute(unit, osg::StateAttribute::TEXTURE, 0)
+                    && isLocationProfileFallback(*stateset, unit))
+                    continue;
+                osg::StateAttribute* attr = stateset->getTextureAttribute(unit, osg::StateAttribute::TEXTURE);
                 if (attr)
                 {
-                    const osg::Texture* texture = attr->asTexture();
+                    osg::Texture* texture = attr->asTexture();
                     if (texture)
                     {
                         std::string texName = SceneUtil::getTextureType(*stateset, *texture, unit);
                         if ((texName.empty() || !isTextureNameRecognized(texName)) && unit == 0)
                             texName = "diffuseMap";
 
+                        const bool automaticMap = texName == "autoNormalMap" || texName == "autoNormalHeightMap"
+                            || texName == "autoSpecularMap";
+                        if (automaticMap)
+                        {
+                            mRequirements.back().mAutomaticMapUnits.insert(unit);
+                            if (texName == "autoSpecularMap")
+                                texName = "specularMap";
+                            else
+                                texName = texName == "autoNormalHeightMap" ? "normalHeightMap" : "normalMap";
+                        }
+                        else
+                            mRequirements.back().mAutomaticMapUnits.erase(unit);
+
                         if (texName == "normalHeightMap")
                         {
                             mRequirements.back().mNormalHeight = true;
+                            if (!automaticMap)
+                                mRequirements.back().mFallbackNormalHeight = true;
                             texName = "normalMap";
                         }
 
                         if (!texName.empty())
                         {
                             mRequirements.back().mTextures[unit] = texName;
+                            if (!automaticMap)
+                                mRequirements.back().mFallbackTextures[unit] = { texName, texture };
                             if (texName == "normalMap")
                             {
                                 mRequirements.back().mTexStageRequiringTangents = unit;
                                 normalMap = texture;
+                                if (!automaticMap)
+                                {
+                                    mRequirements.back().mFallbackTexStageRequiringTangents = unit;
+                                    fallbackNormalMap = texture;
+                                }
                             }
                             else if (texName == "diffuseMap")
                             {
@@ -314,6 +403,7 @@ namespace Shader
                                 {
                                     mRequirements.back().mDiffuseHeight = true;
                                     mRequirements.back().mTexStageRequiringTangents = unit;
+                                    mRequirements.back().mFallbackTexStageRequiringTangents = unit;
                                 }
                                 diffuseMap = texture;
                             }
@@ -332,26 +422,18 @@ namespace Shader
 
             if (mAutoUseNormalMaps && diffuseMap != nullptr && normalMap == nullptr && diffuseMap->getImage(0))
             {
-                std::string normalMapFileName = diffuseMap->getImage(0)->getFileName();
+                const auto& diffuseName = diffuseMap->getImage(0)->getFileName();
 
                 osg::ref_ptr<osg::Image> image;
                 bool normalHeight = false;
-                std::string normalHeightMap = normalMapFileName;
-                Misc::StringUtils::replaceLast(normalHeightMap, ".", mNormalHeightMapPattern + ".");
-                const VFS::Path::Normalized normalHeightMapPath(normalHeightMap);
-                if (mImageManager.getVFS()->exists(normalHeightMapPath))
+                if (auto path = mImageManager.findCompanion(diffuseName, mNormalHeightMapPattern))
                 {
-                    image = mImageManager.getImage(normalHeightMapPath);
+                    image = mImageManager.getImage(*path);
                     normalHeight = true;
                 }
-                else
+                else if (auto path = mImageManager.findCompanion(diffuseName, mNormalMapPattern))
                 {
-                    Misc::StringUtils::replaceLast(normalMapFileName, ".", mNormalMapPattern + ".");
-                    const VFS::Path::Normalized normalMapPath(normalMapFileName);
-                    if (mImageManager.getVFS()->exists(normalMapPath))
-                    {
-                        image = mImageManager.getImage(normalMapPath);
-                    }
+                    image = mImageManager.getImage(*path);
                 }
                 // Avoid using the auto-detected normal map if it's already being used as a bump map.
                 // It's probably not an actual normal map.
@@ -374,9 +456,10 @@ namespace Shader
                         writableStateSet = getWritableStateSet(node);
                     writableStateSet->setTextureAttribute(unit, normalMapTex, osg::StateAttribute::ON);
                     writableStateSet->setTextureAttribute(unit,
-                        new SceneUtil::TextureType(normalHeight ? "normalHeightMap" : "normalMap"),
+                        new SceneUtil::TextureType(normalHeight ? "autoNormalHeightMap" : "autoNormalMap"),
                         osg::StateAttribute::ON);
                     mRequirements.back().mTextures[unit] = "normalMap";
+                    mRequirements.back().mAutomaticMapUnits.insert(unit);
                     mRequirements.back().mTexStageRequiringTangents = unit;
                     mRequirements.back().mNormalHeight = normalHeight;
                 }
@@ -396,14 +479,23 @@ namespace Shader
                 }
             }
 
+            if (fallbackNormalMap != nullptr && fallbackNormalMap->getImage(0))
+            {
+                switch (SceneUtil::computeUnsizedPixelFormat(fallbackNormalMap->getImage(0)->getPixelFormat()))
+                {
+                    case GL_RG:
+                    case GL_RG_INTEGER:
+                        mRequirements.back().mFallbackReconstructNormalZ = true;
+                        mRequirements.back().mFallbackNormalHeight = false;
+                        break;
+                }
+            }
+
             if (mAutoUseSpecularMaps && diffuseMap != nullptr && specularMap == nullptr && diffuseMap->getImage(0))
             {
-                std::string specularMapFileName = diffuseMap->getImage(0)->getFileName();
-                Misc::StringUtils::replaceLast(specularMapFileName, ".", mSpecularMapPattern + ".");
-                const VFS::Path::Normalized specularMapPath(specularMapFileName);
-                if (mImageManager.getVFS()->exists(specularMapPath))
+                if (auto path = mImageManager.findCompanion(diffuseMap->getImage(0)->getFileName(), mSpecularMapPattern))
                 {
-                    osg::ref_ptr<osg::Image> image(mImageManager.getImage(specularMapPath));
+                    osg::ref_ptr<osg::Image> image(mImageManager.getImage(*path));
                     osg::ref_ptr<osg::Texture2D> specularMapTex(new osg::Texture2D(image));
                     specularMapTex->setTextureSize(image->s(), image->t());
                     specularMapTex->setWrap(osg::Texture::WRAP_S, diffuseMap->getWrap(osg::Texture::WRAP_S));
@@ -419,8 +511,9 @@ namespace Shader
                         writableStateSet = getWritableStateSet(node);
                     writableStateSet->setTextureAttribute(unit, specularMapTex, osg::StateAttribute::ON);
                     writableStateSet->setTextureAttribute(
-                        unit, new SceneUtil::TextureType("specularMap"), osg::StateAttribute::ON);
+                        unit, new SceneUtil::TextureType("autoSpecularMap"), osg::StateAttribute::ON);
                     mRequirements.back().mTextures[unit] = "specularMap";
+                    mRequirements.back().mAutomaticMapUnits.insert(unit);
                 }
             }
         }
@@ -492,6 +585,7 @@ namespace Shader
         else
             mRequirements.push_back(mRequirements.back());
         mRequirements.back().mNode = &node;
+        mRequirements.back().mProgramApplied = false;
     }
 
     void ShaderVisitor::popRequirements()
@@ -499,8 +593,13 @@ namespace Shader
         mRequirements.pop_back();
     }
 
-    void ShaderVisitor::createProgram(const ShaderRequirements& reqs)
+    void ShaderVisitor::createProgram(ShaderRequirements& reqs)
     {
+        // Several drawables without their own state can inherit this exact owner.
+        // Geometry still needs its own UVs/tangents; the owner's shader state is applied once.
+        const osg::StateSet* currentState = reqs.mNode->getStateSet();
+        if (reqs.mProgramApplied && currentState && currentState->getNumParents() == 1)
+            return;
         /**
          * The shader visitor is supposed to be idempotent and undoable.
          * That means we need to back up state we've removed (so it can be restored and/or considered by further
@@ -527,19 +626,83 @@ namespace Shader
         osg::ref_ptr<AddedState> previousAddedState = getAddedState(*writableStateSet);
         if (!previousAddedState)
             previousAddedState = new AddedState;
+        removeLocationProfileFallbacks(*writableStateSet, *previousAddedState);
 
-        ShaderManager::DefineMap defineMap;
-        for (unsigned int i = 0; i < sizeof(defaultTextures) / sizeof(defaultTextures[0]); ++i)
-        {
-            defineMap[defaultTextures[i]] = "0";
-            defineMap[std::string(defaultTextures[i]) + std::string("UV")] = "0";
-        }
+        static const ShaderManager::DefineMap defaults = [] {
+            ShaderManager::DefineMap values{ { "autoNormalMap", "0" }, { "autoSpecularMap", "0" } };
+            for (const auto& name : defaultTextures)
+            {
+                values.emplace(name, "0");
+                values.emplace(std::string(name) + "UV", "0");
+            }
+            return values;
+        }();
+        ShaderManager::DefineMap defineMap = defaults;
         for (std::map<int, std::string>::const_iterator texIt = reqs.mTextures.begin(); texIt != reqs.mTextures.end();
              ++texIt)
         {
             defineMap[texIt->second] = "1";
             defineMap[texIt->second + std::string("UV")] = std::to_string(texIt->first);
+            if (texIt->second == "normalMap")
+                defineMap["autoNormalMap"] = reqs.mAutomaticMapUnits.count(texIt->first) ? "1" : "0";
+            else if (texIt->second == "specularMap")
+                defineMap["autoSpecularMap"] = reqs.mAutomaticMapUnits.count(texIt->first) ? "1" : "0";
         }
+
+        ShaderManager::SamplerBindingMap fallbackSamplers;
+        std::set<int> occupiedUnits;
+        for (const auto& [unit, type] : reqs.mTextures)
+            occupiedUnits.insert(unit);
+        bool profileFallbackAvailable = true;
+        for (const auto* type : { "normalMap", "specularMap" })
+        {
+            const auto binding = std::find_if(reqs.mFallbackTextures.rbegin(), reqs.mFallbackTextures.rend(),
+                [type](const auto& item) { return item.second.mType == type; });
+            const std::string sampler
+                = std::string("fallback") + (type == std::string_view("normalMap") ? "NormalMap" : "SpecularMap");
+            defineMap[sampler] = binding == reqs.mFallbackTextures.rend() ? "0" : "1";
+            defineMap[sampler + "UV"] = "0";
+            defineMap[sampler + "Unit"] = "0";
+            if (binding == reqs.mFallbackTextures.rend())
+                continue;
+
+            const int originalUnit = binding->first;
+            int samplerUnit = originalUnit;
+            const auto ordinary = reqs.mTextures.find(originalUnit);
+            if (ordinary == reqs.mTextures.end() || ordinary->second != type
+                || reqs.mAutomaticMapUnits.count(originalUnit))
+            {
+                int spareUnit = 0;
+                while (occupiedUnits.count(spareUnit))
+                    ++spareUnit;
+                if (spareUnit < mShaderManager.getAvailableTextureUnits())
+                {
+                    samplerUnit = spareUnit;
+                    occupiedUnits.insert(spareUnit);
+                    auto textureType = new SceneUtil::TextureType(sampler);
+                    writableStateSet->setTextureAttribute(samplerUnit, binding->second.mTexture, osg::StateAttribute::ON);
+                    writableStateSet->setTextureAttribute(samplerUnit, textureType, osg::StateAttribute::ON);
+                    addedState->setTextureAttribute(samplerUnit, binding->second.mTexture);
+                    addedState->setTextureAttribute(samplerUnit, textureType);
+                    addedState->addFallback({ static_cast<unsigned int>(originalUnit),
+                        static_cast<unsigned int>(samplerUnit), type, binding->second.mTexture,
+                        reqs.mFallbackNormalHeight, reqs.mFallbackReconstructNormalZ,
+                        reqs.mFallbackTexStageRequiringTangents });
+                }
+                else
+                    profileFallbackAvailable = false;
+            }
+            fallbackSamplers[sampler] = samplerUnit;
+            defineMap[sampler + "UV"] = std::to_string(originalUnit);
+            defineMap[sampler + "Unit"] = std::to_string(samplerUnit);
+        }
+        if (!profileFallbackAvailable)
+        {
+            Log(Debug::Warning) << "Insufficient texture units for location rendering material fallback; preserving "
+                                   "ordinary lighting for "
+                                << node.getName();
+        }
+        defineMap["locationProfileAvailable"] = profileFallbackAvailable ? "1" : "0";
 
         if (defineMap["diffuseMap"] == "0")
         {
@@ -550,6 +713,12 @@ namespace Shader
         defineMap["diffuseParallax"] = reqs.mDiffuseHeight ? "1" : "0";
         defineMap["parallax"] = reqs.mNormalHeight ? "1" : "0";
         defineMap["reconstructNormalZ"] = reqs.mReconstructNormalZ ? "1" : "0";
+        defineMap["fallbackParallax"] = reqs.mFallbackNormalHeight ? "1" : "0";
+        defineMap["fallbackReconstructNormalZ"] = reqs.mFallbackReconstructNormalZ ? "1" : "0";
+        defineMap["fallbackTangent"] = reqs.mFallbackTexStageRequiringTangents >= 0
+                && reqs.mFallbackTexStageRequiringTangents != reqs.mTexStageRequiringTangents
+            ? "1"
+            : "0";
         defineMap["alphaFunc"] = std::to_string(reqs.mAlphaFunc);
         defineMap["additiveBlending"] = reqs.mAdditiveBlending ? "1" : "0";
 
@@ -658,7 +827,7 @@ namespace Shader
         if (!node.getUserValue("shaderPrefix", shaderPrefix))
             shaderPrefix = mDefaultShaderPrefix;
 
-        ShaderManager::SamplerBindingMap samplers;
+        ShaderManager::SamplerBindingMap samplers = std::move(fallbackSamplers);
         for (const auto& [unit, name] : reqs.mTextures)
             samplers[name] = unit;
 
@@ -677,6 +846,7 @@ namespace Shader
 
             updateAddedState(*writableUserData, addedState);
         }
+        reqs.mProgramApplied = writableStateSet->getNumParents() == 1;
     }
 
     bool ShaderVisitor::adjustGeometry(osg::Geometry& sourceGeometry, const ShaderRequirements& reqs)
@@ -712,6 +882,14 @@ namespace Shader
                     changed = true;
                 }
             }
+            for (const auto& [unit, binding] : reqs.mFallbackTextures)
+            {
+                if (sourceGeometry.getTexCoordArray(unit) == nullptr)
+                {
+                    sourceGeometry.setTexCoordArray(unit, sourceGeometry.getTexCoordArray(0));
+                    changed = true;
+                }
+            }
 
             bool generateTangents = reqs.mTexStageRequiringTangents != -1;
 
@@ -722,6 +900,31 @@ namespace Shader
 
                 sourceGeometry.setTexCoordArray(7, generator->getTangentArray(), osg::Array::BIND_PER_VERTEX);
                 changed = true;
+            }
+            std::string shaderPrefix;
+            if (!reqs.mNode->getUserValue("shaderPrefix", shaderPrefix))
+                shaderPrefix = mDefaultShaderPrefix;
+            const bool profileCapableObjectShader = shaderPrefix == "objects" || shaderPrefix == "bs/default";
+            if (profileCapableObjectShader && reqs.mFallbackTexStageRequiringTangents >= 0
+                && reqs.mFallbackTexStageRequiringTangents != reqs.mTexStageRequiringTangents)
+            {
+                osg::ref_ptr<osgUtil::TangentSpaceGenerator> generator = new osgUtil::TangentSpaceGenerator;
+                generator->generate(&sourceGeometry, reqs.mFallbackTexStageRequiringTangents);
+                generator->getTangentArray()->setUserValue(SceneUtil::FallbackTangentUserValue, true);
+                sourceGeometry.setVertexAttribArray(
+                    SceneUtil::FallbackTangentAttribute, generator->getTangentArray(), osg::Array::BIND_PER_VERTEX);
+                changed = true;
+            }
+            else if (profileCapableObjectShader)
+            {
+                bool fallbackTangent = false;
+                const auto* tangents = sourceGeometry.getVertexAttribArray(SceneUtil::FallbackTangentAttribute);
+                if (tangents && tangents->getUserValue(SceneUtil::FallbackTangentUserValue, fallbackTangent)
+                    && fallbackTangent)
+                {
+                    sourceGeometry.setVertexAttribArray(SceneUtil::FallbackTangentAttribute, nullptr);
+                    changed = true;
+                }
             }
         }
         return changed;
@@ -738,7 +941,7 @@ namespace Shader
 
         if (!mRequirements.empty())
         {
-            const ShaderRequirements& reqs = mRequirements.back();
+            ShaderRequirements& reqs = mRequirements.back();
 
             adjustGeometry(geometry, reqs);
 
@@ -766,7 +969,7 @@ namespace Shader
                 applyStateSet(drawable.getStateSet(), drawable);
         }
 
-        const ShaderRequirements& reqs = mRequirements.back();
+        ShaderRequirements& reqs = mRequirements.back();
         createProgram(reqs);
 
         if (auto rig = dynamic_cast<SceneUtil::RigGeometry*>(&drawable))
@@ -850,6 +1053,12 @@ namespace Shader
         // as removed.
         if (node.getStateSet())
         {
+            if (const osg::ref_ptr<AddedState> addedState = getAddedState(*node.getStateSet()))
+            {
+                osg::StateSet* writableStateSet
+                    = mAllowedToModifyStateSets ? node.getStateSet() : getWritableStateSet(node);
+                removeLocationProfileFallbacks(*writableStateSet, *addedState);
+            }
             osg::ref_ptr<osg::StateSet> removedState = getRemovedState(*node.getStateSet());
             if (removedState)
             {

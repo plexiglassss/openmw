@@ -22,6 +22,7 @@ namespace Settings
         SettingValue<int> mPreloadNumThreads{ mIndex, "Cells", "preload num threads", makeMaxSanitizerInt(1) };
         SettingValue<bool> mPreloadExteriorGrid{ mIndex, "Cells", "preload exterior grid" };
         SettingValue<bool> mPreloadFastTravel{ mIndex, "Cells", "preload fast travel" };
+        SettingValue<bool> mPredictExteriorExits{ mIndex, "Cells", "predict exterior exits" };
         SettingValue<bool> mPreloadDoors{ mIndex, "Cells", "preload doors" };
         SettingValue<float> mPreloadDistance{ mIndex, "Cells", "preload distance", makeMaxStrictSanitizerFloat(0) };
         SettingValue<bool> mPreloadInstances{ mIndex, "Cells", "preload instances" };

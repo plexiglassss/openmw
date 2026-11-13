@@ -35,19 +35,20 @@ namespace MWLua
             return std::get<SelfObject*>(mVariant);
         }
 
-        const MWWorld::Ptr& ptr() const
+        const Object& handle() const
         {
             return std::visit(
-                [](auto&& variant) -> const MWWorld::Ptr& {
+                [](auto&& variant) -> const Object& {
                     using T = std::decay_t<decltype(variant)>;
                     if constexpr (std::is_same_v<T, SelfObject*>)
-                        return variant->ptr();
+                        return *variant;
                     else
-                        return variant.ptr();
+                        return variant;
                 },
                 mVariant);
         }
 
+        const MWWorld::Ptr& ptr() const { return handle().ptr(); }
         Object object() const { return Object(ptr()); }
 
     private:

@@ -390,6 +390,7 @@ namespace MWBase
         virtual void forceLootMode(const MWWorld::Ptr& ptr) = 0;
 
         virtual void asyncPrepareSaveMap() = 0;
+        virtual void advanceSaveMapRestore(bool /*finish*/) {}
 
         /// Sets the cull masks for all applicable views
         virtual void setCullMask(uint32_t mask) = 0;
