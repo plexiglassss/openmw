@@ -831,11 +831,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d97eedfc22f96066290695f05ea185b603e8c230"
+        "blob": "e65e8f689f0dfa34cc9244dffaf8018421a44969"
       },
-      "bytes": 3902,
-      "sha256": "0ab9d178ff1725eeb2ae423d7a2947756b52c8690a6ac0ec045b4bec433d322e",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Exercise original PNG/bounds passthrough, consecutive loads, stale encoding, changed extents and malformed content with real engine resources."
+      "bytes": 3933,
+      "sha256": "994381f6bec7706517c901035657fb2d4e0273f67f3b00e6df0a038b72ad1f18",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Exercise original PNG/bounds passthrough, consecutive loads, stale encoding, changed extents and malformed content with real engine resources. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -4156,10 +4156,20 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8581bb30957f693ee679167ab7b14422bfcee84a"
+        "blob": "4c1e41bdc2917917806c58afd92f61c6824c606c"
       },
-      "bytes": 13606,
-      "sha256": "7e757261bf970dadedb5cf103a151ce779347d134232ce1b84c57c8d43d36f58",
+      "bytes": 13927,
+      "sha256": "e4a414c4e84316b4a42e6857fb7427d9d12ae8b5d7ee344b9c9dfb74e188cfbd",
+      "reason": "Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
+    },
+    "apps/openmw_tests/mwlua/testvfsiterators.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "abca806d611216e8bf654d77082de25c336e4715"
+      },
+      "bytes": 2219,
+      "sha256": "cf84b8641945e7f2cd8f6611e4842734062668fe025d702ec4226c40f5aa4bef",
       "reason": "Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
     },
     "components/terrain/rayfootprint.hpp": {

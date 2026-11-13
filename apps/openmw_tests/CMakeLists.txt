@@ -38,6 +38,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwlua/testmagicbindings.cpp
     mwlua/testnativequeryservice.cpp
     mwlua/testparallelqueries.cpp
+    mwlua/testvfsiterators.cpp
 
     mwscript/testscripts.cpp
 

@@ -37,6 +37,21 @@ namespace MWLua
             std::string mFileName;
         };
 
+        // Give sol a distinct callable type for this owning iterator's GC metatable.
+        // The existing prefix iterator only holds two non-owning VFS iterators.
+        struct DirectoryPathIterator
+        {
+            std::vector<std::string> mPaths;
+            std::size_t mNext = 0;
+
+            sol::optional<std::string> operator()()
+            {
+                if (mNext == mPaths.size())
+                    return sol::nullopt;
+                return mPaths[mNext++];
+            }
+        };
+
         std::ios_base::seekdir getSeekDir(FileHandle& self, std::string_view whence)
         {
             if (whence == "cur")
@@ -339,12 +354,7 @@ namespace MWLua
         api["fileExists"]
             = [vfs](std::string_view fileName) -> bool { return vfs->exists(VFS::Path::Normalized(fileName)); };
         api["pathsInDirectory"] = [vfs](std::string_view directory) {
-            return sol::as_function([paths = vfs->getPathsInDirectory(directory), i = std::size_t{}]()
-                mutable -> sol::optional<std::string> {
-                if (i == paths.size())
-                    return sol::nullopt;
-                return paths[i++];
-            });
+            return sol::as_function(DirectoryPathIterator{ vfs->getPathsInDirectory(directory) });
         };
         api["pathsWithPrefix"] = [vfs](std::string_view prefix) {
             auto iterator = vfs->getRecursiveDirectoryIterator(prefix);
