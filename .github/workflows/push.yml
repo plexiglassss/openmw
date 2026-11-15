@@ -1,5 +1,7 @@
 name: OpenMW - combined native performance
 on:
+  push:
+    branches: [perf/generic-native-jobs-20261109]
   pull_request:
     branches: [perf/gameplay-activation-20261106]
     types: [opened, synchronize, reopened]
@@ -10,7 +12,7 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: cumulative-windows-${{ github.event.pull_request.number || github.ref }}
+  group: cumulative-windows-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   Windows:

@@ -41,11 +41,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "36e90bb3ac9a134d19de520711cc6e237094af5d"
+        "blob": "c4a54fd9efe83f9b5a44af0db7b98f903c8135f7"
       },
-      "bytes": 66335,
-      "sha256": "806ca9f1914b8f406c8dda505e2c3a1cf4c1223bd00c27d62cee551adcc42b16",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 66381,
+      "sha256": "cdd79057b4cf0e39b6fadd1240d2ff2537b2e2df1a8f6f6fd1d51b59c4a00bea",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Trigger the cumulative Windows workflow explicitly on its build branch; share concurrency across push and PR events to prevent duplicate builds."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
