@@ -17,6 +17,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwdialogue/testkeywordsearch.cpp
 
     mwmechanics/testlevelledlist.cpp
+    mwmechanics/testmagiceffectaccounting.cpp
 
     mwrender/testlocationrenderingprofiles.cpp
     mwrender/testsavedglobalmap.cpp
