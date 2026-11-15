@@ -1,0 +1,32 @@
+name: Apply HBFS modifier-map follow-up
+
+on:
+  push:
+    branches:
+      - fix/hbfs-godmode-effects-20261115
+    paths:
+      - .github/workflows/hbfs-godmode-followup-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-followup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Apply follow-up
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch=custom/hbfs-godmode/HBFS_No_Zero_Map_Entries.patch
+          git apply --check "$patch"
+          git apply "$patch"
+          grep -q "if (expected != current)" apps/openmw/mwmechanics/creaturestats.cpp
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/openmw/mwmechanics/creaturestats.cpp
+          git commit -m "Avoid empty magic-effect entries during save repair"
+          git push origin HEAD:fix/hbfs-godmode-effects-20261115
