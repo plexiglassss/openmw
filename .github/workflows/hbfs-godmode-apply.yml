@@ -1,0 +1,49 @@
+name: Apply HBFS god-mode engine repair
+
+on:
+  push:
+    branches:
+      - fix/hbfs-godmode-effects-20261115
+
+permissions:
+  contents: write
+
+jobs:
+  apply-repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Apply reviewed source patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch=custom/hbfs-godmode/HBFS_God_Mode_Engine_Fix.patch
+          if git apply --reverse --check "$patch"; then
+            echo "The HBFS god-mode repair is already applied."
+            exit 0
+          fi
+          git apply --check "$patch"
+          git apply "$patch"
+          grep -q "shouldTrackMagnitude(previousFlags, applied)" apps/openmw/mwmechanics/spelleffects.cpp
+          grep -q "repairGodModeSuppressedEffectModifiers" apps/openmw/mwmechanics/creaturestats.cpp
+          grep -q "RebuildIgnoresRejectedDrainMagnitudeFromOldSave" apps/openmw_tests/mwmechanics/testmagiceffectaccounting.cpp
+      - name: Commit repaired engine sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No source change to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/openmw/mwmechanics/creaturestats.cpp \
+            apps/openmw/mwmechanics/magiceffectaccounting.hpp \
+            apps/openmw/mwmechanics/spelleffects.cpp \
+            apps/openmw_tests/CMakeLists.txt \
+            apps/openmw_tests/mwmechanics/testmagiceffectaccounting.cpp
+          git commit -m "Fix god-mode negative effect accounting"
+          git push origin HEAD:fix/hbfs-godmode-effects-20261115
