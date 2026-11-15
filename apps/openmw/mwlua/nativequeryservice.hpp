@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -60,7 +61,7 @@ namespace MWLua
         bool mFilterBy2D = false;
     };
 
-    /// Per-call immutable snapshots and coarse native distance kernels shared by
+    /// Scoped immutable snapshots and coarse native distance kernels shared by
     /// every Lua caller. Live world objects are resolved and copied on the Lua
     /// thread; worker threads receive only values and never touch Ptr, Lua, UI,
     /// physics or scene-graph state.
@@ -68,6 +69,21 @@ namespace MWLua
     {
     public:
         explicit NativeQueryService(Misc::NativeJobPool& jobs);
+
+        class PositionReadScope
+        {
+        public:
+            explicit PositionReadScope(NativeQueryService& service);
+            ~PositionReadScope();
+            PositionReadScope(const PositionReadScope&) = delete;
+            PositionReadScope& operator=(const PositionReadScope&) = delete;
+        private:
+            NativeQueryService& mService;
+        };
+
+        NativePositions snapshotObjects(const ObjectIdList& ids);
+        std::optional<osg::Vec3f> objectPosition(ObjectId id);
+        void invalidatePositions();
 
         NativeDistanceSamples queryObjects(const ObjectIdList& ids, const osg::Vec3f& origin,
             const NativeDistanceOptions& options = {});
@@ -82,10 +98,26 @@ namespace MWLua
         std::shared_ptr<const int> mSession = std::make_shared<const int>(0);
         std::size_t mDistanceSubmitted = 0;
         std::size_t mLuaSubmitted = 0;
+        std::size_t mPositionsResolved = 0;
+        std::size_t mPositionsReused = 0;
+        std::size_t mPositionListsReused = 0;
+        std::size_t mPositionListsBuilt = 0;
         void reset();
 
     private:
         Misc::NativeJobPool& mJobs;
+        void checkPositionRevision();
+        bool sharePositions() const;
+        std::size_t mPositionReadDepth = 0;
+        std::size_t mPositionRevision = 0;
+        std::size_t mSnapshotTargets = 0;
+        struct CachedList
+        {
+            ObjectIdList mIds; // Retain identity so a different list cannot reuse its address.
+            NativePositions mValues;
+        };
+        std::unordered_map<ObjectId, std::optional<osg::Vec3f>> mPositionReads;
+        std::unordered_map<const std::vector<ObjectId>*, CachedList> mPositionLists;
     };
 }
 

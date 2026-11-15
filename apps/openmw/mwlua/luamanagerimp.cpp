@@ -267,6 +267,7 @@ namespace MWLua
         }
 
         mObjectLists.update();
+        NativeQueryService::PositionReadScope positionReads(mNativeQueryService);
 
         {
             Diagnostics::Scope timing("lua-arrival", "LuaManager", "attachNewScripts");
@@ -384,6 +385,7 @@ namespace MWLua
         // We apply input events in `synchronizedUpdate` rather than in `update` in order to reduce input latency.
         {
             BoolScopeGuard processingGuard(mProcessingInputEvents);
+            NativeQueryService::PositionReadScope positionReads(mNativeQueryService);
 
             for (const auto& event : mMenuInputEvents)
                 mMenuScripts.processInputEvent(event);
@@ -430,6 +432,7 @@ namespace MWLua
 
     void LuaManager::applyDelayedActions()
     {
+        mNativeQueryService.invalidatePositions();
         Diagnostics::Scope timing("phase", "LuaManager", "queuedActions");
         mTailRays.reset();
         BoolScopeGuard applyingGuard(mApplyingDelayedActions);
@@ -1079,6 +1082,9 @@ namespace MWLua
 
     void LuaManager::addAction(std::function<void()> action, std::string_view name)
     {
+        // Removal and teleport bindings can mark an object deleted before queuing
+        // its remaining side effects. Later callbacks must not reuse that snapshot.
+        mNativeQueryService.invalidatePositions();
         if (mApplyingDelayedActions)
             throw std::runtime_error("DelayedAction is not allowed to create another DelayedAction");
         mTailRays.reset();
@@ -1162,6 +1168,7 @@ namespace MWLua
 
     void LuaManager::addTeleportPlayerAction(std::function<void()> action)
     {
+        mNativeQueryService.invalidatePositions();
         mTeleportPlayerAction = DelayedAction(&mLua, std::move(action), "TeleportPlayer");
     }
 
@@ -1186,6 +1193,10 @@ namespace MWLua
         };
         record("Lua Async Distance Jobs Submitted", std::exchange(mNativeQueryService.mDistanceSubmitted, 0));
         record("Lua Isolated Jobs Submitted", std::exchange(mNativeQueryService.mLuaSubmitted, 0));
+        record("Lua Position Objects Resolved", std::exchange(mNativeQueryService.mPositionsResolved, 0));
+        record("Lua Position Objects Reused", std::exchange(mNativeQueryService.mPositionsReused, 0));
+        record("Lua Position Lists Built", std::exchange(mNativeQueryService.mPositionListsBuilt, 0));
+        record("Lua Position Lists Reused", std::exchange(mNativeQueryService.mPositionListsReused, 0));
         record("Lua Visual Rays Requested", std::exchange(mRayRequests, 0));
         record("Lua Visual Ray Shared Traversals", std::exchange(mRayGroups, 0));
         record("Lua Visual Ray Traversals Saved", std::exchange(mRaySaved, 0));

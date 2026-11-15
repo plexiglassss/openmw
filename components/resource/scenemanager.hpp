@@ -167,7 +167,8 @@ namespace Resource
         osg::ref_ptr<const osg::Node> getCachedTemplate(VFS::Path::NormalizedView path) const;
 
         /// Decode the uncached NIF inputs of one bounded paging batch.
-        void prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs);
+        void prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs,
+            const std::atomic_bool* abort = nullptr);
 
         /// Prepare private CPU models ahead of the ordered consumer on the requesting thread. GPU compilation and
         /// publication follow the first real getTemplate request. An interrupted batch discards unused models.

@@ -55,6 +55,24 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useResponsiveArrivalCancellation()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_RESPONSIVE_ARRIVAL_CANCELLATION");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useArrivalCompilePriority()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ARRIVAL_COMPILE_PRIORITY");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useSharedPositionReads()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_SHARED_POSITION_READS");
+        return useNativeJobs() && enabled;
+    }
+
     inline bool useAsyncDistanceJobs()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ASYNC_DISTANCE_JOBS");

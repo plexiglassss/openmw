@@ -3,6 +3,8 @@ include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 
 file(GLOB UNITTEST_SRC_FILES
     main.cpp
+    sceneutil/testworkqueue.cpp
+    sceneutil/testcompilepriority.cpp
     terrain/testpagingray.cpp
     terrain/testrayacceleration.cpp
 

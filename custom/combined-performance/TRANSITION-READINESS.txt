@@ -1,0 +1,44 @@
+Transition and Lua query improvements — 15 November 2026
+
+This cumulative engine adds:
+1. Queued obsolete exterior predictions are removed. A required destination no
+   longer joins unrelated retired predictions. Already-running tasks retain their
+   owners until completion. Scene cleanup and shutdown still wait for running jobs.
+2. Pending graphics compilation needed by the nearby arrival is promoted ahead
+   of distant requests, including shared textures/programs and cached chunks.
+   The existing graphics frame budget remains in force. Priority takes effect on
+   the next graphics operation; an individual driver operation is not preempted.
+3. Distance queries share immutable object positions during safe Lua read phases.
+   Caches expire before world actions, on queued actions/registry changes, and at
+   phase boundaries. Explicit retained snapshots keep their original values.
+
+Includes the 15 November HBFS god-mode magic-effect accounting repair from
+809fc3b3, including normalization of affected old-save modifiers.
+
+Install the complete ZIP into a new engine folder. Launch its openmw.exe with
+your existing configuration. No new mod adapters or content entries are needed.
+Keep your current icon pack, configurable location-rendering profile and already
+installed mod patches. Do not run adapter installers just for this update.
+Rollback: launch the previous engine folder with the same configuration.
+
+Test the same save and route as before: Continue, leave the Pelagiad house,
+turn/look around outside, re-enter and leave again, then repeat at Arille's in
+Seyda Neen. Check that control returns with actors, collision and nearby scenery
+present. Open inventory twice; check object/quest markers after movement and
+teleporting. Compare several runs and keep the first run separate from warm runs.
+
+Use the existing combined performance capture for matching before/after runs.
+New log entries distinguish cancelled queued/running predictions and pending
+nearby compile sets. Lua counters report position objects resolved/reused and
+position lists built/reused. These are work counters, not measured FPS gains.
+
+For diagnostic comparisons only, each change can be disabled independently by
+setting the corresponding process environment variable to 0 before launch:
+  OPENMW_RESPONSIVE_ARRIVAL_CANCELLATION
+  OPENMW_ARRIVAL_COMPILE_PRIORITY
+  OPENMW_SHARED_POSITION_READS
+All three default to enabled; the existing combined-performance master switch
+also controls them. Ordinary play requires no environment changes.
+
+The engine contains no new mod-specific or cell-specific rules. In-game speedup
+and compatibility with the complete installed modlist still require game tests.

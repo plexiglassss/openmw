@@ -8,6 +8,7 @@
 #include <osg/Texture2D>
 
 #include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/compilepriority.hpp>
 
 #include <components/esm/util.hpp>
 #include <components/resource/objectcache.hpp>
@@ -324,7 +325,7 @@ namespace Terrain
 
         if (!templateGeometry && compile && mSceneManager->getIncrementalCompileOperation())
         {
-            mSceneManager->getIncrementalCompileOperation()->add(geometry);
+            SceneUtil::enqueueCompile(*mSceneManager->getIncrementalCompileOperation(), geometry);
         }
         geometry->setNodeMask(mNodeMask);
 

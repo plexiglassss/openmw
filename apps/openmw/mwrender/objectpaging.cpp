@@ -25,6 +25,7 @@
 #include <osgParticle/ParticleProcessor>
 #include <osgParticle/ParticleSystemUpdater>
 #include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/compilepriority.hpp>
 
 #include <components/esm/path.hpp>
 #include <components/esm3/esmreader.hpp>
@@ -1083,7 +1084,7 @@ namespace MWRender
             else
             {
                 // Foreground traversal keeps its existing, smaller NIF decoding workload.
-                mSceneManager->prepareNifInputs(paths, *jobs);
+                mSceneManager->prepareNifInputs(paths, *jobs, abort);
                 consumeBatch();
             }
             batch.clear();
@@ -1255,8 +1256,7 @@ namespace MWRender
         if (!stateToCompile.empty() && ico)
         {
             Diagnostics::Loading::Timer compileLoading(Diagnostics::Loading::Stage::ObjectCompile);
-            auto compileSet = new osgUtil::IncrementalCompileOperation::CompileSet(group);
-            compileSet->buildCompileMap(ico->getContextSet(), stateToCompile);
+            auto compileSet = SceneUtil::prepareCompileSet(*ico, group, &stateToCompile);
             pending.mOperation = ico;
             pending.mSet = std::move(compileSet);
         }

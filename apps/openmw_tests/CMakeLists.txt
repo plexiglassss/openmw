@@ -17,6 +17,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwdialogue/testkeywordsearch.cpp
 
     mwmechanics/testlevelledlist.cpp
+    mwmechanics/testmagiceffectaccounting.cpp
 
     mwrender/testlocationrenderingprofiles.cpp
     mwrender/testsavedglobalmap.cpp
@@ -37,6 +38,8 @@ file(GLOB UNITTEST_SRC_FILES
     mwlua/testobjectcache.cpp
     mwlua/testmagicbindings.cpp
     mwlua/testnativequeryservice.cpp
+    mwlua/testpositionsnapshots.cpp
+    mwworld/testarrivalcancellation.cpp
     mwlua/testparallelqueries.cpp
     mwlua/testvfsiterators.cpp
 

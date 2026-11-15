@@ -8,6 +8,9 @@
 #include <osg/Texture>
 #include <components/vfs/manager.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/sceneutil/compilepriority.hpp>
+#include <components/misc/combinedperformance.hpp>
+#include <components/debug/debuglog.hpp>
 
 #include <components/diagnostics/timing.hpp>
 
@@ -829,6 +832,18 @@ namespace Terrain
             });
         const auto near = static_cast<std::size_t>(boundary - ordered.begin());
         ArrivalFootprint footprint;
+        struct NearCompileVisitor : SceneUtil::CompilePriorityVisitor
+        {
+            void apply(osg::Drawable& drawable) override
+            {
+                if (const auto* terrain = dynamic_cast<const TerrainDrawable*>(&drawable))
+                    for (const auto& pass : terrain->getPasses())
+                        collect(pass.get());
+                SceneUtil::CompilePriorityVisitor::apply(drawable);
+            }
+        } nearCompile;
+        auto* compile = mResourceSystem->getSceneManager()->getIncrementalCompileOperation();
+        std::size_t nearCompileSets = 0;
         const auto build = [&](std::size_t first, std::size_t last) {
             constexpr std::size_t groupSize = 4;
             const bool batch = mBatchChunkManager && mBatchChunkManager->canPreloadBatches();
@@ -876,12 +891,20 @@ namespace Terrain
                                 footprint.measure(*entry.mRenderingNode) });
                     }
                     arrival->publish(ready);
+                    if (first == 0 && near != 0 && compile && Misc::useArrivalCompilePriority())
+                    {
+                        for (const auto& entry : ready)
+                            entry.node->accept(nearCompile);
+                        nearCompileSets = nearCompile.promote(*compile);
+                    }
                 }
             }
         };
         build(0, near);
         if (arrival && !abort)
         {
+            Log(Debug::Info) << "Exterior arrival graphics priority: pendingNearSets=" << nearCompileSets
+                << " enabled=" << Misc::useArrivalCompilePriority();
             nearReady(near, ordered.size() - near);
             build(near, ordered.size());
             if (!abort)

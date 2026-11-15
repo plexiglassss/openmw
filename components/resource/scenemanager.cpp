@@ -30,6 +30,7 @@
 #include <osgParticle/ParticleSystem>
 
 #include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/compilepriority.hpp>
 
 #include <osgDB/FileUtils>
 #include <osgDB/Registry>
@@ -1124,12 +1125,15 @@ namespace Resource
         return static_cast<osg::Node*>(mErrorMarker->clone(osg::CopyOp::DEEP_COPY_ALL));
     }
 
-    void SceneManager::prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs)
+    void SceneManager::prepareNifInputs(std::span<const VFS::Path::NormalizedView> paths, Misc::NativeJobPool& jobs,
+        const std::atomic_bool* abort)
     {
         std::vector<VFS::Path::NormalizedView> cold;
         constexpr VFS::Path::ExtensionView nif("nif");
         for (auto path : paths)
         {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return;
             if (path.extension() == nif && !mCache->getRefFromObjectCache(path) && !mNifFileManager->isCached(path))
                 cold.push_back(path);
         }
@@ -1138,6 +1142,8 @@ namespace Resource
 
         std::vector<Nif::NIFFilePtr> decoded(cold.size());
         jobs.parallelFor(cold.size(), 2, [&](std::size_t i) {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return;
             try
             {
                 decoded[i] = mNifFileManager->read(cold[i]);
@@ -1371,7 +1377,7 @@ namespace Resource
                 Diagnostics::Scope timing("model", "template", "compileOrBounds");
                 Diagnostics::Loading::Timer loading(Diagnostics::Loading::Stage::TemplateCompile);
                 if (compile && mIncrementalCompileOperation)
-                    mIncrementalCompileOperation->add(loaded);
+                    SceneUtil::enqueueCompile(*mIncrementalCompileOperation, loaded);
                 else
                     loaded->getBound();
             }

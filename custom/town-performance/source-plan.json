@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -29,7 +29,9 @@
     "32270e113da3aa60b152443cc4eaaa7e3ddf7251",
     "f36c2d4afdab68f19a4339cd1a6ff53159e69ac3",
     "b1bacf7f8b9ee25354686939467ae395f21c823c",
-    "ad980e4b4f5e486f7c3758fcc7dc436628e3ee14"
+    "ad980e4b4f5e486f7c3758fcc7dc436628e3ee14",
+    "0e35efbc396ae7c49b404f9e0c5c34e914aa2670",
+    "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -39,11 +41,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8d11cf6572ea54cedb44f851cf1bed60ccaa0d23"
+        "blob": "36e90bb3ac9a134d19de520711cc6e237094af5d"
       },
-      "bytes": 65494,
-      "sha256": "ed633fa321f351f945edea185d816874c6870a0780db63bebe05048df6a93999",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Execute the ordinary spell-read regressions in the independent copy mode and retain evidence. Execute and verify both controls and all parallel query regressions on the shipping binaries. Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery."
+      "bytes": 66335,
+      "sha256": "806ca9f1914b8f406c8dda505e2c3a1cf4c1223bd00c27d62cee551adcc42b16",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -52,11 +54,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5f757dadfe6156f05f1da18ebb79e29daef2b117"
+        "blob": "675f7c42b5f3db95d1333f447c804a531b098878"
       },
-      "bytes": 4423,
-      "sha256": "cc7f075e4a84d93d429446a23f51a7fa4a86fac08caf5bc502be7a44731cc3e3",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Exercise the real model resource path, owner thread, draft lifetime, settings invalidation, cancellation, warm cache and retry. Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites. Exercise finite-segment, overhanging scenery, and ordered VFS lookup regressions."
+      "bytes": 4493,
+      "sha256": "e28f0822e7f37446ae4a77677d9269460846ef5da090713a5e05340c02ba3f99",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -534,11 +536,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "16ccc12e9d7ea8658d10ec8b466e0deffc10a9f1"
+        "blob": "6d4027d0f0a7965bf47bbdf962e10685231afde8"
       },
-      "bytes": 54306,
-      "sha256": "fd0cea1011d510577ead47c503c82c92822f4aa2d337a7184cfe68a65ea9f198",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Collect and publish per-frame ordinary spell read counters during capture. Keep ordered ray groups inside delayed-action FIFO boundaries, reset jobs at session changes and record per-frame usage. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
+      "bytes": 55213,
+      "sha256": "9c89de280981e3ddf7673b7d5cfe6517fc3506de0741dfe28eb6d4669b7b61f2",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/openmw/mwlua/luamanagerimp.hpp": {
       "before": {
@@ -590,21 +592,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "97f56e94f646db4fb685e008bc8a8b5adaa71e4e"
+        "blob": "56d710bb52c6e5227abcfe1c685d5e52a20a6795"
       },
-      "bytes": 4012,
-      "sha256": "197c5e9eb0eac019c0e43cb675195e938a756c9458dff619d4dc3ef77202bb28",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
+      "bytes": 7104,
+      "sha256": "d7c4768c380774d9314b9ad17f5b7a69dc1fcb87ff7a896efbfb6f1ab63fea6e",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/openmw/mwlua/nativequeryservice.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0efe069c14e55b9ff7fe91921def21d9b2d49598"
+        "blob": "622d1d5dcd04c7749fa4a06398b15aeb1f327f7c"
       },
-      "bytes": 2655,
-      "sha256": "77ff5fd2990372bed572f2b099d0350beaf72b9c80cb9990fc4368a5cbd3b8fe",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
+      "bytes": 3940,
+      "sha256": "fddb6d8bb5f91d0416bd73c699c5af1317b19874a698f610ca7a07423ccd60ce",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/openmw/mwlua/nearbybindings.cpp": {
       "before": {
@@ -613,11 +615,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2e32a2f61542afb1c459829b6e1feae3837b7190"
+        "blob": "0c51e92035c9d5d2927e932072d4fcf607f1c06f"
       },
-      "bytes": 28105,
-      "sha256": "a45ee563e9063f4473bc4fcd5fa4a48c936f4a2552ffec420c25778b94539f35",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Capture world positions on the owner and expose reusable nonblocking distance-query tickets and ordered results."
+      "bytes": 28748,
+      "sha256": "7f0b5f2892a9f5e0618ac43c5e7d0c60388ba55b24fbdee3eaa109f9d81211f5",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/openmw/mwmechanics/activespells.cpp": {
       "before": {
@@ -691,11 +693,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "11f5df7c84c2069f166785f5b88f94dd5a57f918"
+        "blob": "edf6b13537dfa9864fb7840251a895ba4c0ae3e0"
       },
-      "bytes": 62356,
-      "sha256": "3187c41c7dc4a624ee0a28bda5c49d327125f4be78b1e68d22faea6fdac6d67e",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Select the destination worldspace and LOD once, share pending CPU work across nearby chunks, and fence chunk publication against reference changes. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
+      "bytes": 62335,
+      "sha256": "d656bf040689155fa1070b73350850791c55e0a35e24e91f060b02022a31c764",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/openmw/mwstate/statemanagerimp.cpp": {
       "before": {
@@ -831,11 +833,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e65e8f689f0dfa34cc9244dffaf8018421a44969"
+        "blob": "4173d795f8ceb394ec08ce1444d0a46ace4a87ef"
       },
-      "bytes": 3933,
-      "sha256": "994381f6bec7706517c901035657fb2d4e0273f67f3b00e6df0a038b72ad1f18",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries. Exercise original PNG/bounds passthrough, consecutive loads, stale encoding, changed extents and malformed content with real engine resources. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
+      "bytes": 4055,
+      "sha256": "6183d4c925146a6015a08882f68fa6c01bac1c978f3037a599b1d94a0783742a",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -920,11 +922,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "21888931d2e8632db4ed47df5a08ddc49f628c89"
+        "blob": "89a2942da58918a348fb079ecaf09c939f201754"
       },
-      "bytes": 20727,
-      "sha256": "3bbe40048b2b7d71d5675b35043fc4e49e1e6d8a6e79973998693aa0c50a1a12",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Build the scene intersection helper and isolated Lua worker with the engine. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings."
+      "bytes": 20743,
+      "sha256": "82393175f1ee229f768511e79763cbd6012b68570a5c8adceb0eda9c80900555",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/esm/defs.hpp": {
       "before": {
@@ -1195,11 +1197,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "097bb707f9d2ea7b6a7d274f358a944ca35da6a0"
+        "blob": "538cceeb756963097593feb1c719d7e30562f341"
       },
-      "bytes": 2541,
-      "sha256": "d33931c12c3a9b2da980db22f71b74acaab7073d8351a7d18ac36c90bb88fbf4",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Expose a process-local comparison switch for sharing active spell details. Provide bounded nonblocking submission, completion ordering or independent comparison flags."
+      "bytes": 3137,
+      "sha256": "23e75e06d0bf1ada47c26604d92af1612d283fa3e152aba07322da34503a27eb",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -1254,11 +1256,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "170b2aff3e717169ad6f1a7fc9727221d5f5b143"
+        "blob": "60627de4f4d42a6ec28c6e0bfdb2ad94f808b991"
       },
-      "bytes": 63495,
-      "sha256": "697598805b22def0afb2fdb4d918f517bafad2dc77b81434825d1ceaaa14e09b",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
+      "bytes": 63787,
+      "sha256": "65297e5b8e2c588bb99276a121f131a405a2048b24126f27c2d8be32ebb4ef36",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/resource/scenemanager.hpp": {
       "before": {
@@ -1267,11 +1269,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "af65a904b882835db533ab9a72ac137ef3c819c8"
+        "blob": "94fd234b79dbd09c161ccac553c127878939f300"
       },
-      "bytes": 11962,
-      "sha256": "b2bd2fbce9018b2a19d807a10278fc9ee6b08d68fadd55b0849a4cfc44e4189c",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Prepare CPU-only NIF drafts on bounded native helpers, share work with concurrent consumers and retain the regular cache/GL publication path. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
+      "bytes": 12015,
+      "sha256": "6449fdda2b0dbe0db836ef72274f39a2be2f4245f4571c20e070429deaeff8b0",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/settings/categories/general.hpp": {
       "before": {
@@ -1606,11 +1608,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1e8f72a2f1bdb5b8754465a453f3b416a6e3a0b9"
+        "blob": "18a299761f304167f5f10bc1cb000d70d53c0d5f"
       },
-      "bytes": 12683,
-      "sha256": "95a082dbecf72460abd9c73ab0160706e98713b26a950dc3a95b6a882703158e",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Include and validate the new spell-read results and comparison launcher in the portable package. Package and document independent controls, complete optional gameplay adapters and API contracts. Verify and preserve working map controls and marker rendering in the complete cumulative Windows delivery. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch."
+      "bytes": 12777,
+      "sha256": "84a4cd90ed3aebb458441a14969ff9af5e1abdf5166d994528c37bb15584e131",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -3774,11 +3776,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "41d4cfda540b83952ec9308fec22065b32911319"
+        "blob": "84fe8cfbc4d2fe61af556aeb164af3d2b062b54a"
       },
-      "bytes": 14577,
-      "sha256": "66885a1b350ed81b964b82f094e5a59c9d841da29ed230a3e35a77d20e6f8abc",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order."
+      "bytes": 14652,
+      "sha256": "0bc8dd5bc1849737a42dd8aab726b34ee40ed5c1206a2c78638f684e9f32c3d0",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/terrain/chunkmanager.hpp": {
       "before": {
@@ -3800,11 +3802,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c099a4473bc1269eafc896c5dabd25946495cb27"
+        "blob": "ae4c8f13dd64acf07fdfb90f0e82a7119f25f7b4"
       },
-      "bytes": 39981,
-      "sha256": "ad150c08fb506aaa5a66c62db7c9c8df8d178febf7aa895f15e26610ae4f15b5",
-      "reason": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view. Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
+      "bytes": 41224,
+      "sha256": "5ef1eb3e74cf5cc285176287fcf450d82e2ca474a308606c786a657061690700",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/terrain/quadtreeworld.hpp": {
       "before": {
@@ -3986,11 +3988,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a54e2110bfa1830808bcd0f3812b13833dadcf16"
+        "blob": "655f4ba46d9d30daca57f3ab351b0888d38b6ecc"
       },
-      "bytes": 28922,
-      "sha256": "dd0118ffa70cd87d321a9597ace97fafdecce7b4746b958e6b877a95beb76394",
-      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+      "bytes": 30126,
+      "sha256": "ec88015a263416c087b69a0c673b108fe4934dcb6934a726001bc2ec625d7aa7",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "before": {
@@ -4194,6 +4196,168 @@
       "bytes": 6955,
       "sha256": "86f22434a4d5f963e0b5bbf12f0e45bcf5a921fb1c8708f689223dac6cc219f2",
       "reason": "Filter normalized virtual paths by complete directory name without yielding unrelated files through Lua."
+    },
+    "apps/openmw_tests/mwlua/testpositionsnapshots.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2ef7c0284543981c7dcd6d6580a7ecd52a31ec39"
+      },
+      "bytes": 7665,
+      "sha256": "d5909afffc5f69bdfadf8da44e4769448dfc42e7a138a558cfceea5fee8c7adc",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "components/sceneutil/workqueue.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "8d7f5a9ec9cc0d98c28b70bba40e5632c8257377"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e758307ab5afcfd683c1e4f5b1d07df57c99f363"
+      },
+      "bytes": 3157,
+      "sha256": "d93005389461536b9e2b993aa5dbb39889c8ac970fbb90d6962b718b5193bff5",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "components/sceneutil/workqueue.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "7c24d6d384b73b63c02a08a0560cf9f7ffc4015b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "894f29fc77ae559f82d152763f4ca173f7a2fe1b"
+      },
+      "bytes": 4000,
+      "sha256": "47f872949642579e1c73deddeb1b104b89c11131604bf82bea6ae18022bf3dad",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "components/sceneutil/compilepriority.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "39996cd53e9ed3dab6924fb85d6248604bc558a7"
+      },
+      "bytes": 3688,
+      "sha256": "8ba4bcabd11f64e88f9796f6d9672cb4a4e7901652e9459f1671834846909a59",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "components/sceneutil/compilepriority.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "48596ea67bc182f3ce58f4d651f1254fb8ce202d"
+      },
+      "bytes": 1582,
+      "sha256": "fb474543f2dd91e90af7ea426c8cdf14bd957e84151ab745899560eea9356acf",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "apps/components_tests/sceneutil/testworkqueue.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ae3d870aa2a09b018fc84db733a85e2d507b282e"
+      },
+      "bytes": 2596,
+      "sha256": "71732794436595608de5345aa2c6568a9ce5b86b0ec8c49b92a8859f7c176d98",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "custom/combined-performance/TRANSITION-READINESS.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e0cf53115bd8b183fef8e89f61b428daafef3724"
+      },
+      "bytes": 2698,
+      "sha256": "5afd54790ff78799164b17c3ae183f729dc21a06e2f074fbe7299838bdb64581",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    "apps/openmw_tests/mwworld/testarrivalcancellation.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "be0428254d5c945cdb2e3d6492275aa5f393ec36"
+      },
+      "bytes": 2739,
+      "sha256": "220f6f0eba2b5754b4963ca46e71c1f032acd2853e9a5e8e06fe650e90fb9c7a",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "apps/components_tests/sceneutil/testcompilepriority.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b50cdc4cecaa8efc7e28576d2eac9c57f54c9fce"
+      },
+      "bytes": 3424,
+      "sha256": "14bafe60e9500a25499400b051ac8cc58376cb32be5eb279647c2af129eeba1b",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+    },
+    "custom/combined-performance/tests/verify-transition-readiness.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6bdcad18411b468c4546b958f087f721fef66e3a"
+      },
+      "bytes": 1510,
+      "sha256": "b1cd4a6024711ea54e6bce82742264f1aa79f677dc2b2142c5d2b953cd50bc97",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    ".github/workflows/hbfs-godmode-build.yml": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2268f22ad50cc221674e855782eee14ffb31d253"
+      },
+      "bytes": 874,
+      "sha256": "a08e12d3ac5249bd51327d09cd0fec60af0e9666e09313bbce3c31d9a813f4c3",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    "apps/openmw/mwmechanics/creaturestats.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "cf358af868a44d88aab3f217f70e4b1c517a9f93"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "7ae911ae0d3df8736298dc5c21ca41d80abce160"
+      },
+      "bytes": 20068,
+      "sha256": "984560a174c6edce43e1f6738f94280d0b0925471957c14637c6a8dac9bd19fc",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    "apps/openmw/mwmechanics/magiceffectaccounting.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "c8fbe5071ff8919bd36c4f671d49284bba5a3386"
+      },
+      "bytes": 2077,
+      "sha256": "1be6c91d8baa3c838350ca8e72e428b1908f267aec10111f954671d13626dd48",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    "apps/openmw/mwmechanics/spelleffects.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c56e572a89bc907d42fe75635e3791008adaa305"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6c63e0d0f526d9b0c40877459ac8ef5bdc550b2c"
+      },
+      "bytes": 72067,
+      "sha256": "2fb09e2fd3534365ac909098074e848c6ce4a33ab27ac24f3a863882964b4268",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    "apps/openmw_tests/mwmechanics/testmagiceffectaccounting.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6a22ea2afd72a47667529cc26b3f93f165ed710c"
+      },
+      "bytes": 3316,
+      "sha256": "4df191ab1c7d17d2c53e602acf965847b0ad78e3dc5a4182b0fc1b43ba0cbc55",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
     }
   }
 }

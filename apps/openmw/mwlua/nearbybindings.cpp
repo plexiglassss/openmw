@@ -92,7 +92,8 @@ namespace MWLua
         return options;
     }
 
-    static std::vector<NativeDistanceTarget> distanceTargets(const sol::object& targets, bool snapshot = false)
+    static std::vector<NativeDistanceTarget> distanceTargets(
+        NativeQueryService& service, const sol::object& targets, bool snapshot = false)
     {
         constexpr std::size_t limit = 16384;
         if (targets.is<LObjectList>())
@@ -100,7 +101,7 @@ namespace MWLua
             const auto& ids = targets.as<const LObjectList&>().mIds;
             if (snapshot && ids && ids->size() > limit)
                 throw std::invalid_argument("too many snapshot targets");
-            return NativeQueryService::copyObjects(ids);
+            return *service.snapshotObjects(ids);
         }
         if (snapshot && targets.get_type() != sol::type::table)
             throw std::invalid_argument("snapshotPositions expects an ObjectList or an array");
@@ -119,12 +120,11 @@ namespace MWLua
             if (value.is<LObject>())
             {
                 const LObject& object = value.as<const LObject&>();
-                const MWWorld::Ptr& ptr = object.ptrOrEmpty();
-                if (!ptr.isEmpty() && !ptr.mRef->isDeleted())
+                if (const auto position = service.objectPosition(object.id()))
                 {
                     values.push_back({
-                        .mObjectId = getId(ptr),
-                        .mPosition = ptr.getRefData().getPosition().asVec3(),
+                        .mObjectId = object.id(),
+                        .mPosition = *position,
                         .mSourceIndex = index,
                         .mHasObject = true,
                     });
@@ -208,7 +208,11 @@ namespace MWLua
                         throw std::invalid_argument("position snapshot belongs to an earlier game session");
                     return { NativeQueryService::compute(*snapshot.mValues, origin, distanceOptions(rawOptions)) };
                 }
-                return { nativeQueries->queryTargets(distanceTargets(targets), origin, distanceOptions(rawOptions)) };
+                if (targets.is<LObjectList>())
+                    return { nativeQueries->queryObjects(targets.as<const LObjectList&>().mIds,
+                        origin, distanceOptions(rawOptions)) };
+                return { nativeQueries->queryTargets(distanceTargets(*nativeQueries, targets),
+                    origin, distanceOptions(rawOptions)) };
             };
         }
 
@@ -221,7 +225,15 @@ namespace MWLua
             });
             lua.new_usertype<PositionSnapshot>("NativePositionSnapshot", sol::no_constructor);
             const auto snapshot = [nativeQueries](const sol::object& targets) {
-                return PositionSnapshot{ std::make_shared<const std::vector<NativeDistanceTarget>>(distanceTargets(targets, true)),
+                if (targets.is<LObjectList>())
+                {
+                    const auto& ids = targets.as<const LObjectList&>().mIds;
+                    if (ids && ids->size() > 16384)
+                        throw std::invalid_argument("too many snapshot targets");
+                    return PositionSnapshot{ nativeQueries->snapshotObjects(ids), nativeQueries->mSession };
+                }
+                return PositionSnapshot{ std::make_shared<const std::vector<NativeDistanceTarget>>(
+                        distanceTargets(*nativeQueries, targets, true)),
                     nativeQueries->mSession };
             };
             api["snapshotPositions"] = snapshot;

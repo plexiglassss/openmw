@@ -553,6 +553,19 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Compare position snapshots with uncached object reads in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_POSITION_READS = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=PositionSnapshots.* --gtest_output=xml:previous-position-reads.xml
+            if ($LASTEXITCODE) { throw 'Uncached position query parity tests failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SHARED_POSITION_READS -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-transition-readiness.py
+          if ($LASTEXITCODE) { throw 'Transition readiness tests did not execute successfully' }
       - name: Compare actor and HUD updates with the previous paths in the same executable
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -771,6 +784,8 @@ jobs:
             previous-hud-tests.xml
             sparse-hud-tests.json
             previous-spell-reads.xml
+            previous-position-reads.xml
+            transition-readiness-tests.json
             previous-parallel-queries.xml
             map-icon-skin-tests.json
             active-spell-reads.json

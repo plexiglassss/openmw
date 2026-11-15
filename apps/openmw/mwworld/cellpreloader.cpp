@@ -18,6 +18,7 @@
 #include <components/esm3/loadcell.hpp>
 #include <components/loadinglistener/reporter.hpp>
 #include <components/misc/constants.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/pathhelpers.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/strings/algorithm.hpp>
@@ -496,14 +497,26 @@ namespace MWWorld
 
     void CellPreloader::retireArrival()
     {
+        std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
         if (mArrivalWorld)
             mArrivalWorld->showArrival({});
         if (mArrivalJob)
         {
             if (!mArrivalJob->isDone())
             {
-                mArrivalJob->abort();
-                mRetiredArrivals.push_back(mArrivalJob);
+                if (Misc::useResponsiveArrivalCancellation() && mWorkQueue)
+                {
+                    const bool removed = mWorkQueue->cancelWorkItem(mArrivalJob.get());
+                    if (!removed && !mArrivalJob->isDone())
+                        mRetiredArrivals.push_back(mArrivalJob);
+                    Log(Debug::Info) << "Exterior arrival cancelled: queuedRemoved=" << removed
+                        << " runningRetired=" << mRetiredArrivals.size();
+                }
+                else
+                {
+                    mArrivalJob->abort();
+                    mRetiredArrivals.push_back(mArrivalJob);
+                }
             }
             mArrivalJob = nullptr;
         }
@@ -537,15 +550,25 @@ namespace MWWorld
         if (!mWorkQueue || !world)
             return false;
         if (mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance))
+        {
+            if (required && Misc::useResponsiveArrivalCancellation())
+                mWorkQueue->promoteWorkItem(mArrivalJob.get());
             return true;
-        // Changing direction in a room with many exits cannot grow the queue without bound.
+        }
+        std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
+        // Speculation waits for the previous prediction to stop. A required arrival
+        // cancels its queued predecessor; only already-running workers are retained.
+        // Thus retirees are bounded by the worker count, without a main-thread join.
         if (!mRetiredArrivals.empty())
         {
             if (!required)
                 return false;
-            for (auto& previous : mRetiredArrivals)
-                previous->waitTillDone();
-            mRetiredArrivals.clear();
+            if (!Misc::useResponsiveArrivalCancellation())
+            {
+                for (auto& previous : mRetiredArrivals)
+                    previous->waitTillDone();
+                mRetiredArrivals.clear();
+            }
         }
         retireArrival();
         auto view = world->createArrival(target.mPosition, target.mCellBounds);

@@ -16,8 +16,30 @@
 #include "../mwbase/environment.hpp"
 #include "../mwbase/world.hpp"
 
+#include "magiceffectaccounting.hpp"
+
 namespace MWMechanics
 {
+    namespace
+    {
+        void repairGodModeSuppressedEffectModifiers(const ActiveSpells& activeSpells, MagicEffects& magicEffects)
+        {
+            // Older saves can contain a modifier with no matching applied effect because TGM used to account rejected
+            // Drain/Absorb effects and cleanup then skipped them. Rebuild only the effect family affected by that bug;
+            // base values set by MWScript/Lua are deliberately preserved.
+            for (const ESM::RefId& effectId : MagicEffectAccounting::getGodModeSuppressedEffects())
+            {
+                float expected = 0.f;
+                for (const auto& spell : activeSpells)
+                    expected += MagicEffectAccounting::getAppliedMagnitude(spell.getEffects(), effectId);
+
+                const float current = magicEffects.getOrDefault(effectId).getModifier();
+                if (expected != current)
+                    magicEffects.add(EffectKey(effectId), EffectParam(expected - current));
+            }
+        }
+    }
+
     CreatureStats::CreatureStats()
     {
         for (const ESM::Attribute& attribute : MWBase::Environment::get().getESMStore()->get<ESM::Attribute>())
@@ -598,6 +620,7 @@ namespace MWMechanics
         mActiveSpells.readState(state.mActiveSpells);
         mAiSequence.readState(state.mAiSequence);
         mMagicEffects.readState(state.mMagicEffects);
+        repairGodModeSuppressedEffectModifiers(mActiveSpells, mMagicEffects);
 
         mSummonedCreatures = state.mSummonedCreatures;
 
