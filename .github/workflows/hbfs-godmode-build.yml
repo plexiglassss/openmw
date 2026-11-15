@@ -1,0 +1,33 @@
+name: OpenMW - HBFS god-mode effect fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/hbfs-godmode-effects-20261115
+    paths:
+      - .github/workflows/hbfs-godmode-build.yml
+      - apps/openmw/mwmechanics/creaturestats.cpp
+      - apps/openmw/mwmechanics/magiceffectaccounting.hpp
+      - apps/openmw/mwmechanics/spelleffects.cpp
+      - apps/openmw_tests/CMakeLists.txt
+      - apps/openmw_tests/mwmechanics/testmagiceffectaccounting.cpp
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hbfs-godmode-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  Windows:
+    uses: ./.github/workflows/windows.yml
+    with:
+      image: "2022"
+      msvc: "2022"
+      build-type: Release
+      package: false
+      release: false
+      diagnostic-fast: true
