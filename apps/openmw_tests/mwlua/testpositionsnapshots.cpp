@@ -8,6 +8,7 @@
 #include "apps/openmw/mwworld/worldmodel.hpp"
 
 #include <components/esm3/loadnpc.hpp>
+#include <components/esm3/objectstate.hpp>
 #include <components/esm3/readerscache.hpp>
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/nativejobpool.hpp>
@@ -53,6 +54,15 @@ namespace
             position.pos[0] = x;
             position.pos[1] = position.pos[2] = 0;
             ptr.getRefData().setPosition(position);
+        }
+        static void count(const MWWorld::Ptr& ptr, int value)
+        {
+            // Set the live deletion input without a full World and its unrelated
+            // removeRefScript side effect, as in the cell lookup fixtures.
+            ESM::ObjectState state;
+            ptr.getCellRef().writeState(state);
+            state.mRef.mCount = value;
+            ptr.getCellRef() = MWWorld::CellRef(state.mRef);
         }
     };
 
@@ -107,7 +117,7 @@ namespace
             std::initializer_list<MWLua::ObjectId>{ MWLua::getId(a), MWLua::getId(b) });
         MWLua::NativeQueryService::PositionReadScope reads(mService);
         auto retained = mService.snapshotObjects(ids);
-        a.getCellRef().setCount(0);
+        count(a, 0);
         mService.invalidatePositions(); // Queued world actions invalidate before the next callback.
         auto current = mService.snapshotObjects(ids);
         ASSERT_EQ(current->size(), 1u);
@@ -152,11 +162,11 @@ namespace
                 "ticket=assert(nearby.queryDistancesAsync(objects,zero))");
             if (Misc::useSharedPositionReads())
                 EXPECT_EQ(mService.mPositionListsReused, 2u);
-            a.getCellRef().setCount(0);
+            count(a, 0);
             mService.invalidatePositions();
             run("r=nearby.queryDistances(mixed,zero); assert(#r==1 and r:sourceIndex(1)==3); "
                 "assert(nearby.queryDistances(s,zero):distance(1)==3)");
-            a.getCellRef().setCount(1);
+            count(a, 1);
             mService.invalidatePositions();
         }
         move(a, 12);

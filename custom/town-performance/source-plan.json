@@ -4201,11 +4201,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2ef7c0284543981c7dcd6d6580a7ecd52a31ec39"
+        "blob": "b2b1be4c951b3146ba245e8fb611558bc92428eb"
       },
-      "bytes": 7665,
-      "sha256": "d5909afffc5f69bdfadf8da44e4769448dfc42e7a138a558cfceea5fee8c7adc",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 8087,
+      "sha256": "626288dde17131aa50aa6f79cd1c0efaf6f5d7137f7b0ed20813e6faff52fb5a",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Initialize deletion state in the isolated fixture without dereferencing a nonexistent World script service; retain every deletion, retained snapshot and public-binding assertion."
     },
     "components/sceneutil/workqueue.hpp": {
       "before": {
