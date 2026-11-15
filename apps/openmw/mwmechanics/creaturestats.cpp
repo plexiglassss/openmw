@@ -34,7 +34,8 @@ namespace MWMechanics
                     expected += MagicEffectAccounting::getAppliedMagnitude(spell.getEffects(), effectId);
 
                 const float current = magicEffects.getOrDefault(effectId).getModifier();
-                magicEffects.add(EffectKey(effectId), EffectParam(expected - current));
+                if (expected != current)
+                    magicEffects.add(EffectKey(effectId), EffectParam(expected - current));
             }
         }
     }
