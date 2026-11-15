@@ -31,3 +31,5 @@ jobs:
       package: false
       release: false
       diagnostic-fast: true
+
+# Final source rebuild after the old-save modifier normalization guard was applied.
