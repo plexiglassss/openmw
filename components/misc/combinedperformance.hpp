@@ -73,6 +73,18 @@ namespace Misc
         return useNativeJobs() && enabled;
     }
 
+    inline bool useActorSpatialQueries()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_SPATIAL_QUERIES");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useSpatialDistanceQueries()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_SPATIAL_DISTANCE_QUERIES");
+        return useNativeJobs() && enabled;
+    }
+
     inline bool useAsyncDistanceJobs()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ASYNC_DISTANCE_JOBS");

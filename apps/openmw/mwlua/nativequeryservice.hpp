@@ -3,9 +3,11 @@
 
 #include <osg/Vec3f>
 #include <components/misc/ownedjobs.hpp>
+#include <components/misc/spatialindex.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -89,10 +91,17 @@ namespace MWLua
             const NativeDistanceOptions& options = {});
         NativeDistanceSamples queryTargets(std::vector<NativeDistanceTarget> targets, const osg::Vec3f& origin,
             const NativeDistanceOptions& options = {});
+        NativeDistanceSamples querySnapshot(const NativePositions& positions, const osg::Vec3f& origin,
+            const NativeDistanceOptions& options = {});
+        // Called only on the owning Lua thread. Returned immutable indices may
+        // be retained independently by workers across eviction and session reset.
+        std::shared_ptr<const Misc::SpatialIndex> prepareDistanceIndex(const NativePositions& positions,
+            const osg::Vec3f& origin, const NativeDistanceOptions& options);
 
         static std::vector<NativeDistanceTarget> copyObjects(const ObjectIdList& ids);
         static NativeDistanceSamples compute(const std::vector<NativeDistanceTarget>& targets,
-            const osg::Vec3f& origin, const NativeDistanceOptions& options, Misc::NativeJobPool* pool = nullptr);
+            const osg::Vec3f& origin, const NativeDistanceOptions& options, Misc::NativeJobPool* pool = nullptr,
+            const Misc::SpatialIndex* index = nullptr);
 
         Misc::OwnedJobs mAsync;
         std::shared_ptr<const int> mSession = std::make_shared<const int>(0);
@@ -102,6 +111,8 @@ namespace MWLua
         std::size_t mPositionsReused = 0;
         std::size_t mPositionListsReused = 0;
         std::size_t mPositionListsBuilt = 0;
+        std::size_t mDistanceIndicesBuilt = 0;
+        std::size_t mDistanceIndicesReused = 0;
         void reset();
 
     private:
@@ -118,6 +129,15 @@ namespace MWLua
         };
         std::unordered_map<ObjectId, std::optional<osg::Vec3f>> mPositionReads;
         std::unordered_map<const std::vector<ObjectId>*, CachedList> mPositionLists;
+        struct CachedIndex
+        {
+            NativePositions mPositions;
+            std::shared_ptr<const Misc::SpatialIndex> mIndex;
+            std::size_t mUses = 0;
+        };
+        std::unordered_map<const std::vector<NativeDistanceTarget>*, CachedIndex> mDistanceIndices;
+        std::deque<const std::vector<NativeDistanceTarget>*> mDistanceIndexOrder;
+        std::size_t mIndexedTargets = 0;
     };
 }
 

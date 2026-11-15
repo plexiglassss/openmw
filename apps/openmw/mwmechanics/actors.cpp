@@ -2,6 +2,9 @@
 
 #include <components/misc/actorneighbours.hpp>
 #include <components/misc/combinedperformance.hpp>
+#include <components/misc/spatialindex.hpp>
+
+#include "../mwworld/queryrevision.hpp"
 
 #include <optional>
 
@@ -272,19 +275,8 @@ namespace MWMechanics
             return (distanceToNextPathPoint - package.getNextPathPointTolerance(speed, duration, halfExtents)) / speed;
         }
 
-        void updateHeadTracking(const MWWorld::Ptr& actor, const MWWorld::Ptr& targetActor,
-            MWWorld::Ptr& headTrackTarget, float& sqrHeadTrackDistance, bool inCombatOrPursue)
+        float headTrackSquaredRadius(const MWWorld::Ptr& actor)
         {
-            const auto& actorRefData = actor.getRefData();
-            if (!actorRefData.getBaseNode())
-                return;
-
-            if (targetActor.getClass().getCreatureStats(targetActor).isDead())
-                return;
-
-            if (isTargetMagicallyHidden(targetActor))
-                return;
-
             static const float fMaxHeadTrackDistance = MWBase::Environment::get()
                                                            .getESMStore()
                                                            ->get<ESM::GameSetting>()
@@ -300,11 +292,27 @@ namespace MWMechanics
             if (!currentCell->isExterior() && !(currentCell->isQuasiExterior()))
                 maxDistance *= fInteriorHeadTrackMult;
 
+            return maxDistance * maxDistance;
+        }
+
+        void updateHeadTracking(const MWWorld::Ptr& actor, const MWWorld::Ptr& targetActor,
+            MWWorld::Ptr& headTrackTarget, float& sqrHeadTrackDistance, bool inCombatOrPursue)
+        {
+            const auto& actorRefData = actor.getRefData();
+            if (!actorRefData.getBaseNode())
+                return;
+
+            if (targetActor.getClass().getCreatureStats(targetActor).isDead())
+                return;
+
+            if (isTargetMagicallyHidden(targetActor))
+                return;
+
             const osg::Vec3f actor1Pos(actorRefData.getPosition().asVec3());
             const osg::Vec3f actor2Pos(targetActor.getRefData().getPosition().asVec3());
             const float sqrDist = (actor1Pos - actor2Pos).length2();
 
-            if (sqrDist > std::min(maxDistance * maxDistance, sqrHeadTrackDistance) && !inCombatOrPursue)
+            if (sqrDist > std::min(headTrackSquaredRadius(actor), sqrHeadTrackDistance) && !inCombatOrPursue)
                 return;
 
             // stop tracking when target is behind the actor
@@ -323,7 +331,7 @@ namespace MWMechanics
         }
 
         void updateHeadTracking(
-            const MWWorld::Ptr& ptr, const std::list<Actor>& actors, bool isPlayer, CharacterController& ctrl)
+            const MWWorld::Ptr& ptr, const Actors& actors, bool isPlayer, CharacterController& ctrl)
         {
             float sqrHeadTrackDistance = std::numeric_limits<float>::max();
             MWWorld::Ptr headTrackTarget;
@@ -350,14 +358,14 @@ namespace MWMechanics
                 else
                 {
                     // Find something nearby.
-                    for (const Actor& otherActor : actors)
-                    {
-                        if (otherActor.isInvalid() || otherActor.getPtr() == ptr)
-                            continue;
-
-                        updateHeadTracking(
-                            ptr, otherActor.getPtr(), headTrackTarget, sqrHeadTrackDistance, inCombatOrPursue);
-                    }
+                    if (ptr.getRefData().getBaseNode())
+                        actors.forEachRangeCandidate(ptr.getRefData().getPosition().asVec3(),
+                            headTrackSquaredRadius(ptr), [&](const Actor& otherActor) {
+                                if (!otherActor.isInvalid() && otherActor.getPtr() != ptr)
+                                    updateHeadTracking(ptr, otherActor.getPtr(), headTrackTarget,
+                                        sqrHeadTrackDistance, inCombatOrPursue);
+                                return true;
+                            });
                 }
             }
 
@@ -1233,6 +1241,7 @@ namespace MWMechanics
         MWRender::Animation* anim = MWBase::Environment::get().getWorld()->getAnimation(ptr);
         if (!anim)
             return;
+        ++mActorQueryRevision;
         const auto it = mActors.emplace(mActors.end(), ptr, *anim);
         mIndex.emplace(ptr.mRef, it);
 
@@ -1285,6 +1294,7 @@ namespace MWMechanics
         {
             if (!keepActive)
                 removeTemporaryEffects(iter->second->getPtr());
+            ++mActorQueryRevision;
             iter->second->invalidate();
             mIndex.erase(iter);
         }
@@ -1332,7 +1342,10 @@ namespace MWMechanics
     {
         const auto iter = mIndex.find(old.mRef);
         if (iter != mIndex.end())
+        {
+            ++mActorQueryRevision;
             iter->second->updatePtr(ptr);
+        }
     }
 
     void Actors::dropActors(const MWWorld::CellStore* cellStore, const MWWorld::Ptr& ignore)
@@ -1344,6 +1357,7 @@ namespace MWMechanics
             {
                 removeTemporaryEffects(actor.getPtr());
                 mIndex.erase(actor.getPtr().mRef);
+                ++mActorQueryRevision;
                 actor.invalidate();
             }
         }
@@ -1646,18 +1660,18 @@ namespace MWMechanics
                             if (!isPlayer)
                                 adjustCommandedActor(actor.getPtr());
 
-                            for (const Actor& otherActor : mActors)
-                            {
-                                if (otherActor.isInvalid())
-                                    continue;
-                                if (otherActor.getPtr() == actor.getPtr() || isPlayer) // player is not AI-controlled
-                                    continue;
-                                engageCombat(
-                                    actor.getPtr(), otherActor.getPtr(), cachedAllies, otherActor.getPtr() == player);
-                            }
+                            if (!isPlayer)
+                                forEachRangeCandidate(actor.getPtr().getRefData().getPosition().asVec3(),
+                                    static_cast<float>(actorsProcessingRange * actorsProcessingRange),
+                                    [&](const Actor& otherActor) {
+                                        if (!otherActor.isInvalid() && otherActor.getPtr() != actor.getPtr())
+                                            engageCombat(actor.getPtr(), otherActor.getPtr(), cachedAllies,
+                                                otherActor.getPtr() == player);
+                                        return true;
+                                    });
                         }
                         if (mTimerUpdateHeadTrack == 0)
-                            updateHeadTracking(actor.getPtr(), mActors, isPlayer, ctrl);
+                            updateHeadTracking(actor.getPtr(), *this, isPlayer, ctrl);
 
                         if (actor.getPtr().getClass().isNpc() && !isPlayer)
                             updateCrimePursuit(actor.getPtr(), duration, cachedAllies);
@@ -1778,6 +1792,8 @@ namespace MWMechanics
             {
                 if (it->isInvalid())
                 {
+                    ++mActorQueryRevision;
+                    ++mActorStorageRevision;
                     it = mActors.erase(it);
                     continue;
                 }
@@ -2148,28 +2164,114 @@ namespace MWMechanics
             iter->second->getCharacterController().clearAnimQueue(clearScripted);
     }
 
+    struct Actors::QuerySnapshot
+    {
+        std::array<std::uint64_t, 3> mRevision;
+        std::vector<std::list<Actor>::const_iterator> mActors;
+        std::vector<Misc::SpatialIndex::Position> mPositions;
+        bool mFinite = true;
+        mutable std::shared_ptr<const Misc::SpatialIndex> mSpatial;
+    };
+
+    void Actors::forEachRangeCandidate(const osg::Vec3f& position, float squaredRadius,
+        const std::function<bool(const Actor&)>& visit) const
+    {
+        const auto storageRevision = mActorStorageRevision;
+        const auto safeVisit = [&](const Actor& actor) {
+            const bool proceed = visit(actor);
+            // A reentrant clear/erase invalidates list iterators. Stop before
+            // incrementing or dereferencing any of them, including full scans.
+            return proceed && storageRevision == mActorStorageRevision;
+        };
+        const auto scan = [&](auto first) {
+            for (; first != mActors.end(); ++first)
+                if (!safeVisit(*first))
+                    return;
+        };
+        if (!Misc::useActorSpatialQueries() || mActors.size() < 64 || !std::isfinite(squaredRadius)
+            || squaredRadius < 0 || !std::isfinite(position.x()) || !std::isfinite(position.y())
+            || !std::isfinite(position.z()))
+        {
+            scan(mActors.begin());
+            return;
+        }
+        const auto revision = [&] {
+            return std::array<std::uint64_t, 3>{ mActorQueryRevision,
+                MWWorld::getPositionQueryRevision(), MWWorld::getReferenceQueryRevision() };
+        };
+        const auto currentRevision = revision();
+        if (mLastQueryRevision != currentRevision)
+        {
+            mLastQueryRevision = currentRevision;
+            mQueryUses = 0;
+        }
+        if (mQueryUses < 8 && ++mQueryUses < 8)
+        {
+            scan(mActors.begin());
+            return;
+        }
+        if (!mQuerySnapshot || mQuerySnapshot->mRevision != currentRevision)
+        {
+            auto snapshot = std::make_shared<QuerySnapshot>();
+            snapshot->mRevision = currentRevision;
+            for (auto it = mActors.begin(); it != mActors.end(); ++it)
+            {
+                if (it->isInvalid())
+                    continue;
+                const auto p = it->getPtr().getRefData().getPosition().asVec3();
+                // Combat/head tracking use a `>` rejection and can accept NaN
+                // distances. Retain that exact behaviour through the full scan.
+                snapshot->mFinite = snapshot->mFinite
+                    && std::isfinite(p.x()) && std::isfinite(p.y()) && std::isfinite(p.z());
+                snapshot->mPositions.push_back({ p.x(), p.y() });
+                snapshot->mActors.push_back(it);
+            }
+            mQuerySnapshot = std::move(snapshot);
+        }
+        // Keep old storage alive if a callback recursively rebuilds the cache.
+        const auto snapshot = mQuerySnapshot;
+        const Misc::SpatialIndex::Position centre{ position.x(), position.y() };
+        const double radius = std::sqrt(double(squaredRadius));
+        if (snapshot->mFinite && !snapshot->mSpatial
+            && Misc::spatialQueryIsSelective(snapshot->mPositions.size(),
+                [&](auto i) { return snapshot->mPositions[i]; }, centre, radius))
+            snapshot->mSpatial = std::make_shared<const Misc::SpatialIndex>(snapshot->mPositions);
+        const auto candidates = snapshot->mSpatial
+            ? snapshot->mSpatial->query(centre, radius)
+            : std::nullopt;
+        if (!candidates)
+        {
+            scan(mActors.begin());
+            return;
+        }
+        std::vector<std::list<Actor>::const_iterator> selected;
+        selected.reserve(candidates->size());
+        for (const auto index : *candidates)
+            selected.push_back(snapshot->mActors[index]);
+        Misc::visitSpatialCandidates([&] { return mActors.end(); },
+            std::span<const std::list<Actor>::const_iterator>(selected),
+            [&] { return revision() != currentRevision; }, safeVisit);
+    }
+
     void Actors::getObjectsInRange(const osg::Vec3f& position, float radius, std::vector<MWWorld::Ptr>& out) const
     {
-        for (const Actor& actor : mActors)
-        {
-            if (actor.isInvalid())
-                continue;
-            if ((actor.getPtr().getRefData().getPosition().asVec3() - position).length2() <= radius * radius)
+        forEachRangeCandidate(position, radius * radius, [&](const Actor& actor) {
+            if (!actor.isInvalid()
+                && (actor.getPtr().getRefData().getPosition().asVec3() - position).length2() <= radius * radius)
                 out.push_back(actor.getPtr());
-        }
+            return true;
+        });
     }
 
     bool Actors::isAnyObjectInRange(const osg::Vec3f& position, float radius) const
     {
-        for (const Actor& actor : mActors)
-        {
-            if (actor.isInvalid())
-                continue;
-            if ((actor.getPtr().getRefData().getPosition().asVec3() - position).length2() <= radius * radius)
-                return true;
-        }
-
-        return false;
+        bool found = false;
+        forEachRangeCandidate(position, radius * radius, [&](const Actor& actor) {
+            found = !actor.isInvalid()
+                && (actor.getPtr().getRefData().getPosition().asVec3() - position).length2() <= radius * radius;
+            return !found;
+        });
+        return found;
     }
 
     std::vector<MWWorld::Ptr> Actors::getActorsSidingWith(const MWWorld::Ptr& actorPtr, bool excludeInfighting) const
@@ -2371,6 +2473,9 @@ namespace MWMechanics
 
     void Actors::clear()
     {
+        ++mActorQueryRevision;
+        ++mActorStorageRevision;
+        mQuerySnapshot.reset();
         mIndex.clear();
         mActors.clear();
         mDeathCount.clear();

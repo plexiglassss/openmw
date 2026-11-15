@@ -292,6 +292,14 @@ jobs:
               throw "Source archive differs from the original CMake dependency hash: $($item.Name)"
             }
           }
+      - name: Exercise production spatial index and mutation traversal before the engine build
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /O2 /I. custom/combined-performance/tests/spatial-index.cpp /Fe:spatial-index-tests.exe
+          if ($LASTEXITCODE) { throw 'Spatial production-header test compile failed' }
+          ./spatial-index-tests.exe | Set-Content spatial-index-windows.json -Encoding utf8
+          if ($LASTEXITCODE) { throw 'Spatial production-header regression failed' }
       - name: Configure Release build with existing diagnostic cache
         shell: pwsh
         run: >
@@ -338,6 +346,12 @@ jobs:
           apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/activespells.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/objectpaging.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nativequeryservice.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nearbybindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/refdata.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testspatialdistance.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testpositionsnapshots.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testnativequeryservice.cpp.obj
           apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
           -- -k 0
@@ -555,6 +569,22 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Compare spatial queries with each independent fallback in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          try {
+            foreach ($mode in @(@('0','1','actor-off'), @('1','0','distance-off'), @('0','0','both-off'))) {
+              $env:OPENMW_ACTOR_SPATIAL_QUERIES = $mode[0]
+              $env:OPENMW_SPATIAL_DISTANCE_QUERIES = $mode[1]
+              ./build/openmw-tests.exe --gtest_filter=SpatialDistance.*:PositionRevision.*:SpatialBindings.* "--gtest_output=xml:spatial-$($mode[2]).xml"
+              if ($LASTEXITCODE) { throw "Spatial query comparison failed: $($mode[2])" }
+            }
+          } finally {
+            Remove-Item Env:OPENMW_ACTOR_SPATIAL_QUERIES,Env:OPENMW_SPATIAL_DISTANCE_QUERIES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-spatial-queries.py
+          if ($LASTEXITCODE) { throw 'Required spatial query comparisons did not execute successfully' }
       - name: Compare position snapshots with uncached object reads in the same executable
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -788,6 +818,11 @@ jobs:
             previous-spell-reads.xml
             previous-position-reads.xml
             transition-readiness-tests.json
+            spatial-index-windows.json
+            spatial-query-tests.json
+            spatial-actor-off.xml
+            spatial-distance-off.xml
+            spatial-both-off.xml
             previous-parallel-queries.xml
             map-icon-skin-tests.json
             active-spell-reads.json

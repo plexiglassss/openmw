@@ -1197,6 +1197,8 @@ namespace MWLua
         record("Lua Position Objects Reused", std::exchange(mNativeQueryService.mPositionsReused, 0));
         record("Lua Position Lists Built", std::exchange(mNativeQueryService.mPositionListsBuilt, 0));
         record("Lua Position Lists Reused", std::exchange(mNativeQueryService.mPositionListsReused, 0));
+        record("Lua Distance Indices Built", std::exchange(mNativeQueryService.mDistanceIndicesBuilt, 0));
+        record("Lua Distance Indices Reused", std::exchange(mNativeQueryService.mDistanceIndicesReused, 0));
         record("Lua Visual Rays Requested", std::exchange(mRayRequests, 0));
         record("Lua Visual Ray Shared Traversals", std::exchange(mRayGroups, 0));
         record("Lua Visual Ray Traversals Saved", std::exchange(mRaySaved, 0));

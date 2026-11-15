@@ -11,6 +11,17 @@ namespace MWWorld
     // This deliberately conservative epoch does not depend on Environment or
     // ownership, so it also covers references not registered in a world yet.
     inline std::atomic<std::uint64_t> sReferenceQueryRevision{ 0 };
+    inline std::atomic<std::uint64_t> sPositionQueryRevision{ 0 };
+
+    inline std::uint64_t getPositionQueryRevision() noexcept
+    {
+        return sPositionQueryRevision.load(std::memory_order_relaxed);
+    }
+
+    inline void invalidatePositionQueries() noexcept
+    {
+        sPositionQueryRevision.fetch_add(1, std::memory_order_relaxed);
+    }
 
     inline std::uint64_t getReferenceQueryRevision() noexcept
     {

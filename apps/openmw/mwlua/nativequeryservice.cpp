@@ -21,7 +21,7 @@ namespace MWLua
     NativeDistanceSamples NativeQueryService::queryObjects(
         const ObjectIdList& ids, const osg::Vec3f& origin, const NativeDistanceOptions& options)
     {
-        return compute(*snapshotObjects(ids), origin, options, &mJobs);
+        return querySnapshot(snapshotObjects(ids), origin, options);
     }
 
     NativeQueryService::PositionReadScope::PositionReadScope(NativeQueryService& service)
@@ -117,6 +117,9 @@ namespace MWLua
     void NativeQueryService::reset()
     {
         invalidatePositions();
+        mDistanceIndices.clear();
+        mDistanceIndexOrder.clear();
+        mIndexedTargets = 0;
         mAsync.clear();
         mSession = std::make_shared<const int>(0);
     }
@@ -151,8 +154,65 @@ namespace MWLua
         return compute(targets, origin, options, &mJobs);
     }
 
+    std::shared_ptr<const Misc::SpatialIndex> NativeQueryService::prepareDistanceIndex(
+        const NativePositions& positions, const osg::Vec3f& origin, const NativeDistanceOptions& options)
+    {
+        if (!Misc::useSpatialDistanceQueries() || positions->size() < 64 || positions->size() > 65536
+            || !std::isfinite(options.mMaxDistance) || options.mMaxDistance < 0
+            || !std::isfinite(origin.x()) || !std::isfinite(origin.y()))
+            return nullptr;
+        auto found = mDistanceIndices.find(positions.get());
+        if (found == mDistanceIndices.end())
+        {
+            while (!mDistanceIndexOrder.empty()
+                && (mDistanceIndices.size() >= 128 || mIndexedTargets + positions->size() > 65536))
+            {
+                const auto oldest = mDistanceIndexOrder.front();
+                mIndexedTargets -= mDistanceIndices.at(oldest).mPositions->size();
+                mDistanceIndices.erase(oldest);
+                mDistanceIndexOrder.pop_front();
+            }
+            mIndexedTargets += positions->size();
+            mDistanceIndexOrder.push_back(positions.get());
+            found = mDistanceIndices.emplace(positions.get(), CachedIndex{ positions, nullptr, 0 }).first;
+        }
+        auto& entry = found->second;
+        if (entry.mIndex)
+        {
+            ++mDistanceIndicesReused;
+            return entry.mIndex;
+        }
+        // One-off inputs keep the linear kernel. Amortize construction only
+        // after repeated finite-radius queries against the same immutable data.
+        if (entry.mUses < 8 && ++entry.mUses < 8)
+            return nullptr;
+        if (!Misc::spatialQueryIsSelective(positions->size(),
+                [&](auto i) { const auto& p = (*positions)[i].mPosition;
+                    return Misc::SpatialIndex::Position{ p.x(), p.y() }; },
+                { origin.x(), origin.y() }, options.mMaxDistance))
+            return nullptr;
+        std::vector<Misc::SpatialIndex::Position> points;
+        points.reserve(positions->size());
+        for (const auto& target : *positions)
+        {
+            const auto& p = target.mPosition;
+            points.push_back({ p.x(), p.y() });
+        }
+        entry.mIndex = std::make_shared<const Misc::SpatialIndex>(points);
+        ++mDistanceIndicesBuilt;
+        return entry.mIndex;
+    }
+
+    NativeDistanceSamples NativeQueryService::querySnapshot(const NativePositions& positions,
+        const osg::Vec3f& origin, const NativeDistanceOptions& options)
+    {
+        const auto index = prepareDistanceIndex(positions, origin, options);
+        return compute(*positions, origin, options, &mJobs, index.get());
+    }
+
     NativeDistanceSamples NativeQueryService::compute(const std::vector<NativeDistanceTarget>& targets,
-        const osg::Vec3f& origin, const NativeDistanceOptions& options, Misc::NativeJobPool* pool)
+        const osg::Vec3f& origin, const NativeDistanceOptions& options, Misc::NativeJobPool* pool,
+        const Misc::SpatialIndex* index)
     {
         struct Computed
         {
@@ -160,9 +220,12 @@ namespace MWLua
             bool mAccepted = false;
         };
 
-        std::vector<Computed> computed(targets.size());
+        const auto candidates = index
+            ? index->query({ origin.x(), origin.y() }, options.mMaxDistance) : std::nullopt;
+        const std::size_t count = candidates ? candidates->size() : targets.size();
+        std::vector<Computed> computed(count);
         auto measure = [&](std::size_t i) {
-            const NativeDistanceTarget& target = targets[i];
+            const NativeDistanceTarget& target = targets[candidates ? (*candidates)[i] : i];
             const osg::Vec3f delta = origin - target.mPosition;
             const float distance2DSquared = delta.x() * delta.x() + delta.y() * delta.y();
             const float distance3DSquared = distance2DSquared + delta.z() * delta.z();
@@ -182,9 +245,9 @@ namespace MWLua
             };
         };
         if (pool)
-            pool->parallelFor(targets.size(), measure);
+            pool->parallelFor(count, measure);
         else
-            for (std::size_t i = 0; i < targets.size(); ++i)
+            for (std::size_t i = 0; i < count; ++i)
                 measure(i);
 
         auto result = std::make_shared<std::vector<NativeDistanceSample>>();

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -31,7 +31,8 @@
     "b1bacf7f8b9ee25354686939467ae395f21c823c",
     "ad980e4b4f5e486f7c3758fcc7dc436628e3ee14",
     "0e35efbc396ae7c49b404f9e0c5c34e914aa2670",
-    "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2"
+    "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2",
+    "38c80a93e54cebcead57d097cff9b24e7704129b"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -41,11 +42,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c4a54fd9efe83f9b5a44af0db7b98f903c8135f7"
+        "blob": "db3c146f20548ad3f9bf415efdb3ebe58dc31370"
       },
-      "bytes": 66381,
-      "sha256": "cdd79057b4cf0e39b6fadd1240d2ff2537b2e2df1a8f6f6fd1d51b59c4a00bea",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Trigger the cumulative Windows workflow explicitly on its build branch; share concurrency across push and PR events to prevent duplicate builds."
+      "bytes": 68656,
+      "sha256": "763cd39f162b9cb2a40e8d04707dfc715e4ce717faacfe78d8adaa1acfcbcac1",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Trigger the cumulative Windows workflow explicitly on its build branch; share concurrency across push and PR events to prevent duplicate builds. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -536,11 +537,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6d4027d0f0a7965bf47bbdf962e10685231afde8"
+        "blob": "e7ec74d8582ece82c2366f3bd975856d00e1314e"
       },
-      "bytes": 55213,
-      "sha256": "9c89de280981e3ddf7673b7d5cfe6517fc3506de0741dfe28eb6d4669b7b61f2",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 55429,
+      "sha256": "2f62327f67600d2e9699d676657ec658c657aeb179a297ca1bfbf34138a72654",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwlua/luamanagerimp.hpp": {
       "before": {
@@ -592,21 +593,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "56d710bb52c6e5227abcfe1c685d5e52a20a6795"
+        "blob": "36725058b14d3b9f3122af7a0c8e243a964111df"
       },
-      "bytes": 7104,
-      "sha256": "d7c4768c380774d9314b9ad17f5b7a69dc1fcb87ff7a896efbfb6f1ab63fea6e",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 10140,
+      "sha256": "5d0200dc77c032072267521b7074d89ee3b110ca471cc360bb3d1f3aab2581f0",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwlua/nativequeryservice.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "622d1d5dcd04c7749fa4a06398b15aeb1f327f7c"
+        "blob": "785bcab927be474cfdfe276979d23a43939016b4"
       },
-      "bytes": 3940,
-      "sha256": "fddb6d8bb5f91d0416bd73c699c5af1317b19874a698f610ca7a07423ccd60ce",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 5064,
+      "sha256": "7ac0d5d3540e8c9d1b0ee06e36669d22601968d21fbf5502de1d6cbd5650f41f",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwlua/nearbybindings.cpp": {
       "before": {
@@ -615,11 +616,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0c51e92035c9d5d2927e932072d4fcf607f1c06f"
+        "blob": "098c8234332d3363ba0e6db923282536530a9db9"
       },
-      "bytes": 28748,
-      "sha256": "7f0b5f2892a9f5e0618ac43c5e7d0c60388ba55b24fbdee3eaa109f9d81211f5",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 28885,
+      "sha256": "e2b2589c95a2acfbc22332345db14e1c7f0379eacbbac6ea36907b22ceba87ac",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwmechanics/activespells.cpp": {
       "before": {
@@ -654,11 +655,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "7bf9bcaa18433a9d8872a4189c18f8d436ba8848"
+        "blob": "e5b65817a977eb886ceadec84eea7ab8168aa756"
       },
-      "bytes": 107970,
-      "sha256": "9372d49b4a8f4c195cded484dbb55a99bcab2593795d844fc3f371b6c4f37f5a",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "bytes": 113024,
+      "sha256": "3a09b81d204249714cc6c27964fa126e61d40251b88ac74196b1f9720a023afc",
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwmechanics/mechanicsmanagerimp.cpp": {
       "before": {
@@ -781,11 +782,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "128243a827c4f880005a01f4fd61c81fe4607620"
+        "blob": "d6ef4cfc3cec14b46c1d0d36ed854071d17777dd"
       },
-      "bytes": 1567,
-      "sha256": "d84ab6922b145ec1e93b006f765fdddef28e6943d8c676a86f784f4558251825",
-      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "bytes": 1917,
+      "sha256": "04273b00fbc6acfe277b3d3d991afa4e960f245daf0ae01976b53e76b5260ed3",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwworld/refdata.cpp": {
       "before": {
@@ -794,11 +795,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e23402f655f8654e5e78b87a2b4cc194c9c65f85"
+        "blob": "f394dad866da83f3a640fb59720400865e3caac6"
       },
-      "bytes": 8114,
-      "sha256": "18a875720219d19ae42ce52c33d9a77f2f5092bf4344246896d77ed8294336d2",
-      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "bytes": 8267,
+      "sha256": "4885b58cf1f3c7bdaac1e4b562e22e082c5210259b4708f0b86a7496e286fd9d",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw/mwworld/refdata.hpp": {
       "before": {
@@ -833,11 +834,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4173d795f8ceb394ec08ce1444d0a46ace4a87ef"
+        "blob": "4e044fa4adb4e68ebe554bc8cebd4c957c53c794"
       },
-      "bytes": 4055,
-      "sha256": "6183d4c925146a6015a08882f68fa6c01bac1c978f3037a599b1d94a0783742a",
-      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+      "bytes": 4089,
+      "sha256": "f587a83a7f9446da6e5ac77e20badd9ac9fde0b8a379eae89bfb61029be5ab04",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -1197,11 +1198,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "538cceeb756963097593feb1c719d7e30562f341"
+        "blob": "39f9bb3dcf55d48b92115ec2fdee3017fb3930b0"
       },
-      "bytes": 3137,
-      "sha256": "23e75e06d0bf1ada47c26604d92af1612d283fa3e152aba07322da34503a27eb",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 3520,
+      "sha256": "e60d29e5fda5348ab1069493cdf24a9155b8878956b9ddc06abc9b9f7d05b299",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -1608,11 +1609,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "18a299761f304167f5f10bc1cb000d70d53c0d5f"
+        "blob": "567e3f6ddb36d039e24817e07debc9df35806e19"
       },
-      "bytes": 12777,
-      "sha256": "84a4cd90ed3aebb458441a14969ff9af5e1abdf5166d994528c37bb15584e131",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 13562,
+      "sha256": "0c5003481ccdcffa9725c0fc481a086bc27be580d34f6cba28c64832398c391b",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -2113,11 +2114,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "307c45361970043fe74a18cdaab67f737601191d"
+        "blob": "957fdedc0998a900ec1681e439640236434d4166"
       },
-      "bytes": 52875,
-      "sha256": "04fb809567a272b6b50676b286858305f1ff9e7c144ee42ad30df22acb525b34",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes."
+      "bytes": 52940,
+      "sha256": "2ec32c98218ca49411fc582843f129f57b8fe642c1f47ae9b327c123c34232a6",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -2126,11 +2127,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f790ec5ac65bfe8e3e7d2b6a11c5bc7698422527"
+        "blob": "44798b4db1aa47ac41c363f00ce8c5fdc45984a1"
       },
-      "bytes": 20824,
-      "sha256": "43e1b5b7df36ef7c5046ee268a8c321ff997f02eed367e61e5588bab43b2cc6e",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Verify the new read-mode observation while reconstructing the exact original frame collector. Launch and verify individual and collective controls, preserving historical comparison modes."
+      "bytes": 20889,
+      "sha256": "94718b1465bc242d60fd8f57ef84c32afcaa4bcf033caf68c43c7da0d1804ec4",
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Verify the new read-mode observation while reconstructing the exact original frame collector. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,
@@ -4201,11 +4202,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "b2b1be4c951b3146ba245e8fb611558bc92428eb"
+        "blob": "10659b1c72ce12aaca5c9ea3404afa3e835f23d0"
       },
-      "bytes": 8087,
-      "sha256": "626288dde17131aa50aa6f79cd1c0efaf6f5d7137f7b0ed20813e6faff52fb5a",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Initialize deletion state in the isolated fixture without dereferencing a nonexistent World script service; retain every deletion, retained snapshot and public-binding assertion."
+      "bytes": 10812,
+      "sha256": "c37f016d89970f45805b6a9ef592335332dfb178d8b8017554143836cf0c203b",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Initialize deletion state in the isolated fixture without dereferencing a nonexistent World script service; retain every deletion, retained snapshot and public-binding assertion. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     },
     "components/sceneutil/workqueue.hpp": {
       "before": {
@@ -4358,6 +4359,99 @@
       "bytes": 3316,
       "sha256": "4df191ab1c7d17d2c53e602acf965847b0ad78e3dc5a4182b0fc1b43ba0cbc55",
       "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+    },
+    "apps/openmw/mwmechanics/actors.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "ae0d02e96513fcd394fc356e17f087f5f35a07ea"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "9ecc34f1fa079818ed9b6a08cc7c565bb7988039"
+      },
+      "bytes": 9762,
+      "sha256": "b7105e110aea5c081eb683b7bdde3b9788e066342b9cc5ac178d200f64611dca",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "apps/openmw_tests/mwlua/testspatialdistance.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "cc1d81d19648bd940bf7de76486575cf2d2b4547"
+      },
+      "bytes": 6905,
+      "sha256": "eded4d37c9a47aed13f30c60a4a7bc9711e9d02b41577e5da2a240c5c0a3153a",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "components/misc/spatialindex.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "810c09a3e97dc8c3a6573ff249117af09061cf4f"
+      },
+      "bytes": 7298,
+      "sha256": "3c698010c7535c68b89bb3cc93fd008248a686c1a29acdde23e7ccc558f868d3",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "custom/combined-performance/Run-Previous-Spatial-Searches.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ba5563e31db33377d99fb3ffdaae771930729a99"
+      },
+      "bytes": 146,
+      "sha256": "1ee696b95023e084e2f63bc332809bb35f1cc2d38f5c226961a995f047a9ace1",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "custom/combined-performance/Run-Without-Actor-Spatial.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "719583f470f811d343998ac3996f67b031ef5dc0"
+      },
+      "bytes": 146,
+      "sha256": "3a40c2d0370b4a555d8260c1bea64550bea814b241664267a948e3779977736f",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "custom/combined-performance/Run-Without-Spatial-Distances.cmd": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f82ae1703d0ed50ac9dd2ccb9f3e68d7673c4b4f"
+      },
+      "bytes": 146,
+      "sha256": "46593d05705b5691779880fbd5ecd2cc5a8b092f6cd0b56435de8b690eb801a8",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "custom/combined-performance/SPATIAL-QUERIES.txt": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "0074efcbc7f622e032bf2b9e56984c1b6afb608c"
+      },
+      "bytes": 2641,
+      "sha256": "8464370444f9e27fb0aac92fd19d7d543e8522ca922ac92826ef7422457b62b4",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "custom/combined-performance/tests/spatial-index.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "943f89f73856aab05e4d4f47bc618139d3c3d7c1"
+      },
+      "bytes": 7283,
+      "sha256": "c1e830881c85d5a3ef6cd14fcfde90b72767aef7283eca8568dd400f6b7e5fe1",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "custom/combined-performance/tests/verify-spatial-queries.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4365651c384d37187f5186eb17fe95440effa5f6"
+      },
+      "bytes": 2077,
+      "sha256": "c1e211fbc5fc09039a682da236af9cef8b2c5a2e6e6485cdbe9b46b6f2b335a0",
+      "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
     }
   }
 }

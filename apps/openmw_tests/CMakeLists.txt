@@ -38,6 +38,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwlua/testobjectcache.cpp
     mwlua/testmagicbindings.cpp
     mwlua/testnativequeryservice.cpp
+    mwlua/testspatialdistance.cpp
     mwlua/testpositionsnapshots.cpp
     mwworld/testarrivalcancellation.cpp
     mwlua/testparallelqueries.cpp

@@ -129,6 +129,18 @@ def prepare(destination):
                 or any(case["result"] != "PASS" or case.get("environment_restored") is not True for case in checks)):
             raise ValueError("Launcher mode or environment-restoration checks did not pass: " + name)
 
+    spatial_evidence = json.loads((ROOT / "spatial-query-tests.json").read_text())
+    if spatial_evidence.get("result") != "PASS":
+        raise ValueError("Spatial query verification did not pass")
+    for name, row in spatial_evidence["files"].items():
+        if sha(ROOT / name) != row["sha256"]:
+            raise ValueError("Spatial test evidence changed: " + name)
+        shutil.copy2(ROOT / name, destination / name)
+    shutil.copy2(ROOT / "spatial-query-tests.json", destination / "spatial-query-tests.json")
+    shutil.copy2(HERE / "SPATIAL-QUERIES.txt", destination / "SPATIAL-QUERIES.txt")
+    for name in ("Run-Without-Actor-Spatial.cmd", "Run-Without-Spatial-Distances.cmd", "Run-Previous-Spatial-Searches.cmd"):
+        shutil.copy2(HERE / name, destination / name)
+
     target.mkdir(parents=True)
     shutil.copy2(HERE / "TRANSITION-READINESS.txt", destination / "TRANSITION-READINESS.txt")
     for name in ("Start-Combined.ps1", "Run-Combined.cmd", "Run-Detailed-Town.cmd", "Run-Inherited.cmd", "Run-Previous-Frame-Updates.cmd", "Run-Previous-HUD.cmd", "Run-Previous-Spell-Reads.cmd", "Run-Previous-Parallel-Queries.cmd", "Run-Without-Ray-Batching.cmd", "Run-Without-Async-Distances.cmd", "Run-Without-Lua-Workers.cmd"):

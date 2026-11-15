@@ -175,4 +175,58 @@ namespace
         mService.reset();
         run("assert(ticket:poll()=='cancelled'); assert(not pcall(nearby.queryDistances,s,zero))");
     }
+    class PositionRevision : public PositionSnapshots {};
+    TEST_F(PositionRevision, TranslationChangesEpochButRotationAndSamePositionDoNot)
+    {
+        const auto a = object(3);
+        const auto before = MWWorld::getPositionQueryRevision();
+        auto pos = a.getRefData().getPosition();
+        a.getRefData().setPosition(pos);
+        pos.rot[0] += 1;
+        a.getRefData().setPosition(pos);
+        EXPECT_EQ(before, MWWorld::getPositionQueryRevision());
+        pos.pos[2] += 1;
+        a.getRefData().setPosition(pos);
+        EXPECT_NE(before, MWWorld::getPositionQueryRevision());
+    }
+    TEST_F(PositionRevision, ReplacingReferenceStateChangesMembershipEpoch)
+    {
+        const auto a = object(3), b = object(4);
+        const auto before = MWWorld::getReferenceQueryRevision();
+        a.getRefData() = b.getRefData();
+        EXPECT_NE(before, MWWorld::getReferenceQueryRevision());
+    }
+    class SpatialBindings : public PositionSnapshots {};
+    TEST_F(SpatialBindings, RepeatedPublicSnapshotQueriesAndAsyncKeepOrderAndSessionGuards)
+    {
+        auto ids = std::make_shared<std::vector<MWLua::ObjectId>>();
+        for (int i = 0; i < 128; ++i) ids->push_back(MWLua::getId(object(float(i * 100))));
+        ids->push_back(ids->front());
+        LuaUtil::LuaState runtime(nullptr, nullptr);
+        MWLua::Context context{ MWLua::Context::Local };
+        context.mLua = &runtime;
+        context.mNativeQueryService = &mService;
+        sol::state_view lua(runtime.unsafeState());
+        sol::table api(lua, sol::create);
+        MWLua::addNearbyDistanceBindings(api, context);
+        lua["nearby"] = api;
+        lua["objects"] = MWLua::LObjectList{ ids };
+        lua["zero"] = osg::Vec3f();
+        if (!api["snapshotPositions"].valid())
+            GTEST_SKIP() << "Asynchronous distance API disabled for this comparison";
+        const auto run = [&](const char* script) {
+            LuaUtil::LuaState::throwIfError(lua.safe_script(script, sol::script_pass_on_error));
+        };
+        MWLua::NativeQueryService::PositionReadScope reads(mService);
+        run("s=nearby.snapshotPositions(objects); "
+            "for i=1,16 do r=nearby.queryDistances(s,zero,{maxDistance=100}); "
+            "assert(#r==3 and r:sourceIndex(1)==1 and r:sourceIndex(2)==2 and r:sourceIndex(3)==129) end; "
+            "ticket=assert(nearby.queryDistancesAsync(s,zero,{maxDistance=100}))");
+        EXPECT_EQ(mService.mDistanceIndicesBuilt, Misc::useSpatialDistanceQueries() ? 1u : 0u);
+        mService.reset();
+        run("assert(ticket:poll()=='cancelled'); "
+            "assert(not pcall(nearby.queryDistances,s,zero)); "
+            "assert(not pcall(nearby.queryDistancesAsync,s,zero))");
+    }
+
 }

@@ -206,7 +206,7 @@ namespace MWLua
                     const auto& snapshot = targets.as<const PositionSnapshot&>();
                     if (snapshot.mSession.expired())
                         throw std::invalid_argument("position snapshot belongs to an earlier game session");
-                    return { NativeQueryService::compute(*snapshot.mValues, origin, distanceOptions(rawOptions)) };
+                    return { nativeQueries->querySnapshot(snapshot.mValues, origin, distanceOptions(rawOptions)) };
                 }
                 if (targets.is<LObjectList>())
                     return { nativeQueries->queryObjects(targets.as<const LObjectList&>().mIds,
@@ -245,9 +245,10 @@ namespace MWLua
                 if (positions.mSession.expired())
                     throw std::invalid_argument("position snapshot belongs to an earlier game session");
                 const auto options = distanceOptions(rawOptions);
+                const auto index = nativeQueries->prepareDistanceIndex(positions.mValues, origin, options);
                 auto result = nativeQueries->mAsync.submit<NativeDistanceSamples>(
-                    [data = positions.mValues, origin, options](const auto&) {
-                        return NativeQueryService::compute(*data, origin, options);
+                    [data = positions.mValues, index, origin, options](const auto&) {
+                        return NativeQueryService::compute(*data, origin, options, nullptr, index.get());
                     });
                 if (!result)
                     return sol::nullopt;
