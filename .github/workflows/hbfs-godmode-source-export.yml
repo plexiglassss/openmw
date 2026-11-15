@@ -18,6 +18,7 @@ jobs:
         run: |
           mkdir -p source-export/apps/openmw/mwmechanics
           mkdir -p source-export/apps/openmw_tests
+          cp apps/openmw/mwmechanics/creaturestats.cpp source-export/apps/openmw/mwmechanics/
           cp apps/openmw/mwmechanics/spelleffects.cpp source-export/apps/openmw/mwmechanics/
           cp apps/openmw/mwmechanics/spelleffects.hpp source-export/apps/openmw/mwmechanics/
           cp apps/openmw_tests/CMakeLists.txt source-export/apps/openmw_tests/
