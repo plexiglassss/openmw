@@ -87,6 +87,7 @@ varying vec4 passTangent;
 #endif
 
 #include "lib/core/vertex.h.glsl"
+#include "lib/core/skinning.glsl"
 
 #include "lib/material/vertexcolors.glsl"
 #include "shadows_vertex.glsl"
@@ -107,19 +108,21 @@ centroid varying vec4 passColor;
 void main(void)
 {
     Material material = getMaterial();
+    mat4 rigMatrix = openmwRigMatrix();
+    vec4 modelPosition = rigMatrix * gl_Vertex;
 
 #if @particleOcclusion
     mat4 model = osg_ViewMatrixInverse * gl_ModelViewMatrix;
-    orthoDepthMapCoord = ((depthSpaceMatrix * model) * vec4(gl_Vertex.xyz, 1.0)).xyz;
+    orthoDepthMapCoord = ((depthSpaceMatrix * model) * modelPosition).xyz;
 #endif
 
-    gl_Position = modelToClip(gl_Vertex);
+    gl_Position = modelToClip(modelPosition);
 
-    vec4 viewPos = modelToView(gl_Vertex);
+    vec4 viewPos = modelToView(modelPosition);
     gl_ClipVertex = viewPos;
     passColor = gl_Color;
     passViewPos = viewPos.xyz;
-    passNormal = gl_Normal.xyz;
+    passNormal = mat3(rigMatrix) * gl_Normal.xyz;
     normalToViewMatrix = gl_NormalMatrix;
 
 #if @normalMap || @fallbackNormalMap || @diffuseParallax
@@ -128,6 +131,7 @@ void main(void)
     if (useFallbackNormalMap())
         passTangent = fallbackTangent;
 #endif
+    passTangent.xyz = mat3(rigMatrix) * passTangent.xyz;
     normalToViewMatrix *= generateTangentSpace(passTangent, passNormal);
 #endif
 

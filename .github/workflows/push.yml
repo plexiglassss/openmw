@@ -708,6 +708,7 @@ jobs:
           Copy-Item lookup-*.xml install/
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
+          Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
           "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/combined-performance/prepare-package.py install
           if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
@@ -844,15 +845,27 @@ jobs:
         with:
           ref: ${{ env.CUMULATIVE_COMMIT }}
       - name: Install headless GL test dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl1 libgl1-mesa-dri g++
+        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl-dev libegl1 libgl1-mesa-dri libopenscenegraph-dev libgtest-dev g++
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
       - name: Exercise location rendering shaders on Mesa
         run: python3 scripts/test_location_rendering_shaders.py
+      - name: Compare production GPU skinning shaders with CPU deformation
+        run: python3 scripts/test_gpu_skinning.py
+      - name: Exercise native rig lifecycle and actual OSG draw fallbacks
+        run: |
+          g++ -std=c++20 -O2 -ffunction-sections -fdata-sections -pthread -I. \
+            custom/gpu-skinning/tests/render.cpp components/sceneutil/riggeometry.cpp \
+            components/sceneutil/skeleton.cpp components/sceneutil/shadowsbin.cpp components/debug/debuglog.cpp \
+            -Wl,--gc-sections -losgUtil -losg -lOpenThreads -lGL -lEGL -lgtest_main -lgtest -o gpu-skinning-render-tests
+          ./gpu-skinning-render-tests --gtest_output=xml:gpu-skinning-native-gl-tests.xml
       - uses: actions/upload-artifact@v6
         with:
           name: location-rendering-shaders-${{ env.CUMULATIVE_COMMIT }}
-          path: location-rendering-shader-tests.json
+          path: |
+            location-rendering-shader-tests.json
+            gpu-skinning-gl-tests.json
+            gpu-skinning-native-gl-tests.xml
           if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'

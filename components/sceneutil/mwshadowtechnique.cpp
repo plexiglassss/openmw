@@ -1781,6 +1781,7 @@ void MWShadowTechnique::createShaders()
 
     // Always use the GL_ALWAYS shader as the shadows bin will change it if necessary
     _shadowCastingStateSet->setAttributeAndModes(_castingPrograms[GL_ALWAYS - GL_NEVER], osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
+    _shadowCastingStateSet->addUniform(new osg::Uniform("openmwRigEnabled", false));
     // The casting program uses a sampler, so to avoid undefined behaviour, we must bind a dummy texture in case no other is supplied
     _shadowCastingStateSet->setTextureAttribute(0, _fallbackBaseTexture.get(), osg::StateAttribute::ON);
     _shadowCastingStateSet->addUniform(new osg::Uniform("useDiffuseMapForShadowAlpha", true));

@@ -11,7 +11,7 @@ from pathlib import Path
 parser = argparse.ArgumentParser()
 parser.add_argument("--repository", type=Path, default=Path(__file__).resolve().parents[1])
 parser.add_argument("--output", type=Path, default=Path("location-rendering-shader-tests.json"))
-args = parser.parse_args()
+args = parser.parse_args() if __name__ == "__main__" else parser.parse_args([])
 root = args.repository.resolve()
 shader_root = root / "files" / "shaders"
 
@@ -234,6 +234,8 @@ def link_case(prefix: str, defines: dict[str, str]) -> dict[str, object]:
         for shader in shaders:
             attach_shader(program, shader)
         bind_attribute(program, 6, b"fallbackTangent")
+        bind_attribute(program, 4, b"openmwRigWeights")
+        bind_attribute(program, 5, b"openmwRigIndices")
         link_program(program)
         status = C.c_int()
         program_iv(program, 0x8B82, C.byref(status))
@@ -301,24 +303,29 @@ cases: list[tuple[str, dict[str, str]]] = [
                   "limitShadowMapDistance": "1"}),
 ]
 
-report: dict[str, object] = {
-    "result": "RUNNING",
-    "renderer": (get_string(0x1F01) or b"").decode(errors="replace"),
-    "opengl": (get_string(0x1F02) or b"").decode(errors="replace"),
-    "cases": [],
-}
-for clustered in ("0", "1"):
-    for name, overrides in cases:
-        for prefix in ("compatibility/objects", "compatibility/bs/default"):
-            defines = base_defines()
-            defines.update(overrides)
-            defines["lightingMethodClustered"] = clustered
-            defines["useGPUShader4"] = clustered
-            result = link_case(prefix, defines)
-            result.update({"name": name, "clustered": clustered == "1"})
-            report["cases"].append(result)
-            print(prefix, name, "clustered=" + clustered, "PASS", flush=True)
-report["result"] = "PASS"
-report["executed"] = len(report["cases"])
-args.output.resolve().write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-print(args.output.resolve())
+def main():
+    report: dict[str, object] = {
+        "result": "RUNNING",
+        "renderer": (get_string(0x1F01) or b"").decode(errors="replace"),
+        "opengl": (get_string(0x1F02) or b"").decode(errors="replace"),
+        "cases": [],
+    }
+    for clustered in ("0", "1"):
+        for name, overrides in cases:
+            for prefix in ("compatibility/objects", "compatibility/bs/default"):
+                defines = base_defines()
+                defines.update(overrides)
+                defines["lightingMethodClustered"] = clustered
+                defines["useGPUShader4"] = clustered
+                result = link_case(prefix, defines)
+                result.update({"name": name, "clustered": clustered == "1"})
+                report["cases"].append(result)
+                print(prefix, name, "clustered=" + clustered, "PASS", flush=True)
+    report["result"] = "PASS"
+    report["executed"] = len(report["cases"])
+    args.output.resolve().write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(args.output.resolve())
+
+
+if __name__ == "__main__":
+    main()

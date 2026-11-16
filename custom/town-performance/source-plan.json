@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -32,7 +32,8 @@
     "ad980e4b4f5e486f7c3758fcc7dc436628e3ee14",
     "0e35efbc396ae7c49b404f9e0c5c34e914aa2670",
     "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2",
-    "38c80a93e54cebcead57d097cff9b24e7704129b"
+    "38c80a93e54cebcead57d097cff9b24e7704129b",
+    "42f018918f81a73f7ae0dafa73cef8e3c8e75fa0"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -42,11 +43,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "db3c146f20548ad3f9bf415efdb3ebe58dc31370"
+        "blob": "3695ed13075d79f626805aa1ec0681ceca37ea3f"
       },
-      "bytes": 68656,
-      "sha256": "763cd39f162b9cb2a40e8d04707dfc715e4ce717faacfe78d8adaa1acfcbcac1",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Trigger the cumulative Windows workflow explicitly on its build branch; share concurrency across push and PR events to prevent duplicate builds. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+      "bytes": 69581,
+      "sha256": "82785f90655f8abd1684b7d1908915a0cb19a79d2458d49b3e41ddc78313f495",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Trigger the cumulative Windows workflow explicitly on its build branch; share concurrency across push and PR events to prevent duplicate builds. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -55,11 +56,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "675f7c42b5f3db95d1333f447c804a531b098878"
+        "blob": "0322aa84d5f5486f154a0a821a4fd46beae41c48"
       },
-      "bytes": 4493,
-      "sha256": "e28f0822e7f37446ae4a77677d9269460846ef5da090713a5e05340c02ba3f99",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 4527,
+      "sha256": "8b2473278354861b480e3f63af49c745b53eb8174145fe2d228f3e664e4b2706",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -2632,11 +2633,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6b9f8e0337ee60fcd6104a120d8af0a01c2906a7"
+        "blob": "b35e0b2f663fad6fed5ab0801c8eb1a64145ba6b"
       },
-      "bytes": 77703,
-      "sha256": "4203f3b7faff87808c11200f9850a5763c09a97603846faa7437d4a84f48704d",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration."
+      "bytes": 77977,
+      "sha256": "d7af6ba720005e9e77296adab0934b853e06df7585822968ec4d5f0b24583269",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "before": {
@@ -2694,11 +2695,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "30e1bac58d5097ab58e8609b533d90b9a4a6c7f5"
+        "blob": "3328a72556bd5d65e6af7d4bda3fd6d0031e6953"
       },
-      "bytes": 16059,
-      "sha256": "05140f6e057e5a0829b2f367037625625f2fcb602e7151ac87b632c250a01818",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 29713,
+      "sha256": "44bda5153487330e9092f3e68346b35fce0a7d4f2dc4dec45be7c8d459a66ef0",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "components/sceneutil/riggeometry.hpp": {
       "before": {
@@ -2707,11 +2708,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "db60341eeb014601a72153f97d23e0ad5f25b413"
+        "blob": "cba01014bb66aba86bc0187d9d06f7be804afb63"
       },
-      "bytes": 4381,
-      "sha256": "f247799a0b9e77a96e0ef59629b31ab49028a4cd842f7be71bd5164edc962d85",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 5475,
+      "sha256": "47fbb0fcdd70ef3df3d4f78487159b9ec07b9f7ebc336e46af97dfab93b831f1",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "components/sceneutil/riggeometryosgaextension.cpp": {
       "before": {
@@ -2756,11 +2757,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "483c8fc708724fb0fe669d4b7c47d04da9807a86"
+        "blob": "1030ba5aa69ed2382a389dba453f094853a07e16"
       },
-      "bytes": 385,
-      "sha256": "db60ec78af07b67d7774f1f1a17141a809d7c97706a47b127f549b92c7db2765",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 669,
+      "sha256": "f3d636dd98246ce893d9e117d27d02be1249e7e7266c9789bf13ff113d344103",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "components/settings/categories/shaders.hpp": {
       "before": {
@@ -2782,11 +2783,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b1cae4310e147764812869d48f57b19965edea79"
+        "blob": "b6d53991ed980103a1a972148e97c095e35383f8"
       },
-      "bytes": 37076,
-      "sha256": "0c1037c0431666c1083605031158acc88f17a93647ff032ab27c42d5eae89f28",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+      "bytes": 37425,
+      "sha256": "9b2979b7680a3e649e29ba7e31815d52a9c73b65df2e719cf0078cf75aabec12",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "components/shader/shadervisitor.cpp": {
       "before": {
@@ -2795,11 +2796,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1a95d8ac22baa255cab32ad7f5a73ffebd296d5f"
+        "blob": "fa3b09e0076fc1b806d31d26bc8e1a2e77f4d767"
       },
-      "bytes": 49889,
-      "sha256": "6e88bb8017b28cf2de9375dec59d37ce2a6367533a78016d5043a5edad7c437f",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+      "bytes": 50669,
+      "sha256": "6b9997185044e31a242111900cdb52f17254543b6139f7d8d73fe86366b3d6d4",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "components/shader/shadervisitor.hpp": {
       "before": {
@@ -2942,11 +2943,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "04888fc659659fa6d67af5dbe88f59b4be415ca4"
+        "blob": "5e10d6a09e8c94222d67811365382f457a0ff2b5"
       },
-      "bytes": 6741,
-      "sha256": "963579d97b24b92146487a6449bc105f4ec263c7abf8a5ca4dbb7f2361a2e591",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 6935,
+      "sha256": "730434d6344f084013e58248ba96eaefd011a2a8ae1cb40b3898cd039a484c24",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "files/shaders/lib/light/clamp.glsl": {
       "before": {
@@ -2985,11 +2986,11 @@
       "before": null,
       "after": {
         "mode": "100755",
-        "blob": "b06ab7ba98138487b49204bec81adef4ad0b91dc"
+        "blob": "40d428f159e2c717aaf6726c8e60e1f46ed246a4"
       },
-      "bytes": 14276,
-      "sha256": "185e7f9e2a518f42f9d11204fb2da9af0cba7516f20f18d56684a5e85cadce8b",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+      "bytes": 14577,
+      "sha256": "48ffb002773aaaeb0e90a809dfe9b344dbb9a01e64c3876d8544b6be64c3aea3",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
     },
     "apps/components_tests/esm/testrefid.cpp": {
       "before": {
@@ -4452,6 +4453,173 @@
       "bytes": 2077,
       "sha256": "c1e211fbc5fc09039a682da236af9cef8b2c5a2e6e6485cdbe9b46b6f2b335a0",
       "reason": "Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+    },
+    "apps/openmw/mwrender/precipitationocclusion.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "da1753ac6a96debe2a54d7ec5c3fbf4a65c275cd"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "619bd77d0dc70b23a5da44b92f2240a0a79d972f"
+      },
+      "bytes": 6962,
+      "sha256": "40411e533507a160f66de63b528ff4869e66e45487508e5b8aa0684c99cb75a3"
+    },
+    "apps/openmw/mwrender/transparentpass.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3bfb2885eab40f3df1288ad70196032c8a7fb543"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "d314196d6e6200c7faf71e54be535c7074884dcf"
+      },
+      "bytes": 4717,
+      "sha256": "6a99dc381c0cbaeb3b74d5958d8269ebe5637941ca2253d182bd215c84edccab"
+    },
+    "components/sceneutil/glextensions.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3a14dab8edc1e87e6ac011e6912b516d7baca8dc"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "a9bedc57a92375fcd0a0795e214618fcc9fd0ce0"
+      },
+      "bytes": 2767,
+      "sha256": "c5dee0013d4cb8cc6e4f47c81c111f32dd03a1c4de5c80fe41ecf5e8c082d89e"
+    },
+    "components/sceneutil/glextensions.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "05e7f715c158ba212aa17b378e2472be5561a4a4"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "9a06cd64e6a0867fda4fa310076ce55fafdd48ea"
+      },
+      "bytes": 501,
+      "sha256": "12f63f349a03f4422fa33595ccf92f208f09dea8e70514242930cd2d0d76b825"
+    },
+    "components/sceneutil/mwshadowtechnique.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3b66a08b7940dfa388b4a0a0533d0fa3df053c65"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "1778edd2b97b483b5612f11725a06238a78a090d"
+      },
+      "bytes": 132303,
+      "sha256": "bf1c9d5efb28e5dfcb6bf7f5cd76af910f10abbaa60a272ffc5382f0ad69948c"
+    },
+    "components/sceneutil/shadowsbin.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5bb16e3f8f74628cf7b06315abc4ee6fb8b244e3"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "690c32c408ade694138fa2d30508828bf8d8f4ef"
+      },
+      "bytes": 10041,
+      "sha256": "030d15468d29d64e7ada0427d48e71ff7afd9004f006a21337fc91d80c0d9830"
+    },
+    "components/sceneutil/shadowsbin.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "226b40c55eac4f9d427494de332557325516e070"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "fff2040fda141362ad901552be76c3be68b7eb43"
+      },
+      "bytes": 2605,
+      "sha256": "6a2c5767750f3477088e6cbdd73acd1ba190c9d510a8e2a8df8ff2e8a20f5ba0"
+    },
+    "files/shaders/compatibility/depthclipped.vert": {
+      "before": {
+        "mode": "100644",
+        "blob": "0c55f462d2d929e215e630f0c1434669ec41a9f6"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "3417949debbd0cb0973743529e8d3a549b0227eb"
+      },
+      "bytes": 658,
+      "sha256": "66570ffd4466ba0e91fc4acc2883fbd76296828d127605296af3e3edc59d1772"
+    },
+    "files/shaders/compatibility/shadowcasting.vert": {
+      "before": {
+        "mode": "100644",
+        "blob": "7d353d46b3527f53068c137062a7c1d4e5faea19"
+      },
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "5c7b51cdce8ed627db23881b3747ce5a581b0f41"
+      },
+      "bytes": 1270,
+      "sha256": "2b79730937481ddc1f1e1512fddf27a79f9bd20f96e2bfd69d245c616432eb5d"
+    },
+    "apps/components_tests/sceneutil/testgpuskinning.cpp": {
+      "before": null,
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "c4ec5b90e64497eb11aa0778ebb58be55aba3841"
+      },
+      "bytes": 16768,
+      "sha256": "2256d069c34a4a372cc14ae609469d20b227d80ba87bbd969dd51b143210f7a7"
+    },
+    "custom/gpu-skinning/README.md": {
+      "before": null,
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "b834e0271816b5a14f056853c59339a60cf5f3f1"
+      },
+      "bytes": 2108,
+      "sha256": "064c51e3d00792e12b758ba074b3ff837154638983dc0088fb8e5fc16bd8b51f"
+    },
+    "custom/gpu-skinning/tests/render.cpp": {
+      "before": null,
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "69a70dee3bb4eaf0e9ed0db59165f4cf02590caf"
+      },
+      "bytes": 6710,
+      "sha256": "5db2c485e2b863f6d09daa3d4c8b3061f8c112a2f5167cae1659915ee552b081"
+    },
+    "files/shaders/lib/core/skinning.glsl": {
+      "before": null,
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "7d73c4a43b869f4aee19f26f45367ea4160ceff8"
+      },
+      "bytes": 1165,
+      "sha256": "beea292b12a6f728838a798ab688f9e87c5c6cbcc31a4ddcedf2160f815c06ed"
+    },
+    "scripts/test_gpu_skinning.py": {
+      "before": null,
+      "reason": "Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+      "after": {
+        "mode": "100644",
+        "blob": "47d1efe74609dbe1f1652d74cdfaeae5e972a068"
+      },
+      "bytes": 10638,
+      "sha256": "5c35caf533eb3320ffe221a139d0d73d64078ab25f5802975b71c15ddc7255f2"
     }
   }
 }

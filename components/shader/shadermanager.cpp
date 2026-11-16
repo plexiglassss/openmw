@@ -702,6 +702,12 @@ namespace Shader
             if (vertexShader
                 && vertexShader->getShaderSource().find("attribute vec4 fallbackTangent;") != std::string::npos)
                 program->addBindAttribLocation("fallbackTangent", 6);
+            if (vertexShader
+                && vertexShader->getShaderSource().find("attribute vec4 openmwRigWeights;") != std::string::npos)
+            {
+                program->addBindAttribLocation("openmwRigWeights", 4);
+                program->addBindAttribLocation("openmwRigIndices", 5);
+            }
             if (vertexShader)
                 addLinkedShaders(vertexShader, program);
             if (fragmentShader)
@@ -875,6 +881,7 @@ namespace Shader
     ShaderManager::DefineMap getDefaultDefines()
     {
         return {
+            { "gpuSkinning", "0" },
             { "forcePPL", "0" },
             { "autoNormalMap", "0" },
             { "autoSpecularMap", "0" },

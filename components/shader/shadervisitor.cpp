@@ -832,6 +832,9 @@ namespace Shader
             samplers[name] = unit;
 
         auto program = mShaderManager.getProgram(shaderPrefix, defineMap, mProgramTemplate, samplers);
+        // Static/morph/CPU-skinned siblings must reset this after any GPU rig, including override depth passes.
+        writableStateSet->addUniform(new osg::Uniform("openmwRigEnabled", false));
+        addedState->addUniform("openmwRigEnabled");
         writableStateSet->setAttributeAndModes(program, osg::StateAttribute::ON);
         addedState->setAttributeAndModes(std::move(program));
 
@@ -977,6 +980,13 @@ namespace Shader
             osg::ref_ptr<osg::Geometry> sourceGeometry = rig->getSourceGeometry();
             if (sourceGeometry && adjustGeometry(*sourceGeometry, reqs))
                 rig->setSourceGeometry(std::move(sourceGeometry));
+            const auto defines = mShaderManager.getGlobalDefines();
+            const auto enabled = defines.find("gpuSkinning");
+            std::string prefix;
+            if (!reqs.mNode->getUserValue("shaderPrefix", prefix))
+                prefix = mDefaultShaderPrefix;
+            rig->setGpuSkinning(
+                enabled != defines.end() && enabled->second == "1" && prefix == "objects" && !mProgramTemplate);
         }
         else if (auto morph = dynamic_cast<SceneUtil::MorphGeometry*>(&drawable))
         {
@@ -1047,6 +1057,8 @@ namespace Shader
 
     void ReinstateRemovedStateVisitor::apply(osg::Node& node)
     {
+        if (auto* rig = dynamic_cast<SceneUtil::RigGeometry*>(&node))
+            rig->setGpuSkinning(false);
         // TODO: this may eventually need to remove added state.
         // If so, we can migrate from explicitly copying removed state to just calling osg::StateSet::merge.
         // Not everything is transferred from removedState yet - implement more when createProgram starts marking more

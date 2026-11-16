@@ -3,6 +3,7 @@
 #include <components/diagnostics/timing.hpp>
 
 #include <algorithm>
+#include <components/sceneutil/glextensions.hpp>
 #include <cstdlib>
 
 #include <osg/ClipControl>
@@ -285,6 +286,9 @@ namespace MWRender
             mResourceSystem->getSceneManager()->getShaderManager());
 
         Shader::ShaderManager::DefineMap globalDefines = Shader::getDefaultDefines();
+        const char* gpuSkinning = std::getenv("OPENMW_GPU_SKINNING");
+        globalDefines["gpuSkinning"]
+            = SceneUtil::supportsGpuSkinning() && (!gpuSkinning || std::string_view(gpuSkinning) != "0") ? "1" : "0";
         mAppliedShadowDefines = mShadowManager->getShadowDefines(Settings::shadows());
         Shader::ShaderManager::DefineMap lightDefines = sceneRoot->getLightDefines();
 
