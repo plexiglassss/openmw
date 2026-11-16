@@ -34,7 +34,7 @@ struct CellStore {enum State {State_Unloaded,State_Preloaded,State_Loaded};State
 using PreloadItemCell=CellStore;
 namespace MWWorld {using CellStore=::CellStore;}
 struct PreloadItem {bool aborted=false;template<class... Args> explicit PreloadItem(Args&&...) {} void abort(){aborted=true;}};
-struct WorkQueue {int jobs=0;void addWorkItem(const osg::ref_ptr<PreloadItem>&){++jobs;}};
+struct WorkQueue {int jobs=0;void cancelWorkItem(const osg::ref_ptr<PreloadItem>& item){item->abort();}void addWorkItem(const osg::ref_ptr<PreloadItem>&){++jobs;}};
 struct Resource {int getSceneManager(){return 0;}int getKeyframeManager(){return 0;}};
 struct PreloadEntry {double mTimeStamp;osg::ref_ptr<PreloadItem> mWorkItem;PreloadEntry(double t,osg::ref_ptr<PreloadItem> i):mTimeStamp(t),mWorkItem(i){}};
 struct CellPreloader {

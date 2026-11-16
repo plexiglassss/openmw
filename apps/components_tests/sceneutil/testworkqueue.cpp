@@ -69,4 +69,26 @@ namespace
         running->waitTillDone();
         EXPECT_TRUE(running->isDone());
     }
+
+    TEST(WorkQueueCancellation, ArrivalPromotionsPreserveNearestFirstWithoutDuplicateJobs)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        osg::ref_ptr<BlockingWork> blocker = new BlockingWork;
+        queue->addWorkItem(blocker);
+        blocker->mStarted.get_future().wait();
+        std::vector<int> order;
+        std::vector<osg::ref_ptr<RecordedWork>> cells;
+        for (int i : { 1, 2, 3 })
+        {
+            cells.emplace_back(new RecordedWork(order, i));
+            queue->addWorkItem(cells.back());
+        }
+        for (int repeat = 0; repeat < 3; ++repeat)
+            for (auto it = cells.rbegin(); it != cells.rend(); ++it)
+                EXPECT_TRUE(queue->promoteWorkItem(*it));
+        EXPECT_EQ(queue->getNumItems(), 3u);
+        blocker->mRelease.set_value();
+        cells.back()->waitTillDone();
+        EXPECT_EQ(order, (std::vector<int>{ 1, 2, 3 }));
+    }
 }

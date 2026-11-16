@@ -62,12 +62,20 @@ namespace MWWorld
     {
         bool operator()(const MWWorld::ConstPtr& ptr)
         {
+            const auto start = mOut.size();
             ptr.getClass().getModelsToPreload(ptr, mOut);
+
+            // Exterior statics normally use ObjectPaging's own copy path. Reserve the
+            // bounded instance budget for objects that still get individual scene nodes.
+            if (!mExterior || (ptr.getType() != ESM::REC_STAT && ptr.getType() != ESM::REC_STAT4))
+                mInstances.insert(mInstances.end(), mOut.begin() + start, mOut.end());
 
             return true;
         }
 
         std::vector<VFS::Path::NormalizedView>& mOut;
+        std::vector<VFS::Path::NormalizedView>& mInstances;
+        bool mExterior;
     };
 
     /// Worker thread item: preload models in a cell.
@@ -91,7 +99,7 @@ namespace MWWorld
         {
             mTerrainView = mTerrain->createView();
 
-            ListModelsVisitor visitor{ mMeshes };
+            ListModelsVisitor visitor{ mMeshes, mInstanceMeshes, mIsExterior };
             cell->forEachConst(visitor);
         }
 
@@ -172,6 +180,29 @@ namespace MWWorld
                                         << e.what();
                 }
             }
+
+            // Required template/collision warming comes first. Clone only detached
+            // resource graphs here; actor assembly, particles and gameplay stay at activation.
+            if (mPreloadInstances && Misc::useCellRenderPreparation())
+            {
+                for (const auto path : mInstanceMeshes)
+                {
+                    if (mAbort)
+                        break;
+                    const auto found = resolvedMeshes.find(path);
+                    if (found == resolvedMeshes.end() || found->second.empty())
+                        continue;
+                    try
+                    {
+                        if (auto ticket = mSceneManager->cacheInstance(found->second, mAbort))
+                            mInstanceTickets.push_back(std::move(ticket));
+                    }
+                    catch (const std::exception& e)
+                    {
+                        Log(Debug::Warning) << "Failed to prepare instance for " << path << ": " << e.what();
+                    }
+                }
+            }
         }
 
     private:
@@ -179,6 +210,8 @@ namespace MWWorld
         ESM::ExteriorCellLocation mCellLocation;
         ESM::RefId mCellId;
         std::vector<VFS::Path::NormalizedView> mMeshes;
+        std::vector<VFS::Path::NormalizedView> mInstanceMeshes;
+        std::vector<Resource::SceneInstanceCache::TicketPtr> mInstanceTickets;
         Resource::SceneManager* mSceneManager;
         Resource::BulletShapeManager* mBulletShapeManager;
         Resource::KeyframeManager* mKeyframeManager;
@@ -367,7 +400,7 @@ namespace MWWorld
         PreloadMap::iterator found = mPreloadCells.find(&cell);
         if (found != mPreloadCells.end())
         {
-            // already preloaded, nothing to do other than updating the timestamp
+            // Refresh useful predictions and move queued arrival work ahead without duplicating it.
             found->second.mTimeStamp = timestamp;
             return;
         }
@@ -393,7 +426,7 @@ namespace MWWorld
 
             if (oldestTimestamp + threshold < timestamp)
             {
-                oldestCell->second.mWorkItem->abort();
+                mWorkQueue->cancelWorkItem(oldestCell->second.mWorkItem);
                 mPreloadCells.erase(oldestCell);
                 ++mEvicted;
             }
@@ -416,13 +449,20 @@ namespace MWWorld
         {
             if (found->second.mWorkItem)
             {
-                found->second.mWorkItem->abort();
+                mWorkQueue->cancelWorkItem(found->second.mWorkItem);
                 found->second.mWorkItem = nullptr;
             }
 
             mPreloadCells.erase(found);
             ++mLoaded;
         }
+    }
+
+    void CellPreloader::prioritize(const CellStore& cell)
+    {
+        const auto found = mPreloadCells.find(&cell);
+        if (mWorkQueue && found != mPreloadCells.end())
+            mWorkQueue->promoteWorkItem(found->second.mWorkItem);
     }
 
     void CellPreloader::clear()
@@ -432,7 +472,7 @@ namespace MWWorld
         {
             if (it->second.mWorkItem)
             {
-                it->second.mWorkItem->abort();
+                mWorkQueue->cancelWorkItem(it->second.mWorkItem);
                 it->second.mWorkItem = nullptr;
             }
 
@@ -454,7 +494,7 @@ namespace MWWorld
             {
                 if (it->second.mWorkItem)
                 {
-                    it->second.mWorkItem->abort();
+                    mWorkQueue->cancelWorkItem(it->second.mWorkItem);
                     it->second.mWorkItem = nullptr;
                 }
                 mPreloadCells.erase(it++);

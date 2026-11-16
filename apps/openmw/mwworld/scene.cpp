@@ -762,12 +762,17 @@ namespace MWWorld
         // main thread and workers only prepare the existing resource snapshots.
         if (mPreloadEnabled)
         {
+            // Admit nearest cells first if cache capacity is tight.
             for (const auto& [x, y] : cellsPositionsToLoad)
             {
                 CellStore& cell = mWorld.getWorldModel().getExterior(
                     ESM::ExteriorCellLocation(x, y, playerCellIndex.mWorldspace));
                 mPreloader->preload(cell, mRendering.getReferenceTime());
             }
+            // Front promotions are performed farthest first. Activation order is unchanged.
+            for (auto it = cellsPositionsToLoad.rbegin(); it != cellsPositionsToLoad.rend(); ++it)
+                mPreloader->prioritize(mWorld.getWorldModel().getExterior(
+                    ESM::ExteriorCellLocation(it->first, it->second, playerCellIndex.mWorldspace)));
         }
         transition.phase("destination resource scheduling");
         Loading::Listener* loadingListener = MWBase::Environment::get().getWindowManager()->getLoadingScreen();
@@ -1434,6 +1439,8 @@ namespace MWWorld
 
         int cellSize = ESM::getCellSize(extWorldspace);
 
+        std::vector<std::pair<float, ESM::ExteriorCellLocation>> candidates;
+
         for (int dx = -halfGridSizePlusOne; dx <= halfGridSizePlusOne; ++dx)
         {
             for (int dy = -halfGridSizePlusOne; dy <= halfGridSizePlusOne; ++dy)
@@ -1452,9 +1459,17 @@ namespace MWWorld
                 float loadDist = cellSize / 2 + cellSize - mCellLoadingThreshold + mPreloadDistance;
 
                 if (dist < loadDist)
-                    preloadCell(mWorld.getWorldModel().getExterior(cellIndex));
+                    candidates.emplace_back(dist, cellIndex);
             }
         }
+        std::stable_sort(
+            candidates.begin(), candidates.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+        for (const auto& candidate : candidates)
+            preloadCell(mWorld.getWorldModel().getExterior(candidate.second));
+        // Promote in reverse order because WorkQueue promotions insert at the front.
+        // Repeated predictions refresh retention for the cells still on the likely route.
+        for (auto it = candidates.rbegin(); it != candidates.rend(); ++it)
+            mPreloader->prioritize(mWorld.getWorldModel().getExterior(it->second));
     }
 
     void Scene::preloadCellWithSurroundings(CellStore& cell)

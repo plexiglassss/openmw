@@ -55,6 +55,18 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useCellRenderPreparation()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_CELL_RENDER_PREPARATION");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useSharedSandboxPackages()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_SHARED_SANDBOX_PACKAGES");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useResponsiveArrivalCancellation()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_RESPONSIVE_ARRIVAL_CANCELLATION");

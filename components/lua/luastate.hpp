@@ -126,6 +126,20 @@ namespace LuaUtil
     class LuaState
     {
     public:
+        /// Immutable package bindings shared by a container's sandboxes. Loaded modules,
+        /// environments and factory results are still private to each sandbox.
+        struct PreparedPackages
+        {
+            struct Loader
+            {
+                std::string mName;
+                sol::main_object mFunction;
+                bool mPublish;
+            };
+            sol::main_table mValues;
+            std::vector<Loader> mLoaders;
+            std::uint64_t mCommonRevision = 0;
+        };
         explicit LuaState(const VFS::Manager* vfs, const ScriptsConfiguration* conf,
             const LuaStateSettings& settings = LuaStateSettings{});
         LuaState(const LuaState&) = delete;
@@ -161,9 +175,13 @@ namespace LuaUtil
         //         (once per sandbox) with the argument 'hiddenData' the first time when requested.
         sol::protected_function_result runInNewSandbox(const VFS::Path::Normalized& path,
             const std::string& envName = "unnamed", const std::map<std::string, sol::main_object>& packages = {},
-            const sol::main_object& hiddenData = sol::nil);
+            const sol::main_object& hiddenData = sol::nil, PreparedPackages* prepared = nullptr);
 
-        void dropScriptCache() { mCompiledScripts.clear(); }
+        void dropScriptCache()
+        {
+            mCompiledScripts.clear();
+            mModulePaths.clear();
+        }
 
         const ScriptsConfiguration& getConfiguration() const { return *mConf; }
 
@@ -197,6 +215,9 @@ namespace LuaUtil
             ScriptId scriptId, const sol::protected_function& fn, Args&&... args);
 
         sol::function loadScriptAndCache(const VFS::Path::Normalized& path);
+        void updateVfsRevision();
+        VFS::Path::Normalized resolveModulePath(std::string_view name);
+        void preparePackages(PreparedPackages& result, const std::map<std::string, sol::main_object>& packages);
         static void countHook(lua_State* state, lua_Debug* ar);
         static void* trackingAllocator(void* ud, void* ptr, size_t osize, size_t nsize);
 
@@ -226,6 +247,9 @@ namespace LuaUtil
         sol::table mSandboxEnv;
         std::map<VFS::Path::Normalized, sol::bytecode> mCompiledScripts;
         std::map<std::string, sol::object> mCommonPackages;
+        std::uint64_t mCommonPackagesRevision = 1;
+        std::uint64_t mVfsRevision = 0;
+        std::map<std::string, VFS::Path::Normalized, std::less<>> mModulePaths;
         const VFS::Manager* mVFS;
         std::vector<std::filesystem::path> mLibSearchPaths;
 

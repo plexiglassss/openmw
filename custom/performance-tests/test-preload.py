@@ -33,6 +33,7 @@ struct Manager {
 };
 }
 namespace Misc {
+bool useCellRenderPreparation() {return true;}
 std::string_view getFileName(const Normalized& p) { auto v=p.view(); return v.substr(v.find_last_of('/')+1); }
 namespace ResourceHelpers {
 Normalized correctMeshPath(NormalizedView path) { ++corrections; return NormalizedView("meshes")/path; }
@@ -49,6 +50,7 @@ bool mAbort=false;
 struct SceneManager {
  VFS::Manager vfs;
  const VFS::Manager* getVFS() {return &vfs;}
+ int cacheInstance(const Normalized&, bool) { return 7; }
  int getTemplate(const Normalized&) {
   ++attempts; if(failOnce){failOnce=false;throw std::runtime_error("expected failure");}
   ++templates; return 1;
@@ -71,6 +73,8 @@ bool mIsExterior=false,mPreloadInstances=true;
 CellLocation mCellLocation;
 int mCellId=0;
 std::vector<NormalizedView> mMeshes;
+std::vector<NormalizedView> mInstanceMeshes;
+std::vector<int> mInstanceTickets;
 std::set<int> mPreloadedObjects;
 void run()
 '''

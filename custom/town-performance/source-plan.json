@@ -33,7 +33,8 @@
     "0e35efbc396ae7c49b404f9e0c5c34e914aa2670",
     "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2",
     "38c80a93e54cebcead57d097cff9b24e7704129b",
-    "42f018918f81a73f7ae0dafa73cef8e3c8e75fa0"
+    "42f018918f81a73f7ae0dafa73cef8e3c8e75fa0",
+    "7affe8489b152bb63895676c4ee6e2d747554ea8"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -43,11 +44,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3695ed13075d79f626805aa1ec0681ceca37ea3f"
+        "blob": "9a4a86f54b6c2b9a976b7d6727a904cd8c5ee5f6"
       },
-      "bytes": 69581,
-      "sha256": "82785f90655f8abd1684b7d1908915a0cb19a79d2458d49b3e41ddc78313f495",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Trigger the cumulative Windows workflow explicitly on its build branch; share concurrency across push and PR events to prevent duplicate builds. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
+      "sha256": "951dd9c2124d05464b71b1e10d74bbdbf153f30b1eb7243bb3b94082fdb14cb6",
+      "bytes": 71185,
+      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -56,11 +57,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0322aa84d5f5486f154a0a821a4fd46beae41c48"
+        "blob": "e2d75359ece6229b6f86c14dc12f2e9ba1d0102d"
       },
-      "bytes": 4527,
-      "sha256": "8b2473278354861b480e3f63af49c745b53eb8174145fe2d228f3e664e4b2706",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
+      "sha256": "433dc49921e07465e81734eea8b33ecc1b605d92e041439c4657947559473987",
+      "bytes": 4638,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "apps/components_tests/esm3/testdungeonstates.cpp": {
       "before": null,
@@ -142,11 +143,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "08049d3ed2c7e5f8d42bd9c2459b4e1709b1d6b4"
+        "blob": "c9a48fa4ebebb820ff628923b5705e4e90ea1e94"
       },
-      "bytes": 3458,
-      "sha256": "4aa984747bb7485f47c0981da9eef29764c435230b89d49190bcf0b44b56f635",
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation."
+      "sha256": "3dc581dced8c3825744fa20ee57445f0e75956e41017a273fa2afd570fe7c8e6",
+      "bytes": 6018,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "apps/components_tests/settings/testvalues.cpp": {
       "before": {
@@ -822,11 +823,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fccb0add5e7d2387a2a4686027b7aff81f04c473"
+        "blob": "fc1d2b34a3f1613049106993fd69fa4a877fa066"
       },
-      "bytes": 66154,
-      "sha256": "c953ec583ac2e084c984832d708c46861f3d647f078f9855d499037b4c64b7fa",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+      "sha256": "1ea44afc8095cae1f47af9fbb435ae52775c5a73d35cf95ee4258d5ca9d942bf",
+      "bytes": 67256,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
@@ -924,11 +925,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "89a2942da58918a348fb079ecaf09c939f201754"
+        "blob": "1329f0e175a3c73d0c37933299e716d3ef305054"
       },
-      "bytes": 20743,
-      "sha256": "82393175f1ee229f768511e79763cbd6012b68570a5c8adceb0eda9c80900555",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "sha256": "4c97ec79fd40274fb069c29fdc04b873ce04e72f45edb88ba92054fc8251fc89",
+      "bytes": 20762,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "components/esm/defs.hpp": {
       "before": {
@@ -996,11 +997,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ed0b6cf354861b9e158b49bc2f7c0bb68c7bd09b"
+        "blob": "d306e9d95e842eb8c838f357c445c6f6c96e15cb"
       },
-      "bytes": 36332,
-      "sha256": "a5a4c294b244815dc5e5cfbe094b072f9dc8d9eeee0d43f90d1e54b14833a525",
-      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
+      "sha256": "c52e18aa580e93403ffd6b547e0af35e991df2aa13b6f0fd7425f5996e07d105",
+      "bytes": 36432,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "components/lua_ui/container.cpp": {
       "before": {
@@ -1199,11 +1200,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "39f9bb3dcf55d48b92115ec2fdee3017fb3930b0"
+        "blob": "1471acf5bf503f70135314260a5cc844b72cb1e0"
       },
-      "bytes": 3520,
-      "sha256": "e60d29e5fda5348ab1069493cdf24a9155b8878956b9ddc06abc9b9f7d05b299",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+      "sha256": "c38aa007bafae5ae698d0201015238d841246ca5c3f461f016beee8231a250f8",
+      "bytes": 3914,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -1258,11 +1259,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "60627de4f4d42a6ec28c6e0bfdb2ad94f808b991"
+        "blob": "d1115527a67fe58ccc21a603619424dcbe6feed4"
       },
-      "bytes": 63787,
-      "sha256": "65297e5b8e2c588bb99276a121f131a405a2048b24126f27c2d8be32ebb4ef36",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "sha256": "79bb62a1d693259a916f98f4e8b14ed1bf57e29b3d6670dc9b1392aa01971063",
+      "bytes": 65914,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "components/resource/scenemanager.hpp": {
       "before": {
@@ -1271,11 +1272,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "94fd234b79dbd09c161ccac553c127878939f300"
+        "blob": "d22b25607fa79c8c1416e33f6a70c09eeb9e0b68"
       },
-      "bytes": 12015,
-      "sha256": "6449fdda2b0dbe0db836ef72274f39a2be2f4245f4571c20e070429deaeff8b0",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "sha256": "121c1c341b1b94479e1502460c584d35e9fd2512cc6f269186c2e41f2caa3e88",
+      "bytes": 12392,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "components/settings/categories/general.hpp": {
       "before": {
@@ -2541,11 +2542,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c3c995cbf935a6e2e2e015fefe01e4dc718ad419"
+        "blob": "ed0e9394465fa9515782b3b3d4072355dc1c94b9"
       },
-      "bytes": 16833,
-      "sha256": "8d63ccd146a891179fd87865039ef883fb24aac9df5347616409aff7c707ea49",
-      "reason": "Reduce repeated native work during ordinary Lua actor updates while preserving script order, invalidation and queued writes. Share immutable actor attachment rules, preserve saved scripts and per-reference overrides and detail the arrival work."
+      "sha256": "a6ce4196344790e09ed9f99db33717ea0f70508a0d9dc54cacb61c6549fd4214",
+      "bytes": 16887,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "custom/combined-performance/Run-Previous-Frame-Updates.cmd": {
       "before": null,
@@ -3990,11 +3991,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "655f4ba46d9d30daca57f3ab351b0888d38b6ecc"
+        "blob": "832b8b1d9be7dc55849143eeff06a151eadabc12"
       },
-      "bytes": 30126,
-      "sha256": "ec88015a263416c087b69a0c673b108fe4934dcb6934a726001bc2ec625d7aa7",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "sha256": "8716ff0ee6464c5408633af485188a76886d5d7872dcc6289f57fd199aee1a4e",
+      "bytes": 32192,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "before": {
@@ -4003,11 +4004,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "bd686a724976e5103e1d150c454607161937fadf"
+        "blob": "dc8284010aad7484884fabae736dc68e2ab41101"
       },
-      "bytes": 5140,
-      "sha256": "fdf3076cee90b39bdc5066827f7969d244136ef3103c5c81ef99bd5d473982e5",
-      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+      "sha256": "253c23992e1c3033553717b5debea44f008a1734845f8a9e4bf83460a67391c3",
+      "bytes": 5197,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "before": {
@@ -4259,11 +4260,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ae3d870aa2a09b018fc84db733a85e2d507b282e"
+        "blob": "531917463b7f22bb45ad518d081494af0ae4c8bd"
       },
-      "bytes": 2596,
-      "sha256": "71732794436595608de5345aa2c6568a9ce5b86b0ec8c49b92a8859f7c176d98",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "sha256": "fa3e5be5b1b7ac0a0afcb199c63dce9ce2717b750bc7e26ac1c12ab2eedb4655",
+      "bytes": 3531,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
     },
     "custom/combined-performance/TRANSITION-READINESS.txt": {
       "before": null,
@@ -4299,11 +4300,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6bdcad18411b468c4546b958f087f721fef66e3a"
+        "blob": "8c9aad72225c2dada13874cbe472b8ae82fb153a"
       },
+      "sha256": "e1a67b1cd18a608027c41ba8e48a8b201aa11528871a3167e9b6610f14f164c0",
       "bytes": 1510,
-      "sha256": "b1cd4a6024711ea54e6bce82742264f1aa79f677dc2b2142c5d2b953cd50bc97",
-      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation."
+      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package."
     },
     ".github/workflows/hbfs-godmode-build.yml": {
       "before": null,
@@ -4620,6 +4621,180 @@
       },
       "bytes": 10638,
       "sha256": "5c35caf533eb3320ffe221a139d0d73d64078ab25f5802975b71c15ddc7255f2"
+    },
+    "apps/components_tests/lua/testcellpackages.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "26783aa6a9835041dca6a98adf50cfcc125140bc"
+      },
+      "sha256": "18e6c54018ea608c012e9e34c0ff449d8cd96b546f504c19182aa3dbad2d749a",
+      "bytes": 7627,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "apps/components_tests/resource/testsceneinstancecache.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6929ddf209c0f842f8e79f741dd843e8452dbd13"
+      },
+      "sha256": "8fd7c89b111b35e0333e5debedb52787eec5f5138bfe835c9d669acac26f4117",
+      "bytes": 4535,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "apps/components_tests/sceneutil/testinstancepreparation.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "eed6c1551f67d3a0a14f699fe3900a0baf5e96a1"
+      },
+      "sha256": "b8f55fe8b161ef5e180a6c6ad72d4ea1de8e36c0948c5f218c7399deafba745b",
+      "bytes": 3705,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/lua/luastate.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f3682abb430186b40f26a82be4cf09e4a19d12b9"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "973782eeefbcfb0a3792f8f12728147514810d46"
+      },
+      "sha256": "991db72b02fdba30c5712ac73401e3f1db7b9c4dc8739d31d929434ff4a416c4",
+      "bytes": 22381,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/lua/luastate.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "83b5a26b93d51c03b1b08330e3af5034b47fe398"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fb8a2753ff9fcb49d7de1ebd42baa17aa7af6fae"
+      },
+      "sha256": "f10a4b92722ccb672a0f15babc57c5ce88bb611bcf3a0d4bf15571e3559729f3",
+      "bytes": 15299,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/resource/sceneinstancecache.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "17d79add1450d5de8ac50a195dfc92a11284eb63"
+      },
+      "sha256": "35530c8123ead001d37dab3ddcdce7f01d6ad62cac1c66c6701650bf337bdbca",
+      "bytes": 6438,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/resource/sceneinstancecache.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8e29ded4aa378ddca8817ba858f27dfdee2a6273"
+      },
+      "sha256": "6521b264a7a803c316f7d1b961cb5789d1572c92357632e665741642639dd8d1",
+      "bytes": 2718,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/resource/stats.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "17fdc5810fe3213c89cf9ae9c64debd3bfa8db56"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "62c436e78ead047fd176fa7d584ca75a318ff76a"
+      },
+      "sha256": "d604c67e03fcfa839f6620e74a1092b20b0219b7f5536740356ade3e237b9922",
+      "bytes": 21543,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/sceneutil/clone.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "18b1b46bcbb1e2db10daaef0955f8e09471a5c69"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8474465be4da26209a69770e47a51717d384890d"
+      },
+      "sha256": "1e612af55f5ac1c87a8b826f6a545230f60722998e59e83c0fdb953b88998e87",
+      "bytes": 8181,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/sceneutil/clone.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "e2a4b710925d250cc5be57196064f1da2ea81ab1"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "bb5eb1a576d00aba81667888802cd65c977d0926"
+      },
+      "sha256": "ab132f6ee346418ac1aa8f5c8ec6835459556ee14e3926774e7d0c3ba02a7cda",
+      "bytes": 2346,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "components/sceneutil/morphgeometry.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "a0202175e261ee15d084b14d674698aa49d6ad16"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "627d13549f22b02ae76608d4dc9d82067c0152c5"
+      },
+      "sha256": "cf9783f66d7dfdf3f1558f89afdd2888ec491d470eda1cab256b9b42914806f1",
+      "bytes": 8413,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "custom/cell-streaming/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "484cf0a7e5ce816ba874a91705cacf63cb27f117"
+      },
+      "sha256": "8d1da6fcfa1cf5f8a29c5e380c0b7a7e562d0aabb911e2a92c9d5d2e3e074df8",
+      "bytes": 3135,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "custom/performance-tests/test-preload.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "5f95e3460b85b515f2e79f6e207e4cd0e9321f9d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "d9f15c38615804c3222b48246a9330716cec2546"
+      },
+      "sha256": "528021aa32885d965bd610e2879bac9ddb09f49bfd805a1069380006f1dd6410",
+      "bytes": 5230,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "custom/performance-tests/test-transition-preload.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "da23a02b0ad559d7518d79456ebb8c3e590f0c06"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "c536c6604f50656c3ecbaf3520fc50e504d6833f"
+      },
+      "sha256": "88ad52669838a0a838b93aace8b049e783f22249173b24f20ff4431a81c3880f",
+      "bytes": 5928,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "custom/cell-streaming/verify-tests.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f129033045d924824ca57aecace6d83668c1ffed"
+      },
+      "sha256": "031c2a1d491749b7ffef7a099750e321e3c25a0c6291df4601f904d216b66e68",
+      "bytes": 1855,
+      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package."
     }
   }
 }

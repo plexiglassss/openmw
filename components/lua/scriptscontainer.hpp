@@ -336,6 +336,7 @@ namespace LuaUtil
         const UserdataSerializer* mSavedDataDeserializer = nullptr;
 
         std::map<std::string, sol::main_object> mAPI;
+        LuaState::PreparedPackages mPreparedPackages;
         struct LoadedData
         {
             std::map<int, Script> mScripts;

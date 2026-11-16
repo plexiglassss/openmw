@@ -6,9 +6,10 @@
 #include <tuple>
 #include <utility>
 
-#include <components/misc/nativejobpool.hpp>
-#include <components/diagnostics/timing.hpp>
 #include <components/diagnostics/loading.hpp>
+#include <components/diagnostics/timing.hpp>
+#include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
 
 #include <cstdlib>
 #include <filesystem>
@@ -621,6 +622,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mAutoUseNormalMaps = use;
     }
 
@@ -628,6 +630,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mNormalMapPattern = pattern;
     }
 
@@ -635,6 +638,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mNormalHeightMapPattern = pattern;
     }
 
@@ -642,6 +646,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mAutoUseSpecularMaps = use;
     }
 
@@ -649,6 +654,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mSpecularMapPattern = pattern;
     }
 
@@ -656,6 +662,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mSupportsNormalsRT = supports;
     }
 
@@ -663,6 +670,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mWeatherParticleOcclusion = value;
     }
 
@@ -680,6 +688,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mConvertAlphaTestToAlphaToCoverage = convert;
     }
 
@@ -687,6 +696,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mAdjustCoverageForAlphaTest = adjustCoverage;
     }
 
@@ -724,6 +734,7 @@ namespace Resource
     {
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mShaderManager->setShaderPath(path);
     }
 
@@ -1398,6 +1409,28 @@ namespace Resource
         return getInstance(getTemplate(path));
     }
 
+    SceneInstanceCache::TicketPtr SceneManager::cacheInstance(
+        VFS::Path::NormalizedView path, const std::atomic_bool& abort)
+    {
+        if (!Misc::useCellRenderPreparation() || abort.load())
+            return {};
+        const auto revision = modelSettingsRevision();
+        const auto base = getTemplate(path);
+        // Settings can mutate a template's state in place. Hold the same read lock used
+        // by template preparation while inspecting and cloning; checking a revision alone is insufficient.
+        const std::shared_lock settingsLock(mModelSettingsMutex);
+        if (revision != modelSettingsRevision() || abort.load())
+            return {};
+        const SceneInstanceCache::Revision cacheRevision{ revision, mVFS->getIndexRevision() };
+        if (!mInstanceCache.hasCapacity(base, cacheRevision))
+            return {};
+        const auto bytes = SceneUtil::estimateInstanceBytes(*base);
+        // Unknown drawable layouts and very large assets retain the demand path.
+        if (!bytes || *bytes > 16 * 1024 * 1024)
+            return {};
+        return mInstanceCache.prepare(base, cacheRevision, abort, *bytes, [&] { return cloneNode(base); });
+    }
+
     osg::ref_ptr<osg::Node> SceneManager::cloneNode(const osg::Node* base)
     {
         SceneUtil::CopyOp copyop;
@@ -1424,7 +1457,12 @@ namespace Resource
 
     osg::ref_ptr<osg::Node> SceneManager::getInstance(const osg::Node* base)
     {
-        osg::ref_ptr<osg::Node> cloned = cloneNode(base);
+        const std::shared_lock settingsLock(mModelSettingsMutex);
+        osg::ref_ptr<osg::Node> cloned;
+        if (Misc::useCellRenderPreparation())
+            cloned = mInstanceCache.take(base, { modelSettingsRevision(), mVFS->getIndexRevision() });
+        if (!cloned)
+            cloned = cloneNode(base);
         // we can skip any scene graphs without update callbacks since we know that particle emitters will have an
         // update callback set
         if (cloned->getNumChildrenRequiringUpdateTraversal() > 0)
@@ -1450,6 +1488,7 @@ namespace Resource
 
     void SceneManager::releaseGLObjects(osg::State* state)
     {
+        mInstanceCache.releaseGLObjects(state);
         mCache->releaseGLObjects(state);
 
         mShaderManager->releaseGLObjects(state);
@@ -1475,6 +1514,7 @@ namespace Resource
 
     void SceneManager::setParticleSystemMask(unsigned int mask)
     {
+        const std::unique_lock settingsLock(mModelSettingsMutex);
         mParticleSystemMask = mask;
     }
 
@@ -1513,6 +1553,7 @@ namespace Resource
 
         const std::unique_lock settingsLock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         mMinFilter = min;
         mMagFilter = mag;
         mMaxAnisotropy = std::max(1.f, maxAnisotropy);
@@ -1538,6 +1579,7 @@ namespace Resource
 
     void SceneManager::updateCache(double referenceTime)
     {
+        mInstanceCache.prune();
         ResourceManager::updateCache(referenceTime);
 
         mSharedStateMutex.lock();
@@ -1568,6 +1610,7 @@ namespace Resource
     {
         const std::unique_lock settingsLock(mModelSettingsMutex);
         ++mModelSettingsRevision;
+        mInstanceCache.clear();
         ResourceManager::clearCache();
 
         std::lock_guard<std::mutex> lock(mSharedStateMutex);
@@ -1592,6 +1635,7 @@ namespace Resource
         }
 
         Resource::reportStats("Node", frameNumber, mCache->getStats(), *stats);
+        Resource::reportStats("NodeInstance", frameNumber, mInstanceCache.getStats(), *stats);
     }
 
     osg::ref_ptr<Shader::ShaderVisitor> SceneManager::createShaderVisitor(const std::string& shaderPrefix)

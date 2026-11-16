@@ -17,6 +17,7 @@ namespace Misc { class NativeJobPool; }
 #include <osg/ref_ptr>
 
 #include "resourcemanager.hpp"
+#include "sceneinstancecache.hpp"
 #include <components/misc/singleflight.hpp>
 
 #include <components/sceneutil/lightmanager.hpp>
@@ -185,6 +186,10 @@ namespace Resource
         /// @note Thread safe.
         static osg::ref_ptr<osg::Node> cloneNode(const osg::Node* base);
 
+        /// Prepare an unattached one-use clone. No controllers or gameplay callbacks are run.
+        /// Keep the ticket until the predicted cell is used or cancelled. Thread safe.
+        SceneInstanceCache::TicketPtr cacheInstance(VFS::Path::NormalizedView path, const std::atomic_bool& abort);
+
         void shareState(osg::ref_ptr<osg::Node> node);
 
         /// Clone osg::Node and adjust it according to SceneManager's settings.
@@ -259,6 +264,7 @@ namespace Resource
         std::unique_ptr<ModelDrafts> mModelDrafts;
         mutable std::shared_mutex mModelSettingsMutex;
         std::atomic_uint64_t mModelSettingsRevision{ 0 };
+        SceneInstanceCache mInstanceCache;
         osg::ref_ptr<osg::Node> prepareCpuTemplate(VFS::Path::NormalizedView path, bool useErrorMarker);
 
         Misc::SingleFlight<std::string, osg::ref_ptr<const osg::Node>> mPendingTemplates;

@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 root = Path(__file__).resolve().parents[3]
 requirements = {
-    'components-tests.xml': {'WorkQueueCancellation': 2, 'CompilePriority': 2},
+    'components-tests.xml': {'WorkQueueCancellation': 3, 'CompilePriority': 2},
     'openmw-tests.xml': {'ArrivalCancellation': 1, 'PositionSnapshots': 4, 'MagicEffectAccountingTest': 5},
     'previous-position-reads.xml': {'PositionSnapshots': 4},
 }

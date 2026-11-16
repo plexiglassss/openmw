@@ -9,6 +9,7 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/files/conversion.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/vfs/manager.hpp>
 
 #include "luastateptr.hpp"
@@ -206,9 +207,8 @@ namespace LuaUtil
 
             sol["setEnvironment"]
                 = [](const sol::environment& env, const sol::function& fn) { sol::set_environment(env, fn); };
-            sol["loadFromVFS"] = [this](std::string_view packageName) {
-                return loadScriptAndCache(packageNameToVfsPath(packageName, *mVFS));
-            };
+            sol["loadFromVFS"]
+                = [this](std::string_view packageName) { return loadScriptAndCache(resolveModulePath(packageName)); };
             sol["loadInternalLib"] = [this](std::string_view packageName) { return loadInternalLib(packageName); };
 
             // Some fixes for compatibility between different Lua versions
@@ -246,9 +246,10 @@ namespace LuaUtil
                 end
                 printGen = function(name) return function(...) return printToLog(name, ...) end end
 
-                function requireGen(env, loaded, loadFn)
+                function requireGen(env, loaded, loadFn, packages)
                     return function(packageName)
                         local p = loaded[packageName]
+                        if p == nil and packages then p = packages[packageName] end
                         if p == nil then
                             local loader = loadFn(packageName)
                             setEnvironment(env, loader)
@@ -355,11 +356,43 @@ namespace LuaUtil
         if (!package.is<sol::function>())
             package = makeReadOnly(std::move(package));
         mCommonPackages.insert_or_assign(std::move(packageName), std::move(package));
+        ++mCommonPackagesRevision;
+    }
+
+    void LuaState::preparePackages(PreparedPackages& result, const std::map<std::string, sol::main_object>& packages)
+    {
+        if (result.mCommonRevision == mCommonPackagesRevision)
+            return;
+        PreparedPackages next;
+        next.mValues = sol::table(mSol, sol::create);
+        for (const auto& [key, value] : mCommonPackages)
+        {
+            if (value.is<sol::function>())
+            {
+                const auto override = packages.find(key);
+                const bool publish = override == packages.end() || override->second.is<sol::function>();
+                next.mLoaders.push_back({ key, value, publish });
+            }
+            else
+                next.mValues[key] = value;
+        }
+        for (const auto& [key, value] : packages)
+        {
+            if (value.is<sol::function>())
+            {
+                next.mValues[key] = sol::nil;
+                next.mLoaders.push_back({ key, value, true });
+            }
+            else
+                next.mValues[key] = value;
+        }
+        next.mCommonRevision = mCommonPackagesRevision;
+        result = std::move(next);
     }
 
     sol::protected_function_result LuaState::runInNewSandbox(const VFS::Path::Normalized& path,
         const std::string& envName, const std::map<std::string, sol::main_object>& packages,
-        const sol::main_object& hiddenData)
+        const sol::main_object& hiddenData, PreparedPackages* prepared)
     {
         Diagnostics::Scope timing("lua-load", path.value(), "sandbox");
         // TODO
@@ -383,11 +416,27 @@ namespace LuaUtil
                 return package;
         };
         sol::table loaded(mSol, sol::create);
-        for (const auto& [key, value] : mCommonPackages)
-            loaded[key] = maybeRunLoader(value);
-        for (const auto& [key, value] : packages)
-            loaded[key] = maybeRunLoader(value);
-        env["require"] = mSol["requireGen"](env, loaded, mSol["loadFromVFS"]);
+        if (prepared && Misc::useSharedSandboxPackages())
+        {
+            preparePackages(*prepared, packages);
+            for (const auto& loader : prepared->mLoaders)
+            {
+                // Preserve eager factory execution and its order even when a local
+                // binding overrides the result. Only immutable bindings are shared.
+                sol::object value = maybeRunLoader(loader.mFunction);
+                if (loader.mPublish)
+                    loaded[loader.mName] = value;
+            }
+            env["require"] = mSol["requireGen"](env, loaded, mSol["loadFromVFS"], prepared->mValues);
+        }
+        else
+        {
+            for (const auto& [key, value] : mCommonPackages)
+                loaded[key] = maybeRunLoader(value);
+            for (const auto& [key, value] : packages)
+                loaded[key] = maybeRunLoader(value);
+            env["require"] = mSol["requireGen"](env, loaded, mSol["loadFromVFS"]);
+        }
 
         sol::set_environment(env, script);
         return call(scriptId, script);
@@ -414,6 +463,7 @@ namespace LuaUtil
 
     sol::function LuaState::loadScriptAndCache(const VFS::Path::Normalized& path)
     {
+        updateVfsRevision();
         auto iter = mCompiledScripts.find(path);
         if (iter != mCompiledScripts.end())
         {
@@ -427,6 +477,28 @@ namespace LuaUtil
         sol::function res = loadFromVFS(path);
         mCompiledScripts[path] = res.dump();
         return res;
+    }
+
+    void LuaState::updateVfsRevision()
+    {
+        const auto revision = mVFS->getIndexRevision();
+        if (revision != mVfsRevision)
+        {
+            dropScriptCache();
+            mVfsRevision = revision;
+        }
+    }
+
+    VFS::Path::Normalized LuaState::resolveModulePath(std::string_view name)
+    {
+        updateVfsRevision();
+        if (const auto found = mModulePaths.find(name); found != mModulePaths.end())
+            return found->second;
+        auto path = packageNameToVfsPath(name, *mVFS);
+        // Bound this lookup cache independently of user-supplied module names.
+        if (mModulePaths.size() < 4096)
+            mModulePaths.emplace(name, path);
+        return path;
     }
 
     sol::function LuaState::loadFromVFS(const VFS::Path::Normalized& path)

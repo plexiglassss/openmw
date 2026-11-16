@@ -337,6 +337,14 @@ jobs:
           components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
           components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
           components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
+          components/CMakeFiles/components.dir/resource/sceneinstancecache.cpp.obj
+          components/CMakeFiles/components.dir/resource/scenemanager.cpp.obj
+          components/CMakeFiles/components.dir/lua/luastate.cpp.obj
+          components/CMakeFiles/components.dir/lua/scriptscontainer.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/cellpreloader.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/scene.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/resource/testsceneinstancecache.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/lua/testcellpackages.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/cellbindings.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
@@ -598,6 +606,17 @@ jobs:
           }
           python custom/combined-performance/tests/verify-transition-readiness.py
           if ($LASTEXITCODE) { throw 'Transition readiness tests did not execute successfully' }
+      - name: Verify cell preparation and Lua package isolation with the previous setup path
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_SANDBOX_PACKAGES = '0'
+          try {
+            ./build/components-tests.exe --gtest_filter=CellPackagesTest.* --gtest_output=xml:cell-packages-legacy.xml
+            if ($LASTEXITCODE) { throw 'Previous Lua package setup parity failed' }
+          } finally { Remove-Item Env:OPENMW_SHARED_SANDBOX_PACKAGES -ErrorAction SilentlyContinue }
+          python custom/cell-streaming/verify-tests.py
+          if ($LASTEXITCODE) { throw 'Required cell preparation regressions did not execute successfully' }
       - name: Compare actor and HUD updates with the previous paths in the same executable
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -709,6 +728,8 @@ jobs:
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
           Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
+          Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
+          Copy-Item cell-streaming-tests.json,cell-packages-legacy.xml install/
           "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/combined-performance/prepare-package.py install
           if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
@@ -819,6 +840,8 @@ jobs:
             previous-spell-reads.xml
             previous-position-reads.xml
             transition-readiness-tests.json
+            cell-streaming-tests.json
+            cell-packages-legacy.xml
             spatial-index-windows.json
             spatial-query-tests.json
             spatial-actor-off.xml

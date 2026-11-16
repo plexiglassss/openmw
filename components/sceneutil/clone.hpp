@@ -2,6 +2,7 @@
 #define OPENMW_COMPONENTS_SCENEUTIL_CLONE_H
 
 #include <map>
+#include <optional>
 #include <vector>
 
 #include <osg/CopyOp>
@@ -16,6 +17,10 @@ namespace osgParticle
 namespace SceneUtil
 {
     class Controller;
+
+    /// Conservative speculative-clone budget, including internal rig/morph arrays.
+    /// Unknown dynamic drawables retain the ordinary demand path.
+    std::optional<std::size_t> estimateInstanceBytes(const osg::Node& node);
 
     /// @par Defines the cloning behaviour we need:
     /// * Assigns updated ParticleSystem pointers on cloned emitters and programs.

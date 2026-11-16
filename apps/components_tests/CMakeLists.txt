@@ -6,6 +6,7 @@ file(GLOB UNITTEST_SRC_FILES
     sceneutil/testworkqueue.cpp
     sceneutil/testcompilepriority.cpp
     sceneutil/testgpuskinning.cpp
+    sceneutil/testinstancepreparation.cpp
     terrain/testpagingray.cpp
     terrain/testrayacceleration.cpp
 
@@ -15,6 +16,7 @@ file(GLOB UNITTEST_SRC_FILES
 
     lua/testasync.cpp
     lua/testarrivalconfiguration.cpp
+    lua/testcellpackages.cpp
     lua/testconfiguration.cpp
     lua/testinputactions.cpp
     lua/testl10n.cpp
@@ -99,6 +101,7 @@ file(GLOB UNITTEST_SRC_FILES
     esmterrain/testgridsampling.cpp
 
     resource/testobjectcache.cpp
+    resource/testsceneinstancecache.cpp
     resource/testresourcesystem.cpp
     resource/testpagedmodelpreparation.cpp
     resource/testtownpreparation.cpp

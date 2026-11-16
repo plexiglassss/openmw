@@ -66,6 +66,7 @@ namespace LuaUtil
         if (!package.is<sol::userdata>())
             throw std::logic_error("Expected package to be read-only: " + packageName);
         mAPI.insert_or_assign(std::move(packageName), std::move(package));
+        mPreparedPackages = {};
     }
 
     bool ScriptsContainer::addCustomScript(int scriptId, std::string_view initData)
@@ -131,7 +132,8 @@ namespace LuaUtil
 
         try
         {
-            sol::object scriptOutput = mLua.runInNewSandbox(path, debugName, mAPI, script.mHiddenData);
+            sol::object scriptOutput
+                = mLua.runInNewSandbox(path, debugName, mAPI, script.mHiddenData, &mPreparedPackages);
             if (scriptOutput == sol::nil)
                 return true;
             sol::object engineHandlers = sol::nil, eventHandlers = sol::nil;
@@ -668,6 +670,7 @@ namespace LuaUtil
         UnloadedData data;
         save(view, data);
         mAPI.erase("openmw.interfaces");
+        mPreparedPackages = {};
         UnloadedData& out = mData.emplace<UnloadedData>(std::move(data));
         for (auto& [_, handlers] : mEngineHandlers)
             handlers->mList.clear();

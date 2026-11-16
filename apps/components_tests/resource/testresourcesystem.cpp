@@ -11,6 +11,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <components/misc/combinedperformance.hpp>
+#include <osg/Stats>
+#include <osg/observer_ptr>
 #include <thread>
 
 namespace
@@ -76,5 +79,54 @@ namespace
         }
         for (std::thread& thread : threads)
             thread.join();
+    }
+
+    TEST(ResourceResourceSystem, preparedInstanceIsConsumedOnceAndSettingsInvalidateIt)
+    {
+        if (!Misc::useCellRenderPreparation())
+            GTEST_SKIP() << "Detached preparation comparison switch is disabled";
+        const VFS::Manager vfs;
+        const ToUTF8::Utf8Encoder encoder(ToUTF8::WINDOWS_1252);
+        Resource::ResourceSystem resources(&vfs, 1.0, &encoder.getStatelessEncoder());
+        auto* scene = resources.getSceneManager();
+        const Files::ConfigurationManager configuration;
+        scene->setShaderPath(configuration.getLocalPath() / "resources/shaders");
+        auto defines = Shader::getDefaultDefines();
+        for (const auto& define : SceneUtil::ShadowManager::getShadowsDisabledDefines())
+            defines[define.first] = define.second;
+        osg::ref_ptr<SceneUtil::LightManager> lights
+            = new SceneUtil::LightManager(SceneUtil::LightSettings{}, &resources);
+        for (const auto& define : lights->getLightDefines())
+            defines[define.first] = define.second;
+        scene->getShaderManager().setGlobalDefines(defines);
+
+        // Exercise the actual resource fallback, publication and instance path used by the engine.
+        constexpr VFS::Path::NormalizedView path("meshes/preparation-fixture-missing.nif");
+        const auto model = scene->getTemplate(path);
+        std::atomic_bool abort{ false };
+        auto ticket = scene->cacheInstance(path, abort);
+        ASSERT_TRUE(ticket);
+        auto first = scene->getInstance(path);
+        ASSERT_TRUE(first);
+        EXPECT_EQ(first->getNumParents(), 0u);
+        auto second = scene->getInstance(path);
+        EXPECT_NE(first, second);
+        osg::ref_ptr<osg::Stats> stats = new osg::Stats("fixture");
+        scene->reportStats(1, stats);
+        double hits = 0;
+        ASSERT_TRUE(stats->getAttribute(1, "NodeInstance Hit", hits));
+        EXPECT_EQ(hits, 1);
+
+        osg::observer_ptr<osg::Node> weak = first;
+        first = nullptr;
+        EXPECT_FALSE(weak.valid()); // The ticket must not retain a consumed graph.
+        ticket = scene->cacheInstance(path, abort);
+        ASSERT_TRUE(ticket);
+        scene->setFilterSettings("linear", "linear", "linear", 1);
+        auto afterSettings = scene->getInstance(path);
+        scene->reportStats(2, stats);
+        ASSERT_TRUE(stats->getAttribute(2, "NodeInstance Hit", hits));
+        EXPECT_EQ(hits, 1);
+        EXPECT_EQ(model->getNumParents(), 0u);
     }
 }
