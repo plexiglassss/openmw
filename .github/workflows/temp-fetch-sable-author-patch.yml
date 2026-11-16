@@ -1,0 +1,28 @@
+name: Temporary fetch Sable Dragon author patch
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temp-fetch-sable-author-patch.yml'
+
+jobs:
+  fetch-author-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download authoritative patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifact
+          curl --location --fail --retry 4 \
+            --output 'artifact/GMST The Sable Dragon 1.7.esp' \
+            'https://raw.githubusercontent.com/MelchiorDahrk/Mods/main/Graht%20Morrowind%20Swamp%20Trees/09%20The%20Sable%20Dragon%20Patch%20(Plugin%20Replacer)/GMST%20The%20Sable%20Dragon%201.7.esp'
+          test "$(stat -c%s 'artifact/GMST The Sable Dragon 1.7.esp')" -eq 1488378
+          sha256sum 'artifact/GMST The Sable Dragon 1.7.esp' > artifact/SHA256SUMS.txt
+      - name: Upload patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: gmst-sable-dragon-author-patch
+          path: artifact
+          if-no-files-found: error
+          retention-days: 1
