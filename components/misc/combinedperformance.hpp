@@ -61,6 +61,12 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useActorResourcePreload()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_RESOURCE_PRELOAD");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useSharedSandboxPackages()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_SHARED_SANDBOX_PACKAGES");

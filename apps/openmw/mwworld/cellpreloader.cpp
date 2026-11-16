@@ -7,6 +7,7 @@
 #include <components/diagnostics/loading.hpp>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <limits>
 #include <map>
@@ -16,9 +17,11 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/esm3/loadcell.hpp>
+#include <components/esm3/loadcrea.hpp>
+#include <components/esm3/loadnpc.hpp>
 #include <components/loadinglistener/reporter.hpp>
-#include <components/misc/constants.hpp>
 #include <components/misc/combinedperformance.hpp>
+#include <components/misc/constants.hpp>
 #include <components/misc/pathhelpers.hpp>
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/strings/algorithm.hpp>
@@ -27,14 +30,21 @@
 #include <components/resource/keyframemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/settings/values.hpp>
 #include <components/terrain/view.hpp>
 #include <components/terrain/world.hpp>
 #include <components/vfs/manager.hpp>
+#include <components/vfs/recursivedirectoryiterator.hpp>
 
+#include "../mwbase/environment.hpp"
+#include "../mwbase/world.hpp"
+#include "../mwmechanics/creaturestats.hpp"
 #include "../mwrender/landmanager.hpp"
 
 #include "cellstore.hpp"
 #include "class.hpp"
+#include "manualref.hpp"
+#include "preloaddependencies.hpp"
 
 namespace MWWorld
 {
@@ -60,6 +70,38 @@ namespace MWWorld
 
     struct ListModelsVisitor
     {
+        void appendActorResources(const MWWorld::ConstPtr& ptr)
+        {
+            const auto& settings = Settings::models();
+            const ActorPreloadModels paths{ settings.mXbaseanim.get(), settings.mBaseanim.get(),
+                settings.mBaseanimfemale.get(), settings.mBaseanimkna.get(), settings.mXargonianswimkna.get() };
+            const auto begin = mAnimations.size();
+            if (ptr.getType() == ESM::REC_NPC_)
+            {
+                const auto& npc = *ptr.get<ESM::NPC>()->mBase;
+                if (const auto* race = mStore.get<ESM::Race>().search(npc.mRace))
+                    appendActorAnimationPreloadModels(npc, *race, paths, mAnimations);
+            }
+            else if (ptr.getType() == ESM::REC_CREA)
+                appendActorAnimationPreloadModels(*ptr.get<ESM::Creature>()->mBase, paths, mAnimations);
+            mOut.insert(mOut.end(), mAnimations.begin() + begin, mAnimations.end());
+            appendInitialEquipment(ptr);
+        }
+
+        void appendInitialEquipment(const MWWorld::ConstPtr& ptr)
+        {
+            if (ptr.getRefData().getCustomData())
+                return; // The existing class path already captures current equipped items.
+            if (ptr.getType() == ESM::REC_NPC_)
+            {
+                const auto* npc = ptr.get<ESM::NPC>()->mBase;
+                appendEquipmentPreloadModels(mStore, npc->mInventory, !npc->isMale(), mOptions, mOut);
+            }
+            else if (ptr.getType() == ESM::REC_CREA)
+                appendEquipmentPreloadModels(
+                    mStore, ptr.get<ESM::Creature>()->mBase->mInventory, false, mOptions, mOut);
+        }
+
         bool operator()(const MWWorld::ConstPtr& ptr)
         {
             const auto start = mOut.size();
@@ -70,12 +112,50 @@ namespace MWWorld
             if (!mExterior || (ptr.getType() != ESM::REC_STAT && ptr.getType() != ESM::REC_STAT4))
                 mInstances.insert(mInstances.end(), mOut.begin() + start, mOut.end());
 
+            // New actors have no runtime inventory yet. Inspect base records only:
+            // do not create custom data, auto-equip, spawn, or advance the game's RNG.
+            if (!Misc::useActorResourcePreload())
+                return true;
+            appendActorResources(ptr);
+            if (ptr.getType() == ESM::REC_LEVC && mCandidateRecordsLeft
+                && mPredictedLists.insert(ptr.getCellRef().getRefId()).second)
+            {
+                const std::array roots{ ptr.getCellRef().getRefId() };
+                auto options = mOptions;
+                options.mMaxCandidates = std::min(options.mMaxCandidates, mCandidateRecordsLeft);
+                for (const auto& id : collectPreloadCandidates(mStore, roots, options))
+                {
+                    if (!mPredictedActors.insert(id).second)
+                        continue;
+                    --mCandidateRecordsLeft;
+                    const auto type = mStore.find(id);
+                    if (type != ESM::REC_NPC_ && type != ESM::REC_CREA)
+                        continue;
+                    try
+                    {
+                        ManualRef candidate(mStore, id);
+                        const auto actor = candidate.getPtr();
+                        actor.getClass().getModelsToPreload(actor, mOut);
+                        appendActorResources(actor);
+                    }
+                    catch (const std::exception&)
+                    {
+                        // A broken optional candidate must not discard the cell's other resources.
+                    }
+                }
+            }
             return true;
         }
 
         std::vector<VFS::Path::NormalizedView>& mOut;
         std::vector<VFS::Path::NormalizedView>& mInstances;
+        std::vector<VFS::Path::NormalizedView>& mAnimations;
         bool mExterior;
+        const ESMStore& mStore;
+        PreloadDependencyOptions mOptions;
+        std::size_t mCandidateRecordsLeft = 128;
+        std::set<ESM::RefId> mPredictedActors;
+        std::set<ESM::RefId> mPredictedLists;
     };
 
     /// Worker thread item: preload models in a cell.
@@ -95,12 +175,26 @@ namespace MWWorld
             , mTerrain(terrain)
             , mLandManager(landManager)
             , mPreloadInstances(preloadInstances)
+            , mPreloadAdditionalAnimations(
+                  Misc::useActorResourcePreload() && Settings::game().mUseAdditionalAnimSources)
             , mAbort(false)
         {
             mTerrainView = mTerrain->createView();
 
-            ListModelsVisitor visitor{ mMeshes, mInstanceMeshes, mIsExterior };
+            const auto& player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+            // Do not initialize player stats as a side effect of resource prediction.
+            const int level
+                = player.getRefData().getCustomData() ? player.getClass().getCreatureStats(player).getLevel() : 0;
+            const PreloadDependencyOptions options{ level, Settings::game().mDelevelCreatures,
+                Settings::game().mDelevelItems };
+            std::vector<VFS::Path::NormalizedView> meshes, instanceMeshes, animationMeshes;
+            ListModelsVisitor visitor{ meshes, instanceMeshes, animationMeshes, mIsExterior,
+                *MWBase::Environment::get().getESMStore(), options };
             cell->forEachConst(visitor);
+            // The worker must not retain views into mutable records or settings.
+            mMeshes = snapshotPreloadModels(meshes);
+            mInstanceMeshes = snapshotPreloadModels(instanceMeshes);
+            mAnimationMeshes = snapshotPreloadModels(animationMeshes);
         }
 
         void abort() override { mAbort = true; }
@@ -126,8 +220,14 @@ namespace MWWorld
             // Preserve one collision instance per occurrence, but resolve each source path once.
             std::map<VFS::Path::NormalizedView, VFS::Path::Normalized> resolvedMeshes;
             std::set<VFS::Path::Normalized> loadedMeshes;
+            std::set<VFS::Path::Normalized> animationPaths;
             VFS::Path::Normalized mesh;
             VFS::Path::Normalized kfname;
+            const auto meshPath = [](VFS::Path::NormalizedView path) {
+                // Settings use full VFS paths; record models normally omit the prefix.
+                return path.value().starts_with("meshes/") ? VFS::Path::Normalized(path)
+                                                           : Misc::ResourceHelpers::correctMeshPath(path);
+            };
             for (VFS::Path::NormalizedView path : mMeshes)
             {
                 if (mAbort)
@@ -139,7 +239,7 @@ namespace MWWorld
                     auto resolved = resolvedMeshes.find(path);
                     if (resolved == resolvedMeshes.end())
                     {
-                        auto corrected = Misc::ResourceHelpers::correctMeshPath(path);
+                        auto corrected = meshPath(path);
                         corrected = Misc::ResourceHelpers::correctActorModelPath(corrected, &vfs);
                         if (!vfs.exists(corrected))
                             corrected = VFS::Path::Normalized{};
@@ -181,6 +281,66 @@ namespace MWWorld
                 }
             }
 
+            // Finish all known model/collision requests before optional animation work.
+            // Animation roots are independent of template existence: a valid KF source
+            // does not require a sibling NIF (matching Animation::addAnimSource).
+            const VFS::Manager& vfs = *mSceneManager->getVFS();
+            std::set<VFS::Path::Normalized> animationRoots, animationDirectories;
+            for (const auto& path : mAnimationMeshes)
+            {
+                if (mAbort || animationPaths.size() >= 4096)
+                    break;
+                // Configured common animation sources are used verbatim by the renderer;
+                // model-derived sources use actor correction. Warm their bounded union.
+                const auto requested = meshPath(path);
+                const std::array roots{ requested, Misc::ResourceHelpers::correctActorModelPath(requested, &vfs) };
+                for (const auto& root : roots)
+                {
+                    if (mAbort || animationPaths.size() >= 4096)
+                        break;
+                    if (!animationRoots.insert(root).second)
+                        continue;
+                    if (mPreloadAdditionalAnimations)
+                        if (const auto directory = Misc::ResourceHelpers::additionalAnimationPath(root))
+                            animationDirectories.insert(*directory);
+                    try
+                    {
+                        auto keyframe = root;
+                        if (keyframe.extension() == VFS::Path::ExtensionView("nif"))
+                            keyframe.changeExtension(VFS::Path::ExtensionView("kf"));
+                        if (vfs.exists(keyframe) && animationPaths.insert(keyframe).second)
+                            mPreloadedObjects.insert(mKeyframeManager->get(keyframe));
+                    }
+                    catch (const std::exception&)
+                    {
+                        // Demand loading retains normal diagnostics and retry behavior.
+                    }
+                }
+            }
+            for (const auto& directory : animationDirectories)
+            {
+                if (mAbort || animationPaths.size() >= 4096)
+                    break;
+                for (const auto& name : vfs.getRecursiveDirectoryIterator(directory.value()))
+                {
+                    if (mAbort || animationPaths.size() >= 4096)
+                        break;
+                    if (!animationPaths.insert(name).second)
+                        continue;
+                    try
+                    {
+                        if (name.extension() == VFS::Path::ExtensionView("kf"))
+                            mPreloadedObjects.insert(mKeyframeManager->get(name));
+                        else if (name.extension() == VFS::Path::ExtensionView("nif"))
+                            mPreloadedObjects.insert(mSceneManager->getTemplate(name));
+                    }
+                    catch (const std::exception&)
+                    {
+                        // One optional failure must not discard later valid dependencies.
+                    }
+                }
+            }
+
             // Required template/collision warming comes first. Clone only detached
             // resource graphs here; actor assembly, particles and gameplay stay at activation.
             if (mPreloadInstances && Misc::useCellRenderPreparation())
@@ -209,8 +369,9 @@ namespace MWWorld
         bool mIsExterior;
         ESM::ExteriorCellLocation mCellLocation;
         ESM::RefId mCellId;
-        std::vector<VFS::Path::NormalizedView> mMeshes;
-        std::vector<VFS::Path::NormalizedView> mInstanceMeshes;
+        std::vector<VFS::Path::Normalized> mMeshes;
+        std::vector<VFS::Path::Normalized> mInstanceMeshes;
+        std::vector<VFS::Path::Normalized> mAnimationMeshes;
         std::vector<Resource::SceneInstanceCache::TicketPtr> mInstanceTickets;
         Resource::SceneManager* mSceneManager;
         Resource::BulletShapeManager* mBulletShapeManager;
@@ -218,6 +379,7 @@ namespace MWWorld
         Terrain::World* mTerrain;
         MWRender::LandManager* mLandManager;
         bool mPreloadInstances;
+        bool mPreloadAdditionalAnimations;
 
         std::atomic<bool> mAbort;
 

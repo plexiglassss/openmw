@@ -187,6 +187,7 @@ namespace MWLua
                     return sol::nil;
                 return sol::make_object(state, LObject(object));
             };
+            api["worldTooltipSuppressionSupported"] = true;
             api["setWorldTooltip"] = [luaManager = context.mLuaManager, windowManager](sol::optional<LObject> object,
                                          sol::optional<std::shared_ptr<LuaUi::Element>> element) {
                 luaManager->addAction(

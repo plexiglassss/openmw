@@ -9,6 +9,7 @@ requirements = {
     'components-tests.xml': {'SceneInstanceCacheTest': 6, 'InstancePreparation': 3,
                              'WorkQueueCancellation': 3, 'CellPackagesTest': 4},
     'cell-packages-legacy.xml': {'CellPackagesTest': 4},
+    'openmw-tests.xml': {'PreloadDependenciesTest': 13},
 }
 files = {}
 for name, expected in requirements.items():

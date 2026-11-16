@@ -39,3 +39,31 @@ The user's measured capture identifies cell insertion as the principal stall; it
 the cost of each construction substage. This build is a tested optimization candidate. Reduction
 of the user's transition times, visual correctness with the full modlist and fully seamless
 crossings require an in-game comparison and are not claimed by the native test results.
+
+## Actor resources and transition follow-up
+
+The resource predictor now reads initial NPC/creature inventory records even before runtime
+inventories exist, and includes eligible actors behind leveled spawn lists. It warms gendered
+equipment parts, weapons, lights, additional keyframes and custom bone NIFs. Prediction never
+selects a spawn, rolls the game RNG, auto-equips, or executes scripts. Runtime gameplay and
+actor assembly retain their original paths. New predicted assets warm templates and collision
+resources without reserving extra whole-model rendering clones.
+
+List traversal is bounded to 128 candidates, 512 records and 8192 list entries per query;
+spawn prediction also has a 128-candidate cell budget. Additional animation scanning stops at
+4096 unique entries per cell job and checks cancellation between files. These are entry limits,
+not byte or time guarantees; snapshot work still scales with the number of cell references. Missing, invalid and
+unpredicted resources still use demand loading. Prediction adds no process-wide negative cache.
+`OPENMW_ACTOR_RESOURCE_PRELOAD=0` disables this follow-up independently for comparison.
+
+Slow cell insertions now record model resolution, rendering, mechanics, physics, Lua notification,
+loading-screen progress, existing resource subphases and at most three slow object IDs in the
+ordinary log. Terrain culls over 50 ms report preparation versus traversal and resource phases.
+These measurements are inclusive and can nest; their totals must not be added together.
+
+The 16 November capture confirms 33 grid transitions, 58.727 seconds total and 98.27% in broad
+object insertion. Separate multi-second culls also occur. It does not identify the exact costly
+asset or prove that navmesh generation dominates; it does not establish a before/after speedup.
+The latest native QuickLoot empty-tooltip suppression and HBFS god-mode accounting are retained.
+The matching QuickLoot/Inventory Extender/UIToolkit/Object Insight v3.3 mod overlay is supplied
+separately from engine binaries and must win over earlier UI overlays.

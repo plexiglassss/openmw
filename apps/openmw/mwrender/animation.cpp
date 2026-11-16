@@ -622,23 +622,13 @@ namespace MWRender
 
     void Animation::loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel)
     {
-        constexpr VFS::Path::NormalizedView meshes("meshes/");
-        if (!model.value().starts_with(meshes.value()))
+        const auto path = Misc::ResourceHelpers::additionalAnimationPath(model);
+        if (!path)
             return;
-
-        std::string path(model.value());
-
-        constexpr VFS::Path::NormalizedView animations("animations/");
-        path.replace(0, meshes.value().size(), animations.value());
-
-        const std::string::size_type extensionStart = path.find_last_of(VFS::Path::extensionSeparator);
-        if (extensionStart == std::string::npos)
-            return;
-
-        path.replace(extensionStart, path.size() - extensionStart, "/");
 
         constexpr VFS::Path::ExtensionView kf("kf");
-        for (const VFS::Path::Normalized& name : mResourceSystem->getVFS()->getRecursiveDirectoryIterator(path))
+        for (const VFS::Path::Normalized& name :
+            mResourceSystem->getVFS()->getRecursiveDirectoryIterator(path->value()))
             if (name.extension() == kf)
                 addSingleAnimSource(name, baseModel);
     }

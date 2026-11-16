@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -34,7 +34,10 @@
     "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2",
     "38c80a93e54cebcead57d097cff9b24e7704129b",
     "42f018918f81a73f7ae0dafa73cef8e3c8e75fa0",
-    "7affe8489b152bb63895676c4ee6e2d747554ea8"
+    "7affe8489b152bb63895676c4ee6e2d747554ea8",
+    "537202b8deb72c3d19d07440af2aa521b2604ea4",
+    "8ba2af821cd550a406b67977f830fd9125e80f45",
+    "dd179b236099280c813933ad5404439b62f11d96"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -44,11 +47,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9a4a86f54b6c2b9a976b7d6727a904cd8c5ee5f6"
+        "blob": "f901b37cfbc38eca798ceb0d4b90fcf8d8881fcd"
       },
-      "sha256": "951dd9c2124d05464b71b1e10d74bbdbf153f30b1eb7243bb3b94082fdb14cb6",
-      "bytes": 71185,
-      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package."
+      "sha256": "3668a4fad55a60affb4df3893f7f867499c65752f03ff4b1bf545a2bd2d157c8",
+      "bytes": 71586,
+      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -365,11 +368,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5f90284ea2d312692dd240e13680af7ad789c8cf"
+        "blob": "e712dc6a5d3b250d5b38f25aa4d9e5fd49c68023"
       },
-      "bytes": 44188,
-      "sha256": "ab46470c6eb99db78250d09931f3d6bcbef051f07d125b080abe69588241a841",
-      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltips.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "sha256": "58939ce0c1ae723344d08dc1e82a5aeb88459456b5cde7eb3f0a68fbb867e700",
+      "bytes": 44587,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "apps/openmw/mwgui/tooltips.hpp": {
       "before": {
@@ -823,11 +826,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fc1d2b34a3f1613049106993fd69fa4a877fa066"
+        "blob": "fdc52e30d4eaea926d912a9d72c9eb7014319586"
       },
-      "sha256": "1ea44afc8095cae1f47af9fbb435ae52775c5a73d35cf95ee4258d5ca9d942bf",
-      "bytes": 67256,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "3806eee943a46e52af49df2252ef85f6c392934f3e514c0e9663365eddb6bbc1",
+      "bytes": 69098,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "apps/openmw_tests/CMakeLists.txt": {
       "before": {
@@ -836,11 +839,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4e044fa4adb4e68ebe554bc8cebd4c957c53c794"
+        "blob": "30c6c59ce83f48d6e46a57b0c4c3e4472eec02da"
       },
-      "bytes": 4089,
-      "sha256": "f587a83a7f9446da6e5ac77e20badd9ac9fde0b8a379eae89bfb61029be5ab04",
-      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+      "bytes": 4129,
+      "sha256": "1424e66910db5a481c973723da71ad6af81587c9891c74fe813e9318fb5cc5b6",
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -1200,11 +1203,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1471acf5bf503f70135314260a5cc844b72cb1e0"
+        "blob": "5caf9a5a3f92979e238107d46b205eff6d46c957"
       },
-      "sha256": "c38aa007bafae5ae698d0201015238d841246ca5c3f461f016beee8231a250f8",
-      "bytes": 3914,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "ba863b282de57ff3d7f931b636c1af9d697da8592b20293aa0c5db1ac4b65427",
+      "bytes": 4109,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -3013,11 +3016,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "73eb44b9c0a95cf4e4e4c73563a4a9436d0cb10c"
+        "blob": "bffb4d2701537c68d454d39782f7a07eed92f36d"
       },
-      "bytes": 24709,
-      "sha256": "fc1ff95b0df91bcde9ea15af64dd1aeed8d17aefaa0b61641fb90cb7f54f55fa",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
+      "sha256": "75d97e98e85872e390fbdfbf8b557cebaf6ecc39dca05983ac03b8566b3d289b",
+      "bytes": 24769,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "components/esm/formid.cpp": {
       "before": {
@@ -3092,11 +3095,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b85010c9c9e29935e7e8356a439abdb627a216d1"
+        "blob": "e55618fe050867c4ce2f3fb343ffd2398f4d462d"
       },
-      "bytes": 15052,
-      "sha256": "774d75dc451390c25fa0b0426872a1465cade3e65fa9160afa5270defdf72142",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
+      "sha256": "11d31ea194ebd6b6452667ed97767f7e38626f9f638eed36cb899b3656e08988",
+      "bytes": 16115,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "apps/openmw/mwlua/magicbindings.hpp": {
       "before": {
@@ -3766,11 +3769,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "26de46ab4399a0fff142086e48ac34bf608b114d"
+        "blob": "b688b0e50a3882e27a83becf09571cc230332932"
       },
-      "bytes": 7113,
-      "sha256": "2ebd23a8b1dd8310838a654c02c2bb10cc3eb179afdccbedce316cbe085e5fd9",
-      "reason": "Separate overlapped helper CPU work from elapsed batch time; attribute save-loaded inventory setup. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings."
+      "bytes": 7741,
+      "sha256": "ac1c003598c638aecea2e936f38ec19c7d60ec4f5f6ad9b5f58b4cd0567f5c18",
+      "reason": "Separate overlapped helper CPU work from elapsed batch time; attribute save-loaded inventory setup. Distinguish candidate selection, grouped loading, preview geometry, visible armor dispatch and Lua container startup in the existing timings. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "components/terrain/chunkmanager.cpp": {
       "before": {
@@ -3805,11 +3808,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ae4c8f13dd64acf07fdfb90f0e82a7119f25f7b4"
+        "blob": "ff55b01cf32bf0489e977567c41911a4c113127c"
       },
-      "bytes": 41224,
-      "sha256": "5ef1eb3e74cf5cc285176287fcf450d82e2ca474a308606c786a657061690700",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
+      "bytes": 42316,
+      "sha256": "a0e829b94b857caae888a77c7ddcea11bb1ccb4443f865a76174a0ffd77000c1",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "components/terrain/quadtreeworld.hpp": {
       "before": {
@@ -3991,11 +3994,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "832b8b1d9be7dc55849143eeff06a151eadabc12"
+        "blob": "048c147f2bb141432ce1f432b25dcc6465936ef2"
       },
-      "sha256": "8716ff0ee6464c5408633af485188a76886d5d7872dcc6289f57fd199aee1a4e",
-      "bytes": 32192,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "1bdb49184fb86a873503bb2f3d8ca95b89e1937eed16b9c762774581bda864fb",
+      "bytes": 40825,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "before": {
@@ -4754,11 +4757,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "484cf0a7e5ce816ba874a91705cacf63cb27f117"
+        "blob": "7ce0d5df46d14cf23eb40a6c9eef888d13f2f5d5"
       },
-      "sha256": "8d1da6fcfa1cf5f8a29c5e380c0b7a7e562d0aabb911e2a92c9d5d2e3e074df8",
-      "bytes": 3135,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "7382cca84d55948b0728d94bb7b6ce72840cd1340a924980ca63ccf15257727c",
+      "bytes": 5219,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "custom/performance-tests/test-preload.py": {
       "before": {
@@ -4767,11 +4770,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "d9f15c38615804c3222b48246a9330716cec2546"
+        "blob": "df1f6d4535a1c3adbcdb9058812180cbbf379767"
       },
-      "sha256": "528021aa32885d965bd610e2879bac9ddb09f49bfd805a1069380006f1dd6410",
-      "bytes": 5230,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "75a632d5b009a564c3773d8a9a56c11bf544f72987e95e13ad96bd043ba8d992",
+      "bytes": 9000,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
     },
     "custom/performance-tests/test-transition-preload.py": {
       "before": {
@@ -4790,11 +4793,57 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "f129033045d924824ca57aecace6d83668c1ffed"
+        "blob": "f80f11b4ebf1543d02941f07a6b010cad9caa824"
       },
-      "sha256": "031c2a1d491749b7ffef7a099750e321e3c25a0c6291df4601f904d216b66e68",
-      "bytes": 1855,
-      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package."
+      "sha256": "e0124efa1b42b135f741c874b8667b2a9e8d3f4dd49870e1451f8786f107b7b8",
+      "bytes": 1912,
+      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases."
+    },
+    "apps/openmw/mwrender/animation.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "fe6cd46e080409e636e1ae910bc6675fcd483a29"
+      },
+      "reason": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases.",
+      "after": {
+        "mode": "100644",
+        "blob": "14c172f272989e6563fb5637e26feef5e6739002"
+      },
+      "sha256": "c77bb770febbc1c1ae874f1434e6c6d2ec57c104155b8db6185e75180d23a11d",
+      "bytes": 77523
+    },
+    "apps/openmw/mwworld/preloaddependencies.hpp": {
+      "before": null,
+      "reason": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases.",
+      "after": {
+        "mode": "100644",
+        "blob": "bf67e3925e68c2736c35cbdc1ca0ccf58d224603"
+      },
+      "sha256": "ada18af1effa20443472c4f7938ed3fe07e447a59f915b68a661a202713d31ba",
+      "bytes": 6634
+    },
+    "apps/openmw_tests/mwworld/testpreloaddependencies.cpp": {
+      "before": null,
+      "reason": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases.",
+      "after": {
+        "mode": "100644",
+        "blob": "b774f294c8698a52db905b7308d02a8db52f1b7f"
+      },
+      "sha256": "625524da37b20c419974083be664edcfd4e2b740277d87f692360cdb636fef08",
+      "bytes": 11492
+    },
+    "components/misc/resourcehelpers.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "c73163541d16e7a472ebb86929730bf0feb6151b"
+      },
+      "reason": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases.",
+      "after": {
+        "mode": "100644",
+        "blob": "53a68c41f654f26edfd7ba406c2a38f10e0567c0"
+      },
+      "sha256": "ce70f7e78923a64039f6e5ca5edad70e7069b6c39cf06451a9942d7d278b9127",
+      "bytes": 3504
     }
   }
 }

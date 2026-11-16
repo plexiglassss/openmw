@@ -15,7 +15,9 @@ while depth:
 body = source[start:end]
 preamble = r'''
 #include <components/vfs/pathutil.hpp>
+#include <components/misc/resourcehelpers.hpp>
 #include <cassert>
+#include <array>
 #include <map>
 #include <set>
 #include <vector>
@@ -24,12 +26,18 @@ preamble = r'''
 using VFS::Path::Normalized;
 using VFS::Path::NormalizedView;
 int corrections=0, actorCorrections=0, templates=0, instances=0, shapes=0, keys=0, attempts=0;
-bool failOnce=false, abortOnInstance=false;
+int templatesBeforeFirstKey=-1;
+bool failOnce=false, abortOnInstance=false, abortOnKey=false, failKeyOnce=false;
 namespace VFS {
 struct Manager {
     std::set<std::string> files;
     mutable int checks=0;
     bool exists(const Normalized& p) const { ++checks; return files.count(p.value()); }
+    std::vector<Normalized> getRecursiveDirectoryIterator(std::string_view prefix) const {
+        std::vector<Normalized> result;
+        for (const auto& file : files) if(file.starts_with(prefix)) result.emplace_back(file);
+        return result;
+    }
 };
 }
 namespace Misc {
@@ -39,6 +47,7 @@ namespace ResourceHelpers {
 Normalized correctMeshPath(NormalizedView path) { ++corrections; return NormalizedView("meshes")/path; }
 Normalized correctActorModelPath(const Normalized& path, const VFS::Manager*) {
     ++actorCorrections;
+    if(path.value()=="meshes/direct.nif")return Normalized("meshes/xdirect.nif");
     return path.value()=="meshes/alias.nif" ? Normalized("meshes/a.nif") : path;
 }
 }}
@@ -60,7 +69,9 @@ struct Bullet {
  int cacheInstance(const Normalized&) { ++instances; if(abortOnInstance)mAbort=true; return 100+instances; }
  int getShape(const Normalized&) { ++shapes; return 2; }
 } bullet;
-struct Keyframes { int get(const Normalized&){++keys;return 3;} } keyframes;
+std::set<std::string> requestedKeys;
+struct Keyframes { int get(const Normalized& p){requestedKeys.insert(p.value());if(keys==0)templatesBeforeFirstKey=templates;++keys;if(abortOnKey)mAbort=true;
+ if(failKeyOnce){failKeyOnce=false;throw std::runtime_error("expected keyframe failure");}return 3;} } keyframes;
 struct Terrain { void cacheCell(int*,int,int){} } terrain;
 struct Land {int getLand(CellLocation){return 4;}} land;
 auto* mSceneManager=&scene;
@@ -69,11 +80,12 @@ auto* mKeyframeManager=&keyframes;
 auto* mTerrain=&terrain;
 auto* mLandManager=&land;
 std::unique_ptr<int> mTerrainView;
-bool mIsExterior=false,mPreloadInstances=true;
+bool mIsExterior=false,mPreloadInstances=true,mPreloadAdditionalAnimations=false;
 CellLocation mCellLocation;
 int mCellId=0;
 std::vector<NormalizedView> mMeshes;
 std::vector<NormalizedView> mInstanceMeshes;
+std::vector<NormalizedView> mAnimationMeshes;
 std::vector<int> mInstanceTickets;
 std::set<int> mPreloadedObjects;
 void run()
@@ -81,7 +93,8 @@ void run()
 tests = r'''
 void reset() {
  corrections=actorCorrections=templates=instances=shapes=keys=attempts=0;
- scene.vfs.checks=0; mAbort=false; failOnce=false; abortOnInstance=false;
+ scene.vfs.checks=0; mAbort=false; failOnce=false; abortOnInstance=false; abortOnKey=false; failKeyOnce=false;
+ mPreloadAdditionalAnimations=false; mAnimationMeshes.clear(); requestedKeys.clear(); templatesBeforeFirstKey=-1;
  mPreloadInstances=true; mPreloadedObjects.clear();
  scene.vfs.files={"meshes/a.nif","meshes/xanim.nif","meshes/xanim.kf"};
 }
@@ -103,6 +116,38 @@ int main() {
  assert(attempts==2 && templates==1 && instances==1 && corrections==1);
  reset(); mMeshes.assign(20,NormalizedView("a.nif"));mAbort=true;run();assert(corrections==0);
  reset();abortOnInstance=true;run();assert(instances==1 && templates==1);
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("a.nif")};mMeshes.assign(20,NormalizedView("a.nif"));
+ scene.vfs.files.insert({"animations/a/idle.kf","animations/a/sub/walk.kf","animations/a/bones.nif","animations/a/readme.txt"});
+ run();assert(keys==2 && templates==2 && instances==20);
+ reset();mMeshes={NormalizedView("a.nif")};
+ scene.vfs.files.insert({"animations/a/idle.kf","animations/a/bones.nif"});run();
+ assert(keys==0 && templates==1); // comparison/settings-off path retains ordinary loading
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("a.nif")};mMeshes={NormalizedView("a.nif")};
+ for(int i=0;i<5000;++i)scene.vfs.files.insert("animations/a/"+std::to_string(i)+".kf");
+ run();assert(keys==4096 && templates==1); // bounded work even with huge mod directories
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("a.nif")};mMeshes={NormalizedView("a.nif")};
+ scene.vfs.files.insert({"animations/a/first.kf","animations/a/second.kf"});
+ abortOnKey=true;run();assert(keys==1 && templates==1);
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("a.nif")};mMeshes={NormalizedView("a.nif")};
+ scene.vfs.files.insert({"animations/a/first.kf","animations/a/second.kf"});
+ failKeyOnce=true;run();assert(keys==2 && templates==1);
+ run();assert(keys==4 && templates==2); // retry in a later job, including the previously failed resource
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("only-kf.nif")};
+ mMeshes={NormalizedView("only-kf.nif")};
+ scene.vfs.files.insert({"meshes/only-kf.kf","animations/only-kf/extra.kf","animations/only-kf/bones.nif"});
+ run();assert(keys==2 && templates==1 && instances==0);
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("a.nif")};
+ mMeshes={NormalizedView("a.nif"),NormalizedView("b.nif")};
+ scene.vfs.files.insert({"meshes/b.nif","animations/a/idle.kf"});
+ run();assert(templates==2 && templatesBeforeFirstKey==2); // known models finish before optional animations
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("direct.nif")};mMeshes.clear();
+ scene.vfs.files.insert({"meshes/direct.kf","meshes/xdirect.kf","animations/direct/extra.kf","animations/xdirect/extra.kf"});
+ run();assert(keys==4 && requestedKeys.contains("meshes/direct.kf") && requestedKeys.contains("meshes/xdirect.kf"));
+ reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("meshes/a.nif")};
+ mMeshes={NormalizedView("meshes/a.nif")};
+ scene.vfs.files.insert({"meshes/a.kf","animations/a/idle.kf"});
+ run();assert(templates==1 && instances==1 && keys==2 && requestedKeys.contains("meshes/a.kf"));
+ assert(Misc::ResourceHelpers::additionalAnimationPath(NormalizedView("meshes/a.nif"))->value()=="animations/a/");
  std::cout << "PASS: actual preload body preserves instance counts, aliases, keyframes, missing paths, next-job refresh, retries and aborts; 2000 repeated paths resolve once\n";
 }
 '''

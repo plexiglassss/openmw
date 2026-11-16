@@ -1,9 +1,12 @@
 #include "scene.hpp"
 
 #include <components/diagnostics/exteriorarrival.hpp>
-#include <components/esm4/loaddoor.hpp>
-#include <components/esm4/loadcell.hpp>
+#include <components/diagnostics/loading.hpp>
 #include <components/diagnostics/timing.hpp>
+#include <components/esm4/loadcell.hpp>
+#include <components/esm4/loaddoor.hpp>
+
+#include <array>
 
 #include <atomic>
 #include <chrono>
@@ -63,7 +66,7 @@ namespace
     using MWWorld::RotationOrder;
 
     // A handful of records per transition, available in the ordinary log without
-    // requiring a timing CSV or adding a clock read for every inserted object.
+    // requiring a timing CSV. Detailed resource stages are captured per insertion below.
     class TransitionTimer
     {
         using Clock = std::chrono::steady_clock;
@@ -149,12 +152,14 @@ namespace
 
         const VFS::Path::Normalized model = [&] {
             Diagnostics::Scope phase("scene-object", "insert", "model");
+            Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellModel);
             return getModel(ptr);
         }();
         const auto rotation = makeDirectNodeRotation(ptr);
 
         {
             Diagnostics::Scope phase("scene-object", "insert", "rendering");
+            Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellRendering);
             ESM::RefNum refnum = ptr.getCellRef().getRefNum();
             if (!refnum.hasContentFile() || !std::binary_search(pagedRefs.begin(), pagedRefs.end(), refnum))
                 ptr.getClass().insertObjectRendering(ptr, model, rendering);
@@ -165,6 +170,7 @@ namespace
 
         {
             Diagnostics::Scope phase("scene-object", "insert", "mechanicsAndEffects");
+            Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellMechanics);
             if (ptr.getClass().useAnim())
                 MWBase::Environment::get().getMechanicsManager()->add(ptr);
 
@@ -177,10 +183,12 @@ namespace
         if (!model.empty())
         {
             Diagnostics::Scope phase("scene-object", "insert", "physics");
+            Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellPhysics);
             ptr.getClass().insertObject(ptr, model, rotation, physics);
         }
         {
             Diagnostics::Scope phase("scene-object", "insert", "luaNotification");
+            Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellLua);
             MWBase::Environment::get().getLuaManager()->objectAddedToScene(ptr);
         }
     }
@@ -302,7 +310,10 @@ namespace
             }
 
             if (mLoadingListener != nullptr)
+            {
+                Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellProgress);
                 mLoadingListener->increaseProgress(1);
+            }
         }
     }
 
@@ -1175,6 +1186,10 @@ namespace MWWorld
         CellStore& cell, Loading::Listener* loadingListener, const DetourNavigator::UpdateGuard* navigatorUpdateGuard)
     {
         TransitionTimer transition("object insertion");
+        Diagnostics::Loading::Metrics metrics;
+        Diagnostics::Loading::Session capture(metrics);
+        const auto started = Diagnostics::Loading::Clock::now();
+        std::array<std::pair<double, ESM::RefId>, 3> slowest;
         const bool isInterior = !cell.isExterior();
         const auto description = cell.getCell()->getDescription();
         InsertVisitor insertVisitor(cell, loadingListener);
@@ -1185,8 +1200,17 @@ namespace MWWorld
         transition.phase("collect objects");
         {
             Diagnostics::Scope phase("scene-cell", description, "renderAndPhysicsObjects");
-            insertVisitor.insert(
-                [&](const MWWorld::Ptr& ptr) { addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering); });
+            insertVisitor.insert([&](const MWWorld::Ptr& ptr) {
+                const auto begin = Diagnostics::Loading::Clock::now();
+                addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering);
+                const double elapsed = Diagnostics::Loading::milliseconds(Diagnostics::Loading::Clock::now() - begin);
+                if (elapsed > slowest.back().first)
+                {
+                    slowest.back() = { elapsed, ptr.getCellRef().getRefId() };
+                    std::sort(
+                        slowest.begin(), slowest.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+                }
+            });
         }
         transition.phase("rendering and physics");
         {
@@ -1196,6 +1220,14 @@ namespace MWWorld
             });
         }
         transition.phase("navigation objects");
+        const double total = Diagnostics::Loading::milliseconds(Diagnostics::Loading::Clock::now() - started);
+        if (total >= 50)
+        {
+            Log(Debug::Info) << "Cell resource timing: " << description << " totalMs=" << total << metrics;
+            for (const auto& [elapsed, id] : slowest)
+                if (elapsed >= 25)
+                    Log(Debug::Info) << "Cell slow object: " << id << " totalMs=" << elapsed;
+        }
     }
 
     void Scene::addObjectToScene(const Ptr& ptr)

@@ -528,6 +528,15 @@ namespace Terrain
         if (!isCullVisitor && nv.getVisitorType() != osg::NodeVisitor::INTERSECTION_VISITOR)
             return;
 
+        Diagnostics::Loading::Metrics cullMetrics;
+        std::optional<Diagnostics::Loading::Session> cullCapture;
+        Diagnostics::Loading::Clock::time_point cullStart{};
+        if (isCullVisitor)
+        {
+            cullCapture.emplace(cullMetrics);
+            cullStart = Diagnostics::Loading::Clock::now();
+        }
+
         std::optional<Diagnostics::Scope> acceptTiming;
         if (!isCullVisitor)
             acceptTiming.emplace("terrain", "ray", "accept");
@@ -540,6 +549,7 @@ namespace Terrain
             std::optional<Diagnostics::Scope> selectTiming;
             if (!isCullVisitor)
                 selectTiming.emplace("terrain", "ray", "selectLod");
+            Diagnostics::Loading::Timer selection(Diagnostics::Loading::Stage::ViewSelection);
             vd->reset();
             DefaultLodCallback lodCallback(
                 mLodFactor, mMinSize, mViewDistance, mActiveGrid, ESM::getCellSize(mWorldspace));
@@ -560,6 +570,7 @@ namespace Terrain
             std::chrono::steady_clock::time_point attachmentStart;
             ViewDataEntry& entry = vd->getEntry(i);
             {
+                Diagnostics::Loading::Timer prepare(Diagnostics::Loading::Stage::CullPrepare);
                 std::optional<Diagnostics::Scope> prepareTiming;
                 if (!isCullVisitor)
                     prepareTiming.emplace("terrain", "ray", "prepareRenderingNode");
@@ -603,6 +614,7 @@ namespace Terrain
                 }
             }
             {
+                Diagnostics::Loading::Timer traverse(Diagnostics::Loading::Stage::CullTraverse);
                 std::optional<Diagnostics::Scope> traverseTiming;
                 if (!isCullVisitor)
                     traverseTiming.emplace("terrain", "ray", "traverseRenderingNode");
@@ -627,6 +639,14 @@ namespace Terrain
         {
             vd->setLastUsageTimeStamp(referenceTime);
             mViewDataMap->clearUnusedViews(referenceTime);
+        }
+        if (isCullVisitor)
+        {
+            const double elapsed = Diagnostics::Loading::milliseconds(Diagnostics::Loading::Clock::now() - cullStart);
+            if (elapsed >= 50)
+                Log(Debug::Info) << "Terrain cull timing: totalMs=" << elapsed << " view=" << viewPoint.x() << ','
+                                 << viewPoint.y() << ',' << viewPoint.z() << " entries=" << vd->getNumEntries()
+                                 << cullMetrics;
         }
     }
 

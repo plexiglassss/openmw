@@ -1,9 +1,11 @@
 #ifndef MISC_RESOURCEHELPERS_H
 #define MISC_RESOURCEHELPERS_H
 
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include <components/vfs/pathutil.hpp>
 
@@ -24,6 +26,20 @@ namespace Misc
     // so we have the opportunity to use proper resource handling for content created in OpenMW-CS.
     namespace ResourceHelpers
     {
+        inline std::optional<VFS::Path::Normalized> additionalAnimationPath(VFS::Path::NormalizedView model)
+        {
+            constexpr std::string_view meshes = "meshes/";
+            if (!model.value().starts_with(meshes))
+                return std::nullopt;
+            std::string path(model.value());
+            const auto extension = path.find_last_of(VFS::Path::extensionSeparator);
+            if (extension == std::string::npos)
+                return std::nullopt;
+            path.replace(extension, path.size() - extension, "/");
+            path.replace(0, meshes.size(), "animations/");
+            return VFS::Path::Normalized(std::move(path));
+        }
+
         bool changeExtensionToDds(std::string& path);
         VFS::Path::Normalized correctResourcePath(std::span<const VFS::Path::NormalizedView> topLevelDirectories,
             VFS::Path::NormalizedView resPath, const VFS::Manager& vfs, VFS::Path::ExtensionView ext = {});
