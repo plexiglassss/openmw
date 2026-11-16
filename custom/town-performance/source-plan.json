@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 537202b8 exterior preparation baseline.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -34,7 +34,8 @@
     "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2",
     "38c80a93e54cebcead57d097cff9b24e7704129b",
     "42f018918f81a73f7ae0dafa73cef8e3c8e75fa0",
-    "7affe8489b152bb63895676c4ee6e2d747554ea8"
+    "7affe8489b152bb63895676c4ee6e2d747554ea8",
+    "537202b8deb72c3d19d07440af2aa521b2604ea4"
   ],
   "files": {
     ".github/workflows/push.yml": {
@@ -44,11 +45,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9a4a86f54b6c2b9a976b7d6727a904cd8c5ee5f6"
+        "blob": "1036043e3a728a65a52062b2e289daad75678981"
       },
-      "sha256": "951dd9c2124d05464b71b1e10d74bbdbf153f30b1eb7243bb3b94082fdb14cb6",
-      "bytes": 71185,
-      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package."
+      "sha256": "2e29ae288fcf9904d4b3a9dc71c5ac90a2fc19e38411555cd0dff2f8d893fdf6",
+      "bytes": 71218,
+      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -365,11 +366,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5f90284ea2d312692dd240e13680af7ad789c8cf"
+        "blob": "e712dc6a5d3b250d5b38f25aa4d9e5fd49c68023"
       },
-      "bytes": 44188,
-      "sha256": "ab46470c6eb99db78250d09931f3d6bcbef051f07d125b080abe69588241a841",
-      "reason": "Native tooltip integration: apps/openmw/mwgui/tooltips.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior."
+      "sha256": "58939ce0c1ae723344d08dc1e82a5aeb88459456b5cde7eb3f0a68fbb867e700",
+      "bytes": 44587,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection."
     },
     "apps/openmw/mwgui/tooltips.hpp": {
       "before": {
@@ -3013,11 +3014,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "73eb44b9c0a95cf4e4e4c73563a4a9436d0cb10c"
+        "blob": "bffb4d2701537c68d454d39782f7a07eed92f36d"
       },
-      "bytes": 24709,
-      "sha256": "fc1ff95b0df91bcde9ea15af64dd1aeed8d17aefaa0b61641fb90cb7f54f55fa",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
+      "sha256": "75d97e98e85872e390fbdfbf8b557cebaf6ecc39dca05983ac03b8566b3d289b",
+      "bytes": 24769,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection."
     },
     "components/esm/formid.cpp": {
       "before": {
@@ -3092,11 +3093,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b85010c9c9e29935e7e8356a439abdb627a216d1"
+        "blob": "e55618fe050867c4ce2f3fb343ffd2398f4d462d"
       },
-      "bytes": 15052,
-      "sha256": "774d75dc451390c25fa0b0426872a1465cade3e65fa9160afa5270defdf72142",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
+      "sha256": "11d31ea194ebd6b6452667ed97767f7e38626f9f638eed36cb899b3656e08988",
+      "bytes": 16115,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection."
     },
     "apps/openmw/mwlua/magicbindings.hpp": {
       "before": {

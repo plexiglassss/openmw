@@ -359,7 +359,8 @@ namespace MWGui
                 const int top = std::max(0, int(mFocusToolTipY * viewSize.height - tooltipSize.height - 20));
                 setCoord(left, top, tooltipSize.width, tooltipSize.height);
 
-                mDynamicToolTipBox->setVisible(!mLuaTooltipBox->getVisible());
+                mDynamicToolTipBox->setVisible(tooltipSize.width > 0 && tooltipSize.height > 0
+                    && !mLuaTooltipBox->getVisible());
             }
         }
     }
@@ -413,13 +414,21 @@ namespace MWGui
         MyGUI::IntSize tooltipSize;
 
         const MWWorld::Class& object = mFocusObject.getClass();
-        if (Settings::gui().mEnhancedWorldTooltips && object.hasToolTip(mFocusObject) && !mFullHelp && !MWBase::Environment::get().getWindowManager()->isGuiMode()
+        if (object.hasToolTip(mFocusObject) && !mFullHelp && !MWBase::Environment::get().getWindowManager()->isGuiMode()
             && mLuaTooltipElement && mLuaTooltipObject == mFocusObject && mLuaTooltipElement->mRoot
             && mLuaTooltipElement->mState != LuaUi::Element::Destroy
             && mLuaTooltipElement->mState != LuaUi::Element::Destroyed)
         {
             const auto size = mLuaTooltipAdapter->getSize();
-            if (size.width > 0 && size.height > 0)
+            // An explicit empty override suppresses this focused world label
+            // independently of whether rich world tooltips are enabled.
+            if (size.width <= 0 || size.height <= 0)
+            {
+                mLuaTooltipBox->setVisible(false);
+                mDynamicToolTipBox->setVisible(false);
+                return {};
+            }
+            if (Settings::gui().mEnhancedWorldTooltips)
             {
                 const bool owned = (Settings::game().mShowOwned == 1 || Settings::game().mShowOwned == 3) && isOwned;
                 if (owned != mLuaTooltipOwned)

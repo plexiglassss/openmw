@@ -1,7 +1,7 @@
 name: OpenMW - combined native performance
 on:
   push:
-    branches: [perf/generic-native-jobs-20261109]
+    branches: [perf/generic-native-jobs-20261109, fix/quickloot-tooltips-20261116]
   pull_request:
     branches: [perf/gameplay-activation-20261106]
     types: [opened, synchronize, reopened]

@@ -86,6 +86,25 @@
 -- end
 
 ---
+-- True when a live zero-size world-tooltip override intentionally hides the
+-- focused object's native tooltip. Older engines without this capability may
+-- fall back to the native label instead. Available to player scripts.
+-- @field [parent=#ui] #boolean worldTooltipSuppressionSupported
+
+---
+-- Override the tooltip for the current world-focus object with a Lua UI Element.
+-- A live element whose measured width or height is zero suppresses the native
+-- tooltip when worldTooltipSuppressionSupported is true, even if enhanced
+-- world tooltips are disabled. Positive-size overrides still require that
+-- setting. Passing nil clears
+-- the override and restores normal fallback. This does not replace tooltips in
+-- GUI modes or full-help mode, and invalid/destroyed/mismatched overrides still
+-- use the native fallback. Changes are queued for the native UI update.
+-- @function [parent=#ui] setWorldTooltip
+-- @param openmw.core#GameObject object The world object, or nil to clear.
+-- @param #Element element The replacement element, or nil to clear.
+
+---
 -- Predefined colors for console output
 -- @field [parent=#ui] #CONSOLE_COLOR CONSOLE_COLOR
 
