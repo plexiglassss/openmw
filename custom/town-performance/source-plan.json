@@ -4234,11 +4234,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "44798b4db1aa47ac41c363f00ce8c5fdc45984a1"
+        "blob": "a2f3c7277a021e66081b29ab67c1de5526eb5d62"
       },
-      "bytes": 20889,
-      "sha256": "94718b1465bc242d60fd8f57ef84c32afcaa4bcf033caf68c43c7da0d1804ec4",
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Verify the new read-mode observation while reconstructing the exact original frame collector. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+      "bytes": 21221,
+      "sha256": "5a76f1a8e113b0dc5aa41dbab1768c7b1153c2fa27afc1d527b07b817e89acf8",
+      "reason": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks."
     },
     "custom/performance-capture/Start-Capture.ps1": {
       "before": {
