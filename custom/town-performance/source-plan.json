@@ -2891,11 +2891,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a4a817b4f4ea9a94683368e010fa7eb1d5cb90c0"
+        "blob": "04de4d152ba0533389ab65deeb248215611944ad"
       },
-      "bytes": 2943,
-      "sha256": "d306ea5b7bff8bf5349b3be642f549c4c3a61cb14a24e9850327cfe8284ef421",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+      "bytes": 2970,
+      "sha256": "f5eb3433e93e54ea8a3fd720c01913a5ce3208eb3e9c3e4832a54b972fff2907",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Register the shared GPU skinning helper in generated shader resources."
     },
     "files/shaders/compatibility/bs/default.frag": {
       "before": {

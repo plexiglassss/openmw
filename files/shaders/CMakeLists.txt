@@ -26,6 +26,7 @@ set(SHADER_FILES
     lib/core/lighting_vertex_legacy.glsl
     lib/core/lighting_fragment_impl.glsl
     lib/core/lighting_vertex_impl.glsl
+    lib/core/skinning.glsl
     lib/core/vertex.glsl
     lib/core/vertex.h.glsl
     lib/core/vertex_multiview.glsl
