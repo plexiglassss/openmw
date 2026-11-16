@@ -47,6 +47,7 @@
 #include <components/misc/rng.hpp>
 #include <components/nifosg/autotransform.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/shader/shadermanager.hpp>
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/asyncpreparation.hpp>
 #include <osg/GraphicsContext>
@@ -168,9 +169,11 @@ namespace MWRender
     {
         using Requests = SceneUtil::AsyncPreparation<ChunkId, osg::ref_ptr<osg::Node>>;
         Requests mRequests;
+        SceneUtil::CompileReadinessCache mCompleted;
         using Contexts = std::vector<std::pair<const osg::GraphicsContext*, unsigned>>;
-        using Generation = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t,
+        using ResourceGeneration = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t,
             const osgUtil::IncrementalCompileOperation*, Contexts>;
+        using Generation = std::pair<std::uint64_t, ResourceGeneration>;
         Generation mGeneration;
         bool mInitialized = false;
         osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
@@ -204,12 +207,18 @@ namespace MWRender
                 ++it;
             }
         }
-        AsyncState::Generation generation{ mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision(),
-            mSceneManager->modelSettingsRevision(), mGraphicsRevision.load(), operation, std::move(contextIds) };
+        AsyncState::Generation generation{ mSelectionRevision.load(),
+            { mSceneManager->getVFS()->getIndexRevision(), mSceneManager->modelSettingsRevision(),
+                mGraphicsRevision.load(), mSceneManager->getShaderManager().compileRevision(),
+                operation, std::move(contextIds) } };
         bool changed = generation != mAsync->mGeneration;
         if (changed)
         {
             mAsync->mRequests.clear();
+            // Selection edits already remove affected CPU chunks. Receipts for
+            // unchanged cached nodes remain valid across view/grid rebuilds.
+            if (generation.second != mAsync->mGeneration.second)
+                mAsync->mCompleted.clear();
             mAsync->mGeneration = std::move(generation);
             mAsync->mOperation = operation;
             mAsync->mContexts = std::move(contexts);
@@ -243,6 +252,8 @@ namespace MWRender
         if (!mAsync || chunk.mActiveGrid || !mAsync->mOperation || mAsync->mContexts.empty())
             return {};
         const ChunkId key(chunk.mCenter, chunk.mSize, false);
+        if (auto cached = getCachedChunk(key); cached && mAsync->mCompleted.contains(cached))
+            return { true, true, std::move(cached) };
         const auto result = mAsync->mRequests.request(key, referenceTime,
             [this, chunk, viewPoint, contexts = mAsync->mContexts, owners = mAsync->mContextOwners,
                 operation = mAsync->mOperation]
@@ -265,6 +276,8 @@ namespace MWRender
                     throw;
                 }
             });
+        if (result.mReady)
+            mAsync->mCompleted.remember(result.mValue);
         return { true, result.mReady, result.mValue };
     }
 

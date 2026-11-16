@@ -8,6 +8,7 @@
 #include <osg/GraphicsContext>
 #include <osg/State>
 
+#include <algorithm>
 #include <mutex>
 #include <stdexcept>
 
@@ -99,6 +100,37 @@ namespace SceneUtil
         // Use an admission estimate, not a claim of measured RAM/VRAM usage.
         result.mEstimatedBytes += state._textures.size() * 4ull * 1024 * 1024;
         return result;
+    }
+
+    bool CompileReadinessCache::contains(const osg::ref_ptr<osg::Node>& node)
+    {
+        const auto found = mEntries.find(node.get());
+        if (found == mEntries.end())
+            return false;
+        osg::ref_ptr<osg::Node> observed;
+        if (!found->second.mNode.lock(observed) || observed != node)
+        {
+            // A recycled address must not inherit the previous node's receipt.
+            mEntries.erase(found);
+            return false;
+        }
+        found->second.mLastUse = ++mUse;
+        return true;
+    }
+
+    void CompileReadinessCache::remember(const osg::ref_ptr<osg::Node>& node)
+    {
+        if (!node || !mMaximumEntries)
+            return;
+        if (!mEntries.contains(node.get()) && mEntries.size() >= mMaximumEntries)
+        {
+            const auto oldest = std::min_element(mEntries.begin(), mEntries.end(),
+                [](const auto& a, const auto& b) { return a.second.mLastUse < b.second.mLastUse; });
+            // Evict only a weak receipt. Locking arbitrary old nodes here could
+            // make their final heavy graph destruction run on the owner thread.
+            mEntries.erase(oldest);
+        }
+        mEntries.insert_or_assign(node.get(), Entry{ osg::observer_ptr<osg::Node>(node), ++mUse });
     }
 
     CompilePriorityVisitor::CompilePriorityVisitor()

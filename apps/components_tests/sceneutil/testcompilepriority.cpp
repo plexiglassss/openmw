@@ -1,4 +1,5 @@
 #include <components/sceneutil/compilepriority.hpp>
+#include <components/sceneutil/asyncpreparation.hpp>
 
 #include <osg/Group>
 #include <osg/Texture2D>
@@ -6,6 +7,11 @@
 #include <osg/GraphicsContext>
 #include <osg/State>
 #include <gtest/gtest.h>
+
+#include <chrono>
+#include <latch>
+#include <new>
+#include <thread>
 
 namespace
 {
@@ -26,6 +32,118 @@ namespace
         void bindPBufferToTextureImplementation(GLenum) override {}
         void swapBuffersImplementation() override {}
     };
+
+    TEST(CompileReadinessCache, DoesNotKeepSceneGraphsAlive)
+    {
+        struct Node final : osg::Group
+        {
+            bool& mDestroyed;
+            explicit Node(bool& destroyed) : mDestroyed(destroyed) {}
+            ~Node() override { mDestroyed = true; }
+        };
+        SceneUtil::CompileReadinessCache cache;
+        bool destroyed = false;
+        osg::ref_ptr<osg::Node> node = new Node(destroyed);
+        cache.remember(node);
+        EXPECT_TRUE(cache.contains(node));
+        EXPECT_EQ(node->referenceCount(), 1);
+        node = nullptr;
+        EXPECT_TRUE(destroyed);
+        cache.clear();
+        EXPECT_EQ(cache.size(), 0u);
+    }
+
+    TEST(CompileReadinessCache, RecycledAddressCannotInheritReadiness)
+    {
+        struct Node final : osg::Group
+        {
+            // Deterministic allocator address reuse; ref_ptr still performs the
+            // real OSG destruction/observer notification before the next node.
+            static void operator delete(void*) {}
+        };
+        alignas(Node) unsigned char storage[sizeof(Node)];
+        SceneUtil::CompileReadinessCache cache;
+        osg::ref_ptr<osg::Node> first = ::new (static_cast<void*>(storage)) Node;
+        const auto address = first.get();
+        cache.remember(first);
+        first = nullptr;
+        osg::ref_ptr<osg::Node> replacement = ::new (static_cast<void*>(storage)) Node;
+        ASSERT_EQ(replacement.get(), address);
+        EXPECT_FALSE(cache.contains(replacement));
+        cache.remember(replacement);
+        EXPECT_TRUE(cache.contains(replacement));
+        replacement = nullptr;
+    }
+
+    TEST(CompileReadinessCache, EvictsLeastRecentlyUsedReceiptWithinLimit)
+    {
+        SceneUtil::CompileReadinessCache cache(2);
+        osg::ref_ptr<osg::Node> a = new osg::Group, b = new osg::Group, c = new osg::Group;
+        cache.remember(a);
+        cache.remember(b);
+        EXPECT_TRUE(cache.contains(a));
+        cache.remember(c);
+        EXPECT_EQ(cache.size(), 2u);
+        EXPECT_TRUE(cache.contains(a));
+        EXPECT_FALSE(cache.contains(b));
+        EXPECT_TRUE(cache.contains(c));
+        cache.remember(a);
+        EXPECT_EQ(cache.size(), 2u);
+        EXPECT_EQ(a->referenceCount(), 1);
+        EXPECT_EQ(b->referenceCount(), 1);
+        EXPECT_EQ(c->referenceCount(), 1);
+    }
+
+    TEST(CompileReadinessCache, ClearAndDisabledCacheNeverCertifyNodes)
+    {
+        SceneUtil::CompileReadinessCache cache, disabled(0);
+        osg::ref_ptr<osg::Node> node = new osg::Group;
+        cache.remember(nullptr);
+        EXPECT_FALSE(cache.contains(nullptr));
+        EXPECT_EQ(cache.size(), 0u);
+        cache.remember(node);
+        cache.clear();
+        EXPECT_FALSE(cache.contains(node));
+        disabled.remember(node);
+        EXPECT_FALSE(disabled.contains(node));
+        EXPECT_EQ(disabled.size(), 0u);
+    }
+
+    TEST(CompileReadinessCache, CompletedReceiptSurvivesHeavyRequestRetirement)
+    {
+        using Requests = SceneUtil::AsyncPreparation<int, osg::ref_ptr<osg::Node>>;
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Requests requests(queue);
+        SceneUtil::CompileReadinessCache cache;
+        osg::ref_ptr<osg::Node> node = new osg::Group;
+        auto gate = std::make_shared<std::atomic_bool>(false);
+        std::atomic_int calls{ 0 };
+        std::latch produced(1);
+        auto factory = [&](const std::atomic_bool&) {
+            ++calls;
+            produced.count_down();
+            return Requests::Prepared{ node, gate };
+        };
+        auto request = [&] {
+            auto result = requests.request(1, 0, factory);
+            if (result.mReady)
+                cache.remember(result.mValue);
+            return result.mReady;
+        };
+        EXPECT_FALSE(request());
+        produced.wait();
+        EXPECT_FALSE(request());
+        EXPECT_FALSE(cache.contains(node));
+        gate->store(true, std::memory_order_release);
+        const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        while (!request() && std::chrono::steady_clock::now() < end)
+            std::this_thread::yield();
+        ASSERT_TRUE(cache.contains(node));
+        requests.update(0.3);
+        EXPECT_EQ(requests.size(), 0u);
+        EXPECT_TRUE(cache.contains(node));
+        EXPECT_EQ(calls, 1);
+    }
 
     TEST(CompileReadiness, QueuedMarkersDoNotImplyCompletion)
     {

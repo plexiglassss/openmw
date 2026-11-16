@@ -101,3 +101,31 @@ active-cell insertion, exact rays, Lua activation and driver work can still stal
 may appear after their terrain while preparation finishes. Native/body tests validate lifecycle
 and fallback behavior; a same-save, same-route game recording is still required to measure the
 actual improvement and check visual behavior in the full installation.
+
+## Preserve completed scenery across view rebuilds
+
+The user reports better transition performance with the continuous-streaming build, but the
+16 November evening recording shows distant scenery repeatedly disappearing and returning
+on the same short route. Completed request records retire after 0.25 seconds; a cell-grid or
+LOD view rebuild could therefore queue graphics preparation again for an unchanged cached
+object node that had already been displayed.
+
+Object paging now remembers up to 512 completed nodes using weak lifetime references, outside
+the heavy request queue. A rebuilt view can immediately reuse the exact current cached node
+when its graphics completion is already known. These receipts retain no scene graphs and do
+not increase worker concurrency or the asset admission budget. Recycled addresses cannot
+inherit a previous node's readiness. Least recently used receipts are evicted at the limit.
+
+Selective object edits still invalidate affected CPU chunks and all pending requests; only
+unchanged current nodes can reuse their receipt. VFS, model settings, graphics-cache releases,
+compile-operation changes, graphics-context changes and shader source/template/GL revisions
+invalidate all receipts. This includes live lighting defines and shader hot reload. Pending and
+replacement nodes still pass through the completion gate. Active cells and exact rays retain
+their existing paths. There is no startup sweep or installation-specific content rule.
+
+Native tests cover weak ownership, address reuse, bounded eviction, invalidation and retention
+after request expiry. Production-body fixtures exercise reuse without queueing, replacement
+and pending nodes, selection changes, every graphics generation and compatibility fallback.
+This addresses avoidable repeat pop-in; new LOD/chunk shapes, resource-cache eviction and
+first-time distant detail can still arrive late. A new in-game recording is needed to confirm
+how much of the visible popping this removes in the user's installation.

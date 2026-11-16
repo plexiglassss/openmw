@@ -8,7 +8,8 @@ root = Path(__file__).resolve().parents[2]
 requirements = {
     'components-tests.xml': {'SceneInstanceCacheTest': 6, 'InstancePreparation': 3,
                              'WorkQueueCancellation': 3, 'CellPackagesTest': 4,
-                             'AsyncPreparation': 8, 'CompileReadiness': 3},
+                             'AsyncPreparation': 8, 'CompileReadiness': 3,
+                             'CompileReadinessCache': 5, 'ShaderManagerTest': 12},
     'cell-packages-legacy.xml': {'CellPackagesTest': 4},
     'openmw-tests.xml': {'PreloadDependenciesTest': 13},
 }

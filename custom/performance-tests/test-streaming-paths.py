@@ -24,8 +24,10 @@ source = r'''
 #include <cassert>
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -41,8 +43,36 @@ struct Vec2f {float a=0,b=0;float x()const{return a;}float y()const{return b;}
  bool operator<(const Vec2f& r)const{return std::tie(a,b)<std::tie(r.a,r.b);} };
 struct Vec3f {float a=0,b=0,c=0;Vec3f()=default;Vec3f(float x,float y,float z):a(x),b(y),c(z){} };
 struct Node {std::vector<Node*> children;void addChild(ref_ptr<Node> n){children.push_back(n.get());}};
+struct State {unsigned id=0;unsigned getContextID()const{return id;}};
+struct GraphicsContext {State state;State* getState(){return &state;}};
 }
-namespace SceneUtil {struct PositionAttitudeTransform:osg::Node {void setPosition(osg::Vec3f){}};}
+namespace osgUtil {struct IncrementalCompileOperation {
+ using ContextSet=std::set<osg::GraphicsContext*>;ContextSet contexts;
+ ContextSet getContextSet()const{return contexts;}
+ int adds=0;void add(int,bool){++adds;}void remove(int){}
+};}
+namespace SceneUtil {
+struct PositionAttitudeTransform:osg::Node {void setPosition(osg::Vec3f){}};
+struct WorkQueue {};
+// Only routing is doubled here; real weak references/queue completion are native-tested.
+struct CompileReadinessCache {
+ std::set<osg::Node*> nodes;
+ bool contains(osg::ref_ptr<osg::Node> n){return nodes.contains(n.get());}
+ void remember(osg::ref_ptr<osg::Node> n){if(n)nodes.insert(n.get());}
+ void clear(){nodes.clear();}
+};
+template<class Key,class Value>struct AsyncPreparation {
+ struct Prepared {Value mValue{};std::shared_ptr<std::atomic_bool> mCompletion{};std::function<void()> mCancel{};std::size_t mEstimatedBytes=0;};
+ struct Result {bool mReady=false,mFailed=false;Value mValue;};
+ Result next;int calls=0,clears=0;explicit AsyncPreparation(WorkQueue*){}
+ template<class Factory>Result request(const Key&,double,Factory){++calls;return next;}
+ void clear(){++clears;next={};}void update(double){}
+};
+struct Readiness {int mSet=0;std::shared_ptr<std::atomic_bool> mReady;std::size_t mEstimatedBytes=0;};
+Readiness prepareCompileReadiness(osg::ref_ptr<osg::Node>,osgUtil::IncrementalCompileOperation::ContextSet){return {};}
+}
+namespace Debug {enum {Warning};}
+struct Log {explicit Log(int){}template<class T>Log& operator<<(const T&){return *this;}};
 namespace Terrain {
 struct QuadTreeNode {osg::Vec2f getCenter()const{return {};}};
 struct DefaultLodCallback {static int getNativeLodLevel(QuadTreeNode*,float){return 0;}};
@@ -75,10 +105,16 @@ struct Cache {std::map<ChunkId,osg::ref_ptr<osg::Node>> values;
 };
 namespace Resource {template<class T>struct GenericResourceManager {Cache cache;Cache* mCache=&cache;void clearCache(){mCache->clear();}};}
 struct VFS {std::uint64_t revision=0;auto getIndexRevision()const{return revision;}};
-struct Scene {std::uint64_t revision=0;VFS vfs;auto modelSettingsRevision()const{return revision;}VFS* getVFS(){return &vfs;}};
+struct Shader {std::uint64_t revision=0;auto compileRevision()const{return revision;}};
+struct Scene {std::uint64_t revision=0;VFS vfs;Shader shader;osgUtil::IncrementalCompileOperation* operation=nullptr;
+ auto modelSettingsRevision()const{return revision;}VFS* getVFS(){return &vfs;}
+ Shader& getShaderManager(){return shader;}
+ auto* getIncrementalCompileOperation(){return operation;}};
 class ObjectPaging:public Resource::GenericResourceManager<ChunkId> {
 public:
  using ChunkRequest=Terrain::QuadTreeWorld::ChunkRequest;
+ using AsyncResult=Terrain::QuadTreeWorld::ChunkManager::AsyncResult;
+ struct AsyncState;std::unique_ptr<AsyncState> mAsync;
  using CacheEpoch=std::tuple<std::uint64_t,std::uint64_t,std::uint64_t>;
  struct Selection {std::uint64_t mRevision=0,mVfsRevision=0;CacheEpoch mEpoch{};};
  struct Operation {int adds=0;void add(int,bool){++adds;}} operation;
@@ -88,12 +124,15 @@ public:
  int builds=0;std::function<void()> duringCreate;
  CacheEpoch cacheEpoch()const;void refreshCacheEpoch();void clearCache();
  osg::ref_ptr<osg::Node> getCachedChunk(const ChunkId&);
+ bool updateAsyncState(double);AsyncResult requestChunk(const ChunkRequest&,const osg::Vec3f&,double);
  Selection selectChunk(const ChunkRequest&,const osg::Vec3f&,const std::atomic_bool*){return {mSelectionRevision.load(),scene.vfs.revision,cacheEpoch()};}
  osg::ref_ptr<osg::Node> createChunk(const ChunkRequest&,const osg::Vec3f&,const Selection&,bool,const std::atomic_bool*,bool,PendingCompile& p){
   ++builds;if(auto f=std::exchange(duringCreate,{}))f();p.mSet=builds;p.mOperation=&operation;return new osg::Node;}
  osg::ref_ptr<osg::Node> fetchChunk(const ChunkRequest&,const osg::Vec3f&,bool,const std::atomic_bool*,const Selection*,bool);
 };
-''' + '\n'.join(function(paging, s) for s in [
+''' + function(paging, '    struct ObjectPaging::AsyncState') + ';\n' + '\n'.join(function(paging, s) for s in [
+    '    bool ObjectPaging::updateAsyncState(',
+    '    ObjectPaging::AsyncResult ObjectPaging::requestChunk(',
     '    ObjectPaging::CacheEpoch ObjectPaging::cacheEpoch()',
     '    void ObjectPaging::refreshCacheEpoch()',
     '    osg::ref_ptr<osg::Node> ObjectPaging::getCachedChunk(',
@@ -131,7 +170,44 @@ int main(){
   ++paging.scene.revision;
   assert(!paging.getCachedChunk({{},1,false}));
  }
+ {
+  ObjectPaging paging;SceneUtil::WorkQueue queue;
+  osgUtil::IncrementalCompileOperation operation,otherOperation;
+  osg::GraphicsContext context,otherContext;operation.contexts={&context};
+  paging.scene.operation=&operation;paging.mAsync=std::make_unique<ObjectPaging::AsyncState>(&queue);
+  assert(!paging.updateAsyncState(0));
+  const ChunkId key{{},1,false};osg::Node original,replacement;
+  auto& jobs=paging.mAsync->mRequests;auto& completed=paging.mAsync->mCompleted;
+  auto poll=[&]{return paging.requestChunk(request,{},1);};
+  paging.cache.values[key]=&original;
+  jobs.next={false,false,&original};assert(!poll().mReady && !completed.contains(&original));
+  jobs.next={true,false,&original};assert(poll().mReady && completed.contains(&original));
+  // Rebuilt wrappers after retired queue records reuse the current completed node.
+  jobs.clear();int calls=jobs.calls;auto ready=poll();
+  assert(ready.mReady && ready.mNode.get()==&original && jobs.calls==calls);
+  ++paging.mSelectionRevision;assert(paging.updateAsyncState(2));
+  assert(completed.contains(&original) && poll().mReady && jobs.calls==calls);
+  // Selective CPU-cache invalidation must not transfer proof to a replacement.
+  paging.cache.values[key]=&replacement;
+  assert(!poll().mReady && jobs.calls==calls+1 && !completed.contains(&replacement));
+  request.mActiveGrid=true;assert(!poll().mSupported);request.mActiveGrid=false;
+  // Every non-selection invalidator retires both jobs and graphics receipts.
+  for(int kind=0;kind<7;++kind){
+   completed.remember(&original);const int clears=jobs.clears;
+   if(kind==0)++paging.scene.vfs.revision;
+   if(kind==1)++paging.scene.revision;
+   if(kind==2)++paging.mGraphicsRevision;
+   if(kind==3)++context.state.id;
+   if(kind==4)operation.contexts.insert(&otherContext);
+   if(kind==5){otherOperation.contexts=operation.contexts;paging.scene.operation=&otherOperation;}
+   if(kind==6)++paging.scene.shader.revision;
+   assert(paging.updateAsyncState(3+kind));
+   assert(!completed.contains(&original) && jobs.clears==clears+1);
+  }
+  paging.scene.operation=nullptr;assert(paging.updateAsyncState(10));assert(!poll().mSupported);
+ }
  std::cout<<"PASS: production traversal keeps terrain, separates ray/camera readiness, preserves active/compatibility paths and aborts; publication rejects clear/model/VFS changes during assembly\n";
+ std::cout<<"PASS: production requests reuse completed current nodes without new jobs; pending/replaced nodes and all graphics generations retain preparation gates\n";
 }
 '''
 with tempfile.TemporaryDirectory() as tmp:

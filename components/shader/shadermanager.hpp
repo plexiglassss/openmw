@@ -2,6 +2,8 @@
 #define OPENMW_COMPONENTS_SHADERMANAGER_H
 
 #include <array>
+#include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <map>
 #include <memory>
@@ -55,7 +57,15 @@ namespace Shader
             const SamplerBindingMap& samplers = {});
 
         const osg::Program* getProgramTemplate() const { return mProgramTemplate; }
-        void setProgramTemplate(const osg::Program* program) { mProgramTemplate = program; }
+        void setProgramTemplate(const osg::Program* program)
+        {
+            if (mProgramTemplate != program)
+                ++mCompileRevision;
+            mProgramTemplate = program;
+        }
+
+        // In-place shader changes invalidate completed scene compile receipts.
+        std::uint64_t compileRevision() const { return mCompileRevision.load(); }
 
         /// Clone an osg::Program including bindUniformBlocks that osg::Program::clone does not copy for some reason.
         static osg::ref_ptr<osg::Program> cloneProgram(const osg::Program*);
@@ -136,6 +146,7 @@ namespace Shader
         LinkedShadersMap mLinkedShaders;
 
         std::mutex mMutex;
+        std::atomic_uint64_t mCompileRevision{ 0 };
 
         osg::ref_ptr<const osg::Program> mProgramTemplate;
 

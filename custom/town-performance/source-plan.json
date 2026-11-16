@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -38,7 +38,8 @@
     "537202b8deb72c3d19d07440af2aa521b2604ea4",
     "8ba2af821cd550a406b67977f830fd9125e80f45",
     "dd179b236099280c813933ad5404439b62f11d96",
-    "5a97f88c81d9b44bc19c22c18ddc3c2b4870f5ec"
+    "5a97f88c81d9b44bc19c22c18ddc3c2b4870f5ec",
+    "9ebf8a4179b9a199892981e56738e291ed7c7706"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -260,11 +261,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "fb55e18371ef42456e8ac47bb2f35300c179cddd"
+        "blob": "e3c4baf606671c9b5b212295bdcd8971d4ff4ede"
       },
-      "bytes": 7039,
-      "sha256": "42f818861fa1bd95e72237649a7e11db8c764f6160130e7c7e3aaee2a889052f",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 11483,
+      "sha256": "9d25d4da17d6cd25e9e2f9545b24a2ea1936c4713209b922f69c2cc473da3841",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "apps/components_tests/sceneutil/testgpuskinning.cpp": {
       "before": null,
@@ -326,11 +327,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "7a66f082dee6d691a8f92dafed3acf915d3cdee6"
+        "blob": "65b5b53c38e17545d77b32a24a0f01cca25c3dce"
       },
-      "bytes": 8799,
-      "sha256": "d6fcfee2a5f15f9c449de26ed630b794a4f2518bd68b2c51dbe2b2a4ff8e6256",
-      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite."
+      "bytes": 11667,
+      "sha256": "e746ff647c339ed099dc6cd3436143793723653e291b2f9f4af3c9e89b60a8fe",
+      "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "apps/components_tests/terrain/testpagingray.cpp": {
       "before": null,
@@ -1401,11 +1402,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f2245aa9bfb875e6f05c2c1bc40ca660521ff847"
+        "blob": "abda898aa6d4e504409939c64727170c2819eb40"
       },
-      "bytes": 68429,
-      "sha256": "08e4be2198dea4d72ae999177925e3884670bd7ce1b63ee1694ca414f7b5f241",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 69197,
+      "sha256": "0346571b4d9780e10afd03ae273313d5e5ed6303df6c69ad4e37e222eb6b8c1b",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "apps/openmw/mwrender/objectpaging.hpp": {
       "before": {
@@ -2564,21 +2565,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "6355cb7f16b7327d728eb6eda542dcd882151c9f"
+        "blob": "900a46391d099823cb8aef55555035cf45cc7307"
       },
-      "bytes": 6578,
-      "sha256": "b20c9d02824bbd89eb3302bdf5eb842fb3e01624441b8f2827de0e2083f3b984",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 7875,
+      "sha256": "cbd53ebe4b2c58485aaf0ed9aa525c7094796ab44351a7dc4ac010b6891e06c0",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "components/sceneutil/compilepriority.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ee532d6d0313abe1f23c5a7e3bdd385c39043f25"
+        "blob": "5646c931d56867e51484f536c7e41350ed12a0b4"
       },
-      "bytes": 2092,
-      "sha256": "674b6f81542aac10bf347259c9e842fd428b0c7e52600d9d0e1e1428a30f7523",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 3079,
+      "sha256": "1774aec31a9214dd20b1b4652f35b0ed07844159feb78ec26151457017d97144",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "components/sceneutil/glextensions.cpp": {
       "before": {
@@ -2864,11 +2865,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "b6d53991ed980103a1a972148e97c095e35383f8"
+        "blob": "5512845e1d60d22db8e37452a790a617931d5d8b"
       },
-      "bytes": 37425,
-      "sha256": "9b2979b7680a3e649e29ba7e31815d52a9c73b65df2e719cf0078cf75aabec12",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
+      "bytes": 37592,
+      "sha256": "b212a1572bcfe8622a5c7e6897126fbfeb00b63881e845ae0c2d9f3cab861337",
+      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "components/shader/shadermanager.hpp": {
       "before": {
@@ -2877,11 +2878,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c15502e25296e13065526eed6abbe0ed435f5e2b"
+        "blob": "31f0aecff4e0321ebd6562c19157dd9a0087e923"
       },
-      "bytes": 6936,
-      "sha256": "e8d81a60521c0af00dcddf66dbeb51fadbed93584984b5b8a8fbc83c2f9dac7c",
-      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles."
+      "bytes": 7297,
+      "sha256": "2e6059629330fff49063bdf315113b318db1f4a4acfac749c76c80254774ebf9",
+      "reason": "Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "components/shader/shadervisitor.cpp": {
       "before": {
@@ -3076,21 +3077,21 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "228c774891f6d61610948c586cad39f4e8981f23"
+        "blob": "a6d7b955f5fa741d0cf2d685b3610f433affb04a"
       },
-      "sha256": "1758912af9350d3f0d550b91468bc6ccaae2a75649edbe5fe006834816519584",
-      "bytes": 7713,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "sha256": "4ec549aab2ae5ad942dffe44fdbc59aa3f5b4e38b01735c4828191f839de6671",
+      "bytes": 9728,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "custom/cell-streaming/verify-tests.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "bffa7919ca4536fd5f3a1d42991053311d4b3dfb"
+        "blob": "981eeac6362fe6937c807f48103fbf92ccd349d3"
       },
-      "sha256": "2e528d4cc0180465146e899151f1e79ec5ae58037dc48e409da1d89420c6a249",
-      "bytes": 1987,
-      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "sha256": "cc4428b50afc3f0f01f20033463ca59db3a11c9fca31dbe9be50ac80527dac33",
+      "bytes": 2069,
+      "reason": "Require executed cell preparation and Lua package parity cases in complete Windows build and package. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
     },
     "custom/combined-performance/.gitattributes": {
       "before": null,
@@ -4268,13 +4269,13 @@
     },
     "custom/performance-tests/test-streaming-paths.py": {
       "before": null,
-      "reason": "Continuous distant-object streaming and its lifecycle/compatibility regressions.",
+      "reason": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime.",
       "after": {
         "mode": "100644",
-        "blob": "b95c07d92ddaa515d4d7943634ecd12903f16552"
+        "blob": "ee84c95f716fdb5253ea0061f2c5da428fae4e19"
       },
-      "sha256": "ecb7f3fdd8975a08ff42da397aed78d3de310d237d606ae2e00de08c472c191d",
-      "bytes": 8798
+      "sha256": "5cbf1e8b122435a9c8757f10150b512d883e79b09ea84fc38936a41ac06dc189",
+      "bytes": 13398
     },
     "custom/performance-tests/test-transition-preload.py": {
       "before": {

@@ -281,6 +281,7 @@ namespace Shader
                         {
                             break;
                         }
+                        ++manager.mCompileRevision;
                         shaderIt->second->setShaderSource(shaderSource);
                     }
                 }
@@ -300,6 +301,8 @@ namespace Shader
 
     void ShaderManager::setShaderPath(const std::filesystem::path& path)
     {
+        if (mPath != path)
+            ++mCompileRevision;
         mPath = path;
     }
 
@@ -735,6 +738,7 @@ namespace Shader
     void ShaderManager::setGlobalDefines(DefineMap& globalDefines)
     {
         std::lock_guard<std::mutex> lock(mMutex);
+        ++mCompileRevision;
         mGlobalDefines = globalDefines;
         // clear out linked dependencies - changing defines may make them obsolete
         for (const auto& [pair, program] : mPrograms)
@@ -776,6 +780,7 @@ namespace Shader
     void ShaderManager::releaseGLObjects(osg::State* state)
     {
         std::lock_guard<std::mutex> lock(mMutex);
+        ++mCompileRevision;
         for (const auto& [_, shader] : mShaders)
         {
             if (shader != nullptr)
