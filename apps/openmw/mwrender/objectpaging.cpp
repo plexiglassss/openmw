@@ -48,6 +48,9 @@
 #include <components/nifosg/autotransform.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/sceneutil/asyncpreparation.hpp>
+#include <osg/GraphicsContext>
+#include <osg/State>
 #include <components/sceneutil/material.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
 #include <components/sceneutil/optimizer.hpp>
@@ -152,6 +155,7 @@ namespace MWRender
         std::vector<Item> mItems;
         std::uint64_t mRevision;
         std::uint64_t mVfsRevision;
+        CacheEpoch mEpoch;
     };
 
     struct ObjectPaging::PendingCompile
@@ -159,6 +163,110 @@ namespace MWRender
         osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
         osg::ref_ptr<osgUtil::IncrementalCompileOperation::CompileSet> mSet;
     };
+
+    struct ObjectPaging::AsyncState
+    {
+        using Requests = SceneUtil::AsyncPreparation<ChunkId, osg::ref_ptr<osg::Node>>;
+        Requests mRequests;
+        using Contexts = std::vector<std::pair<const osg::GraphicsContext*, unsigned>>;
+        using Generation = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t,
+            const osgUtil::IncrementalCompileOperation*, Contexts>;
+        Generation mGeneration;
+        bool mInitialized = false;
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
+        osgUtil::IncrementalCompileOperation::ContextSet mContexts;
+        std::vector<osg::ref_ptr<osg::GraphicsContext>> mContextOwners;
+        explicit AsyncState(SceneUtil::WorkQueue* queue) : mRequests(queue) {}
+    };
+
+    void ObjectPaging::setWorkQueue(SceneUtil::WorkQueue* queue)
+    {
+        if (queue && Misc::useAsyncObjectPaging())
+            mAsync = std::make_unique<AsyncState>(queue);
+        Log(Debug::Info) << "Distant object streaming: " << (mAsync ? "enabled" : "disabled")
+                         << "; active cells and exact queries retain immediate loading";
+    }
+
+    bool ObjectPaging::updateAsyncState(double referenceTime)
+    {
+        if (!mAsync)
+            return false;
+        auto* operation = mSceneManager->getIncrementalCompileOperation();
+        auto contexts = operation ? operation->getContextSet() : osgUtil::IncrementalCompileOperation::ContextSet{};
+        AsyncState::Contexts contextIds;
+        for (auto it = contexts.begin(); it != contexts.end();)
+        {
+            if (!*it || !(*it)->getState())
+                it = contexts.erase(it);
+            else
+            {
+                contextIds.emplace_back(*it, (*it)->getState()->getContextID());
+                ++it;
+            }
+        }
+        AsyncState::Generation generation{ mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision(),
+            mSceneManager->modelSettingsRevision(), mGraphicsRevision.load(), operation, std::move(contextIds) };
+        bool changed = generation != mAsync->mGeneration;
+        if (changed)
+        {
+            mAsync->mRequests.clear();
+            mAsync->mGeneration = std::move(generation);
+            mAsync->mOperation = operation;
+            mAsync->mContexts = std::move(contexts);
+            mAsync->mContextOwners.assign(mAsync->mContexts.begin(), mAsync->mContexts.end());
+        }
+        mAsync->mRequests.update(referenceTime);
+        changed = changed && mAsync->mInitialized;
+        mAsync->mInitialized = true;
+        return changed;
+    }
+
+    void ObjectPaging::clearCache()
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        ++mGraphicsRevision;
+        Resource::GenericResourceManager<ChunkId>::clearCache();
+    }
+
+    void ObjectPaging::releaseGLObjects(osg::State* state)
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        ++mGraphicsRevision;
+        Resource::GenericResourceManager<ChunkId>::releaseGLObjects(state);
+    }
+
+    ObjectPaging::AsyncResult ObjectPaging::requestChunk(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, double referenceTime)
+    {
+        // Active reference ownership and exact intersection semantics stay on the
+        // established synchronous path. Only optional distant objects are delayed.
+        if (!mAsync || chunk.mActiveGrid || !mAsync->mOperation || mAsync->mContexts.empty())
+            return {};
+        const ChunkId key(chunk.mCenter, chunk.mSize, false);
+        const auto result = mAsync->mRequests.request(key, referenceTime,
+            [this, chunk, viewPoint, contexts = mAsync->mContexts, owners = mAsync->mContextOwners,
+                operation = mAsync->mOperation]
+            (const std::atomic_bool& abort) mutable -> AsyncState::Requests::Prepared {
+                Diagnostics::Scope timing("terrain", "worker", "distantObjectPreparation");
+                try
+                {
+                    auto node = fetchChunk(chunk, viewPoint, false, &abort, nullptr, false);
+                    if (abort || !node)
+                        return { std::move(node), {} };
+                    auto prepared = SceneUtil::prepareCompileReadiness(node, contexts);
+                    if (!abort)
+                        operation->add(prepared.mSet, false);
+                    return { std::move(node), std::move(prepared.mReady),
+                        [operation, set = prepared.mSet] { operation->remove(set); }, prepared.mEstimatedBytes };
+                }
+                catch (const std::exception& error)
+                {
+                    Log(Debug::Warning) << "Distant object preparation failed: " << error.what();
+                    throw;
+                }
+            });
+        return { true, result.mReady, result.mValue };
+    }
 
     bool ObjectPaging::canPreloadBatches() const
     {
@@ -176,7 +284,7 @@ namespace MWRender
         {
             const auto& chunk = chunks[i];
             if ((chunk.mActiveGrid && !mActiveGrid)
-                || mCache->getRefFromObjectCache(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid)))
+                || getCachedChunk(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid)))
                 continue;
             selected[i] = selectChunk(chunk, viewPoint, &abort);
             for (const auto& item : selected[i]->mItems)
@@ -247,7 +355,7 @@ namespace MWRender
         if (chunk.mActiveGrid && !mActiveGrid)
             return false;
         const osg::Vec2f origin = chunk.mCenter * static_cast<float>(getCellSize(mWorldspace));
-        const auto cached = mCache->getRefFromObjectCache(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid));
+        const auto cached = getCachedChunk(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid));
         if (cached)
         {
             const auto* node = static_cast<const osg::Node*>(cached.get());
@@ -276,8 +384,31 @@ namespace MWRender
                     it->second * std::abs(double(ref.mScale))))
                 return true;
         }
-        return modelRevision != mSceneManager->modelSettingsRevision() || selected.mRevision != mSelectionRevision.load()
+        return selected.mEpoch != cacheEpoch() || modelRevision != mSceneManager->modelSettingsRevision() || selected.mRevision != mSelectionRevision.load()
             || selected.mVfsRevision != mSceneManager->getVFS()->getIndexRevision();
+    }
+
+    ObjectPaging::CacheEpoch ObjectPaging::cacheEpoch() const
+    {
+        return { mGraphicsRevision.load(), mSceneManager->modelSettingsRevision(),
+            mSceneManager->getVFS()->getIndexRevision() };
+    }
+
+    void ObjectPaging::refreshCacheEpoch()
+    {
+        const auto epoch = cacheEpoch();
+        if (epoch != mCacheEpoch)
+        {
+            mCache->clear();
+            mCacheEpoch = epoch;
+        }
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::getCachedChunk(const ChunkId& id)
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        refreshCacheEpoch();
+        return static_cast<osg::Node*>(mCache->getRefFromObjectCache(id).get());
     }
 
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
@@ -298,14 +429,17 @@ namespace MWRender
         {
             if (abort && *abort)
                 return nullptr;
+            CacheEpoch epoch;
             {
                 const std::lock_guard lock(mRefTrackerMutex);
+                refreshCacheEpoch();
+                epoch = mCacheEpoch;
                 if (auto cached = mCache->getRefFromObjectCache(id))
                     return static_cast<osg::Node*>(cached.get());
             }
 
             std::optional<Selection> local;
-            if (!selected || selected->mRevision != mSelectionRevision.load()
+            if (!selected || selected->mEpoch != epoch || selected->mRevision != mSelectionRevision.load()
                 || selected->mVfsRevision != mSceneManager->getVFS()->getIndexRevision())
             {
                 local.emplace(selectChunk(chunk, viewPoint, abort));
@@ -322,7 +456,7 @@ namespace MWRender
                 // An enable/blacklist change may have evicted an older node during assembly.
                 // Publish against the same tracker revision, or reselect outside the lock.
                 const std::lock_guard lock(mRefTrackerMutex);
-                if (selected->mRevision == mSelectionRevision.load()
+                if (epoch == cacheEpoch() && selected->mRevision == mSelectionRevision.load()
                     && selected->mVfsRevision == mSceneManager->getVFS()->getIndexRevision())
                 {
                     if (auto cached = mCache->getRefFromObjectCache(id))
@@ -671,7 +805,11 @@ namespace MWRender
         Misc::BoundedCache<std::pair<int, int>, std::map<ESM::RefNum, PagedCellRef>> cells{ 64 };
     };
 
-    ObjectPaging::~ObjectPaging() = default;
+    ObjectPaging::~ObjectPaging()
+    {
+        // Jobs capture this manager. Drain them while all members are alive.
+        mAsync.reset();
+    }
 
     ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace)
         : GenericResourceManager<ChunkId>(nullptr, Settings::cells().mCacheExpiryDelay)
@@ -826,7 +964,7 @@ namespace MWRender
         const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort)
     {
         Diagnostics::Loading::Timer selectionTimer(Diagnostics::Loading::Stage::PagedCandidateSelection);
-        Selection result{ {}, mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision() };
+        Selection result{ {}, mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision(), cacheEpoch() };
         const auto& [size, center, flags, activeGrid] = chunk;
         const auto lod = static_cast<unsigned char>(flags >> (4 * 4));
         const auto cellSize = getCellSize(mWorldspace);
@@ -918,7 +1056,8 @@ namespace MWRender
             {
                 std::lock_guard<std::mutex> lock(mSizeCacheMutex);
                 SizeCache::iterator found = mSizeCache.find(refNum);
-                if (found != mSizeCache.end() && found->second < dSqr * minSize * minSize)
+                if (found != mSizeCache.end() && found->second.second == result.mEpoch
+                    && found->second.first < dSqr * minSize * minSize)
                     continue;
             }
 
@@ -1042,7 +1181,7 @@ namespace MWRender
             if (radius2 < dSqr * minSize * minSize && !activeGrid)
             {
                 std::lock_guard<std::mutex> lock(mSizeCacheMutex);
-                mSizeCache[refNum] = radius2;
+                mSizeCache[refNum] = { radius2, selected.mEpoch };
                 return;
             }
 
@@ -1429,6 +1568,8 @@ namespace MWRender
 
     void ObjectPaging::getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out)
     {
+        const std::lock_guard lock(mRefTrackerMutex);
+        refreshCacheEpoch();
         GetRefnumsFunctor grf(out);
         grf.mActiveGrid = activeGrid;
         mCache->call(grf);

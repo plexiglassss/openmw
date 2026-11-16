@@ -5,6 +5,8 @@
 #include <osgUtil/IncrementalCompileOperation>
 
 #include <unordered_set>
+#include <atomic>
+#include <memory>
 
 namespace SceneUtil
 {
@@ -25,6 +27,17 @@ namespace SceneUtil
     osg::ref_ptr<ResourceCompileSet> prepareCompileSet(osgUtil::IncrementalCompileOperation& operation,
         osg::Node* node, osgUtil::StateToCompile* state = nullptr);
     void enqueueCompile(osgUtil::IncrementalCompileOperation& operation, osg::Node* node);
+
+    struct CompileReadiness
+    {
+        osg::ref_ptr<ResourceCompileSet> mSet;
+        std::shared_ptr<std::atomic_bool> mReady;
+        std::size_t mEstimatedBytes = 0;
+    };
+    // Unlike the shared ICO marker, this gate represents the completion callback
+    // for every captured context. It is not a GPU fence or a shader-link check.
+    CompileReadiness prepareCompileReadiness(
+        osg::Node* node, osgUtil::IncrementalCompileOperation::ContextSet contexts);
 
     // Read-only collection; does not mark resources or add duplicate GL requests.
     class CompilePriorityVisitor : public osg::NodeVisitor

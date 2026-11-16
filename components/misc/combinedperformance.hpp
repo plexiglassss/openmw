@@ -61,6 +61,12 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useAsyncObjectPaging()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ASYNC_OBJECT_PAGING");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useActorResourcePreload()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_RESOURCE_PRELOAD");

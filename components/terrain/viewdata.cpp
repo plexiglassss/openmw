@@ -122,6 +122,8 @@ namespace Terrain
             mNode = node;
             // clear cached data
             mRenderingNode = nullptr;
+            mRenderingComplete = true;
+            mRenderingReadyForCamera = false;
             return true;
         }
     }

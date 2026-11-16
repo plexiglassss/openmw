@@ -77,6 +77,12 @@ namespace Terrain
         class ChunkManager
         {
         public:
+            struct AsyncResult
+            {
+                bool mSupported = false;
+                bool mReady = false;
+                osg::ref_ptr<osg::Node> mNode;
+            };
             virtual ~ChunkManager() = default;
             ChunkManager() = default;
             ChunkManager(ESM::RefId worldspace)
@@ -89,6 +95,10 @@ namespace Terrain
                 const std::atomic_bool* abort = nullptr)
                 = 0;
             virtual unsigned int getNodeMask() { return 0; }
+            // Main/cull thread only. Pending is distinct from a successfully
+            // empty chunk. Exact queries continue to use getChunk.
+            virtual AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double) { return {}; }
+            virtual bool updateAsyncState(double) { return false; }
             // Called only after the segment misses the landscape tile itself. Other
             // managers can have meshes extending outside that tile; unknown means keep.
             virtual bool mayIntersectOutsideTile(const ChunkRequest&, const osg::Vec3f&, const RayFootprint&)
@@ -136,7 +146,8 @@ namespace Terrain
         void updateRenderingLod(ViewDataEntry& entry, ViewData* vd);
         ChunkRequest getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& gridbounds) const;
         void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
-            bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr);
+            bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr,
+            bool asynchronous = false, double referenceTime = 0);
         BatchChunkManager* mBatchChunkManager = nullptr;
 
         osg::ref_ptr<RootNode> mRootNode;

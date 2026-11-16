@@ -11,6 +11,7 @@ namespace Resource
 {
     class SceneManager;
 }
+namespace SceneUtil { class WorkQueue; }
 
 namespace MWRender
 {
@@ -27,6 +28,11 @@ namespace MWRender
             bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort = nullptr) override;
 
         using ChunkRequest = Terrain::QuadTreeWorld::ChunkRequest;
+        void setWorkQueue(SceneUtil::WorkQueue* queue);
+        AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double referenceTime) override;
+        bool updateAsyncState(double referenceTime) override;
+        void clearCache() override;
+        void releaseGLObjects(osg::State*) override;
         bool mayIntersectOutsideTile(
             const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Terrain::RayFootprint& ray) override;
         bool canPreloadBatches() const override;
@@ -52,6 +58,8 @@ namespace MWRender
         void getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out);
 
     private:
+        struct AsyncState;
+        std::unique_ptr<AsyncState> mAsync;
         struct Selection;
         struct PendingCompile;
         Selection selectChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort);
@@ -60,6 +68,13 @@ namespace MWRender
         osg::ref_ptr<osg::Node> createChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Selection& selected,
             bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending);
         std::atomic_uint64_t mSelectionRevision{ 0 };
+        std::atomic_uint64_t mGraphicsRevision{ 0 };
+        using CacheEpoch = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>;
+        CacheEpoch cacheEpoch() const;
+        // Protected by mRefTrackerMutex, including clear/publication.
+        CacheEpoch mCacheEpoch{};
+        void refreshCacheEpoch();
+        osg::ref_ptr<osg::Node> getCachedChunk(const ChunkId& id);
         struct ReferenceCache;
         std::unique_ptr<ReferenceCache> mReferenceCache;
         Resource::SceneManager* mSceneManager;
@@ -88,7 +103,7 @@ namespace MWRender
         RefTracker& getWritableRefTracker() { return mRefTrackerLocked ? mRefTrackerNew : mRefTracker; }
 
         std::mutex mSizeCacheMutex;
-        typedef std::map<ESM::RefNum, float> SizeCache;
+        using SizeCache = std::map<ESM::RefNum, std::pair<float, CacheEpoch>>;
         SizeCache mSizeCache;
 
         std::mutex mLODNameCacheMutex;

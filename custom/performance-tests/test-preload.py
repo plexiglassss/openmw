@@ -26,7 +26,7 @@ preamble = r'''
 using VFS::Path::Normalized;
 using VFS::Path::NormalizedView;
 int corrections=0, actorCorrections=0, templates=0, instances=0, shapes=0, keys=0, attempts=0;
-int templatesBeforeFirstKey=-1;
+int templatesBeforeFirstKey=-1, renderClones=0, clonesBeforeFirstKey=-1;
 bool failOnce=false, abortOnInstance=false, abortOnKey=false, failKeyOnce=false;
 namespace VFS {
 struct Manager {
@@ -59,7 +59,7 @@ bool mAbort=false;
 struct SceneManager {
  VFS::Manager vfs;
  const VFS::Manager* getVFS() {return &vfs;}
- int cacheInstance(const Normalized&, bool) { return 7; }
+ int cacheInstance(const Normalized&, bool) { ++renderClones; return 7; }
  int getTemplate(const Normalized&) {
   ++attempts; if(failOnce){failOnce=false;throw std::runtime_error("expected failure");}
   ++templates; return 1;
@@ -70,7 +70,7 @@ struct Bullet {
  int getShape(const Normalized&) { ++shapes; return 2; }
 } bullet;
 std::set<std::string> requestedKeys;
-struct Keyframes { int get(const Normalized& p){requestedKeys.insert(p.value());if(keys==0)templatesBeforeFirstKey=templates;++keys;if(abortOnKey)mAbort=true;
+struct Keyframes { int get(const Normalized& p){requestedKeys.insert(p.value());if(keys==0){templatesBeforeFirstKey=templates;clonesBeforeFirstKey=renderClones;}++keys;if(abortOnKey)mAbort=true;
  if(failKeyOnce){failKeyOnce=false;throw std::runtime_error("expected keyframe failure");}return 3;} } keyframes;
 struct Terrain { void cacheCell(int*,int,int){} } terrain;
 struct Land {int getLand(CellLocation){return 4;}} land;
@@ -95,7 +95,7 @@ void reset() {
  corrections=actorCorrections=templates=instances=shapes=keys=attempts=0;
  scene.vfs.checks=0; mAbort=false; failOnce=false; abortOnInstance=false; abortOnKey=false; failKeyOnce=false;
  mPreloadAdditionalAnimations=false; mAnimationMeshes.clear(); requestedKeys.clear(); templatesBeforeFirstKey=-1;
- mPreloadInstances=true; mPreloadedObjects.clear();
+ mPreloadInstances=true; mPreloadedObjects.clear(); mInstanceMeshes.clear(); mInstanceTickets.clear(); renderClones=0;clonesBeforeFirstKey=-1;
  scene.vfs.files={"meshes/a.nif","meshes/xanim.nif","meshes/xanim.kf"};
 }
 int main() {
@@ -139,7 +139,7 @@ int main() {
  reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("a.nif")};
  mMeshes={NormalizedView("a.nif"),NormalizedView("b.nif")};
  scene.vfs.files.insert({"meshes/b.nif","animations/a/idle.kf"});
- run();assert(templates==2 && templatesBeforeFirstKey==2); // known models finish before optional animations
+ mInstanceMeshes=mMeshes;run();assert(templates==2 && templatesBeforeFirstKey==2 && clonesBeforeFirstKey==2 && mInstanceTickets.size()==2); // commit resources finish before optional animations
  reset();mPreloadAdditionalAnimations=true;mAnimationMeshes={NormalizedView("direct.nif")};mMeshes.clear();
  scene.vfs.files.insert({"meshes/direct.kf","meshes/xdirect.kf","animations/direct/extra.kf","animations/xdirect/extra.kf"});
  run();assert(keys==4 && requestedKeys.contains("meshes/direct.kf") && requestedKeys.contains("meshes/xdirect.kf"));

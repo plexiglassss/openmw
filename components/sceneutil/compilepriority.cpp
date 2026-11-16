@@ -4,8 +4,12 @@
 #include <osg/Program>
 #include <osg/StateSet>
 #include <osg/Texture>
+#include <osg/Geometry>
+#include <osg/GraphicsContext>
+#include <osg/State>
 
 #include <mutex>
+#include <stdexcept>
 
 namespace SceneUtil
 {
@@ -41,6 +45,60 @@ namespace SceneUtil
     void enqueueCompile(osgUtil::IncrementalCompileOperation& operation, osg::Node* node)
     {
         operation.add(prepareCompileSet(operation, node), false);
+    }
+
+    CompileReadiness prepareCompileReadiness(
+        osg::Node* node, osgUtil::IncrementalCompileOperation::ContextSet contexts)
+    {
+        if (!node || contexts.empty())
+            throw std::invalid_argument("Compile readiness requires a node and graphics contexts");
+        struct Complete final : osgUtil::IncrementalCompileOperation::CompileCompletedCallback
+        {
+            std::shared_ptr<std::atomic_bool> mReady;
+            std::vector<osg::ref_ptr<osg::GraphicsContext>> mContexts;
+            bool compileCompleted(osgUtil::IncrementalCompileOperation::CompileSet*) override
+            {
+                mReady->store(true, std::memory_order_release);
+                return true;
+            }
+        };
+        osg::ref_ptr<Complete> complete = new Complete;
+        for (auto* context : contexts)
+        {
+            if (!context || !context->getState())
+                throw std::invalid_argument("Compile readiness requires initialized graphics contexts");
+            complete->mContexts.emplace_back(context);
+        }
+        CompileReadiness result;
+        result.mReady = std::make_shared<std::atomic_bool>(false);
+        complete->mReady = result.mReady;
+        // A shared marker means queued, not completed. Enumerate all dependencies
+        // without changing markers that another compile operation may be using.
+        osgUtil::StateToCompile state(osgUtil::GLObjectsVisitor::COMPILE_DISPLAY_LISTS
+            | osgUtil::GLObjectsVisitor::COMPILE_STATE_ATTRIBUTES, nullptr);
+        state.setNodeMaskOverride(~0u);
+        state._assignPBOToImages = false;
+        node->accept(state);
+        result.mSet = new ResourceCompileSet(node);
+        result.mSet->buildCompileMap(contexts, state);
+        result.mSet->captureResources();
+        result.mSet->_compileCompletedCallback = complete;
+        result.mEstimatedBytes = state._drawablesHandled.size() * 512 + state._statesetsHandled.size() * 512;
+        std::unordered_set<const osg::BufferData*> counted;
+        for (const auto* drawable : state._drawables)
+            if (const auto* geometry = drawable->asGeometry())
+            {
+                osg::Geometry::ArrayList arrays;
+                geometry->getArrayList(arrays);
+                for (const auto& array : arrays)
+                    if (array && counted.insert(array.get()).second)
+                        result.mEstimatedBytes += array->getTotalDataSize();
+            }
+        // Shared textures may already be applying on the graphics thread and
+        // unref their images. Never inspect their mutable image slots here.
+        // Use an admission estimate, not a claim of measured RAM/VRAM usage.
+        result.mEstimatedBytes += state._textures.size() * 4ull * 1024 * 1024;
+        return result;
     }
 
     CompilePriorityVisitor::CompilePriorityVisitor()

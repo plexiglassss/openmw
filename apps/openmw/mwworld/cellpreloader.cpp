@@ -281,6 +281,29 @@ namespace MWWorld
                 }
             }
 
+            // Prepare the cell commit resources before scanning optional animations. Clone only detached
+            // resource graphs here; actor assembly, particles and gameplay stay at activation.
+            if (mPreloadInstances && Misc::useCellRenderPreparation())
+            {
+                for (const auto path : mInstanceMeshes)
+                {
+                    if (mAbort)
+                        break;
+                    const auto found = resolvedMeshes.find(path);
+                    if (found == resolvedMeshes.end() || found->second.empty())
+                        continue;
+                    try
+                    {
+                        if (auto ticket = mSceneManager->cacheInstance(found->second, mAbort))
+                            mInstanceTickets.push_back(std::move(ticket));
+                    }
+                    catch (const std::exception& e)
+                    {
+                        Log(Debug::Warning) << "Failed to prepare instance for " << path << ": " << e.what();
+                    }
+                }
+            }
+
             // Finish all known model/collision requests before optional animation work.
             // Animation roots are independent of template existence: a valid KF source
             // does not require a sibling NIF (matching Animation::addAnimSource).
@@ -341,28 +364,7 @@ namespace MWWorld
                 }
             }
 
-            // Required template/collision warming comes first. Clone only detached
-            // resource graphs here; actor assembly, particles and gameplay stay at activation.
-            if (mPreloadInstances && Misc::useCellRenderPreparation())
-            {
-                for (const auto path : mInstanceMeshes)
-                {
-                    if (mAbort)
-                        break;
-                    const auto found = resolvedMeshes.find(path);
-                    if (found == resolvedMeshes.end() || found->second.empty())
-                        continue;
-                    try
-                    {
-                        if (auto ticket = mSceneManager->cacheInstance(found->second, mAbort))
-                            mInstanceTickets.push_back(std::move(ticket));
-                    }
-                    catch (const std::exception& e)
-                    {
-                        Log(Debug::Warning) << "Failed to prepare instance for " << path << ": " << e.what();
-                    }
-                }
-            }
+
         }
 
     private:

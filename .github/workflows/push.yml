@@ -187,6 +187,8 @@ jobs:
         run: |
           python custom/performance-tests/test-preload.py 2>&1 | Tee-Object actor-resource-preload-windows.log
           if ($LASTEXITCODE) { throw 'Actual actor preload body regressions failed' }
+          python custom/performance-tests/test-streaming-paths.py 2>&1 | Tee-Object streaming-paths-windows.log
+          if ($LASTEXITCODE) { throw 'Production streaming traversal/publication regressions failed' }
       - name: Verify Ninja supplied with the Visual Studio build tools
         shell: pwsh
         run: |
@@ -847,6 +849,7 @@ jobs:
             transition-readiness-tests.json
             cell-streaming-tests.json
             actor-resource-preload-windows.log
+            streaming-paths-windows.log
             cell-packages-legacy.xml
             spatial-index-windows.json
             spatial-query-tests.json

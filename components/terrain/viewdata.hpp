@@ -23,6 +23,16 @@ namespace Terrain
 
         unsigned int mLodFlags;
         osg::ref_ptr<osg::Node> mRenderingNode;
+        // A terrain-only distant view remains drawable while paged objects are
+        // pending. It must not be retained or shared as a complete arrival.
+        bool mRenderingComplete = true;
+        // Exact queries and synchronous preload can complete CPU nodes without
+        // the camera-specific graphics completion gate.
+        bool mRenderingReadyForCamera = false;
+        bool needsRendering(bool cameraReadiness = false) const
+        {
+            return !mRenderingNode || !mRenderingComplete || (cameraReadiness && !mRenderingReadyForCamera);
+        }
     };
 
     class ViewData : public View

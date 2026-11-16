@@ -3,10 +3,79 @@
 #include <osg/Group>
 #include <osg/Texture2D>
 #include <osg/Program>
+#include <osg/GraphicsContext>
+#include <osg/State>
 #include <gtest/gtest.h>
 
 namespace
 {
+    // No native context or GL calls: these tests exercise dependency collection
+    // and callback ownership, not driver compilation.
+    class TestContext : public osg::GraphicsContext
+    {
+    public:
+        TestContext() { setState(new osg::State); }
+        ~TestContext() override { setState(nullptr); } // no native context or GL object manager was allocated
+        bool valid() const override { return true; }
+        bool realizeImplementation() override { return false; }
+        bool isRealizedImplementation() const override { return false; }
+        void closeImplementation() override {}
+        bool makeCurrentImplementation() override { return false; }
+        bool makeContextCurrentImplementation(osg::GraphicsContext*) override { return false; }
+        bool releaseContextImplementation() override { return false; }
+        void bindPBufferToTextureImplementation(GLenum) override {}
+        void swapBuffersImplementation() override {}
+    };
+
+    TEST(CompileReadiness, QueuedMarkersDoNotImplyCompletion)
+    {
+        using Operation = osgUtil::IncrementalCompileOperation;
+        osg::ref_ptr<Operation> operation = new Operation;
+        osg::ref_ptr<TestContext> context = new TestContext;
+        osg::ref_ptr<osg::Group> node = new osg::Group;
+        osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
+        node->getOrCreateStateSet()->setTextureAttribute(0, texture);
+        osgUtil::StateToCompile queued(osgUtil::GLObjectsVisitor::COMPILE_STATE_ATTRIBUTES, operation->getMarkerObject());
+        node->accept(queued);
+        ASSERT_EQ(texture->getUserData(), operation->getMarkerObject());
+        auto prepared = SceneUtil::prepareCompileReadiness(node, { context });
+        EXPECT_FALSE(prepared.mReady->load());
+        EXPECT_TRUE(prepared.mSet->resources().contains(texture));
+        EXPECT_FALSE(prepared.mSet->_compileMap.at(context)._compileOps.empty());
+        EXPECT_EQ(texture->getUserData(), operation->getMarkerObject());
+        operation->add(prepared.mSet, false);
+        EXPECT_FALSE(prepared.mReady->load());
+        operation->remove(prepared.mSet);
+    }
+
+    TEST(CompileReadiness, RejectsMissingContextsAndUninitializedState)
+    {
+        osg::ref_ptr<osg::Group> node = new osg::Group;
+        EXPECT_THROW(SceneUtil::prepareCompileReadiness(node, {}), std::invalid_argument);
+        EXPECT_THROW(SceneUtil::prepareCompileReadiness(node, { nullptr }), std::invalid_argument);
+        osg::ref_ptr<TestContext> context = new TestContext;
+        context->setState(nullptr);
+        EXPECT_THROW(SceneUtil::prepareCompileReadiness(node, { context }), std::invalid_argument);
+    }
+
+    TEST(CompileReadiness, CapturesEveryContextAndLateCallbackIsIsolated)
+    {
+        osg::ref_ptr<TestContext> first = new TestContext, second = new TestContext;
+        osg::ref_ptr<osg::Group> node = new osg::Group;
+        node->getOrCreateStateSet()->setAttribute(new osg::Program);
+        auto old = SceneUtil::prepareCompileReadiness(node, { first, second });
+        auto current = SceneUtil::prepareCompileReadiness(node, { second });
+        EXPECT_EQ(old.mSet->_compileMap.size(), 2u);
+        EXPECT_EQ(current.mSet->_compileMap.size(), 1u);
+        auto callback = old.mSet->_compileCompletedCallback;
+        old.mSet = nullptr;
+        EXPECT_TRUE(callback->compileCompleted(nullptr));
+        EXPECT_TRUE(callback->compileCompleted(nullptr));
+        EXPECT_TRUE(old.mReady->load());
+        EXPECT_FALSE(current.mReady->load());
+        EXPECT_GT(first->referenceCount(), 1);
+    }
+
     TEST(CompilePriority, PromotesSharedTextureAndProgramOwnersWithoutDuplicatingWork)
     {
         using Operation = osgUtil::IncrementalCompileOperation;

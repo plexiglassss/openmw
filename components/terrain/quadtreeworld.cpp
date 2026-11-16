@@ -423,20 +423,29 @@ namespace Terrain
     }
 
     void QuadTreeWorld::loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize,
-        const ChunkRequest& request, bool compile, const std::atomic_bool* abort, const BatchChunkManager::Fetch* fetch)
+        const ChunkRequest& request, bool compile, const std::atomic_bool* abort, const BatchChunkManager::Fetch* fetch,
+        bool asynchronous, double referenceTime)
     {
-        if (!entry.mRenderingNode)
+        if (entry.needsRendering(asynchronous && !request.mActiveGrid))
         {
             osg::ref_ptr<SceneUtil::PositionAttitudeTransform> pat = new SceneUtil::PositionAttitudeTransform;
             pat->setPosition(osg::Vec3f(
                 entry.mNode->getCenter().x() * cellWorldSize, entry.mNode->getCenter().y() * cellWorldSize, 0.f));
 
+            bool complete = true;
             for (QuadTreeWorld::ChunkManager* m : mChunkManagers)
             {
                 if (abort && abort->load(std::memory_order_relaxed))
                     return;
                 osg::ref_ptr<osg::Node> n;
-                if (fetch && m == mBatchChunkManager)
+                const auto result = asynchronous && !request.mActiveGrid
+                    ? m->requestChunk(request, vd->getViewPoint(), referenceTime) : ChunkManager::AsyncResult{};
+                if (result.mSupported)
+                {
+                    complete = complete && result.mReady;
+                    n = result.mNode;
+                }
+                else if (fetch && m == mBatchChunkManager)
                     n = (*fetch)();
                 else
                     n = m->getChunk(request.mSize, request.mCenter,
@@ -446,7 +455,11 @@ namespace Terrain
                     pat->addChild(n);
             }
             if (!abort || !abort->load(std::memory_order_relaxed))
+            {
                 entry.mRenderingNode = pat;
+                entry.mRenderingComplete = complete;
+                entry.mRenderingReadyForCamera = complete && (asynchronous || request.mActiveGrid);
+            }
         }
     }
 
@@ -494,8 +507,13 @@ namespace Terrain
                     lowZ = -std::numeric_limits<float>::max();
                     break;
                 }
-                osg::BoundingBox bb = static_cast<TerrainDrawable*>(entry.mRenderingNode->asGroup()->getChild(0))
-                                          ->getWaterBoundingBox();
+                const auto* terrain = dynamic_cast<const TerrainDrawable*>(entry.mRenderingNode->asGroup()->getChild(0));
+                if (!terrain)
+                {
+                    lowZ = -std::numeric_limits<float>::max();
+                    break;
+                }
+                osg::BoundingBox bb = terrain->getWaterBoundingBox();
                 if (!bb.valid())
                     continue;
                 osg::Vec3f ofs(
@@ -528,6 +546,10 @@ namespace Terrain
         if (!isCullVisitor && nv.getVisitorType() != osg::NodeVisitor::INTERSECTION_VISITOR)
             return;
 
+        const double referenceTime = nv.getFrameStamp() ? nv.getFrameStamp()->getReferenceTime() : 0.0;
+        if (mBatchChunkManager && mBatchChunkManager->updateAsyncState(referenceTime))
+            rebuildViews();
+
         Diagnostics::Loading::Metrics cullMetrics;
         std::optional<Diagnostics::Loading::Session> cullCapture;
         Diagnostics::Loading::Clock::time_point cullStart{};
@@ -557,6 +579,28 @@ namespace Terrain
         }
 
         const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
+        const bool asynchronous = isCullVisitor && nv.getFrameStamp() && Misc::useAsyncObjectPaging();
+
+        // Admit nearest missing distant sections first while keeping the original
+        // draw/attachment order below. A full work queue never runs a factory here.
+        if (asynchronous && mBatchChunkManager)
+        {
+            std::vector<std::pair<float, ChunkRequest>> requests;
+            for (unsigned i = 0; i < vd->getNumEntries(); ++i)
+            {
+                auto& entry = vd->getEntry(i);
+                updateRenderingLod(entry, vd);
+                const auto request = getChunkRequest(entry, mActiveGrid);
+                if (!request.mActiveGrid && entry.needsRendering(true))
+                {
+                    const auto delta = request.mCenter * cellWorldSize - osg::Vec2f(viewPoint.x(), viewPoint.y());
+                    requests.emplace_back(delta.length2(), request);
+                }
+            }
+            std::stable_sort(requests.begin(), requests.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+            for (const auto& [distance, request] : requests)
+                mBatchChunkManager->requestChunk(request, vd->getViewPoint(), referenceTime);
+        }
 
         const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
         auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
@@ -575,10 +619,10 @@ namespace Terrain
                 if (!isCullVisitor)
                     prepareTiming.emplace("terrain", "ray", "prepareRenderingNode");
                 updateRenderingLod(entry, vd);
-                if (!entry.mRenderingNode)
+                const auto request = getChunkRequest(entry, mActiveGrid);
+                if (entry.needsRendering(asynchronous && !request.mActiveGrid))
                 {
-                    const auto request = getChunkRequest(entry, mActiveGrid);
-                    if (arrival)
+                    if (arrival && !entry.mRenderingNode && (!asynchronous || request.mActiveGrid))
                     {
                         const ArrivalView::Key key{ entry.mNode, entry.mLodFlags };
                         auto prepared = arrival->find(key);
@@ -592,8 +636,10 @@ namespace Terrain
                             attachmentStart = std::chrono::steady_clock::now();
                         }
                         entry.mRenderingNode = std::move(prepared);
+                        entry.mRenderingComplete = true;
+                        entry.mRenderingReadyForCamera = false;
                     }
-                    if (!entry.mRenderingNode && ray
+                    if (entry.needsRendering() && ray
                         && !ray->intersects(request.mCenter.x() * cellWorldSize,
                             request.mCenter.y() * cellWorldSize, request.mSize * cellWorldSize * 0.5))
                     {
@@ -609,8 +655,9 @@ namespace Terrain
                         if (std::none_of(mChunkManagers.begin(), mChunkManagers.end(), mayHit))
                             continue;
                     }
-                    if (!entry.mRenderingNode)
-                        loadRenderingNode(entry, vd, cellWorldSize, request, false);
+                    if (entry.needsRendering(asynchronous && !request.mActiveGrid))
+                        loadRenderingNode(entry, vd, cellWorldSize, request, false, nullptr, nullptr,
+                            asynchronous, referenceTime);
                 }
             }
             {
@@ -634,7 +681,6 @@ namespace Terrain
 
         vd->resetChanged();
 
-        double referenceTime = nv.getFrameStamp() ? nv.getFrameStamp()->getReferenceTime() : 0.0;
         if (referenceTime != 0.0)
         {
             vd->setLastUsageTimeStamp(referenceTime);
@@ -795,7 +841,7 @@ namespace Terrain
         {
             const auto& entry = cached->getEntry(i);
             // An incomplete camera view has no continuation once it is retained indoors.
-            if (!entry.mRenderingNode)
+            if (!entry.mRenderingNode || !entry.mRenderingComplete)
                 return {};
             const auto payload = footprint.measure(*entry.mRenderingNode);
             bytes += payload + sizeof(ArrivalView::Entry);
@@ -877,7 +923,7 @@ namespace Terrain
                 {
                     auto& entry = vd->getEntry(ordered[i++]);
                     updateRenderingLod(entry, vd);
-                    if (entry.mRenderingNode)
+                    if (entry.mRenderingNode && entry.mRenderingComplete)
                         advance();
                     else
                     {

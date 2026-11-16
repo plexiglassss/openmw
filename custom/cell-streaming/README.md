@@ -65,5 +65,39 @@ The 16 November capture confirms 33 grid transitions, 58.727 seconds total and 9
 object insertion. Separate multi-second culls also occur. It does not identify the exact costly
 asset or prove that navmesh generation dominates; it does not establish a before/after speedup.
 The latest native QuickLoot empty-tooltip suppression and HBFS god-mode accounting are retained.
-The matching QuickLoot/Inventory Extender/UIToolkit/Object Insight v3.3 mod overlay is supplied
-separately from engine binaries and must win over earlier UI overlays.
+Keep the installed UIToolkit QuickLoot Sticky v3.6 and Object Insight UI v3.7 overlays;
+this engine update does not replace those companion mods with an older bundle.
+
+## Continuous distant-object preparation
+
+A distant paged-object miss can now return pending immediately to camera traversal. The
+terrain remains drawable while worker jobs prepare missing object sections. Nearby gameplay
+cells and exact ray queries retain their existing immediate semantics. Before a prepared
+section becomes visible, an independent completion callback covers the captured graphics
+contexts; an existing shared "queued" marker is never treated as completed work. This is an
+OSG compile-operation completion contract, not proof of successful driver shader linking or
+a hardware GPU fence. Absent or uninitialized graphics contexts use the compatibility path.
+
+Admission prefers the nearest missing sections, with two outstanding CPU/graphics preparations,
+64 retained request entries and a 1 GiB admission estimate. Each unknown job reserves 64 MiB;
+completed estimates include geometry arrays and a 4 MiB allowance per texture. Actual assets
+can exceed these estimates. This is not a hard process RAM/VRAM cap. Unused pending jobs expire
+after one second; ready request records expire after a quarter second. Visible scene nodes
+and normal resource caches have their existing lifetimes. Cancelled graphs are retired through
+the worker unref queue; detached callbacks cannot publish into a replacement request.
+
+Camera and ray views have separate readiness semantics. A CPU-complete ray view cannot bypass
+the camera graphics gate. Selection, model/VFS/cache and graphics-context changes invalidate
+requests and reused views; stale builders cannot repopulate a cleared chunk cache. Size estimates
+used to reject distant objects carry the same resource epoch. Required detached cell clones now
+finish before optional animation-directory scanning.
+
+`OPENMW_ASYNC_OBJECT_PAGING=0` selects the previous camera path for a process-local comparison.
+Both capture scripts record this flag and the actor/resource-preparation flags. The normal log
+reports whether distant streaming is enabled. No startup preload sweep is added.
+
+This moves distant object preparation out of camera culling. Terrain and groundcover creation,
+active-cell insertion, exact rays, Lua activation and driver work can still stall. Distant objects
+may appear after their terrain while preparation finishes. Native/body tests validate lifecycle
+and fallback behavior; a same-save, same-route game recording is still required to measure the
+actual improvement and check visual behavior in the full installation.
