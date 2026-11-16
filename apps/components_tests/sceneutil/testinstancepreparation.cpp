@@ -19,6 +19,9 @@ namespace
         osg::ref_ptr<osg::Geometry> source = new osg::Geometry;
         source->setVertexArray(new osg::Vec3Array(65536));
         source->setNormalArray(new osg::Vec3Array(65536));
+        const auto ordinaryBytes = SceneUtil::estimateInstanceBytes(*source);
+        ASSERT_TRUE(ordinaryBytes);
+        EXPECT_GE(*ordinaryBytes, 3u * 65536u * 24u);
         osg::ref_ptr<SceneUtil::RigGeometry> rig = new SceneUtil::RigGeometry;
         rig->setSourceGeometry(source);
         const auto bytes = SceneUtil::estimateInstanceBytes(*rig);
