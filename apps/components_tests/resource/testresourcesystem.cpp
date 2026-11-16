@@ -4,6 +4,7 @@
 #include <components/resource/resourcesystem.hpp>
 #include <components/testing/util.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/sceneutil/clone.hpp>
 #include <components/sceneutil/shadow.hpp>
 #include <components/toutf8/toutf8.hpp>
 #include <components/vfs/manager.hpp>
@@ -14,6 +15,7 @@
 #include <components/misc/combinedperformance.hpp>
 #include <osg/Stats>
 #include <osg/observer_ptr>
+#include <sstream>
 #include <thread>
 
 namespace
@@ -103,9 +105,35 @@ namespace
         // Exercise the actual resource fallback, publication and instance path used by the engine.
         constexpr VFS::Path::NormalizedView path("meshes/preparation-fixture-missing.nif");
         const auto model = scene->getTemplate(path);
+        ASSERT_TRUE(model);
+        struct DescribeGraph : osg::NodeVisitor
+        {
+            std::ostringstream description;
+            DescribeGraph()
+                : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
+            {
+                setNodeMaskOverride(~0u);
+            }
+            void apply(osg::Node& node) override
+            {
+                const auto bytes = SceneUtil::estimateInstanceBytes(node);
+                description << node.libraryName() << "::" << node.className() << ": "
+                            << (bytes ? std::to_string(*bytes) : "unsupported") << '\n';
+                traverse(node);
+            }
+        } graph;
+        const_cast<osg::Node*>(model.get())->accept(graph);
+        SCOPED_TRACE(graph.description.str());
+        const auto estimatedBytes = SceneUtil::estimateInstanceBytes(*model);
+        ASSERT_TRUE(estimatedBytes) << "Prepared fallback graph contains an unsupported drawable";
+        ASSERT_GT(*estimatedBytes, 0u);
+        ASSERT_LE(*estimatedBytes, 16u * 1024u * 1024u);
+        const auto revision = scene->modelSettingsRevision();
+        ASSERT_EQ(scene->getTemplate(path), model);
         std::atomic_bool abort{ false };
         auto ticket = scene->cacheInstance(path, abort);
-        ASSERT_TRUE(ticket);
+        EXPECT_EQ(scene->modelSettingsRevision(), revision);
+        ASSERT_TRUE(ticket) << "estimated bytes=" << *estimatedBytes << ", revision=" << revision;
         auto first = scene->getInstance(path);
         ASSERT_TRUE(first);
         EXPECT_EQ(first->getNumParents(), 0u);

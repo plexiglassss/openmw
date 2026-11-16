@@ -143,11 +143,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c9a48fa4ebebb820ff628923b5705e4e90ea1e94"
+        "blob": "61619695f15dd1ac1bb6cf7d4980d17e3408668d"
       },
-      "sha256": "3dc581dced8c3825744fa20ee57445f0e75956e41017a273fa2afd570fe7c8e6",
-      "bytes": 6018,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "36700f255d28098cda1b3ee7d2272d31d171ccbb22d76a9c86c1c6cdff582ea3",
+      "bytes": 7367,
+      "reason": "Require actual SceneManager preparation, one-use consumption and settings invalidation; retain detailed graph/revision diagnostics for integration failures."
     },
     "apps/components_tests/settings/testvalues.cpp": {
       "before": {
