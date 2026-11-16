@@ -7,6 +7,7 @@
 #include <osg/Node>
 
 #include "view.hpp"
+#include "streaminglookahead.hpp"
 
 namespace Terrain
 {
@@ -23,11 +24,11 @@ namespace Terrain
 
         unsigned int mLodFlags;
         osg::ref_ptr<osg::Node> mRenderingNode;
-        // A terrain-only distant view remains drawable while paged objects are
-        // pending. It must not be retained or shared as a complete arrival.
+        // Incomplete legacy/preload views must not be retained as arrivals.
         bool mRenderingComplete = true;
-        // Exact queries and synchronous preload can complete CPU nodes without
-        // the camera-specific graphics completion gate.
+        // Camera coverage is complete through prepared resources or the required
+        // immediate draw path. This is not itself a graphics-completion receipt.
+        // Exact queries and synchronous preload do not certify camera coverage.
         bool mRenderingReadyForCamera = false;
         bool needsRendering(bool cameraReadiness = false) const
         {
@@ -87,6 +88,10 @@ namespace Terrain
         void buildNodeIndex();
 
         void removeNodeFromIndex(const QuadTreeNode* node);
+
+        // Prediction belongs to this camera; copyFrom does not import another
+        // camera's motion or timing history.
+        StreamingLookAhead mStreamingLookAhead;
 
     private:
         std::vector<ViewDataEntry> mEntries;

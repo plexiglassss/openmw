@@ -472,8 +472,8 @@ namespace MWWorld
             return mWorld == world && !mAbort && world->validArrival(*mView)
                 && mView->matches(pos.mPosition, pos.mCellBounds, tolerance, mView->mRevision);
         }
-        bool finishedNear() const { return mReady.load(); }
-        bool waitNear(Loading::Listener& listener)
+        bool finishedVisible() const { return mReady.load(); }
+        bool waitVisible(Loading::Listener& listener)
         {
             mProgress.wait(listener);
             return mReady && !mAbort && mWorld->validArrival(*mView);
@@ -488,15 +488,16 @@ namespace MWWorld
                 mWorld->preloadArrival(mWorkView, mView, mAbort, mProgress, [&](std::size_t near, std::size_t far) {
                     if (!mAbort && mWorld->validArrival(*mView))
                     {
-                        mReady = true;
-                        Log(Debug::Info) << "Exterior arrival near ready: nearChunks=" << near
+                        Log(Debug::Info) << "Exterior arrival active ready: nearChunks=" << near
                             << " distantChunks=" << far << " workerMs=" << elapsed();
                     }
-                    mProgress.complete();
                 });
                 if (mView->complete() && !mAbort)
-                    Log(Debug::Info) << "Exterior arrival distant ready: workerMs=" << elapsed()
+                {
+                    mReady = mWorld->validArrival(*mView);
+                    Log(Debug::Info) << "Exterior arrival visible CPU ready: workerMs=" << elapsed()
                         << " estimatedBytes=" << mView->bytes();
+                }
             }
             catch (const std::exception& e)
             {
@@ -812,13 +813,13 @@ namespace MWWorld
         if (!startArrival(world, target, true))
             return false;
         const auto begin = std::chrono::steady_clock::now();
-        if ((mArrivalJob->isDone() && !mArrivalJob->finishedNear()) || !mArrivalJob->waitNear(listener))
+        if ((mArrivalJob->isDone() && !mArrivalJob->finishedVisible()) || !mArrivalJob->waitVisible(listener))
         {
             retireArrival();
             return false;
         }
         world->showArrival(mArrivalJob->mView);
-        Log(Debug::Info) << "Exterior arrival near wait: predicted=" << predicted << " waitMs="
+        Log(Debug::Info) << "Exterior arrival visible CPU wait: predicted=" << predicted << " waitMs="
             << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now()-begin).count();
         return true;
     }

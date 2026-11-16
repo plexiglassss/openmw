@@ -1,7 +1,11 @@
 #include <components/diagnostics/loading.hpp>
 #include "quadtreeworld.hpp"
 
+#include <algorithm>
 #include <array>
+#include <map>
+#include <set>
+#include <tuple>
 #include <numeric>
 #include <typeinfo>
 #include <unordered_set>
@@ -432,35 +436,103 @@ namespace Terrain
             pat->setPosition(osg::Vec3f(
                 entry.mNode->getCenter().x() * cellWorldSize, entry.mNode->getCenter().y() * cellWorldSize, 0.f));
 
-            bool complete = true;
             for (QuadTreeWorld::ChunkManager* m : mChunkManagers)
             {
                 if (abort && abort->load(std::memory_order_relaxed))
                     return;
                 osg::ref_ptr<osg::Node> n;
                 const auto result = asynchronous && !request.mActiveGrid
-                    ? m->requestChunk(request, vd->getViewPoint(), referenceTime) : ChunkManager::AsyncResult{};
-                if (result.mSupported)
+                    ? m->requestChunk(request, vd->getViewPoint(), referenceTime, false) : ChunkManager::AsyncResult{};
+                if (result.mSupported && result.mReady)
                 {
-                    complete = complete && result.mReady;
+                    Diagnostics::Loading::Timer prepared(Diagnostics::Loading::Stage::SceneryPrepared);
                     n = result.mNode;
                 }
                 else if (fetch && m == mBatchChunkManager)
                     n = (*fetch)();
                 else
+                {
+                    std::optional<Diagnostics::Loading::Timer> required;
+                    if (asynchronous && !request.mActiveGrid && m == mBatchChunkManager)
+                        required.emplace(Diagnostics::Loading::Stage::SceneryRequired);
                     n = m->getChunk(request.mSize, request.mCenter,
                         static_cast<unsigned char>(DefaultLodCallback::getNativeLodLevel(entry.mNode, mMinSize)),
                         request.mLodFlags, request.mActiveGrid, vd->getViewPoint(), compile, abort);
+                }
                 if (n)
                     pat->addChild(n);
             }
             if (!abort || !abort->load(std::memory_order_relaxed))
             {
                 entry.mRenderingNode = pat;
-                entry.mRenderingComplete = complete;
-                entry.mRenderingReadyForCamera = complete && (asynchronous || request.mActiveGrid);
+                entry.mRenderingComplete = true;
+                entry.mRenderingReadyForCamera = asynchronous || request.mActiveGrid;
             }
         }
+    }
+
+    void QuadTreeWorld::prepareAhead(ViewData& current, const osg::Vec3f& point, double referenceTime, float cellWorldSize)
+    {
+        if (!mBatchChunkManager || !mBatchChunkManager->canPrepareAsync())
+            return;
+        const auto plan = current.mStreamingLookAhead.update(point, mActiveGrid, referenceTime, cellWorldSize);
+        if (!plan)
+            return;
+        Diagnostics::Loading::Timer timing(Diagnostics::Loading::Stage::SceneryAhead);
+        // Distant object identity excludes terrain stitching flags. Keep flags
+        // in the request, but do not queue an already-visible object chunk
+        // merely because a neighboring terrain tile changed its stitch.
+        using Key = std::tuple<osg::Vec2f, float>;
+        std::set<Key> visible;
+        for (unsigned i = 0; i < current.getNumEntries(); ++i)
+        {
+            const auto request = getChunkRequest(current.getEntry(i), mActiveGrid);
+            if (!request.mActiveGrid)
+                visible.emplace(request.mCenter, request.mSize);
+        }
+        struct Candidate
+        {
+            ChunkRequest mRequest;
+            osg::Vec3f mPoint;
+            float mDistance;
+        };
+        std::map<Key, Candidate> candidates;
+        const auto select = [&](const osg::Vec3f& target, const osg::Vec4i& grid) {
+            ViewData ahead;
+            ahead.setViewPoint(target);
+            ahead.setActiveGrid(grid);
+            const float distance = std::min(mViewDistance.load(), std::numeric_limits<float>::max() - plan->mMargin)
+                + plan->mMargin;
+            DefaultLodCallback lod(mLodFactor, mMinSize, distance, grid, static_cast<int>(cellWorldSize));
+            mRootNode->traverseNodes(&ahead, target, &lod);
+            for (unsigned i = 0; i < ahead.getNumEntries(); ++i)
+            {
+                auto& entry = ahead.getEntry(i);
+                updateRenderingLod(entry, &ahead);
+                const auto request = getChunkRequest(entry, grid);
+                const Key key{ request.mCenter, request.mSize };
+                if (request.mActiveGrid || visible.contains(key))
+                    continue;
+                const auto delta = request.mCenter * cellWorldSize
+                    - osg::Vec2f(plan->mPredicted.x(), plan->mPredicted.y());
+                candidates.try_emplace(key, Candidate{ request, target, delta.length2() });
+            }
+        };
+        // Forecast actual future LOD identities as well as the outer ring. A
+        // larger radius alone would miss the parent/child changes during travel.
+        select(plan->mPredicted, plan->mPredictedGrid);
+        if ((plan->mPredicted - plan->mCurrent).length2() > 1.f)
+            select(plan->mCurrent, mActiveGrid);
+        std::vector<Candidate> ordered;
+        ordered.reserve(candidates.size());
+        for (const auto& [key, candidate] : candidates)
+            ordered.push_back(candidate);
+        std::stable_sort(ordered.begin(), ordered.end(), [](const auto& left, const auto& right) {
+            return left.mDistance < right.mDistance;
+        });
+        const auto count = std::min<std::size_t>(ordered.size(), 256);
+        for (std::size_t i = 0; i < count; ++i)
+            mBatchChunkManager->requestChunk(ordered[i].mRequest, ordered[i].mPoint, referenceTime, true);
     }
 
     namespace
@@ -581,27 +653,6 @@ namespace Terrain
         const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
         const bool asynchronous = isCullVisitor && nv.getFrameStamp() && Misc::useAsyncObjectPaging();
 
-        // Admit nearest missing distant sections first while keeping the original
-        // draw/attachment order below. A full work queue never runs a factory here.
-        if (asynchronous && mBatchChunkManager)
-        {
-            std::vector<std::pair<float, ChunkRequest>> requests;
-            for (unsigned i = 0; i < vd->getNumEntries(); ++i)
-            {
-                auto& entry = vd->getEntry(i);
-                updateRenderingLod(entry, vd);
-                const auto request = getChunkRequest(entry, mActiveGrid);
-                if (!request.mActiveGrid && entry.needsRendering(true))
-                {
-                    const auto delta = request.mCenter * cellWorldSize - osg::Vec2f(viewPoint.x(), viewPoint.y());
-                    requests.emplace_back(delta.length2(), request);
-                }
-            }
-            std::stable_sort(requests.begin(), requests.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-            for (const auto& [distance, request] : requests)
-                mBatchChunkManager->requestChunk(request, vd->getViewPoint(), referenceTime);
-        }
-
         const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
         auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
         if (arrival && (!validArrival(*arrival) || !arrival->matches(viewPoint, mActiveGrid, cellWorldSize, arrival->mRevision)))
@@ -610,8 +661,6 @@ namespace Terrain
             arrival.reset(); // offscreen visitors without a frame clock keep normal synchronous semantics
         for (unsigned int i = 0; i < vd->getNumEntries(); ++i)
         {
-            bool firstAttachment = false;
-            std::chrono::steady_clock::time_point attachmentStart;
             ViewDataEntry& entry = vd->getEntry(i);
             {
                 Diagnostics::Loading::Timer prepare(Diagnostics::Loading::Stage::CullPrepare);
@@ -622,22 +671,16 @@ namespace Terrain
                 const auto request = getChunkRequest(entry, mActiveGrid);
                 if (entry.needsRendering(asynchronous && !request.mActiveGrid))
                 {
-                    if (arrival && !entry.mRenderingNode && (!asynchronous || request.mActiveGrid))
+                    if (arrival && !entry.mRenderingNode)
                     {
                         const ArrivalView::Key key{ entry.mNode, entry.mLodFlags };
                         auto prepared = arrival->find(key);
-                        if (isCullVisitor && !request.mActiveGrid)
-                        {
-                            if (!prepared && arrival->streaming())
-                                continue;
-                            if (!arrival->admitDistant(nv.getFrameStamp()->getFrameNumber(), key))
-                                continue;
-                            firstAttachment = true;
-                            attachmentStart = std::chrono::steady_clock::now();
-                        }
+                        // A CPU-ready preload uses normal draw compilation. It
+                        // is not an async GL receipt, and missing required tiles
+                        // are never withheld to satisfy an attachment quota.
                         entry.mRenderingNode = std::move(prepared);
                         entry.mRenderingComplete = true;
-                        entry.mRenderingReadyForCamera = false;
+                        entry.mRenderingReadyForCamera = isCullVisitor;
                     }
                     if (entry.needsRendering() && ray
                         && !ray->intersects(request.mCenter.x() * cellWorldSize,
@@ -665,15 +708,12 @@ namespace Terrain
                 std::optional<Diagnostics::Scope> traverseTiming;
                 if (!isCullVisitor)
                     traverseTiming.emplace("terrain", "ray", "traverseRenderingNode");
-                if (firstAttachment)
-                {
-                    entry.mRenderingNode->accept(nv);
-                    arrival->chargeTraversal(std::chrono::steady_clock::now() - attachmentStart);
-                }
-                else
-                    entry.mRenderingNode->accept(nv);
+                entry.mRenderingNode->accept(nv);
             }
         }
+
+        if (asynchronous && mBatchChunkManager)
+            prepareAhead(*vd, viewPoint, referenceTime, cellWorldSize);
 
         if (mHeightCullCallback && isCullVisitor)
             updateWaterCullingView(mHeightCullCallback, vd, static_cast<osgUtil::CullVisitor*>(&nv),
@@ -688,6 +728,27 @@ namespace Terrain
         }
         if (isCullVisitor)
         {
+            if (asynchronous)
+            {
+                using Stage = Diagnostics::Loading::Stage;
+                mSceneryPrepared += cullMetrics.calls[static_cast<std::size_t>(Stage::SceneryPrepared)];
+                mSceneryRequired += cullMetrics.calls[static_cast<std::size_t>(Stage::SceneryRequired)];
+                mSceneryAhead += cullMetrics.calls[static_cast<std::size_t>(Stage::SceneryAhead)];
+                mSceneryCancelled += cullMetrics.calls[static_cast<std::size_t>(Stage::SceneryCancelled)];
+                mSceneryRequiredMs += cullMetrics.elapsedMs[static_cast<std::size_t>(Stage::SceneryRequired)];
+                mSceneryAheadMs += cullMetrics.elapsedMs[static_cast<std::size_t>(Stage::SceneryAhead)];
+                if (referenceTime >= mNextSceneryReport && (mSceneryPrepared || mSceneryRequired || mSceneryAhead))
+                {
+                    Log(Debug::Info) << "Scenery preparation: preparedHits=" << mSceneryPrepared
+                        << " requiredFallbacks=" << mSceneryRequired << " requiredMs=" << mSceneryRequiredMs
+                        << " aheadPasses=" << mSceneryAhead << " aheadMs=" << mSceneryAheadMs
+                        << " deadlineCancellations=" << mSceneryCancelled;
+                    mSceneryPrepared = mSceneryRequired = mSceneryAhead = mSceneryCancelled = 0;
+                    mSceneryRequiredMs = 0;
+                    mSceneryAheadMs = 0;
+                    mNextSceneryReport = referenceTime + 1.0;
+                }
+            }
             const double elapsed = Diagnostics::Loading::milliseconds(Diagnostics::Loading::Clock::now() - cullStart);
             if (elapsed >= 50)
                 Log(Debug::Info) << "Terrain cull timing: totalMs=" << elapsed << " view=" << viewPoint.x() << ','
@@ -759,7 +820,7 @@ namespace Terrain
 
     namespace
     {
-        // Account shared CPU geometry and texture payloads once per view. The estimate is used
+        // Account shared CPU geometry and a texture allowance once per view. The estimate is used
         // for retaining a recent exterior, never for dropping currently required scenery.
         class ArrivalFootprint : public osg::NodeVisitor
         {
@@ -780,17 +841,10 @@ namespace Terrain
                     const auto* t = dynamic_cast<const osg::Texture*>(set->getTextureAttribute(unit, osg::StateAttribute::TEXTURE));
                     if (!t || !mSeen.insert(t).second)
                         continue;
-                    mBytes += 256;
-                    bool hasImage = false;
-                    for (unsigned i = 0; i < t->getNumImages(); ++i)
-                        if (const auto* image = t->getImage(i))
-                        {
-                            hasImage = true;
-                            buffer(image);
-                        }
-                    if (!hasImage)
-                        mBytes += std::size_t(std::max(0, t->getTextureWidth())) * std::max(0, t->getTextureHeight())
-                            * std::max(1, t->getTextureDepth()) * 4;
+                    // The graphics thread can release image slots during apply.
+                    // Like compile readiness, use a conservative admission
+                    // allowance without reading mutable texture image state.
+                    mBytes += 256 + 4ull * 1024 * 1024;
                 }
             }
         public:

@@ -744,8 +744,8 @@ namespace MWWorld
         mPreloader->updateArrivalGrid(mRendering.getTerrain(), newGrid);
         if (mRendering.pagingUnlockCache())
             mPreloader->abortTerrainPreloadExcept(nullptr);
-        // Walking grid shifts retain ordinary look-ahead. A newly entered or distant grid can
-        // start as soon as every gameplay cell has its paged references and collision.
+        // Walking grid shifts retain ordinary look-ahead. Cold arrivals finish
+        // their initial scenery preparation under the loading screen.
         const bool landing = !mCurrentCell || !mCurrentCell->isExterior()
             || mCurrentCell->getCell()->getWorldSpace() != playerCellIndex.mWorldspace
             || !isCellInCollection(playerCellIndex, mActiveCells);

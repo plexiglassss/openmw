@@ -64,15 +64,20 @@ struct CompileReadinessCache {
 template<class Key,class Value>struct AsyncPreparation {
  struct Prepared {Value mValue{};std::shared_ptr<std::atomic_bool> mCompletion{};std::function<void()> mCancel{};std::size_t mEstimatedBytes=0;};
  struct Result {bool mReady=false,mFailed=false;Value mValue;};
- Result next;int calls=0,clears=0;explicit AsyncPreparation(WorkQueue*){}
- template<class Factory>Result request(const Key&,double,Factory){++calls;return next;}
- void clear(){++clears;next={};}void update(double){}
+ Result next;int calls=0,clears=0,polls=0,cancels=0;bool present=false;explicit AsyncPreparation(WorkQueue*){}
+ template<class Factory>Result request(const Key&,double,Factory){++calls;present=true;return next;}
+ Result poll(const Key&,double){++polls;return next;}
+ bool cancel(const Key&){++cancels;return std::exchange(present,false);}
+ std::size_t size()const{return present?1:0;}
+ void clear(){++clears;next={};present=false;}void update(double){}
 };
 struct Readiness {int mSet=0;std::shared_ptr<std::atomic_bool> mReady;std::size_t mEstimatedBytes=0;};
 Readiness prepareCompileReadiness(osg::ref_ptr<osg::Node>,osgUtil::IncrementalCompileOperation::ContextSet){return {};}
 }
-namespace Debug {enum {Warning};}
+namespace Debug {enum {Warning,Info};}
 struct Log {explicit Log(int){}template<class T>Log& operator<<(const T&){return *this;}};
+namespace Diagnostics {struct Scope {Scope(const char*,const char*,const char*){}};
+namespace Loading {enum class Stage{ObjectChunks,SceneryPrepared,SceneryRequired,SceneryAhead,SceneryCancelled};struct Timer{Timer(Stage){}};}}
 namespace Terrain {
 struct QuadTreeNode {osg::Vec2f getCenter()const{return {};}};
 struct DefaultLodCallback {static int getNativeLodLevel(QuadTreeNode*,float){return 0;}};
@@ -85,7 +90,8 @@ public:
  struct ChunkManager {
   struct AsyncResult {bool mSupported=false,mReady=false;osg::ref_ptr<osg::Node> mNode;};
   AsyncResult result;int synchronous=0,asynchronous=0;osg::Node node;
-  AsyncResult requestChunk(const ChunkRequest&,osg::Vec3f,double){++asynchronous;return result;}
+  bool lastQueue=true;
+  AsyncResult requestChunk(const ChunkRequest&,osg::Vec3f,double,bool queue=true){++asynchronous;lastQueue=queue;return result;}
   osg::ref_ptr<osg::Node> getChunk(float,osg::Vec2f,unsigned char,unsigned,bool,osg::Vec3f,bool,const std::atomic_bool*){
    ++synchronous;return &node;}
  };
@@ -95,8 +101,6 @@ public:
 };
 ''' + function(terrain, '    void QuadTreeWorld::loadRenderingNode') + r'''
 }
-namespace Diagnostics {struct Scope {Scope(const char*,const char*,const char*){}};
-namespace Loading {enum class Stage{ObjectChunks};struct Timer{Timer(Stage){}};}}
 using ChunkId=std::tuple<osg::Vec2f,float,bool>;
 struct Cache {std::map<ChunkId,osg::ref_ptr<osg::Node>> values;
  osg::ref_ptr<osg::Node> getRefFromObjectCache(const ChunkId& id){return values[id];}
@@ -124,7 +128,7 @@ public:
  int builds=0;std::function<void()> duringCreate;
  CacheEpoch cacheEpoch()const;void refreshCacheEpoch();void clearCache();
  osg::ref_ptr<osg::Node> getCachedChunk(const ChunkId&);
- bool updateAsyncState(double);AsyncResult requestChunk(const ChunkRequest&,const osg::Vec3f&,double);
+ bool updateAsyncState(double);bool canPrepareAsync()const;AsyncResult requestChunk(const ChunkRequest&,const osg::Vec3f&,double,bool=true);
  Selection selectChunk(const ChunkRequest&,const osg::Vec3f&,const std::atomic_bool*){return {mSelectionRevision.load(),scene.vfs.revision,cacheEpoch()};}
  osg::ref_ptr<osg::Node> createChunk(const ChunkRequest&,const osg::Vec3f&,const Selection&,bool,const std::atomic_bool*,bool,PendingCompile& p){
   ++builds;if(auto f=std::exchange(duringCreate,{}))f();p.mSet=builds;p.mOperation=&operation;return new osg::Node;}
@@ -132,6 +136,7 @@ public:
 };
 ''' + function(paging, '    struct ObjectPaging::AsyncState') + ';\n' + '\n'.join(function(paging, s) for s in [
     '    bool ObjectPaging::updateAsyncState(',
+    '    bool ObjectPaging::canPrepareAsync()',
     '    ObjectPaging::AsyncResult ObjectPaging::requestChunk(',
     '    ObjectPaging::CacheEpoch ObjectPaging::cacheEpoch()',
     '    void ObjectPaging::refreshCacheEpoch()',
@@ -145,20 +150,23 @@ int main(){
  ViewData view;QuadTreeNode tile;ViewDataEntry entry;entry.mNode=&tile;QuadTreeWorld::ChunkRequest request;
  auto load=[&](ViewDataEntry& target,bool async){world.loadRenderingNode(target,&view,8192,request,false,nullptr,nullptr,async,1);};
  objects.result={true,false,{}};load(entry,true);
- assert(!entry.mRenderingComplete && entry.mRenderingNode->children.size()==1 && objects.synchronous==0);
- assert(entry.mRenderingNode->children.front()==&ground.node);
- auto old=entry.mRenderingNode;objects.result={true,true,&objects.node};load(entry,true);
  assert(entry.mRenderingComplete && entry.mRenderingReadyForCamera && entry.mRenderingNode->children.size()==2);
- assert(old->children.size()==1); // previously shared fallback remains immutable
- ViewDataEntry ray;ray.mNode=&tile;ray.mRenderingNode=old;ray.mRenderingComplete=false;load(ray,false);
- assert(ray.mRenderingComplete && !ray.mRenderingReadyForCamera && objects.synchronous==1);
+ assert(objects.synchronous==1 && !objects.lastQueue && entry.mRenderingNode->children.front()==&ground.node);
+ auto old=entry.mRenderingNode;entry.mRenderingNode=nullptr;
+ objects.result={true,true,&objects.node};load(entry,true);
+ assert(entry.mRenderingComplete && entry.mRenderingReadyForCamera && entry.mRenderingNode->children.size()==2);
+ assert(objects.synchronous==1 && !objects.lastQueue && old->children.size()==2);
+ ViewDataEntry ray;ray.mNode=&tile;load(ray,false);
+ assert(ray.mRenderingComplete && !ray.mRenderingReadyForCamera && objects.synchronous==2);
  objects.result={true,false,{}};auto camera=ray;load(camera,true);
- assert(!camera.mRenderingComplete && camera.mRenderingNode->children.size()==1);
- assert(ray.mRenderingNode->children.size()==2); // exact ray result is not an implicit graphics fence
+ assert(camera.mRenderingComplete && camera.mRenderingReadyForCamera && camera.mRenderingNode->children.size()==2);
+ assert(objects.synchronous==3 && ray.mRenderingNode->children.size()==2 && !ray.mRenderingReadyForCamera);
  ViewDataEntry active;active.mNode=&tile;request.mActiveGrid=true;load(active,true);
- assert(active.mRenderingComplete && objects.synchronous==2);request.mActiveGrid=false;
+ assert(active.mRenderingComplete && objects.synchronous==4);request.mActiveGrid=false;
  ViewDataEntry compatibility;compatibility.mNode=&tile;objects.result={};load(compatibility,true);
- assert(compatibility.mRenderingComplete && objects.synchronous==3);
+ assert(compatibility.mRenderingComplete && objects.synchronous==5);
+ ViewDataEntry empty;empty.mNode=&tile;objects.result={true,true,{}};load(empty,true);
+ assert(empty.mRenderingComplete && empty.mRenderingNode->children.size()==1 && objects.synchronous==5);
  std::atomic_bool abort{true};ViewDataEntry stopped;stopped.mNode=&tile;
  world.loadRenderingNode(stopped,&view,8192,request,false,&abort,nullptr,true,1);assert(!stopped.mRenderingNode);
  for(int kind=0;kind<3;++kind){
@@ -179,12 +187,19 @@ int main(){
   const ChunkId key{{},1,false};osg::Node original,replacement;
   auto& jobs=paging.mAsync->mRequests;auto& completed=paging.mAsync->mCompleted;
   auto poll=[&]{return paging.requestChunk(request,{},1);};
+  // A required miss polls/cancels only; it must never enqueue a duplicate before demand work.
+  assert(!paging.requestChunk(request,{},1,false).mReady && jobs.calls==0 && jobs.polls==1);
+  jobs.present=true;assert(!paging.requestChunk(request,{},1,false).mReady && !jobs.present && jobs.calls==0);
   paging.cache.values[key]=&original;
+  const int cancellations=jobs.cancels;
+  assert(!paging.requestChunk(request,{},1,false).mReady && jobs.calls==0 && jobs.cancels==cancellations);
+  assert(!completed.contains(&original)); // cached CPU data is not a graphics receipt
   jobs.next={false,false,&original};assert(!poll().mReady && !completed.contains(&original));
   jobs.next={true,false,&original};assert(poll().mReady && completed.contains(&original));
   // Rebuilt wrappers after retired queue records reuse the current completed node.
   jobs.clear();int calls=jobs.calls;auto ready=poll();
   assert(ready.mReady && ready.mNode.get()==&original && jobs.calls==calls);
+  assert(paging.requestChunk(request,{},1,false).mReady && jobs.calls==calls);
   ++paging.mSelectionRevision;assert(paging.updateAsyncState(2));
   assert(completed.contains(&original) && poll().mReady && jobs.calls==calls);
   // Selective CPU-cache invalidation must not transfer proof to a replacement.
@@ -206,16 +221,149 @@ int main(){
   }
   paging.scene.operation=nullptr;assert(paging.updateAsyncState(10));assert(!poll().mSupported);
  }
- std::cout<<"PASS: production traversal keeps terrain, separates ray/camera readiness, preserves active/compatibility paths and aborts; publication rejects clear/model/VFS changes during assembly\n";
+ std::cout<<"PASS: production traversal completes required camera scenery on pending misses without new async jobs; prepared/empty results, rays, active/compatibility paths and aborts retain semantics; publication rejects clear/model/VFS changes during assembly\n";
  std::cout<<"PASS: production requests reuse completed current nodes without new jobs; pending/replaced nodes and all graphics generations retain preparation gates\n";
 }
 '''
-with tempfile.TemporaryDirectory() as tmp:
-    cpp=Path(tmp)/'streaming.cpp';cpp.write_text(source)
-    exe=Path(tmp)/('streaming.exe' if os.name=='nt' else 'streaming')
-    if os.name=='nt':
-        command=['cl','/nologo','/std:c++20','/EHsc',str(cpp),'/Fe:'+str(exe),'/Fo:'+str(Path(tmp)/'streaming.obj')]
-    else:
-        command=['c++','-std=c++20','-O2','-Wall','-Wextra','-Werror',str(cpp),'-o',str(exe)]
-    subprocess.run(command,check=True)
-    subprocess.run([str(exe)],check=True)
+def run(source, name):
+    with tempfile.TemporaryDirectory() as tmp:
+        cpp=Path(tmp)/(name+'.cpp');cpp.write_text(source)
+        exe=Path(tmp)/(name+('.exe' if os.name=='nt' else ''))
+        if os.name=='nt':
+            command=['cl','/nologo','/std:c++20','/EHsc',str(cpp),'/Fe:'+str(exe),'/Fo:'+str(Path(tmp)/(name+'.obj'))]
+        else:
+            command=['c++','-std=c++20','-O2','-Wall','-Wextra','-Werror',str(cpp),'-o',str(exe)]
+        subprocess.run(command,check=True)
+        subprocess.run([str(exe)],check=True)
+
+run(source, 'streaming')
+
+# Execute the actual future-view selector and arrival worker. The quadtree and
+# reporter are controlled doubles; native tests exercise real prediction math,
+# queue cancellation and graphics readiness. This verifies routing/ordering only.
+source = r'''
+#include <algorithm>
+#include <atomic>
+#include <cassert>
+#include <chrono>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <optional>
+#include <set>
+#include <stdexcept>
+#include <tuple>
+#include <vector>
+namespace osg {
+struct Vec2f {float a=0,b=0;float x()const{return a;}float y()const{return b;}
+ Vec2f operator*(float v)const{return {a*v,b*v};}Vec2f operator-(Vec2f v)const{return {a-v.a,b-v.b};}
+ float length2()const{return a*a+b*b;}bool operator<(Vec2f v)const{return std::tie(a,b)<std::tie(v.a,v.b);} };
+struct Vec3f {float a=0,b=0,c=0;float x()const{return a;}float y()const{return b;}float z()const{return c;}
+ Vec3f operator-(Vec3f v)const{return {a-v.a,b-v.b,c-v.c};}float length2()const{return a*a+b*b+c*c;} };
+struct Vec4i {int a=0,b=0,c=0,d=0;int x()const{return a;}int y()const{return b;}int z()const{return c;}int w()const{return d;}
+ bool operator==(const Vec4i&)const=default;};
+template<class T>struct ref_ptr {T* p=nullptr;ref_ptr(T* v):p(v){}operator T*()const{return p;}};
+}
+namespace Diagnostics::Loading {enum class Stage{SceneryAhead};struct Timer {explicit Timer(Stage){}};}
+namespace SceneUtil {struct WorkItem {virtual ~WorkItem()=default;virtual void abort()=0;virtual void doWork()=0;};}
+namespace Debug {enum {Info,Warning};}struct Log {explicit Log(int){}template<class T>Log& operator<<(const T&){return *this;}};
+namespace Loading {
+struct Listener {};
+struct Reporter {bool done=false;void complete(){done=true;}void wait(Listener&){assert(done);}};
+}
+struct PositionCellGrid {osg::Vec3f mPosition;osg::Vec4i mCellBounds;};
+namespace Terrain {
+struct StreamingLookAhead {
+ struct Plan {osg::Vec3f mCurrent,mPredicted;osg::Vec4i mPredictedGrid;float mMargin;};
+ std::optional<Plan> next;
+ auto update(const osg::Vec3f&,const osg::Vec4i&,double,float){return next;}
+};
+struct QuadTreeNode {osg::Vec2f center;float size=1;unsigned flags=0;
+ auto getCenter()const{return center;}float getSize()const{return size;}};
+struct ViewDataEntry {QuadTreeNode* mNode;unsigned mLodFlags=0;};
+struct ViewData {
+ std::vector<ViewDataEntry> entries;StreamingLookAhead mStreamingLookAhead;osg::Vec3f point;osg::Vec4i grid;
+ unsigned getNumEntries()const{return entries.size();}ViewDataEntry& getEntry(unsigned i){return entries[i];}
+ void setViewPoint(osg::Vec3f v){point=v;}void setActiveGrid(osg::Vec4i v){grid=v;}
+};
+struct DefaultLodCallback {
+ float distance;osg::Vec4i grid;int cellSize;
+ DefaultLodCallback(float,float,float d,osg::Vec4i g,int c):distance(d),grid(g),cellSize(c){}
+};
+struct Root {std::function<void(ViewData*,osg::Vec3f,DefaultLodCallback*)> select;
+ void traverseNodes(ViewData* v,osg::Vec3f p,DefaultLodCallback* lod){select(v,p,lod);}};
+class QuadTreeWorld {
+public:
+ struct ChunkRequest {float mSize;osg::Vec2f mCenter;unsigned mLodFlags;bool mActiveGrid;};
+ struct BatchChunkManager {
+  struct Call {ChunkRequest request;osg::Vec3f point;double time;bool queue;};std::vector<Call> calls;bool supported=true;bool canPrepareAsync()const{return supported;}
+  void requestChunk(ChunkRequest r,osg::Vec3f p,double t,bool q){calls.push_back({r,p,t,q});}
+ };
+ BatchChunkManager* mBatchChunkManager=nullptr;Root* mRootNode=nullptr;osg::Vec4i mActiveGrid;
+ float mLodFactor=1,mMinSize=1;std::atomic<float> mViewDistance{100};
+ void updateRenderingLod(ViewDataEntry& e,ViewData*){e.mLodFlags=e.mNode->flags;}
+ ChunkRequest getChunkRequest(const ViewDataEntry&,const osg::Vec4i&)const;
+ void prepareAhead(ViewData&,const osg::Vec3f&,double,float);
+};
+''' + function(terrain, '    QuadTreeWorld::ChunkRequest QuadTreeWorld::getChunkRequest') + '\n' + function(
+    terrain, '    void QuadTreeWorld::prepareAhead') + r'''
+struct View {};
+struct ArrivalView {bool completed=false;int failed=0,mRevision=0;
+ bool complete()const{return completed;}void finish(bool ok){completed=ok;if(!ok)++failed;}
+ bool matches(osg::Vec3f,osg::Vec4i,float,int)const{return true;}std::size_t bytes()const{return 42;}};
+struct World {
+ View view;int mode=0;bool valid=true;std::function<void(Loading::Reporter&)> duringNear;
+ View* createView(){return &view;}bool validArrival(const ArrivalView&)const{return valid;}
+ template<class F>void preloadArrival(View*,const std::shared_ptr<ArrivalView>& result,
+  std::atomic_bool& abort,Loading::Reporter& reporter,F near){
+  near(9,40);duringNear(reporter);
+  if(mode==1){abort=true;return;}if(mode==2)throw std::runtime_error("expected");
+  if(mode==3)throw 42;
+  if(mode==4)return;
+  result->finish(true);if(mode==5)valid=false;
+ }
+};
+}
+''' + function(Path('apps/openmw/mwworld/cellpreloader.cpp').read_text(), '    class ExteriorArrivalJob :') + r''';
+int main(){
+ using namespace Terrain;
+ QuadTreeWorld world;QuadTreeWorld::BatchChunkManager batch;Root root;ViewData current;
+ world.mBatchChunkManager=&batch;world.mRootNode=&root;world.mActiveGrid={-1,-1,1,1};
+ QuadTreeNode visible{{3,3},1,7},active{{.5f,.5f}},future{{2.5f,0}},outer{{4.5f,0}},other{{3.5f,0}};
+ QuadTreeNode outerOtherFlags{{4.5f,0},1,29};
+ current.entries={{&visible,0}};current.mStreamingLookAhead.next=StreamingLookAhead::Plan{{0,0,0},{5,0,0},{0,-1,2,1},10};
+ int selections=0;
+ root.select=[&](ViewData* target,osg::Vec3f point,DefaultLodCallback* lod){
+  ++selections;assert(lod->distance==110 && lod->cellSize==10);
+  if(point.x()==5){assert((lod->grid==osg::Vec4i{0,-1,2,1}));target->entries={{&visible},{&active},{&outer},{&future}};}
+  else{assert((lod->grid==world.mActiveGrid));target->entries={{&outerOtherFlags},{&other}};}
+ };
+ world.prepareAhead(current,{},1,10);
+ assert(selections==2 && batch.calls.size()==3 && current.entries.size()==1);
+ assert(batch.calls[0].request.mCenter.x()==2.5f && batch.calls[0].point.x()==5);
+ assert(batch.calls[1].request.mCenter.x()==3.5f && batch.calls[1].point.x()==0);
+ assert(batch.calls[2].request.mCenter.x()==4.5f); // duplicate across predictions submitted once
+ for(const auto& c:batch.calls)assert(c.queue && !c.request.mActiveGrid && c.time==1);
+ batch.calls.clear();std::vector<QuadTreeNode> many(300);
+ for(unsigned i=0;i<many.size();++i)many[i].center={float(i+2),5};
+ current.mStreamingLookAhead.next=StreamingLookAhead::Plan{{},{},world.mActiveGrid,10};
+ root.select=[&](ViewData* v,osg::Vec3f,DefaultLodCallback*){++selections;for(auto& node:many)v->entries.push_back({&node});};
+ world.prepareAhead(current,{},2,10);assert(selections==3 && batch.calls.size()==256);
+ assert(batch.calls.front().request.mCenter.x()==2 && batch.calls.back().request.mCenter.x()==257);
+ batch.supported=false;world.prepareAhead(current,{},3,10);assert(selections==3);
+ batch.supported=true;current.mStreamingLookAhead.next.reset();world.prepareAhead(current,{},4,10);assert(selections==3);
+ for(int mode=0;mode<6;++mode){
+  World terrainWorld;terrainWorld.mode=mode;auto arrival=std::make_shared<ArrivalView>();
+  ExteriorArrivalJob job(&terrainWorld,arrival);Loading::Listener listener;
+  terrainWorld.duringNear=[&](Loading::Reporter& progress){assert(!job.finishedVisible() && !progress.done);};
+  job.doWork();assert(job.waitVisible(listener)==(mode==0));
+  assert(job.finishedVisible()==(mode==0));
+  if(mode>0 && mode<5)assert(arrival->failed==1);
+ }
+ std::cout<<"PASS: production look-ahead selects predicted LOD/grid plus outer radius, skips visible/active chunks, deduplicates and bounds ordered submission; no current view mutation\n";
+ std::cout<<"PASS: production arrival waits through distant CPU preparation; active-ready callback cannot release loading; abort/failure/stale completion release safely without a graphics wait\n";
+}
+'''
+run(source, 'first_scenery')

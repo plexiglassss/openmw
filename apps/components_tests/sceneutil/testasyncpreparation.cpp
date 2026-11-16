@@ -46,6 +46,113 @@ namespace
         EXPECT_EQ(calls, 0);
     }
 
+    TEST(AsyncPreparation, RequiredProbeDoesNotSubmitAndCancellationRetiresQueuedSpeculation)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(0);
+        Cache cache(queue);
+        EXPECT_FALSE(cache.poll(1, 0).mReady);
+        EXPECT_EQ(cache.submitted(), 0u);
+        std::atomic_int calls{ 0 };
+        cache.request(1, 0, [&](const std::atomic_bool&) { ++calls; return Cache::Prepared{}; });
+        EXPECT_FALSE(cache.poll(1, 0.1).mReady);
+        EXPECT_EQ(cache.submitted(), 1u);
+        EXPECT_TRUE(cache.cancel(1));
+        EXPECT_FALSE(cache.cancel(1));
+        EXPECT_EQ(queue->getNumItems(), 0u);
+        EXPECT_EQ(cache.size(), 0u);
+        cache.update(0.2);
+        queue->start(1);
+        EXPECT_EQ(calls, 0);
+    }
+
+    TEST(AsyncPreparation, RequiredCancellationDoesNotJoinRunningSpeculation)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache cache(queue);
+        std::latch started(1), release(1);
+        std::atomic_bool observedAbort{ false };
+        cache.request(1, 0, [&](const std::atomic_bool& abort) {
+            started.count_down();
+            release.wait();
+            observedAbort = abort.load();
+            return Cache::Prepared{ std::make_shared<int>(1), {} };
+        });
+        started.wait();
+        EXPECT_TRUE(cache.cancel(1)); // must return while worker is still blocked
+        EXPECT_FALSE(cache.poll(1, 0).mReady);
+        release.count_down();
+        ASSERT_TRUE(eventually([&] { return observedAbort.load(); }));
+        EXPECT_FALSE(cache.poll(1, 0).mReady);
+    }
+
+    TEST(StreamingLookAhead, ColdAndStationaryViewsDoNotInventMotion)
+    {
+        Terrain::StreamingLookAhead prediction;
+        const osg::Vec3f point(10, 20, 30);
+        const osg::Vec4i grid(-1, -1, 2, 2);
+        auto first = prediction.update(point, grid, 1, 8192);
+        ASSERT_TRUE(first);
+        EXPECT_EQ(first->mPredicted, point);
+        EXPECT_EQ(first->mPredictedGrid, grid);
+        EXPECT_EQ(first->mMargin, 8192);
+        EXPECT_FALSE(prediction.update(point, grid, 1.01, 8192));
+        auto stationary = prediction.update(point, grid, 1.2, 8192);
+        ASSERT_TRUE(stationary);
+        EXPECT_EQ(stationary->mPredicted, point);
+    }
+
+    TEST(StreamingLookAhead, ForecastsMovementAndNegativeGridCrossingsWithinOneCell)
+    {
+        Terrain::StreamingLookAhead prediction;
+        const osg::Vec4i grid(-2, -1, 1, 2);
+        prediction.update(osg::Vec3f(-10, 0, 0), grid, 1, 100);
+        auto moving = prediction.update(osg::Vec3f(-1, 0, 0), grid, 1.11, 100);
+        ASSERT_TRUE(moving);
+        EXPECT_GT(moving->mPredicted.x(), 0);
+        EXPECT_EQ(moving->mPredictedGrid, osg::Vec4i(-1, -1, 2, 2));
+        EXPECT_LE((moving->mPredicted - moving->mCurrent).length(), 100.f);
+        prediction.update(osg::Vec3f(90, 0, 0), grid, 1.12, 100);
+        auto fast = prediction.update(osg::Vec3f(180, 0, 0), grid, 1.23, 100);
+        ASSERT_TRUE(fast);
+        EXPECT_LE((fast->mPredicted - fast->mCurrent).length(), 100.001f);
+    }
+
+    TEST(StreamingLookAhead, TeleportsAndClockChangesResetForecast)
+    {
+        Terrain::StreamingLookAhead prediction;
+        const osg::Vec4i grid(-1, -1, 2, 2);
+        prediction.update(osg::Vec3f(), grid, 1, 100);
+        prediction.update(osg::Vec3f(10, 0, 0), grid, 1.1, 100);
+        const osg::Vec3f destination(1000, 500, 100);
+        auto teleported = prediction.update(destination, grid, 1.1, 100);
+        ASSERT_TRUE(teleported);
+        EXPECT_EQ(teleported->mPredicted, destination);
+        auto rewound = prediction.update(destination, grid, 0.1, 100);
+        ASSERT_TRUE(rewound);
+        EXPECT_EQ(rewound->mPredicted, destination);
+        EXPECT_FALSE(prediction.update(destination, grid, 0.2, 0));
+    }
+
+    TEST(StreamingLookAhead, ViewCopiesKeepCameraMotionAndRecyclingResetsIt)
+    {
+        Terrain::ViewData source, camera;
+        const osg::Vec4i grid(-1, -1, 2, 2);
+        source.mStreamingLookAhead.update({}, grid, 0, 100);
+        camera.mStreamingLookAhead.update({}, grid, 0, 100);
+        source.mStreamingLookAhead.update(osg::Vec3f(10, 0, 0), grid, 0.11, 100);
+        camera.mStreamingLookAhead.update(osg::Vec3f(0, 10, 0), grid, 0.11, 100);
+        camera.copyFrom(source);
+        const osg::Vec3f point(0, 10, 0);
+        auto moving = camera.mStreamingLookAhead.update(point, grid, 0.22, 100);
+        ASSERT_TRUE(moving);
+        EXPECT_EQ(moving->mPredicted.x(), 0);
+        EXPECT_GT(moving->mPredicted.y(), point.y());
+        camera.clear();
+        auto fresh = camera.mStreamingLookAhead.update(point, grid, 0.23, 100);
+        ASSERT_TRUE(fresh);
+        EXPECT_EQ(fresh->mPredicted, point);
+    }
+
     TEST(AsyncPreparation, PollingDoesNotJoinAnUnfinishedWorker)
     {
         osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);

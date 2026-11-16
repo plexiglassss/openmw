@@ -97,8 +97,10 @@ namespace Terrain
             virtual unsigned int getNodeMask() { return 0; }
             // Main/cull thread only. Pending is distinct from a successfully
             // empty chunk. Exact queries continue to use getChunk.
-            virtual AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double) { return {}; }
+            virtual AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double, bool = true)
+            { return {}; }
             virtual bool updateAsyncState(double) { return false; }
+            virtual bool canPrepareAsync() const { return false; }
             // Called only after the segment misses the landscape tile itself. Other
             // managers can have meshes extending outside that tile; unknown means keep.
             virtual bool mayIntersectOutsideTile(const ChunkRequest&, const osg::Vec3f&, const RayFootprint&)
@@ -148,7 +150,10 @@ namespace Terrain
         void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
             bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr,
             bool asynchronous = false, double referenceTime = 0);
+        void prepareAhead(ViewData&, const osg::Vec3f&, double referenceTime, float cellWorldSize);
         BatchChunkManager* mBatchChunkManager = nullptr;
+        std::size_t mSceneryPrepared = 0, mSceneryRequired = 0, mSceneryAhead = 0, mSceneryCancelled = 0;
+        double mSceneryRequiredMs = 0, mSceneryAheadMs = 0, mNextSceneryReport = 0;
 
         osg::ref_ptr<RootNode> mRootNode;
 

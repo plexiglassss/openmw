@@ -79,6 +79,10 @@ namespace Diagnostics::Loading
         CellProgress,
         CullPrepare,
         CullTraverse,
+        SceneryPrepared,
+        SceneryRequired,
+        SceneryAhead,
+        SceneryCancelled,
         Count
     };
     inline constexpr std::size_t stageCount = static_cast<std::size_t>(Stage::Count);
@@ -92,7 +96,8 @@ namespace Diagnostics::Loading
         "pagedModelLoadCpu", "pagedModelShaderCpu", "playerInventoryList", "playerPreviewRebuild",
         "playerPreviewUpdate", "playerSpellWindow", "playerMagicEffects", "playerPreviewGeometry", "playerArmorCaption",
         "playerArmorCaptionHidden", "luaContainerStartup", "pagedChunkGroup", "pagedCandidateSelection", "cellModel",
-        "cellRendering", "cellMechanics", "cellPhysics", "cellLua", "cellProgress", "cullPrepare", "cullTraverse" };
+        "cellRendering", "cellMechanics", "cellPhysics", "cellLua", "cellProgress", "cullPrepare", "cullTraverse",
+        "sceneryPrepared", "sceneryRequired", "sceneryAhead", "sceneryCancelled" };
 
     struct Metrics
     {

@@ -74,6 +74,7 @@ namespace Terrain
         mChanged = false;
         mHasViewPoint = false;
         mNodes.clear();
+        mStreamingLookAhead = {};
     }
 
     bool ViewData::suitableToUse(const osg::Vec4i& activeGrid) const

@@ -214,6 +214,8 @@ namespace MWRender
         bool changed = generation != mAsync->mGeneration;
         if (changed)
         {
+            if (mAsync->mInitialized && mAsync->mRequests.size())
+                Log(Debug::Info) << "Scenery preparation invalidation: retiredRequests=" << mAsync->mRequests.size();
             mAsync->mRequests.clear();
             // Selection edits already remove affected CPU chunks. Receipts for
             // unchanged cached nodes remain valid across view/grid rebuilds.
@@ -244,16 +246,36 @@ namespace MWRender
         Resource::GenericResourceManager<ChunkId>::releaseGLObjects(state);
     }
 
+    bool ObjectPaging::canPrepareAsync() const
+    {
+        return mAsync && mAsync->mOperation && !mAsync->mContexts.empty();
+    }
+
     ObjectPaging::AsyncResult ObjectPaging::requestChunk(
-        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, double referenceTime)
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, double referenceTime, bool queue)
     {
         // Active reference ownership and exact intersection semantics stay on the
-        // established synchronous path. Only optional distant objects are delayed.
-        if (!mAsync || chunk.mActiveGrid || !mAsync->mOperation || mAsync->mContexts.empty())
+        // established synchronous path. Future distant chunks may prepare in advance.
+        if (chunk.mActiveGrid || !canPrepareAsync())
             return {};
         const ChunkId key(chunk.mCenter, chunk.mSize, false);
-        if (auto cached = getCachedChunk(key); cached && mAsync->mCompleted.contains(cached))
+        auto cached = getCachedChunk(key);
+        if (cached && mAsync->mCompleted.contains(cached))
             return { true, true, std::move(cached) };
+        if (!queue)
+        {
+            // Required camera coverage never submits a new job and then builds
+            // the same chunk synchronously. Cached CPU preload nodes can use the
+            // normal draw path without claiming an independent GL completion.
+            const auto result = mAsync->mRequests.poll(key, referenceTime);
+            if (result.mReady)
+                mAsync->mCompleted.remember(result.mValue);
+            else if (!cached && mAsync->mRequests.cancel(key))
+            {
+                Diagnostics::Loading::Timer cancelled(Diagnostics::Loading::Stage::SceneryCancelled);
+            }
+            return { true, result.mReady, result.mValue };
+        }
         const auto result = mAsync->mRequests.request(key, referenceTime,
             [this, chunk, viewPoint, contexts = mAsync->mContexts, owners = mAsync->mContextOwners,
                 operation = mAsync->mOperation]

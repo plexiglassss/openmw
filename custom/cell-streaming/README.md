@@ -68,64 +68,59 @@ The latest native QuickLoot empty-tooltip suppression and HBFS god-mode accounti
 Keep the installed UIToolkit QuickLoot Sticky v3.6 and Object Insight UI v3.7 overlays;
 this engine update does not replace those companion mods with an older bundle.
 
-## Continuous distant-object preparation
+## Prepare scenery before it is needed
 
-A distant paged-object miss can now return pending immediately to camera traversal. The
-terrain remains drawable while worker jobs prepare missing object sections. Nearby gameplay
-cells and exact ray queries retain their existing immediate semantics. Before a prepared
-section becomes visible, an independent completion callback covers the captured graphics
-contexts; an existing shared "queued" marker is never treated as completed work. This is an
-OSG compile-operation completion contract, not proof of successful driver shader linking or
-a hardware GPU fence. Absent or uninitialized graphics contexts use the compatibility path.
+Required camera tiles now contain their complete object sections before traversal publishes the
+frame. The earlier terrain-only pending frames and four-per-frame arrival attachment quota are
+removed. A required request only checks existing preparation; it never starts a speculative job
+and immediately duplicates that job on the foreground path. When preparation is incomplete,
+normal `getChunk`/draw semantics finish required scenery. Cached CPU-only preload nodes are reused
+without pretending that a graphics completion callback has fired. Active cells, exact rays and
+compatibility paths retain immediate loading.
 
-Admission prefers the nearest missing sections, with two outstanding CPU/graphics preparations,
-64 retained request entries and a 1 GiB admission estimate. Each unknown job reserves 64 MiB;
-completed estimates include geometry arrays and a 4 MiB allowance per texture. Actual assets
-can exceed these estimates. This is not a hard process RAM/VRAM cap. Unused pending jobs expire
-after one second; ready request records expire after a quarter second. Visible scene nodes
-and normal resource caches have their existing lifetimes. Cancelled graphs are retired through
-the worker unref queue; detached callbacks cannot publish into a replacement request.
+A per-camera motion predictor plans at most ten times per second. It forecasts two seconds of
+smoothed motion, bounded to one exterior cell, then selects actual future quadtree LOD/chunk
+identities and an additional one-cell ring around the current view. Teleports, reversed clocks,
+long sample gaps and recycled view records reset prediction. Stationary views warm the outer
+ring without inventing motion. The nearest 256 distinct future candidates are offered to the
+existing bounded queue. Terrain stitching flags do not create duplicate object identities.
+Unsupported graphics contexts skip prediction planning. Planning does not activate cells, scripts, actors, collision or navigation. Quadtree selection
+still scales with the configured view distance; these are admission limits, not timing guarantees.
 
-Camera and ray views have separate readiness semantics. A CPU-complete ray view cannot bypass
-the camera graphics gate. Selection, model/VFS/cache and graphics-context changes invalidate
-requests and reused views; stale builders cannot repopulate a cleared chunk cache. Size estimates
-used to reject distant objects carry the same resource epoch. Required detached cell clones now
-finish before optional animation-directory scanning.
+Two CPU/graphics preparations may be outstanding, with 64 retained request entries and a 1 GiB
+admission estimate. Each unknown job reserves 64 MiB; estimates include geometry arrays and a
+4 MiB allowance per texture. Arrival retention uses the same texture allowance without reading mutable image slots.
+Actual assets can exceed estimates; this is not a hard RAM/VRAM cap.
+Unused pending jobs expire after one second and ready request records after a quarter second.
+A required miss cancels queued speculation before normal loading; already-running factories
+observe cooperative cancellation. Cancellation does not join a worker on the camera thread.
+Cancelled graphs retire through the worker unref queue, and detached callbacks cannot publish
+into replacement requests. The existing resource-cache and scene-node lifetimes remain in use.
 
-`OPENMW_ASYNC_OBJECT_PAGING=0` selects the previous camera path for a process-local comparison.
-Both capture scripts record this flag and the actor/resource-preparation flags. The normal log
-reports whether distant streaming is enabled. No startup preload sweep is added.
+Completed graphics receipts are retained separately for up to 512 exact current nodes using
+weak references. They survive request retirement and unaffected selection changes without
+keeping scene graphs alive. Recycled addresses and replacements cannot inherit receipts. VFS,
+model settings, graphics-cache releases, compile-operation/context changes and shader revisions
+invalidate receipts. Completion means the independent OSG compile-operation callback has run
+for all captured contexts; it is not proof of successful driver shader linking or a hardware fence.
 
-This moves distant object preparation out of camera culling. Terrain and groundcover creation,
-active-cell insertion, exact rays, Lua activation and driver work can still stall. Distant objects
-may appear after their terrain while preparation finishes. Native/body tests validate lifecycle
-and fallback behavior; a same-save, same-route game recording is still required to measure the
-actual improvement and check visual behavior in the full installation.
+Cold exterior arrivals keep CPU preparation for the initial terrain view behind the loading
+screen until both its near and distant passes finish. The wait does not depend on graphics
+callbacks, and failures or cancellation release the normal demand path. A different first-camera
+position or LOD may still need additional work; that work is required before the frame is shown.
+Initial exterior loading can consequently take longer than the previous early-reveal build.
+A missed prediction can still stall movement or first drawing. This revision removes deliberate
+late scenery as a scheduling policy; it does not promise stall-free unseen assets or eliminate
+ordinary distance/LOD appearance changes.
 
-## Preserve completed scenery across view rebuilds
+The normal log reports `Scenery preparation` with prepared hits, required fallback count/time,
+ahead planning passes/time and deadline cancellations. Generation changes report retired requests.
+Cull and resource timings remain inclusive and must not be added together. These observations
+support same-save, same-route comparisons of first visits and reversals. Native tests cover
+prediction, lifecycle, cancellation and graphics readiness. Production-body fixtures cover
+required-frame routing, future selection, duplicate exclusion and full-arrival CPU completion.
+Visual acceptance and transition timings with the user's installation remain to be measured.
 
-The user reports better transition performance with the continuous-streaming build, but the
-16 November evening recording shows distant scenery repeatedly disappearing and returning
-on the same short route. Completed request records retire after 0.25 seconds; a cell-grid or
-LOD view rebuild could therefore queue graphics preparation again for an unchanged cached
-object node that had already been displayed.
-
-Object paging now remembers up to 512 completed nodes using weak lifetime references, outside
-the heavy request queue. A rebuilt view can immediately reuse the exact current cached node
-when its graphics completion is already known. These receipts retain no scene graphs and do
-not increase worker concurrency or the asset admission budget. Recycled addresses cannot
-inherit a previous node's readiness. Least recently used receipts are evicted at the limit.
-
-Selective object edits still invalidate affected CPU chunks and all pending requests; only
-unchanged current nodes can reuse their receipt. VFS, model settings, graphics-cache releases,
-compile-operation changes, graphics-context changes and shader source/template/GL revisions
-invalidate all receipts. This includes live lighting defines and shader hot reload. Pending and
-replacement nodes still pass through the completion gate. Active cells and exact rays retain
-their existing paths. There is no startup sweep or installation-specific content rule.
-
-Native tests cover weak ownership, address reuse, bounded eviction, invalidation and retention
-after request expiry. Production-body fixtures exercise reuse without queueing, replacement
-and pending nodes, selection changes, every graphics generation and compatibility fallback.
-This addresses avoidable repeat pop-in; new LOD/chunk shapes, resource-cache eviction and
-first-time distant detail can still arrive late. A new in-game recording is needed to confirm
-how much of the visible popping this removes in the user's installation.
+`OPENMW_ASYNC_OBJECT_PAGING=0` disables future object preparation for a process-local comparison.
+Both capture scripts record this and the actor/resource-preparation flags. No process-startup
+preload sweep, installation-specific content rule or gameplay API change is introduced.

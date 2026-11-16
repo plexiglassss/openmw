@@ -29,8 +29,9 @@ namespace MWRender
 
         using ChunkRequest = Terrain::QuadTreeWorld::ChunkRequest;
         void setWorkQueue(SceneUtil::WorkQueue* queue);
-        AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double referenceTime) override;
+        AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double referenceTime, bool queue = true) override;
         bool updateAsyncState(double referenceTime) override;
+        bool canPrepareAsync() const override;
         void clearCache() override;
         void releaseGLObjects(osg::State*) override;
         bool mayIntersectOutsideTile(

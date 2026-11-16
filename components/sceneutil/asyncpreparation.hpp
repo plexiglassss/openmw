@@ -136,7 +136,7 @@ namespace SceneUtil
             mUnref.flush(*mQueue);
         }
 
-        Result request(const Key& key, double now, Factory factory)
+        Result poll(const Key& key, double now)
         {
             auto found = mEntries.find(key);
             if (found != mEntries.end())
@@ -150,6 +150,26 @@ namespace SceneUtil
                     return { true, false, entry.mJob->mResult.mValue };
                 return { false, entry.mJob->failed(), {} };
             }
+            return {};
+        }
+
+        // Retire speculation before the required path takes over. Values still
+        // leave through the worker unref queue, never through the calling cull.
+        bool cancel(const Key& key)
+        {
+            const auto found = mEntries.find(key);
+            if (found == mEntries.end())
+                return false;
+            mQueue->cancelWorkItem(found->second.mJob.get());
+            mRetired.push_back(std::move(found->second.mJob));
+            mEntries.erase(found);
+            return true;
+        }
+
+        Result request(const Key& key, double now, Factory factory)
+        {
+            if (mEntries.contains(key))
+                return poll(key, now);
             std::size_t pending = 0;
             std::size_t estimatedBytes = 0;
             for (const auto& [existing, entry] : mEntries)
