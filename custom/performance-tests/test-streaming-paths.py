@@ -68,7 +68,10 @@ struct CompileReadinessCache {
 template<class Key,class Value>struct AsyncPreparation {
  struct Prepared {Value mValue{};std::shared_ptr<std::atomic_bool> mCompletion{};std::function<void()> mCancel{};std::size_t mEstimatedBytes=0;};
  struct Result {bool mReady=false,mFailed=false;Value mValue;};
- Result next;int calls=0,clears=0,polls=0,cancels=0;bool present=false;explicit AsyncPreparation(WorkQueue*,int=2,int=64,std::size_t=0){}
+ Result next;int calls=0,clears=0,polls=0,cancels=0;bool present=false;
+ std::size_t cpuLimit,unresolvedLimit;
+ explicit AsyncPreparation(WorkQueue*,std::size_t cpu=2,std::size_t=64,std::size_t=0,double=0.25,double=1.0,std::size_t unresolved=0)
+   :cpuLimit(cpu),unresolvedLimit(unresolved?unresolved:cpu){}
  template<class Factory>Result request(const Key&,double,Factory){++calls;present=true;return next;}
  Result poll(const Key&,double){++polls;return next;}
  bool cancel(const Key&){++cancels;return std::exchange(present,false);}
@@ -208,6 +211,8 @@ int main(){
   assert(!paging.updateAsyncState(0));
   const ChunkId key{{},1,false};osg::Node original,replacement;
   auto& jobs=paging.mAsync->mRequests;auto& completed=paging.mAsync->mCompleted;
+  assert(jobs.cpuLimit==2 && jobs.unresolvedLimit==8);
+  assert(paging.mAsync->mBridges.cpuLimit==2 && paging.mAsync->mBridges.unresolvedLimit==2);
   auto poll=[&]{return paging.requestChunk(request,{},1);};
   // A required miss polls/cancels only; it must never enqueue a duplicate before demand work.
   assert(!paging.requestChunk(request,{},1,false).mReady && jobs.calls==0 && jobs.polls==1);
