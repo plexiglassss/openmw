@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -42,7 +42,8 @@
     "9ebf8a4179b9a199892981e56738e291ed7c7706",
     "c23e0338bfe6e13d1538a9ab4379e48767afcd4e",
     "068f83221113c67811ebad9aaa7e95795c954693",
-    "157fc965a1fd909753bd6695d8a6e562e0c7f6b0"
+    "157fc965a1fd909753bd6695d8a6e562e0c7f6b0",
+    "788aafb4c72ad8bbf15fd9bfd17ecd464235d7ae"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -4032,11 +4033,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3436ffebe4d85f6426dd883b9a4eb5b09aa0a848"
+        "blob": "cfc88a3a987dac12590e14f2eefb40bbe5c1626c"
       },
-      "bytes": 5517,
-      "sha256": "8c13bea01edce9e472587378f2c4db8a026c17169f95e2452006532032b92049",
-      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch."
+      "bytes": 5609,
+      "sha256": "cbec432fdcc673f12ef0e1fa607051d10363f11120051779275049d136bb6a06",
+      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -4045,11 +4046,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e2310c2c9af4f0816da602f1bfdb3151a1ab572f"
+        "blob": "f6ce737569c5e6f26db16c3a37ef0aac3b255869"
       },
-      "bytes": 3320,
-      "sha256": "98030d7125579b053bc43124fbe842de0faee75c5d28e1227fe9f1efbe5b1639",
-      "reason": "Build, run or package the combined candidate and four captured script adapters. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch."
+      "bytes": 3414,
+      "sha256": "a1e5c96d932c7049b42093d7df72d1a2537ea4f69f13524f5fbdf1015b01bbfa",
+      "reason": "Build, run or package the combined candidate and four captured script adapters. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits."
     },
     "custom/loading-repair/reviewed_state.py": {
       "before": null,

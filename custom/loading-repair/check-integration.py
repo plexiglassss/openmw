@@ -25,7 +25,8 @@ def blob(text):
 unchanged = {
     # Exact candidate engine with the worker pool constructed in prepareEngine and joined at shutdown.
     'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
-    'apps/openmw/mwgui/loadingscreen.cpp': '00f2a04d44b1df4456a316e44dd8959b048114b3',
+    # Reviewed cooperative compile budget, loading-mode handoff and UTF-8 label conversion.
+    'apps/openmw/mwgui/loadingscreen.cpp': '34b1a11ddf9df72a47e51fc7488d9c88054a83b9',
     'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
     'apps/openmw/mwstate/statemanagerimp.cpp': '98b44cc7fd339a610f6257043a90cb95f18f2521',
 }
@@ -52,5 +53,5 @@ manifest = json.loads(get('loading-repair-source-manifest.json'))
 changed = {name for name, value in manifest['files'].items() if value['before_blob'] != value['after_blob']}
 check(changed == {'apps/openmw/mwworld/worldmodel.cpp', 'apps/openmw/mwworld/worldmodel.hpp'},
       'Only the two lookup implementation files may be changed by the build-time script')
-print('PASS: saved-map hooks verified; previous loading and simulation source reproduced; lookup patch retained.')
+print('PASS: saved-map hooks and reviewed loading/simulation source verified; lookup-only transformation retained.')
 print('These are source checks, not an in-game performance result.')
