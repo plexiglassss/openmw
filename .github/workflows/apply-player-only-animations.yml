@@ -1,0 +1,32 @@
+name: Apply generic player-only animation sources
+on:
+  push:
+    branches: [feature/player-only-animations-20261117]
+    paths:
+      - custom/player-only-animations/player-only-animations.patch
+      - custom/player-only-animations/verify.py
+      - .github/workflows/apply-player-only-animations.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[player-only-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Apply reviewed source patch
+        run: |
+          git apply --check custom/player-only-animations/player-only-animations.patch
+          git apply custom/player-only-animations/player-only-animations.patch
+          git diff --check
+      - name: Verify generic scope and path mapping
+        run: python custom/player-only-animations/verify.py --output player-only-animations-verification.json
+      - name: Commit production source
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/openmw/mwrender/animation.hpp apps/openmw/mwrender/animation.cpp apps/openmw/mwrender/npcanimation.cpp player-only-animations-verification.json
+          git commit -m "Add generic player-only animation sources [player-only-applied]"
+          git push
