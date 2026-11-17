@@ -1,0 +1,68 @@
+diff --git a/apps/openmw/mwrender/animation.hpp b/apps/openmw/mwrender/animation.hpp
+index 7aebb64ff..000000000 100644
+--- a/apps/openmw/mwrender/animation.hpp
++++ b/apps/openmw/mwrender/animation.hpp
+@@ -287,7 +287,8 @@ namespace MWRender
+          */
+         void setObjectRoot(const std::string& model, bool forceskeleton, bool baseonly, bool isCreature);
+ 
+-        void loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel);
++        void loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel,
++            VFS::Path::NormalizedView directory = VFS::Path::NormalizedView("animations/"));
+ 
+         /** Adds the keyframe controllers in the specified model as a new animation source.
+          * @note Later added animation sources have the highest priority when it comes to finding a particular
+diff --git a/apps/openmw/mwrender/animation.cpp b/apps/openmw/mwrender/animation.cpp
+index 14c172f27..000000000 100644
+--- a/apps/openmw/mwrender/animation.cpp
++++ b/apps/openmw/mwrender/animation.cpp
+@@ -620,14 +620,22 @@ namespace MWRender
+         return mKeyframes->mTextKeys;
+     }
+ 
+-    void Animation::loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel)
++    void Animation::loadAdditionalAnimations(
++        VFS::Path::NormalizedView model, const std::string& baseModel, VFS::Path::NormalizedView directory)
+     {
+         const auto path = Misc::ResourceHelpers::additionalAnimationPath(model);
+         if (!path)
+             return;
+ 
++        constexpr std::string_view animations = "animations/";
++        std::string animationPath(path->value());
++        if (!animationPath.starts_with(animations))
++            return;
++        animationPath.replace(0, animations.size(), directory.value());
++
+         constexpr VFS::Path::ExtensionView kf("kf");
+         for (const VFS::Path::Normalized& name :
+-            mResourceSystem->getVFS()->getRecursiveDirectoryIterator(path->value()))
++            mResourceSystem->getVFS()->getRecursiveDirectoryIterator(animationPath))
+             if (name.extension() == kf)
+                 addSingleAnimSource(name, baseModel);
+     }
+diff --git a/apps/openmw/mwrender/npcanimation.cpp b/apps/openmw/mwrender/npcanimation.cpp
+index 9a9c4c4ff..000000000 100644
+--- a/apps/openmw/mwrender/npcanimation.cpp
++++ b/apps/openmw/mwrender/npcanimation.cpp
+@@ -538,6 +538,21 @@ namespace MWRender
+         const bool customArgonianSwim = !is1stPerson && !isWerewolf && isBeast && mNpc->mRace.contains("argonian");
+         if (customArgonianSwim)
+             addAnimSource(Settings::models().mXargonianswimkna.get().value(), smodel);
++
++        // Mods may keep player-only KF sources outside the ordinary Animations tree. This avoids registering
++        // player poses on unrelated NPCs and biped creatures while retaining the real player representation.
++        if (!is1stPerson && !isWerewolf && Settings::game().mUseAdditionalAnimSources
++            && mPtr == MWBase::Environment::get().getWorld()->getPlayerPtr())
++        {
++            constexpr VFS::Path::NormalizedView directory("playeranimations/");
++            if (!base.empty())
++                loadAdditionalAnimations(VFS::Path::NormalizedView(base), smodel, directory);
++            if (defaultSkeleton != base)
++                loadAdditionalAnimations(VFS::Path::NormalizedView(defaultSkeleton), smodel, directory);
++            if (isCustomModel)
++                loadAdditionalAnimations(VFS::Path::NormalizedView(smodel), smodel, directory);
++        }
+ 
+         if (is1stPerson)
+         {
