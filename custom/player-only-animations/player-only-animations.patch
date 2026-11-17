@@ -16,7 +16,7 @@ diff --git a/apps/openmw/mwrender/animation.cpp b/apps/openmw/mwrender/animation
 index 14c172f27..000000000 100644
 --- a/apps/openmw/mwrender/animation.cpp
 +++ b/apps/openmw/mwrender/animation.cpp
-@@ -620,14 +620,22 @@ namespace MWRender
+@@ -620,15 +620,22 @@ namespace MWRender
          return mKeyframes->mTextKeys;
      }
  
