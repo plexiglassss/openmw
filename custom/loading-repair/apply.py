@@ -15,8 +15,8 @@ ROOT = Path(__file__).resolve().parents[2]
 # REC_DCLR beside REC_DCOU; removing that one case must reproduce the complete
 # prior state-manager blob, after subtracting the separately verified saved-map handoff.
 EXPECTED = {
-    # Exact candidate engine with the worker pool constructed in prepareEngine and joined at shutdown.
-    'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
+    # Exact reviewed engine: worker lifecycle retained; F3 timing history uses seconds.
+    'apps/openmw/engine.cpp': '961c2ac044678fd6512d33c1a17562430a68be75',
     # Reviewed cooperative compile budget, loading-mode handoff and UTF-8 label conversion.
     'apps/openmw/mwgui/loadingscreen.cpp': 'b6300c34ef08ced463e411b5865df07ac1c1a55e',
     'apps/openmw/mwgui/loadingscreen.hpp': 'bb5884ba617b541a814243fe141bd04361e93118',

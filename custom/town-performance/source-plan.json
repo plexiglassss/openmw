@@ -4468,11 +4468,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c69dd253856983fc0bd16728798197a402e33636"
+        "blob": "52c0bd6b8741ff555efa82ab9af91ace7971442c"
       },
-      "sha256": "25c7becbd652d6f95b73a0ff8137dd9c86c383161b2f8d4d7718667499386866",
-      "bytes": 5609,
-      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "43853096f14916d857e90a035a6bfd71f6e1a1316895325f0bbdb72e3c202d7f",
+      "bytes": 5594,
+      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -4481,11 +4481,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a5dd03b29bdd8526d1432df4ec24c1d5162a270a"
+        "blob": "20a7f34faf6c18af5d154649f4f03a764af5f892"
       },
-      "sha256": "80663eeafae179fe4ea246dcf54d0edb236c7fe69da294da666f13baf1878b81",
-      "bytes": 3414,
-      "reason": "Build, run or package the combined candidate and four captured script adapters. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "66c892319ce265cbbf5cc58cb678692f50bcf7fc5595dba0be718e2f0dabbe65",
+      "bytes": 3399,
+      "reason": "Build, run or package the combined candidate and four captured script adapters. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up."
     },
     "custom/loading-repair/reviewed_state.py": {
       "before": null,
