@@ -76,10 +76,17 @@ namespace
     TEST(DialogueText, InventoryNoticesRecogniseCountsAndRemovals)
     {
         for (std::string_view text : { "A note has been added to your inventory.",
-                 "2 potions have been added to your inventory.", "A note has been removed from your inventory.",
-                 "3 notes have been removed from your inventory.", "Item received: Letter to Caius.",
+                 "2 potions have been added to your inventory.", "Item received: Letter to Caius.",
                  "\"A Stranger's Note\" has been added to your inventory." })
             expectOnly(text, Category::Inventory);
+    }
+
+    TEST(DialogueText, RemovalsHaveTheirOwnCategory)
+    {
+        for (std::string_view text : { "A note has been removed from your inventory.",
+                 "3 notes have been removed from your inventory.", "Items removed: 2 potions." })
+            expectOnly(text, Category::InventoryRemoval);
+        expectOnly("Item received: Removed Pages.", Category::Inventory);
     }
 
     TEST(DialogueText, ConversationAboutInventoryDoesNotBecomeANotice)

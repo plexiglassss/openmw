@@ -36,6 +36,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testmainmenubutton.cpp
     mwgui/testluauilayout.cpp
 
+    mwlua/testmodkeybindings.cpp
     mwlua/testobjectcache.cpp
     mwlua/testmagicbindings.cpp
     mwlua/testnativequeryservice.cpp

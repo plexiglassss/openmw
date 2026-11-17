@@ -49,6 +49,7 @@ namespace Settings
         SettingValue<bool> mJournalColourNarration{ mIndex, "GUI", "journal colour narration" };
         SettingValue<MyGUI::Colour> mColorDialogueNormal{ mIndex, "GUI", "color dialogue normal" };
         SettingValue<MyGUI::Colour> mColorDialogueTopic{ mIndex, "GUI", "color dialogue topic" };
+        SettingValue<MyGUI::Colour> mColorDialogueInventoryRemoval{ mIndex, "GUI", "color dialogue inventory removal" };
         SettingValue<MyGUI::Colour> mColorDialogueInventory{ mIndex, "GUI", "color dialogue inventory" };
         SettingValue<MyGUI::Colour> mColorDialogueStat{ mIndex, "GUI", "color dialogue stat" };
         SettingValue<MyGUI::Colour> mColorDialogueNarration{ mIndex, "GUI", "color dialogue narration" };

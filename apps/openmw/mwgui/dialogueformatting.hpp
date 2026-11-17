@@ -24,7 +24,7 @@ namespace MWGui
     {
         // Indexed by Misc::DialogueText::Category. Link colours remain independent
         // of prose classification, including hover, press and controller focus.
-        std::array<MyGUI::Colour, 5> mText;
+        std::array<MyGUI::Colour, static_cast<size_t>(Misc::DialogueText::Category::Count)> mText;
         std::array<MyGUI::Colour, 3> mLink;
     };
 

@@ -149,6 +149,11 @@ namespace MWInput
         return mBindingsManager->getActionDescription(action);
     }
 
+    int InputManager::getActionBinding(int action, int device) const
+    {
+        return mBindingsManager->getActionBinding(action, device);
+    }
+
     std::string InputManager::getActionKeyBindingName(int action) const
     {
         return mBindingsManager->getActionKeyBindingName(action);

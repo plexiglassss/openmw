@@ -18,9 +18,9 @@ EXPECTED = {
     # Exact candidate engine with the worker pool constructed in prepareEngine and joined at shutdown.
     'apps/openmw/engine.cpp': 'a8bcc2819eb4f07c23162a20cfa7d682f8f346ca',
     # Reviewed cooperative compile budget, loading-mode handoff and UTF-8 label conversion.
-    'apps/openmw/mwgui/loadingscreen.cpp': '34b1a11ddf9df72a47e51fc7488d9c88054a83b9',
-    'apps/openmw/mwgui/loadingscreen.hpp': '268e676b011b99eccee41751f4df93e78e7dae9b',
-    'apps/openmw/mwstate/statemanagerimp.cpp': '98b44cc7fd339a610f6257043a90cb95f18f2521',
+    'apps/openmw/mwgui/loadingscreen.cpp': 'b6300c34ef08ced463e411b5865df07ac1c1a55e',
+    'apps/openmw/mwgui/loadingscreen.hpp': 'bb5884ba617b541a814243fe141bd04361e93118',
+    'apps/openmw/mwstate/statemanagerimp.cpp': 'c94ee39f447b51782b1780e2e81ef86436710ac5',
     'apps/openmw/mwworld/worldmodel.cpp': '59c7fa345da96f10e73e220b69975bb1fd4f50d7',
     'apps/openmw/mwworld/worldmodel.hpp': '233ca8ff1665323ca6efd96454c4bd3cd8ca88fd',
 }

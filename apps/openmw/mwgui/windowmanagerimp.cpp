@@ -1,4 +1,5 @@
 #include "windowmanagerimp.hpp"
+#include <components/lua_ui/input.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -856,8 +857,8 @@ namespace MWGui
                          std::pair{ "sJournalEntry", Category::Journal },
                          std::pair{ "sNotifyMessage60", Category::Inventory },
                          std::pair{ "sNotifyMessage61", Category::Inventory },
-                         std::pair{ "sNotifyMessage62", Category::Inventory },
-                         std::pair{ "sNotifyMessage63", Category::Inventory },
+                         std::pair{ "sNotifyMessage62", Category::InventoryRemoval },
+                         std::pair{ "sNotifyMessage63", Category::InventoryRemoval },
                          std::pair{ "sNotifyMessage39", Category::Stat },
                          std::pair{ "sNotifyMessage44", Category::Stat } })
                 {
@@ -2638,6 +2639,25 @@ namespace MWGui
     const MWGui::TextColours& WindowManager::getTextColours()
     {
         return mTextColours;
+    }
+
+    bool WindowManager::onActivateKey()
+    {
+        if (getMode() != GM_Barter)
+            return false;
+        if (!mCurrentModals.empty())
+        {
+            if (mCurrentModals.back() != mCountDialog)
+                return false;
+            mCountDialog->confirm();
+            return true;
+        }
+        if (LuaUi::dispatchUiAction("Activate"))
+            return true;
+        if (!mTradeWindow->isVisible() || SDL_IsTextInputActive())
+            return false;
+        mTradeWindow->confirmOffer();
+        return true;
     }
 
     bool WindowManager::injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat)

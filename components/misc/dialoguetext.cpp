@@ -345,7 +345,9 @@ namespace Misc::DialogueText
                 || text == "your quest journal has been updated" || text == "journal updated" || text == "quest updated")
                 return Category::Journal;
             if (inventoryNotice(text))
-                return Category::Inventory;
+                return startsAny(text, { "item removed:", "items removed:" })
+                        || text.ends_with("removed from your inventory")
+                    ? Category::InventoryRemoval : Category::Inventory;
             if (statNotice(text))
                 return Category::Stat;
             if (detectNarration

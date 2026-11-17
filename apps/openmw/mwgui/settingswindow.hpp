@@ -99,6 +99,10 @@ namespace MWGui
         MyGUI::Button* mResetControlsButton;
         MyGUI::Button* mKeyboardSwitch;
         MyGUI::Button* mControllerSwitch;
+        MyGUI::Button* mModControlsSwitch;
+        MyGUI::ScrollView* mModControlsView;
+        LuaUi::LuaAdapter* mModControlsAdapter;
+        bool mModControlsMode = false;
         bool mKeyboardMode; // if true, setting up the keyboard. Otherwise, it's controller
 
         MyGUI::EditBox* mScriptFilter;
@@ -181,6 +185,8 @@ namespace MWGui
         void onResetDefaultBindings(MyGUI::Widget* sender);
         void onResetDefaultBindingsAccept();
         void onKeyboardSwitchClicked(MyGUI::Widget* sender);
+        void onModControlsSwitchClicked(MyGUI::Widget* sender);
+        void updateControlsVisibility();
         void onControllerSwitchClicked(MyGUI::Widget* sender);
 
         void onWindowResize(MyGUI::Window* sender);

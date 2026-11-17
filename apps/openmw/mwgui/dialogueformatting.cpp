@@ -33,6 +33,7 @@ namespace MWGui
         {
             using Misc::DialogueText::Category;
             palette.mText[static_cast<size_t>(Category::Inventory)] = settings.mColorDialogueInventory;
+            palette.mText[static_cast<size_t>(Category::InventoryRemoval)] = settings.mColorDialogueInventoryRemoval;
             palette.mText[static_cast<size_t>(Category::Stat)] = settings.mColorDialogueStat;
             palette.mText[static_cast<size_t>(Category::Narration)] = settings.mColorDialogueNarration;
             palette.mText[static_cast<size_t>(Category::Journal)] = settings.mColorDialogueJournal;
@@ -58,7 +59,7 @@ namespace MWGui
     {
         using Misc::DialogueText::Category;
         typesetter.addContent(text);
-        std::array<BookTypesetter::Style*, 5> styles{};
+        std::array<BookTypesetter::Style*, static_cast<size_t>(Category::Count)> styles{};
         const auto styleFor = [&](Category category) {
             const size_t index = static_cast<size_t>(category);
             if (!styles[index])

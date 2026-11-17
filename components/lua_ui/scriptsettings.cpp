@@ -12,6 +12,7 @@ namespace LuaUi
     namespace
     {
         std::vector<sol::table> allPages;
+        bool controlsVisible = false;
         ScriptSettingsPage parse(const sol::table& options)
         {
             auto name = options.get_or("name", std::string());
@@ -19,7 +20,7 @@ namespace LuaUi
             auto element = options.get_or<std::shared_ptr<LuaUi::Element>>("element", nullptr);
             if (name.empty())
                 Log(Debug::Warning) << "A script settings page has an empty name";
-            return { std::move(name), std::move(searchHints), std::move(element) };
+            return { std::move(name), std::move(searchHints), std::move(element), options.get_or("controls", false) };
         }
     }
 
@@ -45,6 +46,7 @@ namespace LuaUi
 
     void clearSettings()
     {
+        controlsVisible = false;
         allPages.clear();
     }
 
@@ -62,6 +64,22 @@ namespace LuaUi
             element->create();
             options["element"] = std::move(element);
         }
+        else if (element->mState == Element::New)
+            element->create();
+    }
+
+    void setControlsPageVisible(bool visible) { controlsVisible = visible; }
+    bool controlsPageVisible() { return controlsVisible; }
+
+    void attachControlsPage(LuaAdapter* adapter)
+    {
+        for (size_t i = 0; i < allPages.size(); ++i)
+            if (allPages[i].get_or("controls", false))
+            {
+                attachPageAt(i, adapter);
+                return;
+            }
+        adapter->detach();
     }
 
     void attachPageAt(size_t index, LuaAdapter* adapter)

@@ -62,6 +62,7 @@ namespace MWInput
         void controllerAxisMoved(int deviceID, const SDL_ControllerAxisEvent& arg);
 
         SDL_Scancode getKeyBinding(int actionId);
+        int getActionBinding(int action, int device);
 
         void actionValueChanged(int action, float currentValue, float previousValue);
 

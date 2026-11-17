@@ -2,6 +2,7 @@
 #define GAME_MWBASE_INPUTMANAGER_H
 
 #include <set>
+#include <components/misc/bindingcapture.hpp>
 #include <string>
 #include <vector>
 
@@ -98,6 +99,18 @@ namespace MWBase
         virtual bool controlsDisabled() = 0;
 
         virtual void saveBindings() = 0;
+
+        // Physical codes, independent of localized display names. Device: keyboard, mouse, controller.
+        virtual int getActionBinding(int action, int device) const { return -1; }
+
+        void beginBindingCapture() { mBindingCapture.begin(); }
+        void cancelBindingCapture() { mBindingCapture.cancel(); }
+        bool isCapturingBinding() const { return mBindingCapture.active(); }
+        bool captureBinding(int device, int code, bool pressed) { return mBindingCapture.event(device, code, pressed); }
+        std::optional<std::pair<int, int>> takeCapturedBinding() { return mBindingCapture.take(); }
+
+    private:
+        Misc::BindingCapture mBindingCapture;
     };
 }
 

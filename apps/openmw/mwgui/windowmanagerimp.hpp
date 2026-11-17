@@ -389,6 +389,7 @@ namespace MWGui
 
         const MWGui::TextColours& getTextColours() override;
 
+        bool onActivateKey() override;
         bool injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat = false) override;
         bool injectKeyRelease(MyGUI::KeyCode key) override;
 

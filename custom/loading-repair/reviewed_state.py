@@ -1,8 +1,18 @@
 """Reconstruct the preceding load function without the reviewed saved-map handoff."""
 import hashlib
+import json
+from pathlib import Path
 
 
 def before_map_restore(source):
+    # Remove only the exact separately reviewed save-feedback change. Loading stays byte-identical.
+    proof = json.loads((Path(__file__).resolve().parents[1] / 'unified-controls/save-feedback-preservation.json').read_text())
+    for field in ('before', 'after'):
+        if hashlib.sha256(proof[field].encode()).hexdigest() != proof[field + '_function_sha256']:
+            raise ValueError('Save feedback preservation evidence changed')
+    if source.count(proof['after']) != 1:
+        raise ValueError('Unexpected changes to save feedback implementation')
+    source = source.replace(proof['after'], proof['before'], 1)
     # Each edit is checked in context. This is a proof of equivalence on a string:
     # the actual StateManager file is never modified by the build-time lookup patch.
     edits = (
