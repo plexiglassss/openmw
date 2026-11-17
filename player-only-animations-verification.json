@@ -1,0 +1,44 @@
+{
+  "result": "PASS",
+  "scope": "Generic player-only additional animation source loader",
+  "checks": {
+    "generic_directory": true,
+    "actual_player_gate": true,
+    "third_person_gate": true,
+    "werewolf_gate": true,
+    "additional_sources_gate": true,
+    "base_representation": true,
+    "default_representation": true,
+    "custom_representation": true,
+    "default_ordinary_directory": true,
+    "no_sails_hardcoding": true
+  },
+  "path_cases": {
+    "meshes/xbase_anim.nif": "playeranimations/xbase_anim/",
+    "meshes/xbase_anim_female.nif": "playeranimations/xbase_anim_female/",
+    "meshes/xbase_animkna.nif": "playeranimations/xbase_animkna/",
+    "meshes/custom/player_rig.nif": "playeranimations/custom/player_rig/"
+  },
+  "files": {
+    "animation.hpp": {
+      "path": "apps/openmw/mwrender/animation.hpp",
+      "sha256": "44a5f764f3eb8029632795c5a64d1b0375d57a718cd828aca3c8cbcfd50c9c6e",
+      "bytes": 21529
+    },
+    "animation.cpp": {
+      "path": "apps/openmw/mwrender/animation.cpp",
+      "sha256": "d52b87a771b1940d39724e677352ce4474e62dd6f2d2167f94dd2eca41a29f98",
+      "bytes": 77827
+    },
+    "npcanimation.cpp": {
+      "path": "apps/openmw/mwrender/npcanimation.cpp",
+      "sha256": "ffee4a72ea4a8f7312c316140f9bd69525474a3340cb2458b8ba5652da03fd7c",
+      "bytes": 53644
+    }
+  },
+  "limits": [
+    "Static source and path verification only.",
+    "Compilation is performed by the Windows workflow.",
+    "Visible Sails poses and warning elimination require an in-game test with migrated KF resources."
+  ]
+}

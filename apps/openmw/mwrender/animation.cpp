@@ -620,15 +620,22 @@ namespace MWRender
         return mKeyframes->mTextKeys;
     }
 
-    void Animation::loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel)
+    void Animation::loadAdditionalAnimations(
+        VFS::Path::NormalizedView model, const std::string& baseModel, VFS::Path::NormalizedView directory)
     {
         const auto path = Misc::ResourceHelpers::additionalAnimationPath(model);
         if (!path)
             return;
 
+        constexpr std::string_view animations = "animations/";
+        std::string animationPath(path->value());
+        if (!animationPath.starts_with(animations))
+            return;
+        animationPath.replace(0, animations.size(), directory.value());
+
         constexpr VFS::Path::ExtensionView kf("kf");
         for (const VFS::Path::Normalized& name :
-            mResourceSystem->getVFS()->getRecursiveDirectoryIterator(path->value()))
+            mResourceSystem->getVFS()->getRecursiveDirectoryIterator(animationPath))
             if (name.extension() == kf)
                 addSingleAnimSource(name, baseModel);
     }

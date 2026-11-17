@@ -287,7 +287,8 @@ namespace MWRender
          */
         void setObjectRoot(const std::string& model, bool forceskeleton, bool baseonly, bool isCreature);
 
-        void loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel);
+        void loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel,
+            VFS::Path::NormalizedView directory = VFS::Path::NormalizedView("animations/"));
 
         /** Adds the keyframe controllers in the specified model as a new animation source.
          * @note Later added animation sources have the highest priority when it comes to finding a particular
