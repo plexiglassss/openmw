@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4. Address Detailed town-traversal evidence with bounded CPU/graphics admission and isolated LuaJIT prototype reuse; preserve cumulative tools, gameplay, tooltip, QuickLoot and HBFS fixes.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -43,7 +43,8 @@
     "c23e0338bfe6e13d1538a9ab4379e48767afcd4e",
     "068f83221113c67811ebad9aaa7e95795c954693",
     "157fc965a1fd909753bd6695d8a6e562e0c7f6b0",
-    "788aafb4c72ad8bbf15fd9bfd17ecd464235d7ae"
+    "788aafb4c72ad8bbf15fd9bfd17ecd464235d7ae",
+    "b9fd7797f0574542871027718d9b17e1d932e2be"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -76,11 +77,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "248c198d8efa7bc68421f2dec1c98262cb8647a5"
+        "blob": "c1e531fbff3aedffbc0b83feed2729a51f35ce16"
       },
-      "bytes": 4753,
-      "sha256": "f6a1ebce7bdcbfb2568064e2b1e40650fb2b1d09b2c3d2a2da76f3d6d89cb72b",
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 4781,
+      "sha256": "00bfb4a5844d4a101feb1f32d1cba4af04ec49266ea205e8d60c721ef79700e0",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "apps/components_tests/esm/testrefid.cpp": {
       "before": {
@@ -144,6 +145,16 @@
       "bytes": 3005,
       "sha256": "901280004028761c15af959162d04577285ccf22bd6ff3bd2e01e9501016f091",
       "reason": "Execute the production bindings, queue and worker lifetime or rendering parity checks in the Windows test binaries."
+    },
+    "apps/components_tests/lua/testscriptcache.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "555e3d1b07969d6e4ef528ca13163c63e8168454"
+      },
+      "bytes": 8027,
+      "sha256": "6608f37e61661738bf2e7e23ae9da6cdc679c9e8ac4c6678fc1cc0fe5e56f042",
+      "reason": "Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "apps/components_tests/lua/testscriptscontainer.cpp": {
       "before": {
@@ -255,11 +266,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "808b4df087405c608ba9605a6ad15a3de025ce6d"
+        "blob": "81812ff23acb736e56075c79b2591215045cab67"
       },
-      "bytes": 14599,
-      "sha256": "d35ad6cf0d0486c953b9e0eeb856684767e1916be81afd855de1414f5c41930c",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 17795,
+      "sha256": "8433f9b728745316583f38d957e0c5350b234455cd21826152fba34e767f6ac3",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "apps/components_tests/sceneutil/testcompilepriority.cpp": {
       "before": null,
@@ -1439,11 +1450,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "45e521acc672f5d1e8405d59a54313cba843b2b6"
+        "blob": "244ffb5776e8c2dc793767605bfcd6f48c1dffc0"
       },
-      "bytes": 99240,
-      "sha256": "ddf0625ea5fa44add66c2ffae8043e7737626dfc88dc8df2dfdf1602415ab724",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 99447,
+      "sha256": "0510d5988837be0566b0a991658ba8b15fbe03ebd9a56a1556fa6c130b42adc5",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "apps/openmw/mwrender/objectpaging.hpp": {
       "before": {
@@ -2084,11 +2095,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "973782eeefbcfb0a3792f8f12728147514810d46"
+        "blob": "d7f8d9758c16f0b5aab327a936bbd932e6a2f31f"
       },
-      "sha256": "991db72b02fdba30c5712ac73401e3f1db7b9c4dc8739d31d929434ff4a416c4",
-      "bytes": 22381,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "bytes": 25698,
+      "sha256": "d99b1e441b52aa3a978f6b4adc94b48201db3d2074a7d120383f830f5e7e4540",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "components/lua/luastate.hpp": {
       "before": {
@@ -2097,11 +2108,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fb8a2753ff9fcb49d7de1ebd42baa17aa7af6fae"
+        "blob": "620f7aaf0df4612911e6c0c0ab0a819771dc1f40"
       },
-      "sha256": "f10a4b92722ccb672a0f15babc57c5ce88bb611bcf3a0d4bf15571e3559729f3",
-      "bytes": 15299,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "bytes": 15842,
+      "sha256": "b08989a0de61a0623c3c1562a716d0f5f0b56487420810906b9eb4ad91719f01",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "components/lua/pureworker.cpp": {
       "before": null,
@@ -2392,11 +2403,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "bca9941c73de882532124ca7c74d356c77143291"
+        "blob": "fd6d1a124189345ca430d5b4f8566a37d13d25ed"
       },
-      "bytes": 4742,
-      "sha256": "4d46be3273812849a68fb0e128c95c723fba61be431b2975e41602c16da141b4",
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 4931,
+      "sha256": "bd85083c9b2422b37c3913a7f325778ac5872b29c532822f25ce05cbe31f0b12",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -2566,11 +2577,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "8e6ae877d39d9188e2907f3e35b2d91a0863b426"
+        "blob": "0652fd2708b1564e52e472c5d8f2e908567cc2fc"
       },
-      "bytes": 9290,
-      "sha256": "ae4d79db90554e1e4a19e8cb2eddc4529183bcbdebc7b76124e6d55179f8e86a",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 9914,
+      "sha256": "5d017186e2ec0ab7d275cfa4df47d04a785304d9df07ff68c958c0f5a52d844e",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "components/sceneutil/clone.cpp": {
       "before": {
@@ -4436,6 +4447,16 @@
       "sha256": "88ad52669838a0a838b93aace8b049e783f22249173b24f20ff4431a81c3880f",
       "bytes": 5928,
       "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+    },
+    "custom/review-tests/lua-arrival-benchmark.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "61955e199a9caf2425ba8e25cae39bec98ec8115"
+      },
+      "bytes": 2657,
+      "sha256": "863f9a794057b9c1ba9b2859c0ef8bd305bdc4138238748b4308698450cb1357",
+      "reason": "Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
     },
     "custom/town-performance/Compare-Legacy-Layout.cmd": {
       "before": null,

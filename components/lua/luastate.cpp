@@ -467,17 +467,86 @@ namespace LuaUtil
         auto iter = mCompiledScripts.find(path);
         if (iter != mCompiledScripts.end())
         {
-            sol::load_result res = mSol.load(iter->second.as_string_view(), path.value(), sol::load_mode::binary);
+#ifndef NO_LUAJIT
+            auto& cached = iter->second;
+            if (cached.mPendingSource)
+            {
+                auto source = std::move(*cached.mPendingSource);
+                cached.mPendingSource.reset();
+                mPendingSourceBytes -= source.size();
+                // Attempt promotion once; unsupported source keeps its bytecode.
+                auto factory = makeScriptFactory(path, source);
+                if (factory.valid())
+                {
+                    auto fresh = call(factory).get<sol::function>();
+                    cached.mFactory = std::move(factory);
+                    cached.mBytecode = {};
+                    return fresh;
+                }
+            }
+#endif
+            if (iter->second.mFactory.valid())
+                return call(iter->second.mFactory).get<sol::function>();
+            sol::load_result res = mSol.load(iter->second.mBytecode.as_string_view(), path.value(), sol::load_mode::binary);
             // Unless we have memory corruption issues, the bytecode is valid at this point, but loading might still
             // fail because we've hit our Lua memory cap
             if (!res.valid())
                 throw std::runtime_error("Lua error: " + res.get<std::string>());
             return res;
         }
-        sol::function res = loadFromVFS(path);
-        mCompiledScripts[path] = res.dump();
+        std::string fileContent(std::istreambuf_iterator<char>(*mVFS->get(path)), {});
+        sol::load_result loaded = mSol.load(fileContent, path.value(), sol::load_mode::text);
+        if (!loaded.valid())
+            throw std::runtime_error(std::string("Lua error: ") += loaded.get<sol::error>().what());
+        sol::function res = loaded;
+        CachedScript cached;
+        cached.mBytecode = res.dump();
+#ifndef NO_LUAJIT
+        // Promote on first reuse so one-off startup modules pay only their usual
+        // parse. Bound the additional retained source independently of Lua memory.
+        constexpr std::size_t pendingSourceBudget = 16ull * 1024 * 1024;
+        if (Misc::useLuaPrototypeCache() && fileContent.size() <= pendingSourceBudget - mPendingSourceBytes)
+            cached.mPendingSource = std::move(fileContent);
+#endif
+        const auto inserted = mCompiledScripts.emplace(path, std::move(cached)).first;
+        if (inserted->second.mPendingSource)
+            mPendingSourceBytes += inserted->second.mPendingSource->size();
         return res;
     }
+
+#ifndef NO_LUAJIT
+    sol::function LuaState::makeScriptFactory(const VFS::Path::Normalized& path, std::string_view body)
+    {
+        // The caller retains only source already accepted as a standalone text
+        // chunk. Never run a source-constructed wrapper without that validation.
+        if (body.starts_with("\xEF\xBB\xBF"))
+            body.remove_prefix(3);
+        // Newer LuaJIT versions also accept first-line source directives.
+        // Leave those on the bytecode path rather than altering debug locations.
+        if (!body.starts_with('#') || body.starts_with("#!"))
+        {
+            std::string factorySource("return function(...) ");
+            // LuaJIT accepts a first-line shebang. Turn it into a comment, keeping
+            // all source newlines so runtime errors retain their original lines.
+            if (body.starts_with("#!"))
+            {
+                factorySource += "--";
+                body.remove_prefix(1);
+            }
+            factorySource.append(body);
+            factorySource += "\nend";
+            sol::load_result factory = mSol.load(factorySource, path.value(), sol::load_mode::text);
+            if (factory.valid())
+            {
+                sol::function result = factory;
+                sol::set_environment(sol::environment(mSol, sol::create), result);
+                return result;
+            }
+        }
+        // Scripts at a parser nesting limit retain the original bytecode path.
+        return {};
+    }
+#endif
 
     void LuaState::updateVfsRevision()
     {

@@ -27,6 +27,87 @@ namespace
         return [n](const std::atomic_bool&) { return Cache::Prepared{ std::make_shared<int>(n), {} }; };
     }
 
+    void finishCpuQueue(SceneUtil::WorkQueue& queue)
+    {
+        struct Fence : SceneUtil::WorkItem { void doWork() override {} };
+        osg::ref_ptr<Fence> fence = new Fence;
+        queue.addWorkItem(fence);
+        fence->waitTillDone();
+    }
+
+    TEST(AsyncPreparation, SeparateGraphicsCapacityKeepsCpuPreparationMovingWithoutEarlyPublication)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache cache(queue, 2, 64, 1024ull * 1024 * 1024, 0.25, 1.0, 8);
+        auto gate = std::make_shared<std::atomic_bool>(false);
+        for (int key = 0; key < 9; ++key)
+        {
+            cache.request(key, 0, [key, gate](const std::atomic_bool&) {
+                return Cache::Prepared{ std::make_shared<int>(key), gate, {}, 1024 };
+            });
+            finishCpuQueue(*queue);
+            EXPECT_FALSE(cache.poll(key, 0).mReady);
+        }
+        EXPECT_EQ(cache.submitted(), 8u);
+        EXPECT_FALSE(cache.contains(8));
+        *gate = true;
+        for (int key = 0; key < 8; ++key)
+        {
+            const auto result = cache.takeReady(key, 0);
+            ASSERT_TRUE(result.mReady);
+            EXPECT_EQ(*result.mValue, key);
+        }
+        cache.request(8, 0, value(8));
+        finishCpuQueue(*queue);
+        EXPECT_TRUE(cache.poll(8, 0).mReady);
+    }
+
+    TEST(AsyncPreparation, SeparateGraphicsCapacityDoesNotRaiseQueuedCpuLimit)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(0);
+        Cache cache(queue, 2, 64, 1024ull * 1024 * 1024, 0.25, 1.0, 8);
+        for (int key = 0; key < 9; ++key)
+            cache.request(key, 0, value(key));
+        EXPECT_EQ(cache.submitted(), 2u);
+        EXPECT_EQ(queue->getNumItems(), 2u);
+    }
+
+    TEST(AsyncPreparation, GraphicsWaitingGraphsStillConsumeTheByteBudget)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache cache(queue, 2, 64, 128ull * 1024 * 1024, 0.25, 1.0, 8);
+        auto gate = std::make_shared<std::atomic_bool>(false);
+        cache.request(1, 0, [gate](const std::atomic_bool&) {
+            return Cache::Prepared{ std::make_shared<int>(1), gate, {}, 128ull * 1024 * 1024 };
+        });
+        finishCpuQueue(*queue);
+        cache.request(2, 0, value(2));
+        EXPECT_EQ(cache.submitted(), 1u);
+        EXPECT_FALSE(cache.poll(1, 0).mReady);
+    }
+
+    TEST(AsyncPreparation, CancelledCpuWorkStillConsumesSeparateCpuCapacity)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache cache(queue, 1, 64, 1024ull * 1024 * 1024, 0.25, 1.0, 8);
+        std::latch started(1), release(1);
+        cache.request(1, 0, [&](const std::atomic_bool&) {
+            started.count_down();
+            release.wait();
+            return Cache::Prepared{};
+        });
+        started.wait();
+        cache.cancel(1);
+        cache.request(2, 0, value(2));
+        EXPECT_EQ(cache.submitted(), 1u);
+        release.count_down();
+        finishCpuQueue(*queue);
+        cache.request(2, 0, value(2));
+        finishCpuQueue(*queue);
+        EXPECT_TRUE(cache.poll(2, 0).mReady);
+        EXPECT_FALSE(cache.poll(1, 0).mReady);
+    }
+
     TEST(AsyncPreparation, QueueSaturationNeverExecutesFactoriesOnTheCaller)
     {
         osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(0);

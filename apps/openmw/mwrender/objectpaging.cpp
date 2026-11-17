@@ -286,7 +286,10 @@ namespace MWRender
         osgUtil::IncrementalCompileOperation::ContextSet mContexts;
         std::vector<osg::ref_ptr<osg::GraphicsContext>> mContextOwners;
         explicit AsyncState(SceneUtil::WorkQueue* queue)
-            : mRequests(queue), mBridges(queue, 2, 32, 256ull * 1024 * 1024), mQueue(queue) {}
+            // Keep two queued/running CPU jobs, with room for a bounded number
+            // of completed graphs waiting for graphics preparation.
+            : mRequests(queue, 2, 64, 1024ull * 1024 * 1024, 0.25, 1.0, 8),
+              mBridges(queue, 2, 32, 256ull * 1024 * 1024), mQueue(queue) {}
         ~AsyncState()
         {
             if (mRetirement)

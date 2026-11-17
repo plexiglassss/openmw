@@ -84,8 +84,9 @@ namespace SceneUtil
     public:
         explicit AsyncPreparation(WorkQueue* queue, std::size_t maximumPending = 2,
             std::size_t maximumEntries = 64, std::size_t estimatedByteBudget = 1024ull * 1024 * 1024,
-            double readyRetention = 0.25, double pendingRetention = 1.0)
+            double readyRetention = 0.25, double pendingRetention = 1.0, std::size_t maximumUnresolved = 0)
             : mQueue(queue), mMaximumPending(maximumPending), mMaximumEntries(maximumEntries),
+              mMaximumUnresolved(maximumUnresolved ? maximumUnresolved : maximumPending),
               mEstimatedByteBudget(estimatedByteBudget), mReadyRetention(readyRetention),
               mPendingRetention(pendingRetention) {}
         ~AsyncPreparation()
@@ -202,17 +203,25 @@ namespace SceneUtil
         {
             if (mEntries.contains(key))
                 return poll(key, now);
-            std::size_t pending = 0;
+            std::size_t pendingCpu = 0;
+            std::size_t unresolved = 0;
             std::size_t estimatedBytes = 0;
             for (const auto& [existing, entry] : mEntries)
             {
-                pending += !entry.mJob->ready() && !entry.mJob->failed();
+                pendingCpu += !entry.mJob->isDone();
+                unresolved += !entry.mJob->ready() && !entry.mJob->failed();
                 estimatedBytes += entry.mJob->mPrepared.load(std::memory_order_acquire)
                     ? entry.mJob->mResult.mEstimatedBytes : 64ull * 1024 * 1024;
             }
             for (const auto& job : mRetired)
-                pending += !job->isDone();
-            if (pending >= mMaximumPending || mEntries.size() >= mMaximumEntries
+            {
+                pendingCpu += !job->isDone();
+                unresolved += !job->isDone();
+            }
+            // CPU-complete graphs can wait for graphics without occupying every
+            // preparation slot. The separate bound prevents an unbounded GPU
+            // backlog; existing callers retain the original unresolved limit.
+            if (pendingCpu >= mMaximumPending || unresolved >= mMaximumUnresolved || mEntries.size() >= mMaximumEntries
                 || estimatedBytes >= mEstimatedByteBudget)
                 return {};
             osg::ref_ptr<Job> job = new Job(std::move(factory));
@@ -240,6 +249,7 @@ namespace SceneUtil
         osg::ref_ptr<WorkQueue> mQueue;
         const std::size_t mMaximumPending;
         const std::size_t mMaximumEntries;
+        const std::size_t mMaximumUnresolved;
         // Admission uses a reservation until the worker can measure its graph.
         // An indivisible decode may exceed the estimate; it blocks further admission.
         const std::size_t mEstimatedByteBudget;

@@ -90,6 +90,12 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useLuaPrototypeCache()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_LUA_PROTOTYPE_CACHE");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useResponsiveArrivalCancellation()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_RESPONSIVE_ARRIVAL_CANCELLATION");

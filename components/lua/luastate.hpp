@@ -180,6 +180,7 @@ namespace LuaUtil
         void dropScriptCache()
         {
             mCompiledScripts.clear();
+            mPendingSourceBytes = 0;
             mModulePaths.clear();
         }
 
@@ -215,6 +216,9 @@ namespace LuaUtil
             ScriptId scriptId, const sol::protected_function& fn, Args&&... args);
 
         sol::function loadScriptAndCache(const VFS::Path::Normalized& path);
+#ifndef NO_LUAJIT
+        sol::function makeScriptFactory(const VFS::Path::Normalized& path, std::string_view body);
+#endif
         void updateVfsRevision();
         VFS::Path::Normalized resolveModulePath(std::string_view name);
         void preparePackages(PreparedPackages& result, const std::map<std::string, sol::main_object>& packages);
@@ -245,7 +249,16 @@ namespace LuaUtil
         sol::state_view mSol;
         const ScriptsConfiguration* mConf;
         sol::table mSandboxEnv;
-        std::map<VFS::Path::Normalized, sol::bytecode> mCompiledScripts;
+        struct CachedScript
+        {
+            sol::bytecode mBytecode;
+            // LuaJIT creates fresh closures sharing immutable prototypes. Their
+            // environments and all executed module results remain per-sandbox.
+            sol::function mFactory;
+            std::optional<std::string> mPendingSource;
+        };
+        std::map<VFS::Path::Normalized, CachedScript> mCompiledScripts;
+        std::size_t mPendingSourceBytes = 0;
         std::map<std::string, sol::object> mCommonPackages;
         std::uint64_t mCommonPackagesRevision = 1;
         std::uint64_t mVfsRevision = 0;
