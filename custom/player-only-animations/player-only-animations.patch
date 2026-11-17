@@ -45,7 +45,7 @@ diff --git a/apps/openmw/mwrender/npcanimation.cpp b/apps/openmw/mwrender/npcani
 index 9a9c4c4ff..000000000 100644
 --- a/apps/openmw/mwrender/npcanimation.cpp
 +++ b/apps/openmw/mwrender/npcanimation.cpp
-@@ -538,6 +538,21 @@ namespace MWRender
+@@ -538,6 +538,20 @@ namespace MWRender
          const bool customArgonianSwim = !is1stPerson && !isWerewolf && isBeast && mNpc->mRace.contains("argonian");
          if (customArgonianSwim)
              addAnimSource(Settings::models().mXargonianswimkna.get().value(), smodel);
