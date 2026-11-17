@@ -37,12 +37,13 @@ namespace osg {
 // Non-owning fixture pointers. Ownership/cancellation use the real OSG native suite.
 template<class T> struct ref_ptr {
  T* p=nullptr;ref_ptr()=default;ref_ptr(T* v):p(v){} template<class U>ref_ptr(ref_ptr<U> v):p(v.get()){} T* get()const{return p;}
- T* operator->()const{return p;} explicit operator bool()const{return p!=nullptr;}
+ T* operator->()const{return p;} T& operator*()const{return *p;} explicit operator bool()const{return p!=nullptr;}
 };
 struct Vec2f {float a=0,b=0;float x()const{return a;}float y()const{return b;}
  bool operator<(const Vec2f& r)const{return std::tie(a,b)<std::tie(r.a,r.b);} };
 struct Vec3f {float a=0,b=0,c=0;Vec3f()=default;Vec3f(float x,float y,float z):a(x),b(y),c(z){} };
-struct Node {std::vector<Node*> children;void addChild(ref_ptr<Node> n){children.push_back(n.get());}};
+struct Referenced {};
+struct Node:Referenced {std::vector<Node*> children;void addChild(ref_ptr<Node> n){children.push_back(n.get());}};
 struct State {unsigned id=0;unsigned getContextID()const{return id;}};
 struct GraphicsContext {State state;State* getState(){return &state;}};
 }
@@ -53,7 +54,9 @@ namespace osgUtil {struct IncrementalCompileOperation {
 };}
 namespace SceneUtil {
 struct PositionAttitudeTransform:osg::Node {void setPosition(osg::Vec3f){}};
-struct WorkQueue {};
+struct WorkItem {virtual ~WorkItem()=default;virtual void doWork(){}bool isDone()const{return true;}void waitTillDone(){} };
+struct WorkQueue {template<class T>void cancelWorkItem(T){}template<class T>void addWorkItem(T,bool){} };
+struct UnrefQueue {void push(osg::ref_ptr<osg::Referenced>){}void flush(WorkQueue&){} };
 // Only routing is doubled here; real weak references/queue completion are native-tested.
 struct CompileReadinessCache {
  std::set<osg::Node*> nodes;
@@ -64,7 +67,7 @@ struct CompileReadinessCache {
 template<class Key,class Value>struct AsyncPreparation {
  struct Prepared {Value mValue{};std::shared_ptr<std::atomic_bool> mCompletion{};std::function<void()> mCancel{};std::size_t mEstimatedBytes=0;};
  struct Result {bool mReady=false,mFailed=false;Value mValue;};
- Result next;int calls=0,clears=0,polls=0,cancels=0;bool present=false;explicit AsyncPreparation(WorkQueue*){}
+ Result next;int calls=0,clears=0,polls=0,cancels=0;bool present=false;explicit AsyncPreparation(WorkQueue*,int=2,int=64,std::size_t=0){}
  template<class Factory>Result request(const Key&,double,Factory){++calls;present=true;return next;}
  Result poll(const Key&,double){++polls;return next;}
  bool cancel(const Key&){++cancels;return std::exchange(present,false);}
@@ -79,6 +82,7 @@ struct Log {explicit Log(int){}template<class T>Log& operator<<(const T&){return
 namespace Diagnostics {struct Scope {Scope(const char*,const char*,const char*){}};
 namespace Loading {enum class Stage{ObjectChunks,SceneryPrepared,SceneryRequired,SceneryAhead,SceneryCancelled};struct Timer{Timer(Stage){}};}}
 namespace Terrain {
+using SceneryCell=std::pair<int,int>;
 struct QuadTreeNode {osg::Vec2f getCenter()const{return {};}};
 struct DefaultLodCallback {static int getNativeLodLevel(QuadTreeNode*,float){return 0;}};
 ''' + entry + r'''
@@ -91,13 +95,14 @@ public:
   struct AsyncResult {bool mSupported=false,mReady=false;osg::ref_ptr<osg::Node> mNode;};
   AsyncResult result;int synchronous=0,asynchronous=0;osg::Node node;
   bool lastQueue=true;
+  bool separate=false;bool usesSceneryCoverage()const{return separate;}
   AsyncResult requestChunk(const ChunkRequest&,osg::Vec3f,double,bool queue=true){++asynchronous;lastQueue=queue;return result;}
   osg::ref_ptr<osg::Node> getChunk(float,osg::Vec2f,unsigned char,unsigned,bool,osg::Vec3f,bool,const std::atomic_bool*){
    ++synchronous;return &node;}
  };
  struct BatchChunkManager:ChunkManager {using Fetch=std::function<osg::ref_ptr<osg::Node>()>;};
  float mMinSize=1;std::vector<ChunkManager*> mChunkManagers;BatchChunkManager* mBatchChunkManager=nullptr;
- void loadRenderingNode(ViewDataEntry&,ViewData*,float,const ChunkRequest&,bool,const std::atomic_bool*,const BatchChunkManager::Fetch*,bool,double);
+ void loadRenderingNode(ViewDataEntry&,ViewData*,float,const ChunkRequest&,bool,const std::atomic_bool*,const BatchChunkManager::Fetch*,bool,double,bool=false);
 };
 ''' + function(terrain, '    void QuadTreeWorld::loadRenderingNode') + r'''
 }
@@ -119,6 +124,9 @@ public:
  using ChunkRequest=Terrain::QuadTreeWorld::ChunkRequest;
  using AsyncResult=Terrain::QuadTreeWorld::ChunkManager::AsyncResult;
  struct AsyncState;std::unique_ptr<AsyncState> mAsync;
+ struct SceneryBridge {};
+ struct SceneryState {std::vector<osg::ref_ptr<osg::Referenced>> mRetired;std::size_t mRetiredBytes=0,mQueuedRetiredBytes=0;unsigned mCompileGeneration=0;void clear(){} };
+ std::unique_ptr<SceneryState> mScenery=std::make_unique<SceneryState>();
  using CacheEpoch=std::tuple<std::uint64_t,std::uint64_t,std::uint64_t>;
  struct Selection {std::uint64_t mRevision=0,mVfsRevision=0;CacheEpoch mEpoch{};};
  struct Operation {int adds=0;void add(int,bool){++adds;}} operation;
@@ -300,6 +308,7 @@ public:
  struct BatchChunkManager {
   struct Call {ChunkRequest request;osg::Vec3f point;double time;bool queue;};std::vector<Call> calls;bool supported=true;bool canPrepareAsync()const{return supported;}
   void requestChunk(ChunkRequest r,osg::Vec3f p,double t,bool q){calls.push_back({r,p,t,q});}
+  void prepareScenery(ChunkRequest r,osg::Vec3f p,double t){requestChunk(r,p,t,true);}
  };
  BatchChunkManager* mBatchChunkManager=nullptr;Root* mRootNode=nullptr;osg::Vec4i mActiveGrid;
  float mLodFactor=1,mMinSize=1;std::atomic<float> mViewDistance{100};

@@ -428,9 +428,9 @@ namespace Terrain
 
     void QuadTreeWorld::loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize,
         const ChunkRequest& request, bool compile, const std::atomic_bool* abort, const BatchChunkManager::Fetch* fetch,
-        bool asynchronous, double referenceTime)
+        bool asynchronous, double referenceTime, bool separateScenery)
     {
-        if (entry.needsRendering(asynchronous && !request.mActiveGrid))
+        if (entry.needsRendering(asynchronous && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
         {
             osg::ref_ptr<SceneUtil::PositionAttitudeTransform> pat = new SceneUtil::PositionAttitudeTransform;
             pat->setPosition(osg::Vec3f(
@@ -440,6 +440,8 @@ namespace Terrain
             {
                 if (abort && abort->load(std::memory_order_relaxed))
                     return;
+                if (separateScenery && !request.mActiveGrid && m->usesSceneryCoverage())
+                    continue;
                 osg::ref_ptr<osg::Node> n;
                 const auto result = asynchronous && !request.mActiveGrid
                     ? m->requestChunk(request, vd->getViewPoint(), referenceTime, false) : ChunkManager::AsyncResult{};
@@ -467,6 +469,7 @@ namespace Terrain
                 entry.mRenderingNode = pat;
                 entry.mRenderingComplete = true;
                 entry.mRenderingReadyForCamera = asynchronous || request.mActiveGrid;
+                entry.mRenderingSeparateScenery = separateScenery && !request.mActiveGrid;
             }
         }
     }
@@ -532,7 +535,7 @@ namespace Terrain
         });
         const auto count = std::min<std::size_t>(ordered.size(), 256);
         for (std::size_t i = 0; i < count; ++i)
-            mBatchChunkManager->requestChunk(ordered[i].mRequest, ordered[i].mPoint, referenceTime, true);
+            mBatchChunkManager->prepareScenery(ordered[i].mRequest, ordered[i].mPoint, referenceTime);
     }
 
     namespace
@@ -652,6 +655,9 @@ namespace Terrain
 
         const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
         const bool asynchronous = isCullVisitor && nv.getFrameStamp() && Misc::useAsyncObjectPaging();
+        const bool separateScenery = isCullVisitor && mBatchChunkManager
+            && mBatchChunkManager->usesSceneryCoverage();
+        std::vector<ChunkRequest> scenery;
 
         const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
         auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
@@ -669,9 +675,12 @@ namespace Terrain
                     prepareTiming.emplace("terrain", "ray", "prepareRenderingNode");
                 updateRenderingLod(entry, vd);
                 const auto request = getChunkRequest(entry, mActiveGrid);
-                if (entry.needsRendering(asynchronous && !request.mActiveGrid))
+                if (separateScenery && !request.mActiveGrid)
+                    scenery.push_back(request);
+                if (entry.needsRendering(asynchronous && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
                 {
-                    if (arrival && !entry.mRenderingNode)
+                    if (arrival && !entry.mRenderingNode && (isCullVisitor || request.mActiveGrid
+                            || !mBatchChunkManager || !mBatchChunkManager->usesSceneryCoverage()))
                     {
                         const ArrivalView::Key key{ entry.mNode, entry.mLodFlags };
                         auto prepared = arrival->find(key);
@@ -681,6 +690,7 @@ namespace Terrain
                         entry.mRenderingNode = std::move(prepared);
                         entry.mRenderingComplete = true;
                         entry.mRenderingReadyForCamera = isCullVisitor;
+                        entry.mRenderingSeparateScenery = separateScenery && !request.mActiveGrid;
                     }
                     if (entry.needsRendering() && ray
                         && !ray->intersects(request.mCenter.x() * cellWorldSize,
@@ -698,9 +708,9 @@ namespace Terrain
                         if (std::none_of(mChunkManagers.begin(), mChunkManagers.end(), mayHit))
                             continue;
                     }
-                    if (entry.needsRendering(asynchronous && !request.mActiveGrid))
+                    if (entry.needsRendering(asynchronous && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
                         loadRenderingNode(entry, vd, cellWorldSize, request, false, nullptr, nullptr,
-                            asynchronous, referenceTime);
+                            asynchronous, referenceTime, separateScenery);
                 }
             }
             {
@@ -710,6 +720,28 @@ namespace Terrain
                     traverseTiming.emplace("terrain", "ray", "traverseRenderingNode");
                 entry.mRenderingNode->accept(nv);
             }
+        }
+
+        if (separateScenery)
+        {
+            auto incoming = arrival ? arrival : mPreloadedScenery.load();
+            const bool standby = incoming && !arrival;
+            if (standby && (std::chrono::steady_clock::now() - incoming->mCreated > std::chrono::seconds(30)
+                    || !validArrival(*incoming)))
+            {
+                auto expired = incoming;
+                mPreloadedScenery.compare_exchange_strong(expired, nullptr);
+                incoming.reset();
+            }
+            if (incoming && (!validArrival(*incoming)
+                    || !incoming->matches(viewPoint, mActiveGrid, cellWorldSize, incoming->mRevision)))
+                incoming.reset();
+            mBatchChunkManager->acceptScenery(scenery, viewPoint, mActiveGrid, nv, referenceTime, vd->mScenery,
+                incoming ? incoming->scenery() : nullptr);
+            // Once consumed, selected coverage belongs to the camera snapshot.
+            // Do not keep a second entire standby view alive indefinitely.
+            if (standby && incoming)
+                mPreloadedScenery.compare_exchange_strong(incoming, nullptr);
         }
 
         if (asynchronous && mBatchChunkManager)
@@ -889,7 +921,10 @@ namespace Terrain
             mResourceSystem->getVFS()->getIndexRevision(), mResourceSystem->getSceneManager()->modelSettingsRevision());
         ArrivalFootprint footprint;
         std::vector<ArrivalView::Entry> batch;
-        std::size_t bytes = 0;
+        std::size_t bytes = cached->mScenery ? cached->mScenery->mEstimatedBytes : 0;
+        if (bytes > budget)
+            return {};
+        result->publishScenery(cached->mScenery);
         std::size_t required = 0;
         for (unsigned i = 0; i < cached->getNumEntries(); ++i)
         {
@@ -923,6 +958,7 @@ namespace Terrain
             ensureQuadTreeBuilt();
         }
         const float cellWorldSize = mStorage->getCellWorldSize(mWorldspace);
+        const bool separateScenery = mBatchChunkManager && mBatchChunkManager->usesSceneryCoverage();
 
         ViewData* vd = static_cast<ViewData*>(view);
         {
@@ -991,7 +1027,7 @@ namespace Terrain
                     {
                         Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
                         loadRenderingNode(*entries[index], vd, cellWorldSize, chunks[index], true, &abort,
-                            fetch ? &fetch : nullptr);
+                            fetch ? &fetch : nullptr, false, 0, separateScenery);
                     }
                     if (!abort)
                         advance();
@@ -1027,9 +1063,25 @@ namespace Terrain
                 << " enabled=" << Misc::useArrivalCompilePriority();
             nearReady(near, ordered.size() - near);
             build(near, ordered.size());
-            if (!abort)
-                arrival->finish(true);
         }
+        if (separateScenery && !abort)
+        {
+            std::vector<ChunkRequest> requests;
+            for (unsigned i = 0; i < vd->getNumEntries(); ++i)
+                requests.push_back(getChunkRequest(vd->getEntry(i), grid));
+            vd->mScenery = mBatchChunkManager->preloadScenery(requests, viewPoint, grid, abort, reporter);
+            if (arrival && !abort)
+                arrival->publishScenery(vd->mScenery);
+            else if (!abort)
+            {
+                auto prepared = createArrival(viewPoint, grid);
+                prepared->publishScenery(vd->mScenery);
+                prepared->finish(true);
+                mPreloadedScenery.store(std::move(prepared));
+            }
+        }
+        if (arrival && !abort)
+            arrival->finish(true);
     }
 
     void QuadTreeWorld::reportStats(unsigned int frameNumber, osg::Stats* stats)
@@ -1085,6 +1137,7 @@ namespace Terrain
     {
         ++mArrivalRevision;
         mVisibleArrival.store(nullptr);
+        mPreloadedScenery.store(nullptr);
         mViewDataMap->rebuildViews();
     }
 

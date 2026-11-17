@@ -28,6 +28,7 @@ namespace Terrain
         mActiveGrid = other.mActiveGrid;
         mWorldUpdateRevision = other.mWorldUpdateRevision;
         mNodes = other.mNodes;
+        mScenery = other.mScenery;
     }
 
     void ViewData::add(QuadTreeNode* node)
@@ -75,6 +76,7 @@ namespace Terrain
         mHasViewPoint = false;
         mNodes.clear();
         mStreamingLookAhead = {};
+        mScenery.reset();
     }
 
     bool ViewData::suitableToUse(const osg::Vec4i& activeGrid) const
@@ -125,6 +127,7 @@ namespace Terrain
             mRenderingNode = nullptr;
             mRenderingComplete = true;
             mRenderingReadyForCamera = false;
+            mRenderingSeparateScenery = false;
             return true;
         }
     }

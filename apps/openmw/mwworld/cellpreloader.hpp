@@ -4,6 +4,7 @@
 #include "positioncellgrid.hpp"
 
 #include <components/sceneutil/workqueue.hpp>
+#include <components/esm/exteriorcelllocation.hpp>
 
 #include <osg/ref_ptr>
 
@@ -55,6 +56,7 @@ namespace MWWorld
         /// @note The cell itself must be in State_Loaded or State_Preloaded.
         void preload(MWWorld::CellStore& cell, double timestamp);
         void prioritize(const MWWorld::CellStore& cell);
+        void preloadStaticExterior(ESM::ExteriorCellLocation cell, double timestamp);
 
         void notifyLoaded(MWWorld::CellStore* cell);
 
@@ -101,6 +103,8 @@ namespace MWWorld
 
     private:
         void clearAllTasks();
+        struct StaticPreloads;
+        std::unique_ptr<StaticPreloads> mStaticPreloads;
         void retireArrival();
         bool startArrival(Terrain::World* world, const PositionCellGrid& target, bool required);
         osg::ref_ptr<ExteriorArrivalJob> mArrivalJob;

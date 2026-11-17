@@ -736,6 +736,7 @@ jobs:
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
           Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
           Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
+          Copy-Item custom/cell-streaming/SCENERY-CONTINUITY.md install/SCENERY-CONTINUITY.md
           Copy-Item cell-streaming-tests.json,cell-packages-legacy.xml install/
           "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/combined-performance/prepare-package.py install
@@ -878,6 +879,16 @@ jobs:
           ref: ${{ env.CUMULATIVE_COMMIT }}
       - name: Install headless GL test dependencies
         run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl-dev libegl1 libgl1-mesa-dri libopenscenegraph-dev libgtest-dev g++
+      - name: Exercise production scenery handover and detached static preparation
+        run: |
+          python3 custom/cell-streaming/test-scenery-handover.py
+          python3 custom/cell-streaming/test-static-preload.py
+      - name: Verify complete scenery handover with actual graphics compilation
+        run: |
+          g++ -std=c++20 -O2 -pthread -I. custom/cell-streaming/scenery-graphics.cpp \
+            components/sceneutil/compilepriority.cpp -losgUtil -losg -lOpenThreads \
+            -lGL -lEGL -lgtest_main -lgtest -o scenery-graphics-tests
+          LIBGL_ALWAYS_SOFTWARE=1 ./scenery-graphics-tests --gtest_output=xml:scenery-native-gl-tests.xml
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
       - name: Exercise location rendering shaders on Mesa
@@ -898,6 +909,9 @@ jobs:
             location-rendering-shader-tests.json
             gpu-skinning-gl-tests.json
             gpu-skinning-native-gl-tests.xml
+            scenery-native-gl-tests.xml
+            scenery-handover-tests.json
+            static-resource-preload-tests.json
           if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'

@@ -4,6 +4,7 @@
 #include <components/esm3/refnum.hpp>
 #include <components/resource/resourcemanager.hpp>
 #include <components/terrain/quadtreeworld.hpp>
+#include <components/terrain/scenerycoverage.hpp>
 
 #include <mutex>
 
@@ -32,6 +33,13 @@ namespace MWRender
         AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double referenceTime, bool queue = true) override;
         bool updateAsyncState(double referenceTime) override;
         bool canPrepareAsync() const override;
+        bool usesSceneryCoverage() const override;
+        void acceptScenery(std::span<const ChunkRequest>, const osg::Vec3f&, const osg::Vec4i&,
+            osg::NodeVisitor&, double, std::shared_ptr<Terrain::SceneryView>&,
+            const std::shared_ptr<Terrain::SceneryView>&) override;
+        std::shared_ptr<Terrain::SceneryView> preloadScenery(std::span<const ChunkRequest>, const osg::Vec3f&,
+            const osg::Vec4i&, const std::atomic_bool&, Loading::Reporter&) override;
+        void prepareScenery(const ChunkRequest&, const osg::Vec3f&, double) override;
         void clearCache() override;
         void releaseGLObjects(osg::State*) override;
         bool mayIntersectOutsideTile(
@@ -61,13 +69,21 @@ namespace MWRender
     private:
         struct AsyncState;
         std::unique_ptr<AsyncState> mAsync;
+        struct SceneryState;
+        struct ScenerySnapshot;
+        struct SceneryBridge;
+        std::unique_ptr<SceneryState> mScenery;
+        osg::ref_ptr<SceneryBridge> getSceneryBridge(Terrain::SceneryCell, const std::atomic_bool*, bool required);
+        void invalidateScenery(const osg::Vec3f&, const osg::Vec2i&);
         struct Selection;
         struct PendingCompile;
-        Selection selectChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort);
+        Selection selectChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort,
+            bool bridge = false);
         osg::ref_ptr<osg::Node> fetchChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, bool compile,
             const std::atomic_bool* abort, const Selection* selected, bool modelsPrepared);
         osg::ref_ptr<osg::Node> createChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Selection& selected,
-            bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending);
+            bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending,
+            bool bridge = false);
         std::atomic_uint64_t mSelectionRevision{ 0 };
         std::atomic_uint64_t mGraphicsRevision{ 0 };
         using CacheEpoch = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>;

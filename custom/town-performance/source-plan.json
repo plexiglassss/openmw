@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -40,7 +40,8 @@
     "dd179b236099280c813933ad5404439b62f11d96",
     "5a97f88c81d9b44bc19c22c18ddc3c2b4870f5ec",
     "9ebf8a4179b9a199892981e56738e291ed7c7706",
-    "c23e0338bfe6e13d1538a9ab4379e48767afcd4e"
+    "c23e0338bfe6e13d1538a9ab4379e48767afcd4e",
+    "068f83221113c67811ebad9aaa7e95795c954693"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -60,11 +61,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1f902e141b660012859432311350b2fe9790294d"
+        "blob": "136a93cec3575914832517e073d8c14d1dab75d7"
       },
-      "sha256": "417be1da2fcb8bda0000d92c092c52c2dbdb866361637034d8f642b339d6ac9d",
-      "bytes": 71841,
-      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 72731,
+      "sha256": "2ed63f241b4961c4ba1ede69d4d6a798337d23ea2c8ec7108b94277725dfa8df",
+      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -73,11 +74,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "80716bd2cf072ad7a2ba4dd392259f4170af9976"
+        "blob": "59027695f31e42b2781b91217120fb6f6b909ee6"
       },
-      "sha256": "a849fb41846de4d786ca83007c6113012c4b8a6fe917741c34b0f98b06bb561c",
-      "bytes": 4677,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 4713,
+      "sha256": "dcdbee8793d19b202a0cc3ac7fc70f8725cc3dcfde2923e6098d664e414cd7a3",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/components_tests/esm/testrefid.cpp": {
       "before": {
@@ -250,13 +251,13 @@
     },
     "apps/components_tests/sceneutil/testasyncpreparation.cpp": {
       "before": null,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries.",
       "after": {
         "mode": "100644",
-        "blob": "b6121bc012a95d3c2e395f33d47f9b690ef0c9f4"
+        "blob": "808b4df087405c608ba9605a6ad15a3de025ce6d"
       },
-      "sha256": "fef06b027ad75020b7411502fddb611d9863c781a4369a56c74d3922a3ad9d0b",
-      "bytes": 12322
+      "bytes": 14599,
+      "sha256": "d35ad6cf0d0486c953b9e0eeb856684767e1916be81afd855de1414f5c41930c",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/components_tests/sceneutil/testcompilepriority.cpp": {
       "before": null,
@@ -356,6 +357,16 @@
       "bytes": 5491,
       "sha256": "29b3a42a0a1c8ebba2f3624da8bd0ec4421cd64f81b87f04589581b7f57d07e4",
       "reason": "Exercise arrival admission, failed/cancelled retention and reloaded script attachment rules in the Windows regression suites."
+    },
+    "apps/components_tests/terrain/testscenerycoverage.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ad46232985afafe32d228d8958b85905fa1cc10c"
+      },
+      "bytes": 5413,
+      "sha256": "2d8db77614d851ddc0ea5eb4e284b659c422e44f2af94f6d292bb48973c1f7e6",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/components_tests/vfs/testdirectorycomponent.cpp": {
       "before": null,
@@ -1403,11 +1414,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0bd8c1f1f2fa5a68a09f912f59838adce308f668"
+        "blob": "1b13e41452cae41a9e5ccf3ef97f4b7d79ee8b68"
       },
-      "bytes": 70198,
-      "sha256": "3129abff6c136b61e4892e0c59e10f57777e5ecdf4409e9dc2bd2d2e60b5209d",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 97443,
+      "sha256": "9719879a09704c6155b09ba5a2c9fe8d50791d3c42390d9dddfb656b521be697",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/openmw/mwrender/objectpaging.hpp": {
       "before": {
@@ -1416,11 +1427,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4dcc507c65c8783807bd8bebc41a6455ba257eed"
+        "blob": "2ac15af9a6c6a9a3d84a0499bd9714c674eda10e"
       },
-      "bytes": 5437,
-      "sha256": "e2bc3001c2d69760b48685f5cdf1b7719ab002c88f9502611db876930dbc3b7d",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 6455,
+      "sha256": "e1a9a94a19de8ff38ed503c7107ef2c72798a4950167420608d0185b90e1e6dc",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/openmw/mwrender/precipitationocclusion.cpp": {
       "before": {
@@ -1507,11 +1518,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ec42a29bdca41d04e245c54ad4381587ca2a6399"
+        "blob": "129a900a187b4635bb85ccc4a5d1bd85e9cdf705"
       },
-      "sha256": "99e0318f611f4e93f126f77ca617f02d1a5dd7812f6db3e0b6a28048e55f219f",
-      "bytes": 40888,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 48906,
+      "sha256": "798f208209c60beae79c817196d0d01fd5c3f4a9ad0b12cb7424f96dd968939e",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "before": {
@@ -1520,11 +1531,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "dc8284010aad7484884fabae736dc68e2ab41101"
+        "blob": "6ed924717ea18cc4f809cf9c2c01ff4e79806bea"
       },
-      "sha256": "253c23992e1c3033553717b5debea44f008a1734845f8a9e4bf83460a67391c3",
-      "bytes": 5197,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "bytes": 5422,
+      "sha256": "e2e0069bf50e67e1322277a04b2286748f9cc86abfbd7d6af0ce5e30dd4d2838",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/openmw/mwworld/cellref.cpp": {
       "before": {
@@ -1670,11 +1681,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5149ecff289d537fe8f47aadb0dea02c882f03f9"
+        "blob": "3abff26098906e4450657ddcb3518510e168551a"
       },
-      "sha256": "23b5b92a799132ec2680c2804d5b63894b3929fe1a0f78c78fc484b8e665d88a",
-      "bytes": 69066,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 69693,
+      "sha256": "8274b742a91f660f9f35d4f6c8895ffb16c6fb84467939203b8ad799db802349",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "before": {
@@ -1683,11 +1694,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3fd0e71fe095967d4afa0c77923da97d80c7fbce"
+        "blob": "91a37a183f8a8f7e7d90d42fec3d639202bc8c2f"
       },
-      "bytes": 6033,
-      "sha256": "743b520aea17096cb3b59ce78a1a99d07828a6c43842783b54c95a01ab36b0ea",
-      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work."
+      "bytes": 6075,
+      "sha256": "c04df725f53be38ffa1d11df585ba052b06981f6442196fc45fd0d9f20a4035d",
+      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "apps/openmw/mwworld/worldimp.cpp": {
       "before": {
@@ -2528,13 +2539,13 @@
     },
     "components/sceneutil/asyncpreparation.hpp": {
       "before": null,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries.",
       "after": {
         "mode": "100644",
-        "blob": "680dfae6d05ac184689416ed210b45663b2e4c2f"
+        "blob": "0ee1d8f8311d34a15c73ceeb3d5f46209be1cbf3"
       },
-      "sha256": "b339acd605fef8e97349acae7dded95132e7f6d00d5580dc92394b965a9c29bf",
-      "bytes": 7949
+      "bytes": 8792,
+      "sha256": "508d1a72f3841f446871c813cc97d0280a4373542dab5ea2d5cf1a506b7bdb07",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/sceneutil/clone.cpp": {
       "before": {
@@ -2685,6 +2696,16 @@
       "bytes": 12636,
       "sha256": "a568042976624f8780d46844453f8c41cccc64e4173f9a864d100bfa03f50854",
       "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely."
+    },
+    "components/sceneutil/scenefootprint.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1f5fa48cfca6f44eaaaeaad59ebc51b8c5d8b0e5"
+      },
+      "bytes": 2236,
+      "sha256": "810ca1b7b0400cfcd7354418ee85b91449650c161eaf19ada44d72163db2acc7",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/sceneutil/shadowsbin.cpp": {
       "before": {
@@ -2915,11 +2936,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0b29105f69eabc22afa3c10f277b642e2bdbac5d"
+        "blob": "744be49eeb14590c574b5430225809c53795062c"
       },
-      "bytes": 4268,
-      "sha256": "0876ecddb6a93130f380cf439ac9e34613694f0d663e76afa92f95f4e79c7bd9",
-      "reason": "Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view."
+      "bytes": 4919,
+      "sha256": "a1588ed8999bf6f1c6a83760a1c417b2280451c528e883702a84ca5f4f878dc5",
+      "reason": "Prepare a full-topology active grid, safely publish completed render nodes and pace distant attachments; support one validated bounded return view. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/terrain/chunkmanager.cpp": {
       "before": {
@@ -2973,6 +2994,16 @@
       "sha256": "182fb6b240fa9f1a5ef6778ea568a1961076d080e19680d449b785466883ad73",
       "reason": "Budget background graphics work, preserve visible work and resume composite terrain texture layers in order."
     },
+    "components/terrain/nextgrid.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "42e2e0ba31d99fe79c8ec2e634ec72dbc30e5f43"
+      },
+      "bytes": 1238,
+      "sha256": "df51af90b5fb235ec44c3a062bdc87e8b47a11ab3dbd11b3c7b9bf56a087f7dd",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
     "components/terrain/quadtreeworld.cpp": {
       "before": {
         "mode": "100644",
@@ -2980,11 +3011,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f42175b9f3d74962ee57fcc32f5bbd396084ee3d"
+        "blob": "48df6d17e3c6ed302c574e641085eb00833da972"
       },
-      "bytes": 48158,
-      "sha256": "a1da3a9fed87b3b964dcbe2e3dbafa67afd7da746dc1107619a76729da563d4b",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 51251,
+      "sha256": "a6829726f4892b2733981d45649ffefba643394c2e09045f37620a36a707dee2",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/terrain/quadtreeworld.hpp": {
       "before": {
@@ -2993,11 +3024,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "291b86fbc97ed43938670e240a96be15177cf1d8"
+        "blob": "ab88beda0aaabde4f2b3ed2f53837ed293f623b8"
       },
-      "bytes": 7148,
-      "sha256": "f18f47fd28a820f9b29a0b48f4a8bd36c95f148633c723d24514ba63bc88e347",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 8077,
+      "sha256": "2815a87c5938a81f1e01bf7abc59a97bc7b97d57f54f85a4d9dca8ec85c5991a",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/terrain/rayfootprint.hpp": {
       "before": null,
@@ -3009,6 +3040,26 @@
       "sha256": "8412800309b007ec957f1abbb3ce369c2e0e957a14bcc7efa2e71668e2939d54",
       "reason": "Use completed matching terrain entries and reject only scenery whose geometry cannot reach the finite segment. Preserve ordinary intersections for unverified geometry."
     },
+    "components/terrain/scenerycoverage.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "12edcde539a35b081a272dc6ce2fc5d04e1f0612"
+      },
+      "bytes": 3823,
+      "sha256": "f827662dc046f262317bda3c76ba36a24bcc7a54276e48d3d025ba19eb89383a",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
+    "components/terrain/streaminglookahead.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "c650387f2158fcbab74ed404220c5e60fb551455"
+      },
+      "bytes": 2421,
+      "sha256": "881ca4bb8636e5539f323cfbff7042f42995bcc358f3c7231f10bbb32d96e641",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+    },
     "components/terrain/viewdata.cpp": {
       "before": {
         "mode": "100644",
@@ -3016,11 +3067,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "14591b1bece34e387f844d3699780c129bdfc280"
+        "blob": "0de2f9859e5627d5c8f963beed6dc69d1b5b904f"
       },
-      "bytes": 7157,
-      "sha256": "984b463889d54f9bbf5133ed8549bcc44b78140f1d3b077f91dc5f379083a097",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 7265,
+      "sha256": "f162a05bc0bd3671148a98cec190cc77261371e18d78572fb5cc37850e7b897c",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/terrain/viewdata.hpp": {
       "before": {
@@ -3029,11 +3080,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c0f55fcca2aadccb4e6d436d2029786c03119e43"
+        "blob": "6b02a018b88f3b32a4b62e285dc1333130d710ba"
       },
-      "bytes": 4838,
-      "sha256": "c61fb97ebbfd7cb250c55bc458fc28cbe00e48bf2c64dac9150be9b6d4c0a6fa",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 5238,
+      "sha256": "e0abd35348907dc04097e94b650436c0fd3d2c7264ec36f7bb7d4f49b1a013d3",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "components/terrain/world.hpp": {
       "before": {
@@ -3084,15 +3135,55 @@
       "bytes": 9742,
       "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
     },
+    "custom/cell-streaming/SCENERY-CONTINUITY.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "f7a891a5bd0847fdddc10eeb428c5d868a7e891d"
+      },
+      "bytes": 4719,
+      "sha256": "5a54b88e51f13fb0a4c38e504b938c5afa5bb43638b25d749e73116b6549fb86",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
+    "custom/cell-streaming/scenery-graphics.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "8c2289a84fc3f041e1e7a5377f86d7af5bb288fa"
+      },
+      "bytes": 7601,
+      "sha256": "11397615235d6eaff33973e6acab7031acb258edce2ef25382c6b7c4ad02f0e9",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
+    "custom/cell-streaming/test-scenery-handover.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2c3b26452d28ee9901c03d2963edea07a0268a81"
+      },
+      "bytes": 10776,
+      "sha256": "a617b01775d3516656f288c78a3b3c754a7e0319c123723dcf25d71d7e8b3b7d",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
+    "custom/cell-streaming/test-static-preload.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "21906069e75091c84d6d01517aa822f9255b9bae"
+      },
+      "bytes": 10137,
+      "sha256": "1eb100937d1a5950973f8fc9467969740441205e4fc419b28e12b446724e91dc",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
     "custom/cell-streaming/verify-tests.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "c0c8a7a87870ef519afe18da6b93abb4f2d92fa0"
+        "blob": "25d6f958d2d353a72ce3a309ffc1ca8242425698"
       },
-      "sha256": "84ebff9cecffef5b3c107b95ac1bb3b0130a8ab0d514f01b164d37ec91f186af",
-      "bytes": 2095,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 2172,
+      "sha256": "6790892af4dc92df5a7fafa2a698a6a4ba177752d787683d5549314a4c976d3e",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "custom/combined-performance/.gitattributes": {
       "before": null,
@@ -4270,13 +4361,13 @@
     },
     "custom/performance-tests/test-streaming-paths.py": {
       "before": null,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries.",
       "after": {
         "mode": "100644",
-        "blob": "9b7845cdf5e82346bb3e15a23099536036bac847"
+        "blob": "1934131565ee0c75d1fea35a0c0eface87fa8012"
       },
-      "sha256": "d34ebd7daca0f8f6f94b25facc3a5eb96a71ed1fe1ec4f14b586c751ba4adcde",
-      "bytes": 22726
+      "bytes": 23597,
+      "sha256": "d93fff4dae780eea96b8c0508a0feaabc138b83a735e8c1d16bc4016994e7185",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
     },
     "custom/performance-tests/test-transition-preload.py": {
       "before": {
@@ -4890,16 +4981,6 @@
       "bytes": 14577,
       "sha256": "48ffb002773aaaeb0e90a809dfe9b344dbb9a01e64c3876d8544b6be64c3aea3",
       "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
-    },
-    "components/terrain/streaminglookahead.hpp": {
-      "before": null,
-      "after": {
-        "mode": "100644",
-        "blob": "c650387f2158fcbab74ed404220c5e60fb551455"
-      },
-      "bytes": 2421,
-      "sha256": "881ca4bb8636e5539f323cfbff7042f42995bcc358f3c7231f10bbb32d96e641",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
     }
   }
 }

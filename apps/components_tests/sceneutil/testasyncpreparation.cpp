@@ -46,6 +46,58 @@ namespace
         EXPECT_EQ(calls, 0);
     }
 
+    TEST(AsyncPreparation, CompletedHandoverReleasesAdmissionWithoutCancellingGraphics)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache cache(queue, 1, 1);
+        auto gate = std::make_shared<std::atomic_bool>(false);
+        std::atomic_int cancelled{ 0 };
+        cache.request(1, 0, [&](const std::atomic_bool&) {
+            return Cache::Prepared{ std::make_shared<int>(42), gate, [&] { ++cancelled; } };
+        });
+        EXPECT_FALSE(cache.takeReady(1, 0).mReady);
+        EXPECT_TRUE(cache.contains(1));
+        *gate = true;
+        ASSERT_TRUE(eventually([&] { return cache.poll(1, 0).mReady; }));
+        const auto result = cache.takeReady(1, 0);
+        ASSERT_TRUE(result.mReady);
+        EXPECT_EQ(*result.mValue, 42);
+        EXPECT_EQ(cache.size(), 0u);
+        ASSERT_TRUE(eventually([&] { return cache.request(2, 0.1, value(7)).mReady; }));
+        EXPECT_EQ(cancelled, 0);
+    }
+
+    TEST(AsyncPreparation, ResourceLookAheadRetentionSurvivesSlowPolling)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache cache(queue, 2, 8, 1024, 4, 10);
+        cache.request(1, 0, value(1));
+        ASSERT_TRUE(eventually([&] { return cache.poll(1, 0).mReady; }));
+        cache.update(2);
+        EXPECT_TRUE(cache.contains(1));
+        EXPECT_TRUE(cache.poll(1, 2).mReady);
+        cache.update(6.1);
+        EXPECT_FALSE(cache.contains(1));
+    }
+
+    TEST(AsyncPreparation, GraphicsWaitDoesNotOccupyCoverageQueueSlots)
+    {
+        osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(1);
+        Cache detail(queue, 1), cover(queue, 1);
+        auto gate = std::make_shared<std::atomic_bool>(false);
+        detail.request(1, 0, [gate](const std::atomic_bool&) {
+            return Cache::Prepared{ std::make_shared<int>(1), gate };
+        });
+        cover.request(1, 0, value(9));
+        ASSERT_TRUE(eventually([&] { return cover.poll(1, 0).mReady; }));
+        EXPECT_FALSE(detail.poll(1, 0).mReady);
+        detail.request(2, 0, value(2));
+        EXPECT_EQ(detail.submitted(), 1u);
+        EXPECT_EQ(*cover.takeReady(1, 0).mValue, 9);
+        *gate = true;
+        ASSERT_TRUE(eventually([&] { return detail.poll(1, 0).mReady; }));
+    }
+
     TEST(AsyncPreparation, RequiredProbeDoesNotSubmitAndCancellationRetiresQueuedSpeculation)
     {
         osg::ref_ptr<SceneUtil::WorkQueue> queue = new SceneUtil::WorkQueue(0);

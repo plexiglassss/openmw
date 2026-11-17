@@ -2,6 +2,7 @@
 #define OPENMW_COMPONENTS_TERRAIN_VIEWDATA_H
 
 #include <deque>
+#include <memory>
 #include <vector>
 
 #include <osg/Node>
@@ -13,6 +14,7 @@ namespace Terrain
 {
 
     class QuadTreeNode;
+    struct SceneryView;
 
     struct ViewDataEntry
     {
@@ -30,9 +32,11 @@ namespace Terrain
         // immediate draw path. This is not itself a graphics-completion receipt.
         // Exact queries and synchronous preload do not certify camera coverage.
         bool mRenderingReadyForCamera = false;
-        bool needsRendering(bool cameraReadiness = false) const
+        bool mRenderingSeparateScenery = false;
+        bool needsRendering(bool cameraReadiness = false, bool separateScenery = false) const
         {
-            return !mRenderingNode || !mRenderingComplete || (cameraReadiness && !mRenderingReadyForCamera);
+            return !mRenderingNode || !mRenderingComplete || (cameraReadiness && !mRenderingReadyForCamera)
+                || mRenderingSeparateScenery != separateScenery;
         }
     };
 
@@ -92,6 +96,9 @@ namespace Terrain
         // Prediction belongs to this camera; copyFrom does not import another
         // camera's motion or timing history.
         StreamingLookAhead mStreamingLookAhead;
+        // Immutable coverage snapshot: owns selected object graphs between frames
+        // and keeps a prepared arrival alive independently of the speculative cache.
+        std::shared_ptr<SceneryView> mScenery;
 
     private:
         std::vector<ViewDataEntry> mEntries;

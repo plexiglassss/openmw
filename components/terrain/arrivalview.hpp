@@ -19,6 +19,11 @@
 namespace Terrain
 {
     class QuadTreeNode;
+    struct SceneryView
+    {
+        virtual ~SceneryView() = default;
+        std::size_t mEstimatedBytes = 0;
+    };
 
     // Only completed scene nodes cross the worker/cull boundary. The worker's mutable
     // ViewData, its LOD flags and its neighbour index stay on the worker.
@@ -87,6 +92,16 @@ namespace Terrain
             const auto it = mNodes.find(key);
             return it == mNodes.end() ? nullptr : it->second;
         }
+        void publishScenery(std::shared_ptr<SceneryView> scenery)
+        {
+            const std::lock_guard lock(mMutex);
+            mScenery = std::move(scenery);
+        }
+        std::shared_ptr<SceneryView> scenery() const
+        {
+            const std::lock_guard lock(mMutex);
+            return mScenery;
+        }
         void finish(bool success)
         {
             const std::lock_guard lock(mMutex);
@@ -102,17 +117,20 @@ namespace Terrain
         std::size_t bytes() const
         {
             const std::lock_guard lock(mMutex);
-            return mBytes + (mNodes.size() + mOffered.size()) * (sizeof(Key) + 4 * sizeof(void*));
+            return mBytes + (mScenery ? mScenery->mEstimatedBytes : 0)
+                + (mNodes.size() + mOffered.size()) * (sizeof(Key) + 4 * sizeof(void*));
         }
         const osg::Vec3f mPoint;
         const osg::Vec4i mGrid;
         const std::uint64_t mRevision;
         const std::uint64_t mVfsRevision;
         const std::uint64_t mModelRevision;
+        const std::chrono::steady_clock::time_point mCreated = std::chrono::steady_clock::now();
 
     private:
         mutable std::mutex mMutex;
         std::map<Key, Node> mNodes;
+        std::shared_ptr<SceneryView> mScenery;
         std::set<Key> mOffered;
         unsigned mFrame = std::numeric_limits<unsigned>::max();
         std::size_t mFrameAdmissions = 0;

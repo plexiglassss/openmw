@@ -83,9 +83,11 @@ namespace SceneUtil
 
     public:
         explicit AsyncPreparation(WorkQueue* queue, std::size_t maximumPending = 2,
-            std::size_t maximumEntries = 64, std::size_t estimatedByteBudget = 1024ull * 1024 * 1024)
+            std::size_t maximumEntries = 64, std::size_t estimatedByteBudget = 1024ull * 1024 * 1024,
+            double readyRetention = 0.25, double pendingRetention = 1.0)
             : mQueue(queue), mMaximumPending(maximumPending), mMaximumEntries(maximumEntries),
-              mEstimatedByteBudget(estimatedByteBudget) {}
+              mEstimatedByteBudget(estimatedByteBudget), mReadyRetention(readyRetention),
+              mPendingRetention(pendingRetention) {}
         ~AsyncPreparation()
         {
             clear();
@@ -113,7 +115,7 @@ namespace SceneUtil
             mLastUpdate = now;
             for (auto it = mEntries.begin(); it != mEntries.end();)
             {
-                const double retention = it->second.mJob->ready() ? 0.25 : 1.0;
+                const double retention = it->second.mJob->ready() ? mReadyRetention : mPendingRetention;
                 if (it->second.mLastUse + retention < now)
                 {
                     mQueue->cancelWorkItem(it->second.mJob.get());
@@ -166,6 +168,20 @@ namespace SceneUtil
             return true;
         }
 
+        // A published immutable cache owns the value after a successful handover.
+        // Free the admission slot without cancelling completed graphics work.
+        Result takeReady(const Key& key, double now)
+        {
+            auto result = poll(key, now);
+            if (result.mReady)
+            {
+                const auto found = mEntries.find(key);
+                mRetired.push_back(std::move(found->second.mJob));
+                mEntries.erase(found);
+            }
+            return result;
+        }
+
         Result request(const Key& key, double now, Factory factory)
         {
             if (mEntries.contains(key))
@@ -202,6 +218,7 @@ namespace SceneUtil
 
         std::size_t submitted() const { return mSubmitted; }
         std::size_t size() const { return mEntries.size(); }
+        bool contains(const Key& key) const { return mEntries.contains(key); }
 
     private:
         osg::ref_ptr<WorkQueue> mQueue;
@@ -210,6 +227,7 @@ namespace SceneUtil
         // Admission uses a reservation until the worker can measure its graph.
         // An indivisible decode may exceed the estimate; it blocks further admission.
         const std::size_t mEstimatedByteBudget;
+        const double mReadyRetention, mPendingRetention;
         std::map<Key, Entry> mEntries;
         std::vector<osg::ref_ptr<Job>> mRetired;
         UnrefQueue mUnref;

@@ -101,6 +101,15 @@ namespace Terrain
             { return {}; }
             virtual bool updateAsyncState(double) { return false; }
             virtual bool canPrepareAsync() const { return false; }
+            // Camera-only scenery coverage. Exact queries use getChunk and never
+            // consume these temporary, conservatively complete representations.
+            virtual bool usesSceneryCoverage() const { return false; }
+            virtual void acceptScenery(std::span<const ChunkRequest>, const osg::Vec3f&, const osg::Vec4i&,
+                osg::NodeVisitor&, double, std::shared_ptr<SceneryView>&, const std::shared_ptr<SceneryView>&) {}
+            virtual std::shared_ptr<SceneryView> preloadScenery(std::span<const ChunkRequest>, const osg::Vec3f&,
+                const osg::Vec4i&, const std::atomic_bool&, Loading::Reporter&) { return {}; }
+            virtual void prepareScenery(const ChunkRequest& request, const osg::Vec3f& point, double time)
+            { requestChunk(request, point, time, true); }
             // Called only after the segment misses the landscape tile itself. Other
             // managers can have meshes extending outside that tile; unknown means keep.
             virtual bool mayIntersectOutsideTile(const ChunkRequest&, const osg::Vec3f&, const RayFootprint&)
@@ -145,11 +154,12 @@ namespace Terrain
             const std::shared_ptr<ArrivalView>&, const ArrivalView::Progress&);
         std::atomic_uint64_t mArrivalRevision{ 0 };
         std::atomic<std::shared_ptr<ArrivalView>> mVisibleArrival;
+        std::atomic<std::shared_ptr<ArrivalView>> mPreloadedScenery;
         void updateRenderingLod(ViewDataEntry& entry, ViewData* vd);
         ChunkRequest getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& gridbounds) const;
         void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
             bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr,
-            bool asynchronous = false, double referenceTime = 0);
+            bool asynchronous = false, double referenceTime = 0, bool separateScenery = false);
         void prepareAhead(ViewData&, const osg::Vec3f&, double referenceTime, float cellWorldSize);
         BatchChunkManager* mBatchChunkManager = nullptr;
         std::size_t mSceneryPrepared = 0, mSceneryRequired = 0, mSceneryAhead = 0, mSceneryCancelled = 0;

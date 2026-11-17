@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include <components/terrain/nextgrid.hpp>
 
 #include <components/diagnostics/exteriorarrival.hpp>
 #include <components/diagnostics/loading.hpp>
@@ -618,6 +619,7 @@ namespace MWWorld
     {
         Diagnostics::ExteriorArrival::clear();
         mNextExitPrediction = 0;
+        mNextStaticPrediction = 0;
         auto navigatorUpdateGuard = mNavigator.makeUpdateGuard();
         for (auto iter = mActiveCells.begin(); iter != mActiveCells.end();)
         {
@@ -1095,6 +1097,7 @@ namespace MWWorld
         Log(Debug::Info) << "Changing to interior";
         Diagnostics::ExteriorArrival::clear();
         mNextExitPrediction = 0;
+        mNextStaticPrediction = 0;
         if (mCurrentCell && mCurrentCell->isExterior())
             mPreloader->leaveExterior(mRendering.getTerrain(),
                 { mWorld.getPlayerPtr().getRefData().getPosition().asVec3(), gridCenterToBounds(mCurrentGridCenter) },
@@ -1502,6 +1505,16 @@ namespace MWWorld
         // Repeated predictions refresh retention for the cells still on the likely route.
         for (auto it = candidates.rbegin(); it != candidates.rend(); ++it)
             mPreloader->prioritize(mWorld.getWorldModel().getExterior(it->second));
+
+        const double time = mRendering.getReferenceTime();
+        if (Misc::useCellRenderPreparation() && time >= mNextStaticPrediction)
+        {
+            mNextStaticPrediction = time + 0.25;
+            const auto motion = predictedPos - playerPos;
+            for (const auto& [x, y] : Terrain::nextGridCells(cellX, cellY, mHalfGridSize,
+                     motion.x(), motion.y(), static_cast<float>(cellSize)))
+                mPreloader->preloadStaticExterior({ x, y, extWorldspace }, time);
+        }
     }
 
     void Scene::preloadCellWithSurroundings(CellStore& cell)
