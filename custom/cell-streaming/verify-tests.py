@@ -8,7 +8,8 @@ root = Path(__file__).resolve().parents[2]
 requirements = {
     'components-tests.xml': {'SceneInstanceCacheTest': 6, 'InstancePreparation': 3,
                              'WorkQueueCancellation': 3, 'CellPackagesTest': 4,
-                             'AsyncPreparation': 13, 'StreamingLookAhead': 4, 'CompileReadiness': 3,
+                             'AsyncPreparation': 17, 'LuaScriptCache': 7,
+                             'StreamingLookAhead': 4, 'CompileReadiness': 3,
                              'SceneryCoverage': 6, 'NextGridPreparation': 2,
                              'CompileReadinessCache': 5, 'ShaderManagerTest': 12},
     'cell-packages-legacy.xml': {'CellPackagesTest': 4},
