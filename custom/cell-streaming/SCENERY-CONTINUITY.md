@@ -1,19 +1,45 @@
-# Scenery continuity candidate
+# Scenery regression correction
 
-Exterior camera views keep complete object coverage while their normal optimized batches prepare. Exact ray queries and active-cell ownership retain their immediate paths. This extends cumulative source `068f83221113c67811ebad9aaa7e95795c954693`; it does not replace earlier tooltip, QuickLoot, HBFS god-mode or other cumulative fixes.
+This candidate extends cumulative source 157fc965a1fd909753bd6695d8a6e562e0c7f6b0.
+It preserves the tooltip, QuickLoot, HBFS god-mode and other engine fixes, the
+existing mod-facing APIs, and the full Windows editor/companion tools.
 
-When an optimized distant batch is unavailable, the renderer uses real, unmerged scenery owned by exterior cells. A cell is replaced only when every selected subcell batch has completed graphics preparation for the current contexts and resources. Large optimized batches retain their original merge boundaries. Finished replacement pieces stay owned while the remaining pieces prepare; they cannot expire halfway through a handover. Newly active cells are excluded before selecting distant cover.
+The 157fc965 test capture showed prolonged unmerged distant scenery and a graphics
+compilation backlog, alongside the reported lower city FPS. Unmerged coverage is
+now disabled by default. Required scenery uses ordinary merged, size-pruned chunks;
+preparation can run ahead, and a miss finishes complete scenery immediately. This
+avoids intentionally blank scenery but can still stall on cold assets or activation.
 
-The bridge is a conservative representation of real references. It avoids expensive geometry merging and merge-dependent small-object rejection; it is **not** newly baked low-poly geometry. Native model LOD ranges still apply. It may temporarily show additional small objects and use more draw calls than the final optimized view. This tradeoff, appearance during handover and dense modded landscapes require gameplay validation.
+Gameplay graphics preparation now shares an elapsed-time allowance between deletion
+and compilation: at most 1 ms, or 0.5 ms at 120 Hz, and 256 operations. Already-compiled
+shared dependencies can progress without a two-operation-per-frame bottleneck.
+Deadline checks happen between operations. A single driver call can overrun the
+allowance; it is not a strict maximum frame stall. Loading screens keep higher
+throughput and restore gameplay limits afterward. Readiness still uses context-bound
+completion callbacks, not an object handle or queue marker.
 
-Arrivals retain their prepared scenery independently of the speculative cache. Camera snapshots retain selected batches between frames and participate in return-view memory estimates. Prediction prepares bridges before optional merged detail. The renderer still completes missing required coverage immediately: a cold miss can stall, but it is not deliberately left blank. Graphics completion callbacks are not GPU fences or proof of successful shader linking. The cold bridge can use ordinary draw-time compilation; no loading worker waits for a callback that requires the blocked render thread.
+Source-cell revisions prevent unrelated enable/disable changes from cancelling all
+pending distant work. Active-only blacklisting leaves far selection valid. Runtime
+moves are traced to the original cell/worldspace, including exterior objects now
+inside an interior. Affected source references cannot publish an older result. Full
+selection resets, resource/settings/VFS changes and graphics-context changes retain
+the broader invalidation safeguards.
 
-One neighbouring cell grid is also prepared further ahead using copied ESM3 plugin metadata. Workers resolve moved, deleted and leased static references and warm static/activator/door/container/light models, collision resources and eligible detached instances. They do not create runtime cells, run scripts, choose spawns, advance RNG, activate AI or insert physics. Existing actor preparation and final activation order are preserved. This optional extension admits two jobs, retains at most eight cell entries, and limits each to 128 unique models and 128 collision instances. Other record formats keep the existing preloader.
+Detached static/actor resource preparation remains enabled. It does not activate AI,
+run scripts, select spawns or insert physics early. Existing activation order and
+exact query behaviour remain unchanged. There is no new persistent scenery cache.
 
-Additional bridge cache retention is limited to 128 sections and a 1 GiB admission estimate; currently required rendering cover is pinned and may exceed this allowance. Current and incoming view snapshots are separate rendering/preload ownership, not part of that extra-cache allowance. Only one ordinary standby view is published; it is consumed on use and expires after 30 seconds. Retired snapshots are released by one priority worker job at a time and remain accounted for until completion. Estimates include conservative texture/collision allowances, can double-count shared resources and are not measured RAM/VRAM limits. Optional look-ahead stops while estimated retirement pressure exceeds 1 GiB. CPU and graphics preparation have separate bounded queues.
+The former unmerged coverage can be enabled explicitly with
+OPENMW_SCENERY_COVERAGE=1 for diagnostics only. It still uses conservative whole-view
+selection invalidation and can incur the observed rendering cost. Leave it unset for
+normal play. OPENMW_ASYNC_OBJECT_PAGING=0 separately disables asynchronous object
+preparation; the temporary recovery launcher for 157fc965 uses that older switch.
+Use the normal Run-Combined.cmd when testing this corrected candidate.
 
-There is no persistent baked scenery cache in this candidate. Arbitrary runtime scene graphs and graphics receipts cannot safely be reused across sessions; a disk format would need complete content, settings and schema validation. First visits still require asset reads/decoding, and teleports or expensive gameplay activation can still stall.
-
-Validation includes native coverage, ownership, cancellation, retention and direction tests; production-body fixtures with real OSG ownership/cache expiry and counted static-reference dependencies; and a Mesa context test that compiles real geometry and checks rendered pixels before, during and after a whole-section handover. These checks do not establish in-game speed or visual acceptance.
-
-For comparison, use the same save/profile and route with the previous cumulative build and this build. Check a first exterior visit, walking across cell boundaries, a quick reversal, a return from an interior and a teleport. Look for delayed buildings/trees, duplicate scenery, small-object disappearance during handover, collision/interaction correctness and frame-time spikes. The log reports `Scenery coverage` bridge sections, optimized batches, required bridge builds and estimated retained/selected/retired bytes. Existing activation timings remain available. Keep the installed current QuickLoot and Object Insight companions; this engine package is not a downgrade of those mods.
+Tests cover real graphics progress behind 1,024 shared-resource sets without forcing
+compileAll, cooperative stopping after an overrun, loading-to-gameplay restoration,
+source-cell liveness, moved-reference routing, stale publication rejection and complete
+visible fallback. They do not measure city FPS recovery or establish seamless cell
+transitions. Compare the same save, settings and route, including first exterior entry,
+walking boundaries, reversing direction, returning from an interior and teleporting.
+Keep the installed current QuickLoot and Object Insight companions.

@@ -397,6 +397,7 @@ namespace MWWorld
         ///< Check mLastRespawn and respawn references if necessary. This is a no-op if the cell is not loaded.
 
         CellStore* getOriginCell(const Ptr& object) const;
+        const CellStore* getOriginCell(const ConstPtr& object) const;
 
         Ptr getPtr(ESM::RefId id);
 

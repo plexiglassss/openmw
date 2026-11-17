@@ -2,6 +2,7 @@
 #define OPENMW_MWRENDER_OBJECTPAGING_H
 
 #include <components/esm3/refnum.hpp>
+#include <components/sceneutil/selectionrevision.hpp>
 #include <components/resource/resourcemanager.hpp>
 #include <components/terrain/quadtreeworld.hpp>
 #include <components/terrain/scenerycoverage.hpp>
@@ -85,6 +86,9 @@ namespace MWRender
             bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending,
             bool bridge = false);
         std::atomic_uint64_t mSelectionRevision{ 0 };
+        SceneUtil::SelectionRevision mSelectionRevisions; // mRefTrackerMutex
+        std::uint64_t selectionRevision(const ChunkId&);
+        std::uint64_t selectionRevisionLocked(const ChunkId&) const;
         std::atomic_uint64_t mGraphicsRevision{ 0 };
         using CacheEpoch = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t>;
         CacheEpoch cacheEpoch() const;

@@ -168,6 +168,22 @@ namespace SceneUtil
             return true;
         }
 
+        template <class Predicate>
+        void cancelIf(Predicate predicate)
+        {
+            for (auto it = mEntries.begin(); it != mEntries.end();)
+            {
+                if (!predicate(it->first))
+                {
+                    ++it;
+                    continue;
+                }
+                mQueue->cancelWorkItem(it->second.mJob.get());
+                mRetired.push_back(std::move(it->second.mJob));
+                it = mEntries.erase(it);
+            }
+        }
+
         // A published immutable cache owns the value after a successful handover.
         // Free the admission slot without cancelling completed graphics work.
         Result takeReady(const Key& key, double now)

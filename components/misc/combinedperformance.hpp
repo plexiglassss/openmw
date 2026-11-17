@@ -67,6 +67,17 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    // Experimental unmerged cover regressed dense scenery. Keep it available
+    // for diagnostics only; normal preparation uses complete optimized chunks.
+    inline bool useSceneryCoverage()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_SCENERY_COVERAGE");
+            return value && std::string_view(value) == "1";
+        }();
+        return useAsyncObjectPaging() && enabled;
+    }
+
     inline bool useActorResourcePreload()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_RESOURCE_PRELOAD");

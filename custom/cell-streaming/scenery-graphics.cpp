@@ -1,8 +1,10 @@
 #include <components/sceneutil/compilepriority.hpp>
+#include <components/sceneutil/gameplaycompile.hpp>
 #include <components/terrain/scenerycoverage.hpp>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <osg/GraphicsContext>
+#include <osg/ContextData>
 #include <osg/State>
 #include <osg/GLObjects>
 #include <osg/Program>
@@ -10,6 +12,9 @@
 #include <gtest/gtest.h>
 #include <array>
 #include <stdexcept>
+#include <chrono>
+#include <thread>
+#include <vector>
 
 namespace
 {
@@ -42,6 +47,7 @@ namespace
             setState(new osg::State);
             getState()->setGraphicsContext(this);
             getState()->setContextID(0);
+            osg::getOrCreateContextData(0);
             getState()->initializeExtensionProcs();
             glViewport(0, 0, 32, 32);
             glDisable(GL_DEPTH_TEST);
@@ -94,6 +100,102 @@ namespace
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(x, 16, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, value.data());
         return value;
+    }
+
+    TEST(GameplayCompilation, SharedCompiledDependenciesDoNotStarveTheFinalReceipt)
+    {
+        osg::ref_ptr<Context> context = new Context;
+        osg::ref_ptr<SceneUtil::GameplayCompileOperation> operation
+            = new SceneUtil::GameplayCompileOperation(nullptr, 120);
+        operation->addGraphicsContext(context);
+        const auto shared = quad(-1, 1, { 0, 0, 1, 1 });
+        auto warm = SceneUtil::prepareCompileReadiness(shared, { context });
+        operation->add(warm.mSet, false);
+        for (unsigned frame = 0; frame < 128 && !warm.mReady->load(); ++frame)
+            (*operation)(context);
+        ASSERT_TRUE(warm.mReady->load());
+        std::vector<SceneUtil::CompileReadiness> receipts;
+        for (unsigned i = 0; i < 1024; ++i)
+        {
+            receipts.push_back(SceneUtil::prepareCompileReadiness(shared, { context }));
+            operation->add(receipts.back().mSet, false);
+        }
+        const auto replacement = quad(-1, 1, { 1, 0, 0, 1 });
+        auto last = SceneUtil::prepareCompileReadiness(replacement, { context });
+        operation->add(last.mSet, false);
+        ASSERT_FALSE(last.mReady->load());
+        // Use the actual gameplay scheduler, with no compileAll/loading override.
+        // At two operations per frame the 1,024 preceding sets cannot finish here.
+        unsigned frames = 0;
+        while (frames++ < 128 && !last.mReady->load())
+            (*operation)(context);
+        ASSERT_TRUE(last.mReady->load());
+        for (const auto& receipt : receipts)
+            EXPECT_TRUE(receipt.mReady->load());
+        EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
+        shared->releaseGLObjects(context->getState());
+        replacement->releaseGLObjects(context->getState());
+        operation->removeGraphicsContext(context);
+    }
+
+    class CountedCompile final : public osgUtil::IncrementalCompileOperation::CompileOp
+    {
+        int& mCalls;
+        bool mSlow;
+    public:
+        CountedCompile(int& calls, bool slow = false) : mCalls(calls), mSlow(slow) {}
+        double estimatedTimeForCompile(osgUtil::IncrementalCompileOperation::CompileInfo&) const override { return 0; }
+        bool compile(osgUtil::IncrementalCompileOperation::CompileInfo&) override
+        {
+            ++mCalls;
+            if (mSlow)
+                std::this_thread::sleep_for(std::chrono::milliseconds(3));
+            return true;
+        }
+    };
+
+    TEST(GameplayCompilation, StopsAfterAnIndivisibleOverrunAndResumesWithFiniteWork)
+    {
+        osg::ref_ptr<Context> context = new Context;
+        osg::ref_ptr<SceneUtil::GameplayCompileOperation> operation
+            = new SceneUtil::GameplayCompileOperation(nullptr, 120);
+        operation->addGraphicsContext(context);
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation::CompileSet> set
+            = new osgUtil::IncrementalCompileOperation::CompileSet;
+        set->_numberCompileListsToCompile.exchange(1);
+        int calls = 0;
+        auto& list = set->_compileMap[context];
+        list.add(new CountedCompile(calls, true));
+        for (int i = 0; i < 1000; ++i)
+            list.add(new CountedCompile(calls));
+        operation->add(set, false);
+        operation->setCompileAllTillFrameNumber(100); // cannot bypass the gameplay deadline
+        for (unsigned frame = 0; frame < 32 && calls == 0; ++frame)
+            (*operation)(context);
+        ASSERT_EQ(calls, 1);
+        EXPECT_FALSE(set->compiled());
+        (*operation)(context);
+        EXPECT_GT(calls, 1);
+        EXPECT_LE(calls, 257);
+        operation->setLoading(true);
+        operation->setMaximumNumOfObjectsToCompilePerFrame(1000);
+        (*operation)(context);
+        EXPECT_TRUE(set->compiled());
+        EXPECT_EQ(calls, 1001);
+        operation->setMaximumNumOfObjectsToCompilePerFrame(256);
+        operation->setLoading(false);
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation::CompileSet> resumed
+            = new osgUtil::IncrementalCompileOperation::CompileSet;
+        resumed->_numberCompileListsToCompile.exchange(1);
+        resumed->_compileMap[context].add(new CountedCompile(calls, true));
+        resumed->_compileMap[context].add(new CountedCompile(calls));
+        operation->add(resumed, false);
+        for (unsigned frame = 0; frame < 32 && calls == 1001; ++frame)
+            (*operation)(context);
+        EXPECT_EQ(calls, 1002);
+        EXPECT_FALSE(resumed->compiled());
+        operation->remove(resumed);
+        operation->removeGraphicsContext(context);
     }
 
     TEST(SceneryGraphics, CompletedWholeSectionReplacesCoverAfterActualCompilation)

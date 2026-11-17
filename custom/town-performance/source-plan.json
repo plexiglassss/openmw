@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -41,7 +41,8 @@
     "5a97f88c81d9b44bc19c22c18ddc3c2b4870f5ec",
     "9ebf8a4179b9a199892981e56738e291ed7c7706",
     "c23e0338bfe6e13d1538a9ab4379e48767afcd4e",
-    "068f83221113c67811ebad9aaa7e95795c954693"
+    "068f83221113c67811ebad9aaa7e95795c954693",
+    "157fc965a1fd909753bd6695d8a6e562e0c7f6b0"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -61,11 +62,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "136a93cec3575914832517e073d8c14d1dab75d7"
+        "blob": "d5b718adfada60f2eb83978d49db6bd47a63cf52"
       },
-      "bytes": 72731,
-      "sha256": "2ed63f241b4961c4ba1ede69d4d6a798337d23ea2c8ec7108b94277725dfa8df",
-      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 72772,
+      "sha256": "15036e75208d1b207eabceb59dfbc1e0546b6d38f0fed4212247c26620af8c1d",
+      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -74,11 +75,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "59027695f31e42b2781b91217120fb6f6b909ee6"
+        "blob": "248c198d8efa7bc68421f2dec1c98262cb8647a5"
       },
-      "bytes": 4713,
-      "sha256": "dcdbee8793d19b202a0cc3ac7fc70f8725cc3dcfde2923e6098d664e414cd7a3",
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 4753,
+      "sha256": "f6a1ebce7bdcbfb2568064e2b1e40650fb2b1d09b2c3d2a2da76f3d6d89cb72b",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/components_tests/esm/testrefid.cpp": {
       "before": {
@@ -288,6 +289,16 @@
       "sha256": "9c74f27c8ca47780faa01a920ee7e1ee0c544ef0cf0ef4c25642904a147d5499",
       "bytes": 3873,
       "reason": "Exercise actual NIF instance preparation independently of process-wide test serializers; preserve consumption/invalidation assertions and cover ordinary geometry budgeting."
+    },
+    "apps/components_tests/sceneutil/testselectionrevision.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "1b4b24222b5b24ba99e944c84e903774b79e3e63"
+      },
+      "bytes": 2831,
+      "sha256": "2914e93353f05fdd15001b85b7183dc096b259856fe462dc1ef980d33bba3be2",
+      "reason": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/components_tests/sceneutil/testvisualraybatch.cpp": {
       "before": null,
@@ -559,6 +570,19 @@
       "bytes": 1949,
       "sha256": "ecffbdc4cf3247136c2d2ea6d56a537d64abfeeecf2a7d333d433fcdb713ac4b",
       "reason": "Prepare the save-loaded inventory list once and refresh the player appearance after magic effects, with scoped load timing."
+    },
+    "apps/openmw/mwgui/loadingscreen.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "00f2a04d44b1df4456a316e44dd8959b048114b3"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "34b1a11ddf9df72a47e51fc7488d9c88054a83b9"
+      },
+      "bytes": 13540,
+      "sha256": "057a2b29b1b918cbd653ce13f6b891191add33f582834af8f89d668734813762",
+      "reason": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwgui/mapiconcontrols.cpp": {
       "before": null,
@@ -1414,11 +1438,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1b13e41452cae41a9e5ccf3ef97f4b7d79ee8b68"
+        "blob": "45e521acc672f5d1e8405d59a54313cba843b2b6"
       },
-      "bytes": 97443,
-      "sha256": "9719879a09704c6155b09ba5a2c9fe8d50791d3c42390d9dddfb656b521be697",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 99240,
+      "sha256": "ddf0625ea5fa44add66c2ffae8043e7737626dfc88dc8df2dfdf1602415ab724",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwrender/objectpaging.hpp": {
       "before": {
@@ -1427,11 +1451,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2ac15af9a6c6a9a3d84a0499bd9714c674eda10e"
+        "blob": "61d1fd4d82e6ae02b1c73be88e072740d6d9192c"
       },
-      "bytes": 6455,
-      "sha256": "e1a9a94a19de8ff38ed503c7107ef2c72798a4950167420608d0185b90e1e6dc",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 6713,
+      "sha256": "9ac9afa81889c3635890eb310f85f867e217fc6733926c258b21c9907ae1776d",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwrender/precipitationocclusion.cpp": {
       "before": {
@@ -1453,11 +1477,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a2d096e53de4e74b59af4fe02653c3bab1c3eb96"
+        "blob": "cfbbc90b6b772a9a31e2db6db8a0355608732add"
       },
-      "bytes": 78046,
-      "sha256": "60845359f02ad137c139e187e59d9effb593ae8eabe0de31e156b4676902e3f0",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 76917,
+      "sha256": "9018d0c3972a0782bf8de45dcd034f5f6347e8570fe80ddaf5ac49ffb973d6cd",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "before": {
@@ -1570,11 +1594,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "563eb588d1425becfff6fdfc899784145ae07b96"
+        "blob": "40b2870969a2b5dbe97ae46e2af2a45eddf0fe0d"
       },
-      "bytes": 56181,
-      "sha256": "93af3969b400847b9b39b92e3c2d5c419a224e61015a702b6f00fe01b8aa4b09",
-      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "bytes": 56610,
+      "sha256": "74ad1a7eddd671500ef3f1d54e7f63e3b1e1338971e50162ab54186dc3ced4d5",
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwworld/cellstore.hpp": {
       "before": {
@@ -1583,11 +1607,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4a83ce7664f8c5bc5c9340af25304b900dae9c29"
+        "blob": "779480b12ce4b873b26804937040fa114f67cbc7"
       },
-      "bytes": 19710,
-      "sha256": "14af64bed0219db5301259384a2eff116a34215b9cf774a47483477f0b1fc16b",
-      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "bytes": 19780,
+      "sha256": "5a7808768ce02501022095d8c5c6bc18e2638d509a5c91d7b91cdc95c5d2b234",
+      "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwworld/esmstore.cpp": {
       "before": {
@@ -1707,11 +1731,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0e643d57393620903cf5708682f84eb1fe4e8627"
+        "blob": "4d2957748bb3aafab49345c3b49a3950af301b56"
       },
-      "bytes": 141001,
-      "sha256": "6313b495f57b4650a22ae45154a41832f0ed8b6eb236617fc16892292152864b",
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells."
+      "bytes": 141007,
+      "sha256": "6b3cca4a2a1ab02599034e28942320f9cd58010bc0043c600c8e19ab54ab63c2",
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwworld/worldimp.hpp": {
       "before": {
@@ -1925,11 +1949,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1329f0e175a3c73d0c37933299e716d3ef305054"
+        "blob": "f4958bd656bc7d8dde80f86fb7f6fc0d767ca33b"
       },
-      "sha256": "4c97ec79fd40274fb069c29fdc04b873ce04e72f45edb88ba92054fc8251fc89",
-      "bytes": 20762,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "bytes": 20778,
+      "sha256": "6f2e25e2b34c34509281c5b31371a4dc3f543a71d16241ff85df169222e8710b",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "components/diagnostics/exteriorarrival.hpp": {
       "before": null,
@@ -2367,11 +2391,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "612b3cfcc23e6d8e54af0e8b4102424c12124059"
+        "blob": "bca9941c73de882532124ca7c74d356c77143291"
       },
-      "sha256": "2be9e506e9c904fcd410d83f5472619989ebb927eb13fdfc67dc47ebc3b584f3",
-      "bytes": 4298,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 4742,
+      "sha256": "4d46be3273812849a68fb0e128c95c723fba61be431b2975e41602c16da141b4",
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -2541,11 +2565,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0ee1d8f8311d34a15c73ceeb3d5f46209be1cbf3"
+        "blob": "8e6ae877d39d9188e2907f3e35b2d91a0863b426"
       },
-      "bytes": 8792,
-      "sha256": "508d1a72f3841f446871c813cc97d0280a4373542dab5ea2d5cf1a506b7bdb07",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 9290,
+      "sha256": "ae4d79db90554e1e4a19e8cb2eddc4529183bcbdebc7b76124e6d55179f8e86a",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "components/sceneutil/clone.cpp": {
       "before": {
@@ -2592,6 +2616,26 @@
       "bytes": 3079,
       "sha256": "1774aec31a9214dd20b1b4652f35b0ed07844159feb78ec26151457017d97144",
       "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
+    },
+    "components/sceneutil/gameplaycompile.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "57bccdf173252aba8ef0eea48bea0a54513a0235"
+      },
+      "bytes": 2181,
+      "sha256": "3a1c90d0b965d190b984fa2d51ad4a823f85c3a25ba81db1ade7b8cac7754eab",
+      "reason": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+    },
+    "components/sceneutil/gameplaycompile.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e44db734532b0fd9d62d3e000b6e6a3e21915da3"
+      },
+      "bytes": 699,
+      "sha256": "503e7c8b6a78feac414461e08b63db7f3d9f999f659479c25d61ab25165bb932",
+      "reason": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "components/sceneutil/glextensions.cpp": {
       "before": {
@@ -2706,6 +2750,16 @@
       "bytes": 2236,
       "sha256": "810ca1b7b0400cfcd7354418ee85b91449650c161eaf19ada44d72163db2acc7",
       "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+    },
+    "components/sceneutil/selectionrevision.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "4104e37dc8ca86aab2ad1edacd443c25440a290c"
+      },
+      "bytes": 1669,
+      "sha256": "8c63786cca79b4607d866e7477638d4ebda49120f082fb92946aded01c0d3736",
+      "reason": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "components/sceneutil/shadowsbin.cpp": {
       "before": {
@@ -3129,41 +3183,41 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "03b09049a4389ddc317becc38656ac2a51d1e297"
+        "blob": "087fe7887a2ecdea23e3d533bf989cb7b2255cbc"
       },
-      "sha256": "3daaaadea9e53e5b5be5d198f623327bd63753abee6adf97f021c0624c960bd4",
-      "bytes": 9742,
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries."
+      "bytes": 11468,
+      "sha256": "eb5aa3fe75994837ab9b43dc303e5a4c644f11c26ad0a5ea761d5e9f9c7c4055",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/cell-streaming/SCENERY-CONTINUITY.md": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "f7a891a5bd0847fdddc10eeb428c5d868a7e891d"
+        "blob": "3b3867561bda65d99b35caadc9ccc05e2c684f78"
       },
-      "bytes": 4719,
-      "sha256": "5a54b88e51f13fb0a4c38e504b938c5afa5bb43638b25d749e73116b6549fb86",
-      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 2991,
+      "sha256": "fd77f28d6656b7e61eed7b6194645da8ee3e2bfe3d9e8ed60e54caa2b20164ca",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/cell-streaming/scenery-graphics.cpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "8c2289a84fc3f041e1e7a5377f86d7af5bb288fa"
+        "blob": "cae88664455b014d9d7a1b63f2025dcc6ba66537"
       },
-      "bytes": 7601,
-      "sha256": "11397615235d6eaff33973e6acab7031acb258edce2ef25382c6b7c4ad02f0e9",
-      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 12309,
+      "sha256": "ce99c8a22d7d550d18c8cb10b77a6e8488dc3ff8d95b65367f2f7830bdd0deb8",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/cell-streaming/test-scenery-handover.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2c3b26452d28ee9901c03d2963edea07a0268a81"
+        "blob": "b967b0528b2ad2335ac23ff4d48bfabce9d6b1b7"
       },
-      "bytes": 10776,
-      "sha256": "a617b01775d3516656f288c78a3b3c754a7e0319c123723dcf25d71d7e8b3b7d",
-      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 10890,
+      "sha256": "4680b2d8169619951d0ea00d5b32feffeed411c9e8548d46c8ec73106abec072",
+      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/cell-streaming/test-static-preload.py": {
       "before": null,
@@ -4314,11 +4368,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f2212b5b86495a3718cd379feef2565bcb975203"
+        "blob": "fcc73216cb01bedbfa8d5afd7ff8192ad1e2240c"
       },
-      "bytes": 53043,
-      "sha256": "ba1b5777f625732a821b45d78a7a7581893607b04b503f8501bd4d30c910cf08",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "bytes": 53069,
+      "sha256": "7c1dd273633564c96afabaa88df0e7934b819bbd43b9ee8d32b0034bcb738edb",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -4327,24 +4381,24 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a2f3c7277a021e66081b29ab67c1de5526eb5d62"
+        "blob": "e72c2da72854b7af5e3ba02d4ef6a01b9ef25af4"
       },
-      "bytes": 21221,
-      "sha256": "5a76f1a8e113b0dc5aa41dbab1768c7b1153c2fa27afc1d527b07b817e89acf8",
-      "reason": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks."
+      "bytes": 21247,
+      "sha256": "ac5ca8a86665357380bf575aeae9db7c1065e1b35ebc711939ed8eac773e9377",
+      "reason": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/performance-capture/Start-Capture.ps1": {
       "before": {
         "mode": "100644",
         "blob": "a27500153145e7596d73771c82cc1b38e8d3034a"
       },
-      "reason": "Continuous distant-object streaming and its lifecycle/compatibility regressions.",
       "after": {
         "mode": "100644",
-        "blob": "96415fa4cf0ace37e885a46c019b95e16bf2ec13"
+        "blob": "10902042633e8c95e2296db3705a9ec5199f8501"
       },
-      "sha256": "3ef45cb7bdbc96a5ee99cbc05e46aaec01926cc9fa2cd2b3db0b8ba380beb7fa",
-      "bytes": 41582
+      "bytes": 41608,
+      "sha256": "f394093ff1821a97111f6efe9da9f5c88fdf84a6ce68baf48738b807d0e13213",
+      "reason": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/performance-tests/test-preload.py": {
       "before": {
@@ -4363,11 +4417,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1934131565ee0c75d1fea35a0c0eface87fa8012"
+        "blob": "2c2f72bb9495d7c8d2df408d63bf4c810dea8cdd"
       },
-      "bytes": 23597,
-      "sha256": "d93fff4dae780eea96b8c0508a0feaabc138b83a735e8c1d16bc4016994e7185",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 29457,
+      "sha256": "85f039232f3d617fee329fd8b30cb4936c091dad1f346a61fb0b25ff3b6140a6",
+      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "custom/performance-tests/test-transition-preload.py": {
       "before": {

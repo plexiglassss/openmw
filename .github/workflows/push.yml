@@ -886,7 +886,7 @@ jobs:
       - name: Verify complete scenery handover with actual graphics compilation
         run: |
           g++ -std=c++20 -O2 -pthread -I. custom/cell-streaming/scenery-graphics.cpp \
-            components/sceneutil/compilepriority.cpp -losgUtil -losg -lOpenThreads \
+            components/sceneutil/compilepriority.cpp components/sceneutil/gameplaycompile.cpp -losgUtil -losg -lOpenThreads \
             -lGL -lEGL -lgtest_main -lgtest -o scenery-graphics-tests
           LIBGL_ALWAYS_SOFTWARE=1 ./scenery-graphics-tests --gtest_output=xml:scenery-native-gl-tests.xml
       - name: Reproduce and verify loading progress and framebuffer retention

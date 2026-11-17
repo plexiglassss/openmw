@@ -1121,7 +1121,7 @@ namespace MWWorld
             mWorldScene->playerMoved(position);
         else
         {
-            mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
+            mRendering->pagingBlacklistObject(mStore.find(newPtr.getCellRef().getRefId()), newPtr);
             mWorldScene->removeFromPagedRefs(newPtr);
         }
 

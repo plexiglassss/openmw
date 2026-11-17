@@ -20,6 +20,7 @@ paging = Path('apps/openmw/mwrender/objectpaging.cpp').read_text()
 view = Path('components/terrain/viewdata.hpp').read_text()
 entry = view[view.index('    struct ViewDataEntry'):view.index('    class ViewData :')]
 source = r'''
+#include <components/sceneutil/selectionrevision.hpp>
 #include <atomic>
 #include <cassert>
 #include <functional>
@@ -73,6 +74,7 @@ template<class Key,class Value>struct AsyncPreparation {
  bool cancel(const Key&){++cancels;return std::exchange(present,false);}
  std::size_t size()const{return present?1:0;}
  void clear(){++clears;next={};present=false;}void update(double){}
+ template<class F>void cancelIf(F){}
 };
 struct Readiness {int mSet=0;std::shared_ptr<std::atomic_bool> mReady;std::size_t mEstimatedBytes=0;};
 Readiness prepareCompileReadiness(osg::ref_ptr<osg::Node>,osgUtil::IncrementalCompileOperation::ContextSet){return {};}
@@ -132,12 +134,15 @@ public:
  struct Operation {int adds=0;void add(int,bool){++adds;}} operation;
  struct PendingCompile {int mSet=0;Operation* mOperation=nullptr;};
  std::atomic_uint64_t mSelectionRevision{0},mGraphicsRevision{0};
+ SceneUtil::SelectionRevision mSelectionRevisions;
+ std::uint64_t selectionRevision(const ChunkId&);std::uint64_t selectionRevisionLocked(const ChunkId&)const;
+ bool usesSceneryCoverage()const{return false;}
  Scene scene;Scene* mSceneManager=&scene;std::mutex mRefTrackerMutex;CacheEpoch mCacheEpoch{};bool mActiveGrid=true;
  int builds=0;std::function<void()> duringCreate;
  CacheEpoch cacheEpoch()const;void refreshCacheEpoch();void clearCache();
  osg::ref_ptr<osg::Node> getCachedChunk(const ChunkId&);
  bool updateAsyncState(double);bool canPrepareAsync()const;AsyncResult requestChunk(const ChunkRequest&,const osg::Vec3f&,double,bool=true);
- Selection selectChunk(const ChunkRequest&,const osg::Vec3f&,const std::atomic_bool*){return {mSelectionRevision.load(),scene.vfs.revision,cacheEpoch()};}
+ Selection selectChunk(const ChunkRequest& r,const osg::Vec3f&,const std::atomic_bool*){return {selectionRevision({r.mCenter,r.mSize,r.mActiveGrid}),scene.vfs.revision,cacheEpoch()};}
  osg::ref_ptr<osg::Node> createChunk(const ChunkRequest&,const osg::Vec3f&,const Selection&,bool,const std::atomic_bool*,bool,PendingCompile& p){
   ++builds;if(auto f=std::exchange(duringCreate,{}))f();p.mSet=builds;p.mOperation=&operation;return new osg::Node;}
  osg::ref_ptr<osg::Node> fetchChunk(const ChunkRequest&,const osg::Vec3f&,bool,const std::atomic_bool*,const Selection*,bool);
@@ -146,6 +151,8 @@ public:
     '    bool ObjectPaging::updateAsyncState(',
     '    bool ObjectPaging::canPrepareAsync()',
     '    ObjectPaging::AsyncResult ObjectPaging::requestChunk(',
+    '    std::uint64_t ObjectPaging::selectionRevision(',
+    '    std::uint64_t ObjectPaging::selectionRevisionLocked(',
     '    ObjectPaging::CacheEpoch ObjectPaging::cacheEpoch()',
     '    void ObjectPaging::refreshCacheEpoch()',
     '    osg::ref_ptr<osg::Node> ObjectPaging::getCachedChunk(',
@@ -186,6 +193,13 @@ int main(){
   ++paging.scene.revision;
   assert(!paging.getCachedChunk({{},1,false}));
  }
+ // Execute the production publication guard while an unrelated/owned cell changes.
+ for(bool affected:{false,true}){
+  ObjectPaging paging;
+  paging.duringCreate=[&]{paging.mSelectionRevisions.invalidate(affected?-1:100,affected?-1:100,false);};
+  auto node=paging.fetchChunk(request,{},false,nullptr,nullptr,false);
+  assert(node && paging.builds==(affected?2:1) && paging.operation.adds==1);
+ }
  {
   ObjectPaging paging;SceneUtil::WorkQueue queue;
   osgUtil::IncrementalCompileOperation operation,otherOperation;
@@ -208,7 +222,8 @@ int main(){
   jobs.clear();int calls=jobs.calls;auto ready=poll();
   assert(ready.mReady && ready.mNode.get()==&original && jobs.calls==calls);
   assert(paging.requestChunk(request,{},1,false).mReady && jobs.calls==calls);
-  ++paging.mSelectionRevision;assert(paging.updateAsyncState(2));
+  ++paging.mSelectionRevision;paging.mSelectionRevisions.invalidate(100,100,false);
+  const int originalClears=jobs.clears;assert(!paging.updateAsyncState(2));assert(jobs.clears==originalClears);
   assert(completed.contains(&original) && poll().mReady && jobs.calls==calls);
   // Selective CPU-cache invalidation must not transfer proof to a replacement.
   paging.cache.values[key]=&replacement;
@@ -238,13 +253,91 @@ def run(source, name):
         cpp=Path(tmp)/(name+'.cpp');cpp.write_text(source)
         exe=Path(tmp)/(name+('.exe' if os.name=='nt' else ''))
         if os.name=='nt':
-            command=['cl','/nologo','/std:c++20','/EHsc',str(cpp),'/Fe:'+str(exe),'/Fo:'+str(Path(tmp)/(name+'.obj'))]
+            command=['cl','/nologo','/std:c++20','/EHsc','/I'+str(Path.cwd()),str(cpp),'/Fe:'+str(exe),'/Fo:'+str(Path(tmp)/(name+'.obj'))]
         else:
-            command=['c++','-std=c++20','-O2','-Wall','-Wextra','-Werror',str(cpp),'-o',str(exe)]
+            command=['c++','-std=c++20','-O2','-Wall','-Wextra','-Werror','-I'+str(Path.cwd()),str(cpp),'-o',str(exe)]
         subprocess.run(command,check=True)
         subprocess.run([str(exe)],check=True)
 
 run(source, 'streaming')
+
+# Exercise the actual process switches in fresh processes (the production helpers
+# cache their values). Default play must not select unmerged experimental cover.
+policy = r"""
+#include <components/misc/combinedperformance.hpp>
+#include <iostream>
+int main(){std::cout<<Misc::useAsyncObjectPaging()<<Misc::useSceneryCoverage();}
+"""
+with tempfile.TemporaryDirectory() as directory:
+    cpp=Path(directory)/'policy.cpp';cpp.write_text(policy)
+    exe=Path(directory)/('policy.exe' if os.name=='nt' else 'policy')
+    if os.name=='nt':
+        command=['cl','/nologo','/std:c++20','/EHsc','/I'+str(Path.cwd()),str(cpp),'/Fe:'+str(exe),'/Fo:'+str(Path(directory)/'policy.obj')]
+    else:
+        command=['c++','-std=c++20','-I'+str(Path.cwd()),str(cpp),'-o',str(exe)]
+    subprocess.run(command,check=True)
+    clean={k:v for k,v in os.environ.items() if k not in ('OPENMW_SCENERY_COVERAGE','OPENMW_ASYNC_OBJECT_PAGING','OPENMW_COMBINED_PERFORMANCE')}
+    for extra,expected in [({},'10'),({'OPENMW_SCENERY_COVERAGE':'1'},'11'),({'OPENMW_ASYNC_OBJECT_PAGING':'0','OPENMW_SCENERY_COVERAGE':'1'},'00'),({'OPENMW_COMBINED_PERFORMANCE':'0'},'00')]:
+        assert subprocess.check_output([str(exe)],env=dict(clean,**extra),text=True)==expected
+print('PASS: default complete optimized scenery, explicit experimental cover opt-in and independent rollback switches')
+
+# Runtime destinations must not replace source-cell identity in paging revisions.
+rendering = Path('apps/openmw/mwrender/renderingmanager.cpp').read_text()
+cells = Path('apps/openmw/mwworld/cellstore.cpp').read_text()
+source = r"""
+#include <components/sceneutil/selectionrevision.hpp>
+#include <cassert>
+#include <map>
+#include <iostream>
+namespace osg {struct Vec2i{int x,y;Vec2i(int a,int b):x(a),y(b){}};}
+namespace ESM {struct RefNum {bool hasContentFile()const{return true;}};}
+namespace MWWorld {
+struct LiveCellRefBase{};
+struct CellStore;
+struct Position {int asVec3()const{return 0;}};
+struct Ref {ESM::RefNum getRefNum()const{return {};}Position getPosition()const{return {};}};
+struct ConstPtr {const LiveCellRefBase* base;const CellStore* cell;
+ bool isInCell()const{return cell!=nullptr;}auto getBase()const{return base;}
+ auto getCell()const{return cell;}Ref getCellRef()const{return {};}};
+struct Cell {int world,x,y;int getWorldSpace()const{return world;}int getGridX()const{return x;}int getGridY()const{return y;}};
+struct CellStore {Cell value;bool exterior;std::map<LiveCellRefBase*,CellStore*> mMovedHere;
+ bool isExterior()const{return exterior;}const Cell* getCell()const{return &value;}
+ const CellStore* getOriginCell(const ConstPtr&)const;};
+}
+""" + function(cells, '    const CellStore* MWWorld::CellStore::getOriginCell(').replace(
+    'const CellStore* MWWorld::CellStore::', 'const MWWorld::CellStore* MWWorld::CellStore::') + r"""
+struct Pager {SceneUtil::SelectionRevision revisions;int calls=0;
+ bool enableObject(int,ESM::RefNum,int,osg::Vec2i cell,bool){++calls;revisions.invalidate(cell.x,cell.y,false);return true;}
+ bool blacklistObject(int,ESM::RefNum,int,osg::Vec2i cell){++calls;revisions.invalidate(cell.x,cell.y,true);return true;}};
+struct Terrain {void rebuildViews(){}};
+struct Chunks {Pager pager;Terrain terrain;Pager* mObjectPaging=&pager;Terrain* mTerrain=&terrain;};
+struct RenderingManager {std::map<int,Chunks> worlds;
+ Chunks& getWorldspaceChunkMgr(int world){return worlds[world];}
+ bool pagingEnableObject(int,const MWWorld::ConstPtr&,bool);
+ void pagingBlacklistObject(int,const MWWorld::ConstPtr&);};
+""" + function(rendering,'    bool RenderingManager::pagingEnableObject(') + function(
+    rendering,'    void RenderingManager::pagingBlacklistObject(') + r"""
+int main(){
+ MWWorld::LiveCellRefBase object;
+ MWWorld::CellStore origin{{5,-2,-3},true,{}}, destination{{9,30,40},true,{}}, interior{{0,0,0},false,{}};
+ destination.mMovedHere[&object]=&origin;interior.mMovedHere[&object]=&origin;
+ RenderingManager manager;
+ for(const auto* current:{&destination,&interior}){
+  auto& pager=manager.worlds[5].pager;
+  auto old=pager.revisions.get(-1.5f,-2.5f,1,false);
+  assert(manager.pagingEnableObject(0,{&object,current},false));
+  assert(pager.revisions.get(-1.5f,-2.5f,1,false)>old);
+  assert(pager.revisions.get(30.5f,40.5f,1,false)==0);
+  manager.pagingBlacklistObject(0,{&object,current});
+ }
+ assert(manager.worlds.size()==1 && manager.worlds[5].pager.calls==4);
+ destination.mMovedHere[&object]=&interior; // an interior source has no distant cell ownership
+ assert(!manager.pagingEnableObject(0,{&object,&destination},true));
+ assert(manager.worlds.size()==1 && manager.worlds[5].pager.calls==4);
+ std::cout<<"PASS: production paging routes moved refs to source exterior cell/worldspace, including interior arrivals; destination revisions cannot hide stale source publication\n";
+}
+"""
+run(source,'moved-source')
 
 # Execute the actual future-view selector and arrival worker. The quadtree and
 # reporter are controlled doubles; native tests exercise real prediction math,

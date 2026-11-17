@@ -1505,6 +1505,14 @@ namespace MWWorld
         return object.getCell();
     }
 
+    const CellStore* MWWorld::CellStore::getOriginCell(const ConstPtr& object) const
+    {
+        // The legacy tracker stores mutable pointer keys. This read-only lookup
+        // neither modifies the reference nor exposes a mutable cell to callers.
+        const auto found = mMovedHere.find(const_cast<LiveCellRefBase*>(object.getBase()));
+        return found != mMovedHere.end() ? found->second : object.getCell();
+    }
+
     Ptr CellStore::getPtr(ESM::RefId id)
     {
         if (mState == CellStore::State_Unloaded)

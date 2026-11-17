@@ -61,6 +61,7 @@ struct ObjectPaging {
  unsigned bridgeBuilds=0;
  ObjectPaging();~ObjectPaging();
  CacheEpoch cacheEpoch()const{return epoch;}
+ std::uint64_t selectionRevision(const ChunkId&)const{return mSelectionRevision.load();}
  bool canPrepareAsync()const{return asynchronous;}
  osg::ref_ptr<osg::Node> getCachedChunk(const ChunkId& key){return static_cast<osg::Node*>(cache->getRefFromObjectCache(key).get());}
  osg::ref_ptr<osg::Node> fetchChunk(const ChunkRequest& r,const osg::Vec3f&,bool,const std::atomic_bool*,const void*,bool){
@@ -88,7 +89,7 @@ osg::ref_ptr<ObjectPaging::SceneryBridge> ObjectPaging::getSceneryBridge(Terrain
 }
 void ObjectPaging::requestChunk(const ChunkRequest& r,const osg::Vec3f& point,double time,bool){
  ChunkId key{r.mCenter,r.mSize,false};auto& gate=gates[key];if(!gate)gate=std::make_shared<std::atomic_bool>(false);
- mAsync->mRequests.request(key,time,[this,r,point,gate](const std::atomic_bool&){
+ mAsync->mRequests.request({key,selectionRevision(key)},time,[this,r,point,gate](const std::atomic_bool&){
   return AsyncState::Requests::Prepared{fetchChunk(r,point,false,nullptr,nullptr,false),gate,{},1024};
  });
 }

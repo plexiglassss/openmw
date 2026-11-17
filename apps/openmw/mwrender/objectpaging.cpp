@@ -262,7 +262,8 @@ namespace MWRender
 
     struct ObjectPaging::AsyncState
     {
-        using Requests = SceneUtil::AsyncPreparation<ChunkId, osg::ref_ptr<osg::Node>>;
+        using RequestKey = std::pair<ChunkId, std::uint64_t>;
+        using Requests = SceneUtil::AsyncPreparation<RequestKey, osg::ref_ptr<osg::Node>>;
         Requests mRequests;
         using Bridges = SceneUtil::AsyncPreparation<Terrain::SceneryCell, osg::ref_ptr<SceneryBridge>>;
         Bridges mBridges;
@@ -301,6 +302,7 @@ namespace MWRender
         if (queue && Misc::useAsyncObjectPaging())
             mAsync = std::make_unique<AsyncState>(queue);
         Log(Debug::Info) << "Distant object streaming: " << (mAsync ? "enabled" : "disabled")
+                         << "; experimental unmerged cover: " << (usesSceneryCoverage() ? "enabled" : "disabled")
                          << "; active cells and exact queries retain immediate loading";
     }
 
@@ -321,7 +323,13 @@ namespace MWRender
                 ++it;
             }
         }
-        AsyncState::Generation generation{ mSelectionRevision.load(),
+        std::uint64_t selectionEpoch;
+        {
+            const std::lock_guard lock(mRefTrackerMutex);
+            // Diagnostic cover retains its conservative whole-snapshot boundary.
+            selectionEpoch = usesSceneryCoverage() ? mSelectionRevision.load() : mSelectionRevisions.global();
+        }
+        AsyncState::Generation generation{ selectionEpoch,
             { mSceneManager->getVFS()->getIndexRevision(), mSceneManager->modelSettingsRevision(),
                 mGraphicsRevision.load(), mSceneManager->getShaderManager().compileRevision(),
                 operation, std::move(contextIds) } };
@@ -329,7 +337,9 @@ namespace MWRender
         if (changed)
         {
             if (mAsync->mInitialized && mAsync->mRequests.size())
-                Log(Debug::Info) << "Scenery preparation invalidation: retiredRequests=" << mAsync->mRequests.size();
+                Log(Debug::Info) << "Scenery preparation invalidation: retiredRequests=" << mAsync->mRequests.size()
+                                 << " selection=" << (generation.first != mAsync->mGeneration.first)
+                                 << " resources=" << (generation.second != mAsync->mGeneration.second);
             mAsync->mRequests.clear();
             mAsync->mBridges.clear();
             // Selection edits already remove affected CPU chunks. Receipts for
@@ -347,6 +357,9 @@ namespace MWRender
             mAsync->mContexts = std::move(contexts);
             mAsync->mContextOwners.assign(mAsync->mContexts.begin(), mAsync->mContexts.end());
         }
+        mAsync->mRequests.cancelIf([this](const AsyncState::RequestKey& key) {
+            return key.second != selectionRevision(key.first);
+        });
         mAsync->mRequests.update(referenceTime);
         mAsync->mBridges.update(referenceTime);
         if (!mAsync->mRetirement || mAsync->mRetirement->isDone())
@@ -392,7 +405,7 @@ namespace MWRender
 
     bool ObjectPaging::usesSceneryCoverage() const
     {
-        return mAsync != nullptr;
+        return mAsync && Misc::useSceneryCoverage();
     }
 
     ObjectPaging::AsyncResult ObjectPaging::requestChunk(
@@ -403,6 +416,7 @@ namespace MWRender
         if (chunk.mActiveGrid || !canPrepareAsync())
             return {};
         const ChunkId key(chunk.mCenter, chunk.mSize, false);
+        const AsyncState::RequestKey requestKey{ key, selectionRevision(key) };
         auto cached = getCachedChunk(key);
         if (cached && mAsync->mCompleted.contains(cached))
             return { true, true, std::move(cached) };
@@ -411,16 +425,16 @@ namespace MWRender
             // Required camera coverage never submits a new job and then builds
             // the same chunk synchronously. Cached CPU preload nodes can use the
             // normal draw path without claiming an independent GL completion.
-            const auto result = mAsync->mRequests.poll(key, referenceTime);
+            const auto result = mAsync->mRequests.poll(requestKey, referenceTime);
             if (result.mReady)
                 mAsync->mCompleted.remember(result.mValue);
-            else if (!cached && mAsync->mRequests.cancel(key))
+            else if (!cached && mAsync->mRequests.cancel(requestKey))
             {
                 Diagnostics::Loading::Timer cancelled(Diagnostics::Loading::Stage::SceneryCancelled);
             }
             return { true, result.mReady, result.mValue };
         }
-        const auto result = mAsync->mRequests.request(key, referenceTime,
+        const auto result = mAsync->mRequests.request(requestKey, referenceTime,
             [this, chunk, viewPoint, contexts = mAsync->mContexts, owners = mAsync->mContextOwners,
                 operation = mAsync->mOperation]
             (const std::atomic_bool& abort) mutable -> AsyncState::Requests::Prepared {
@@ -498,7 +512,8 @@ namespace MWRender
             {
                 const std::lock_guard lock(mRefTrackerMutex);
                 refreshCacheEpoch();
-                if (selection.mRevision != mSelectionRevision.load() || selection.mEpoch != mCacheEpoch)
+                if (selection.mRevision != selectionRevisionLocked({ request.mCenter, request.mSize, false })
+                    || selection.mEpoch != mCacheEpoch)
                     continue;
                 if (abort && *abort)
                     return {};
@@ -620,7 +635,7 @@ namespace MWRender
             // after the entire predicted batch has a complete bridge.
             const auto result = requestChunk(request, point, time, true);
             if (result.mReady)
-                mAsync->mRequests.takeReady(optimizedKey, time);
+                mAsync->mRequests.takeReady({ optimizedKey, selectionRevision(optimizedKey) }, time);
         }
     }
 
@@ -695,7 +710,7 @@ namespace MWRender
             {
                 // Poll without cancelling or admitting detail work. First cover
                 // every required cell, then spend spare worker slots on batching.
-                const auto result = mAsync->mRequests.takeReady(key, time);
+                const auto result = mAsync->mRequests.takeReady({ key, selectionRevision(key) }, time);
                 if (result.mReady)
                 {
                     optimized[i] = result.mValue;
@@ -971,8 +986,21 @@ namespace MWRender
                     it->second * std::abs(double(ref.mScale))))
                 return true;
         }
-        return selected.mEpoch != cacheEpoch() || modelRevision != mSceneManager->modelSettingsRevision() || selected.mRevision != mSelectionRevision.load()
+        return selected.mEpoch != cacheEpoch() || modelRevision != mSceneManager->modelSettingsRevision()
+            || selected.mRevision != selectionRevision({ chunk.mCenter, chunk.mSize, chunk.mActiveGrid })
             || selected.mVfsRevision != mSceneManager->getVFS()->getIndexRevision();
+    }
+
+    std::uint64_t ObjectPaging::selectionRevision(const ChunkId& id)
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        return selectionRevisionLocked(id);
+    }
+
+    std::uint64_t ObjectPaging::selectionRevisionLocked(const ChunkId& id) const
+    {
+        const auto& [center, size, active] = id;
+        return mSelectionRevisions.get(center.x(), center.y(), size, active);
     }
 
     ObjectPaging::CacheEpoch ObjectPaging::cacheEpoch() const
@@ -1027,7 +1055,7 @@ namespace MWRender
             }
 
             std::optional<Selection> local;
-            if (!selected || selected->mEpoch != epoch || selected->mRevision != mSelectionRevision.load()
+            if (!selected || selected->mEpoch != epoch || selected->mRevision != selectionRevision(id)
                 || selected->mVfsRevision != mSceneManager->getVFS()->getIndexRevision())
             {
                 local.emplace(selectChunk(chunk, viewPoint, abort));
@@ -1044,7 +1072,7 @@ namespace MWRender
                 // An enable/blacklist change may have evicted an older node during assembly.
                 // Publish against the same tracker revision, or reselect outside the lock.
                 const std::lock_guard lock(mRefTrackerMutex);
-                if (epoch == cacheEpoch() && selected->mRevision == mSelectionRevision.load()
+                if (epoch == cacheEpoch() && selected->mRevision == selectionRevisionLocked(id)
                     && selected->mVfsRevision == mSceneManager->getVFS()->getIndexRevision())
                 {
                     if (auto cached = mCache->getRefFromObjectCache(id))
@@ -1553,7 +1581,8 @@ namespace MWRender
         const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort, bool bridge)
     {
         Diagnostics::Loading::Timer selectionTimer(Diagnostics::Loading::Stage::PagedCandidateSelection);
-        Selection result{ {}, mSelectionRevision.load(), mSceneManager->getVFS()->getIndexRevision(), cacheEpoch() };
+        Selection result{ {}, selectionRevision({ chunk.mCenter, chunk.mSize, chunk.mActiveGrid }),
+            mSceneManager->getVFS()->getIndexRevision(), cacheEpoch() };
         const auto& [size, center, flags, activeGrid] = chunk;
         const auto lod = static_cast<unsigned char>(flags >> (4 * 4));
         const auto cellSize = getCellSize(mWorldspace);
@@ -2071,6 +2100,7 @@ namespace MWRender
         if (mRefTrackerLocked)
             return false;
         ++mSelectionRevision;
+        mSelectionRevisions.invalidate(cell.x(), cell.y(), false);
         invalidateScenery(pos, cell);
 
         CollectIntersecting ccf(false, pos, cell, mWorldspace);
@@ -2093,6 +2123,7 @@ namespace MWRender
         if (mRefTrackerLocked)
             return false;
         ++mSelectionRevision;
+        mSelectionRevisions.invalidate(cell.x(), cell.y(), true);
         invalidateScenery(pos, cell);
 
         CollectIntersecting ccf(true, pos, cell, mWorldspace);
@@ -2109,6 +2140,7 @@ namespace MWRender
         mReferenceCache->cells.clear();
         std::lock_guard<std::mutex> lock(mRefTrackerMutex);
         ++mSelectionRevision;
+        mSelectionRevisions.clear();
         mScenery->clear();
         mRefTrackerNew.mDisabled.clear();
         mRefTrackerNew.mBlacklist.clear();
@@ -2125,6 +2157,7 @@ namespace MWRender
             return false;
         mRefTracker = mRefTrackerNew;
         ++mSelectionRevision;
+        mSelectionRevisions.clear();
         mCache->clear();
         mScenery->clear();
         return true;

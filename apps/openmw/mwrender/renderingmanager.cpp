@@ -15,6 +15,7 @@
 
 #include <osgUtil/LineSegmentIntersector>
 #include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/gameplaycompile.hpp>
 #include <components/sceneutil/visualraybatch.hpp>
 
 #include <osgViewer/Viewer>
@@ -95,35 +96,6 @@
 
 namespace
 {
-    class GameplayCompileOperation final : public osgUtil::IncrementalCompileOperation
-    {
-    public:
-        GameplayCompileOperation(osg::Stats* stats, double target)
-            : mStats(stats)
-        {
-            setTargetFrameRate(target);
-            // Keep preparing upcoming resources during play. The loading screen temporarily
-            // raises both limits and restores these interactive values when it closes.
-            setMinimumTimeAvailableForGLCompileAndDeletePerFrame(
-                std::min(getMinimumTimeAvailableForGLCompileAndDeletePerFrame(), 0.1 / target));
-            setMaximumNumOfObjectsToCompilePerFrame(std::min(getMaximumNumOfObjectsToCompilePerFrame(), 2u));
-        }
-
-        void operator()(osg::GraphicsContext* context) override
-        {
-            const osg::FrameStamp* stamp = context->getState()->getFrameStamp();
-            if (!stamp || !mStats || !mStats->collectStats("resource"))
-                return osgUtil::IncrementalCompileOperation::operator()(context);
-            const auto frame = stamp->getFrameNumber();
-            osg::Timer clock;
-            osgUtil::IncrementalCompileOperation::operator()(context);
-            mStats->setAttribute(frame, "GL incremental compile operation time", clock.time_s());
-        }
-
-    private:
-        osg::ref_ptr<osg::Stats> mStats;
-    };
-
     class LightManagerUpdateVisitor : public osg::NodeVisitor
     {
     public:
@@ -333,7 +305,7 @@ namespace MWRender
 
         if (getenv("OPENMW_DONT_PRECOMPILE") == nullptr)
         {
-            mViewer->setIncrementalCompileOperation(new GameplayCompileOperation(mViewer->getViewerStats(),
+            mViewer->setIncrementalCompileOperation(new SceneUtil::GameplayCompileOperation(mViewer->getViewerStats(),
                 std::max(Settings::cells().mTargetFramerate.get(), Settings::video().mFramerateLimit.get())));
         }
 
@@ -1848,13 +1820,16 @@ namespace MWRender
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
+        if (!ptr.isInCell())
             return false;
-        auto& chunks = getWorldspaceChunkMgr(ptr.getCell()->getCell()->getWorldSpace());
+        const auto* source = ptr.getCell()->getOriginCell(ptr);
+        if (!source || !source->isExterior())
+            return false;
+        auto& chunks = getWorldspaceChunkMgr(source->getCell()->getWorldSpace());
         if (!chunks.mObjectPaging)
             return false;
         if (chunks.mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(),
-                osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+                osg::Vec2i(source->getCell()->getGridX(), source->getCell()->getGridY()), enabled))
         {
             chunks.mTerrain->rebuildViews();
             return true;
@@ -1863,16 +1838,19 @@ namespace MWRender
     }
     void RenderingManager::pagingBlacklistObject(int type, const MWWorld::ConstPtr& ptr)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior())
+        if (!ptr.isInCell())
+            return;
+        const auto* source = ptr.getCell()->getOriginCell(ptr);
+        if (!source || !source->isExterior())
             return;
         ESM::RefNum refnum = ptr.getCellRef().getRefNum();
         if (!refnum.hasContentFile())
             return;
-        auto& chunks = getWorldspaceChunkMgr(ptr.getCell()->getCell()->getWorldSpace());
+        auto& chunks = getWorldspaceChunkMgr(source->getCell()->getWorldSpace());
         if (!chunks.mObjectPaging)
             return;
         if (chunks.mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(),
-                osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
+                osg::Vec2i(source->getCell()->getGridX(), source->getCell()->getGridY())))
             chunks.mTerrain->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()

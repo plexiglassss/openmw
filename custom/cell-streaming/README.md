@@ -124,3 +124,30 @@ Visual acceptance and transition timings with the user's installation remain to 
 `OPENMW_ASYNC_OBJECT_PAGING=0` disables future object preparation for a process-local comparison.
 Both capture scripts record this and the actor/resource-preparation flags. No process-startup
 preload sweep, installation-specific content rule or gameplay API change is introduced.
+
+## 17 November: scenery regression correction
+
+The 157fc965 capture shows prolonged unmerged cover, up to 1,873 queued graphics
+compile sets and repeated preparation invalidations. The former default cover can
+bypass ordinary size pruning and merging; it is now disabled. Normal operation
+prepares optimized chunks ahead and finishes complete required scenery on a miss.
+`OPENMW_SCENERY_COVERAGE=1` is an explicit diagnostic opt-in to the former cover;
+its whole-snapshot invalidation remains conservative. It is not recommended for play.
+
+Gameplay compilation now checks a shared elapsed-time allowance between operations
+and allows up to 256 operations, including cheap already-compiled dependencies.
+The allowance is at most 1 ms (0.5 ms at 120 Hz). One driver operation cannot be
+preempted and may overrun it. Loading screens retain their higher compilation
+throughput; gameplay never forces an unlimited queue drain.
+
+Normal asynchronous chunk keys and CPU publication bind source-cell revisions.
+Unrelated cell edits no longer restart them, and active-only blacklisting does not
+invalidate distant selection. Full selection resets and resource, shader, context
+or VFS changes retain the broader invalidation safeguards. The optional old cover
+continues to reject whole snapshots on any selection edit.
+
+New tests exercise the production gameplay scheduler with real GL and 1,024 shared
+resource sets without a compileAll override, cooperative stopping after an overrun,
+source-cell liveness and stale publication rejection. These are correctness/progress
+tests, not a measured city FPS improvement. The capture still contains meaningful
+main-thread insertion time; this candidate does not promise seamless transitions.
