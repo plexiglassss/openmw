@@ -530,6 +530,15 @@ jobs:
           if ($LASTEXITCODE) { throw 'Component regression build failed' }
           ./build/components-tests.exe --gtest_output=xml:components-tests-early.xml
           if ($LASTEXITCODE) { throw 'Early component regressions failed' }
+          try {
+            foreach ($mode in @('1','0')) {
+              $env:OPENMW_LUA_PROTOTYPE_CACHE = $mode
+              ./build/components-tests.exe --gtest_filter=LuaStateTest.RemovedScriptsGarbageCollecting --gtest_repeat=100 "--gtest_output=xml:lua-lifetime-$mode.xml"
+              if ($LASTEXITCODE) { throw "Lua instance lifetime regression failed with prototype cache $mode" }
+            }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_PROTOTYPE_CACHE -ErrorAction SilentlyContinue
+          }
       - name: Build engine and regression tests
         if: steps.existing_engine.outputs.reused != 'true'
         run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
@@ -788,6 +797,38 @@ jobs:
             build/defaults-cs.bin
           retention-days: 3
           if-no-files-found: error
+      - name: Stage unverified compiled binaries and source evidence after a failure
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        shell: pwsh
+        run: |
+          $root = (Get-Location).Path
+          $stage = Join-Path $root 'UNVERIFIED-ci-binaries'
+          $files = @(Get-ChildItem build -File | Where-Object { $_.Extension -in @('.exe','.dll','.bin') })
+          foreach ($dir in @('build/styles','build/platforms','build/imageformats','build/iconengines')) {
+            if (Test-Path $dir) { $files += @(Get-ChildItem $dir -File -Recurse) }
+          }
+          $files += @(Get-ChildItem -File -Path '*source-manifest.json','*.xml')
+          $files += @(Get-Item build/CMakeCache.txt,build/compile_commands.json -ErrorAction SilentlyContinue)
+          $hashes = @()
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($root.Length + 1)
+            $target = Join-Path $stage $relative
+            New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+            Copy-Item -LiteralPath $file.FullName -Destination $target
+            $hashes += @{ path = $relative.Replace('\','/'); bytes = $file.Length; sha256 = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() }
+          }
+          $expected = @('openmw','openmw-launcher','openmw-wizard','openmw-iniimporter','openmw-navmeshtool','openmw-cs','openmw-essimporter','bsatool','esmtool','niftest','openmw-bulletobjecttool','components-tests','openmw-tests')
+          $missing = @($expected | Where-Object { -not (Test-Path (Join-Path $stage "build/$_.exe")) })
+          @{ status = 'UNVERIFIED_FAILED_RUN_DIAGNOSTICS_ONLY'; not_a_distribution = $true; commit = '${{ env.CUMULATIVE_COMMIT }}'; run_id = '${{ github.run_id }}'; run_attempt = '${{ github.run_attempt }}'; missing_binaries = $missing; files = $hashes } |
+            ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 (Join-Path $stage 'UNVERIFIED-MANIFEST.json')
+      - name: Retain unverified compiled binaries for failure diagnosis
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: UNVERIFIED-compiled-binaries-${{ env.CUMULATIVE_COMMIT }}
+          path: UNVERIFIED-ci-binaries/*
+          retention-days: 7
+          if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
         if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
         uses: actions/upload-artifact@v6
@@ -820,6 +861,7 @@ jobs:
             map-icons-package.json
             map-icon-controls-early.xml
             components-tests-early.xml
+            lua-lifetime-*.xml
             lookup-*.xml
             install/UPGRADE-PRESERVATION.json
             install/verification/CI-PACKAGE-SHA256.json
