@@ -281,6 +281,10 @@ namespace MWGui
         LuaUi::setControlsPageVisible(mModControlsMode && mModControlsView->getInheritedVisible());
         if (mModControlsMode && mModControlsView->getCanvasSize() != mModControlsAdapter->getSize())
             mModControlsView->setCanvasSize(mModControlsAdapter->getSize());
+        if (mModControlsMode && mModControlsNavigation->getCanvasSize() != mModControlsNavigationAdapter->getSize())
+            mModControlsNavigation->setCanvasSize(mModControlsNavigationAdapter->getSize());
+        if (mModControlsMode && LuaUi::consumeControlsPageScrollReset())
+            mModControlsView->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mScriptView->getVisible())
         {
             const auto scriptsSize = mScriptAdapter->getSize();
@@ -326,12 +330,17 @@ namespace MWGui
         getWidget(mTextureFilteringButton, "TextureFilteringButton");
         getWidget(mAnisotropy, "Anisotropy");
         getWidget(mControlsBox, "ControlsBox");
+        getWidget(mControlsFrame, "ControlsFrame");
+        getWidget(mNativeControlsOptions, "NativeControlsOptions");
+        getWidget(mModControlsPanel, "ModControlsPanel");
         getWidget(mResetControlsButton, "ResetControlsButton");
         getWidget(mKeyboardSwitch, "KeyboardButton");
         getWidget(mControllerSwitch, "ControllerButton");
         getWidget(mModControlsSwitch, "ModControlsButton");
         getWidget(mModControlsView, "ModControlsView");
         getWidget(mModControlsAdapter, "ModControlsAdapter");
+        getWidget(mModControlsNavigation, "ModControlsNavigation");
+        getWidget(mModControlsNavigationAdapter, "ModControlsNavigationAdapter");
         mModControlsSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onModControlsSwitchClicked);
         getWidget(mWaterRefractionButton, "WaterRefractionButton");
         getWidget(mWaterTextureSize, "WaterTextureSize");
@@ -1470,14 +1479,32 @@ namespace MWGui
     void SettingsWindow::updateControlsVisibility()
     {
         mControlsBox->setVisible(!mModControlsMode);
-        mModControlsView->setVisible(mModControlsMode);
+        mModControlsPanel->setVisible(mModControlsMode);
+        mNativeControlsOptions->setVisible(!mModControlsMode);
         mResetControlsButton->setVisible(!mModControlsMode);
         mModControlsSwitch->setStateSelected(mModControlsMode);
         mKeyboardSwitch->setStateSelected(!mModControlsMode && mKeyboardMode);
         mControllerSwitch->setStateSelected(!mModControlsMode && !mKeyboardMode);
         LuaUi::setControlsPageVisible(mModControlsMode);
+        layoutModControls();
         if (mModControlsMode)
-            LuaUi::attachControlsPage(mModControlsAdapter);
+            LuaUi::attachControlsPage(mModControlsAdapter, mModControlsNavigationAdapter);
+    }
+
+    void SettingsWindow::layoutModControls()
+    {
+        // Mod controls use the whole tab; mouse sensitivity belongs to the native tabs.
+        const int bottom = mModControlsMode ? mControlsFrame->getParent()->getHeight() - 4
+                                            : mNativeControlsOptions->getTop() - 6;
+        mControlsFrame->setSize(mControlsFrame->getWidth(), std::max(1, bottom - mControlsFrame->getTop()));
+        const int width = mModControlsPanel->getWidth();
+        const int height = mModControlsPanel->getHeight();
+        const int navigation = std::clamp(width / 4, 150, 260);
+        mModControlsNavigation->setCoord(0, 0, navigation, height);
+        mModControlsView->setCoord(navigation + 12, 0, std::max(1, width - navigation - 12), height);
+        // Reserve the vertical scrollbar from the start, avoiding wrap/scrollbar feedback.
+        LuaUi::setControlsPageWidths(std::max(1, mModControlsView->getWidth() - 28),
+            std::max(1, mModControlsNavigation->getWidth() - 24));
     }
 
     void SettingsWindow::onModControlsSwitchClicked(MyGUI::Widget*)
@@ -1784,6 +1811,7 @@ namespace MWGui
 
     void SettingsWindow::onWindowResize(MyGUI::Window* /*sender*/)
     {
+        layoutModControls();
         layoutControlsBox();
         layoutDialogueColourControls();
         layoutMessagePositionControls();

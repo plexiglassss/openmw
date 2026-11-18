@@ -96,12 +96,17 @@ namespace MWGui
 
         // controls
         MyGUI::ScrollView* mControlsBox;
+        MyGUI::Widget* mControlsFrame;
+        MyGUI::Widget* mNativeControlsOptions;
+        MyGUI::Widget* mModControlsPanel;
         MyGUI::Button* mResetControlsButton;
         MyGUI::Button* mKeyboardSwitch;
         MyGUI::Button* mControllerSwitch;
         MyGUI::Button* mModControlsSwitch;
         MyGUI::ScrollView* mModControlsView;
         LuaUi::LuaAdapter* mModControlsAdapter;
+        MyGUI::ScrollView* mModControlsNavigation;
+        LuaUi::LuaAdapter* mModControlsNavigationAdapter;
         bool mModControlsMode = false;
         bool mKeyboardMode; // if true, setting up the keyboard. Otherwise, it's controller
 
@@ -187,6 +192,7 @@ namespace MWGui
         void onKeyboardSwitchClicked(MyGUI::Widget* sender);
         void onModControlsSwitchClicked(MyGUI::Widget* sender);
         void updateControlsVisibility();
+        void layoutModControls();
         void onControllerSwitchClicked(MyGUI::Widget* sender);
 
         void onWindowResize(MyGUI::Window* sender);

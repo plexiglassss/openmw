@@ -10,6 +10,7 @@
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/layers.hpp>
 #include <components/lua_ui/registerscriptsettings.hpp>
+#include <components/lua_ui/scriptsettings.hpp>
 #include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 
@@ -331,6 +332,8 @@ namespace MWLua
         api["isTextInputActive"] = []() { return SDL_IsTextInputActive() == SDL_TRUE; };
         api["registerSettingsPage"] = &LuaUi::registerSettingsPage;
         api["_controlsPageVisible"] = &LuaUi::controlsPageVisible;
+        api["_controlsPageWidth"] = &LuaUi::controlsPageWidth;
+        api["_resetControlsPageScroll"] = &LuaUi::resetControlsPageScroll;
         api["removeSettingsPage"] = &LuaUi::removeSettingsPage;
 
         api["texture"] = [luaManager = context.mLuaManager](const sol::table& options) {
