@@ -1521,4 +1521,3 @@ namespace MWLua
 
     }
 }
-

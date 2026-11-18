@@ -1268,4 +1268,3 @@ namespace MWLua
         };
     }
 }
-

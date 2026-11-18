@@ -1228,4 +1228,3 @@ jobs:
             install/verification/CI-PACKAGE-SHA256.json
             install/verification/original-upgrade/**
           if-no-files-found: error
-

@@ -2800,4 +2800,3 @@
 -- @field #string closeSound FormId of the door closing sound
 
 return nil
-

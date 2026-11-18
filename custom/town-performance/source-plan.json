@@ -73,10 +73,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "757b82ba4f7795cda7a65ac098abc3f1cb1a204e"
+        "blob": "43d54441856c87f74a0701f49874dfd2757c90ec"
       },
-      "bytes": 78074,
-      "sha256": "34ddbd45098b0af539cf5cb2c0d4691e738a92f9ccb6785e076cb306bd431dbf",
+      "bytes": 78073,
+      "sha256": "a3e8dc4e36b87bc7b7c5bee23611bc6b3eb3ebff39e4e6c05d7aae651083f963",
       "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -1256,10 +1256,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "aebec6eb30d46103f699f7d1ba680255fce4ea20"
+        "blob": "7ccd695f48b0b9c4f594797f80f0ec3c955b671e"
       },
-      "sha256": "fe35e2ff6cee5487653a7e875e68a1e4f8a32556fa2a6ff57b5e21895f78c09b",
-      "bytes": 59944,
+      "sha256": "c3e0a839ef81b8c1988b379e4c46451bae3aa902088c4a0b235a2b5fabbdf17c",
+      "bytes": 59943,
       "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Return independent public Lua spell values with shared details and revalidate retained iterators after world changes.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "apps/openmw/mwlua/magicbindings.hpp": {
@@ -2150,10 +2150,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "46151b40eb3b0cf8f2ad48d213b2b87603fba456"
+        "blob": "ceb4a3d51446b01423277c363510c692696a6035"
       },
-      "sha256": "7c5b14f263df1260643f2befe1c59f3d740a3ec89a7178fa93a4faad96c4fabe",
-      "bytes": 79003,
+      "sha256": "aea0de9688e5f8871cd9733423ac7a79f7d7a167b934a1cdf866530bda043e2f",
+      "bytes": 79002,
       "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "apps/openmw_tests/mwlua/testmodkeybindings.cpp": {
@@ -5529,10 +5529,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f9ac4c62fe688b586056eac61195431c08fa8a64"
+        "blob": "6d0382854bcae349e4e1b1c035ee67627ae54f8f"
       },
-      "sha256": "1ff5301aac521ba481797246ba8bfa4ff4c085b9b5ff548b10a1c702774c54de",
-      "bytes": 108096,
+      "sha256": "573ec94ba2d8b8d54c4f67daf3cf2961bca831db64a48e3569ecd9f41cc02a1e",
+      "bytes": 108095,
       "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "files/lua_api/openmw/ui.lua": {
@@ -5735,10 +5735,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "bc0ac5e598e0ff3e6308aa4650d71787aeccadd5"
+        "blob": "8cc29151d2ef4c36ae9e3efe97ba594d8733dc72"
       },
-      "sha256": "fdf3c80f65b62a8cbf27ffc3781894f6ed78ae897dfc581ff17af36558592557",
-      "bytes": 73967,
+      "sha256": "f49e7c00c1dbca932960ce9c6c14e24111342a3baa57722e64fa8dad2707931b",
+      "bytes": 73966,
       "reason": "; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     }
   }

@@ -1576,4 +1576,3 @@
 -- @field openmw.util#Color night
 
 return nil
-
