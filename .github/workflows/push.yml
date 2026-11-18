@@ -619,6 +619,29 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Compare cell activation and collision preparation with rollback paths
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $lifecycle = 'PostponedPhysicsTest.*-PostponedPhysicsTest.DeregisteredReferencesAreNotVisited:PostponedPhysicsTest.OldReferenceRemovalDoesNotEraseReplacement:PostponedPhysicsTest.ExceptionDoesNotLoseUnprocessedObjects:PostponedPhysicsTest.CallbackMayClearRegistryWithoutInvalidatingIteration'
+          try {
+            $env:OPENMW_SPARSE_POSTPONED_PHYSICS = '0'
+            $env:OPENMW_PREPARED_COLLISION_SCALE = '0'
+            ./build/components-tests.exe --gtest_filter=CollisionInstanceCacheTest.*:CollisionPreparationTest.* --gtest_output=xml:activation-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous collision preparation regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$lifecycle" --gtest_output=xml:activation-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous postponed physics lifecycle regressions failed' }
+            Remove-Item Env:OPENMW_SPARSE_POSTPONED_PHYSICS,Env:OPENMW_PREPARED_COLLISION_SCALE
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe --gtest_filter=CollisionInstanceCacheTest.*:CollisionPreparationTest.* --gtest_output=xml:activation-master-off-components.xml
+            if ($LASTEXITCODE) { throw 'Master-off collision preparation regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$lifecycle" --gtest_output=xml:activation-master-off-engine.xml
+            if ($LASTEXITCODE) { throw 'Master-off postponed physics lifecycle regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SPARSE_POSTPONED_PHYSICS,Env:OPENMW_PREPARED_COLLISION_SCALE,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/cell-streaming/verify-activation.py
+          if ($LASTEXITCODE) { throw 'Cell activation evidence did not verify' }
       - name: Compare spatial queries with each independent fallback in the same executable
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -755,6 +778,8 @@ jobs:
           Copy-Item custom/deleveler/README.md install/NATIVE-DELEVELER.md
           Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
           Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
+          Copy-Item custom/cell-streaming/ACTIVATION-20261118.md install/CELL-ACTIVATION.md
+          Copy-Item activation-tests.json install/
           Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
           Copy-Item custom/native-tooltips/README.md install/NATIVE-TOOLTIPS.md
           Copy-Item native-tooltip-tests.json install/
@@ -921,6 +946,9 @@ jobs:
             navigation-geometry-tests.json
             navigation-previous.xml
             navigation-master-off.xml
+            activation-tests.json
+            activation-*-components.xml
+            activation-*-engine.xml
             cell-streaming-tests.json
             actor-resource-preload-windows.log
             streaming-paths-windows.log

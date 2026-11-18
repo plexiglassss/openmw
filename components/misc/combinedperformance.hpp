@@ -61,6 +61,18 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useSparsePostponedPhysics()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_SPARSE_POSTPONED_PHYSICS");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool usePreparedCollisionScale()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_PREPARED_COLLISION_SCALE");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useCostAwarePreload()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_COST_AWARE_PRELOAD");

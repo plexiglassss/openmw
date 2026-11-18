@@ -113,6 +113,8 @@ namespace MWWorld
         {
             const auto start = mOut.size();
             ptr.getClass().getModelsToPreload(ptr, mOut);
+            mCollisionScales.insert(mCollisionScales.end(), mOut.size() - start,
+                ptr.getClass().isActor() ? 1.f : ptr.getCellRef().getScale());
 
             // Exterior statics normally use ObjectPaging's own copy path. Reserve the
             // bounded instance budget for objects that still get individual scene nodes.
@@ -151,12 +153,15 @@ namespace MWWorld
                     }
                 }
             }
+            // Additional actor/equipment candidates have no placed object transform.
+            mCollisionScales.resize(mOut.size(), 1.f);
             return true;
         }
 
         std::vector<VFS::Path::NormalizedView>& mOut;
         std::vector<VFS::Path::NormalizedView>& mInstances;
         std::vector<VFS::Path::NormalizedView>& mAnimations;
+        std::vector<float>& mCollisionScales;
         bool mExterior;
         const ESMStore& mStore;
         PreloadDependencyOptions mOptions;
@@ -266,7 +271,7 @@ namespace MWWorld
             [cell = *source, store, scene, shapes = mBulletShapeManager,
                 instances = mPreloadInstances, sample](const std::atomic_bool& abort) -> StaticPreloads::Jobs::Prepared {
                 SceneUtil::PreparationSample::Run measured(sample.get(), abort);
-                std::map<ESM::RefNum, ESM::RefId> refs;
+                std::map<ESM::RefNum, std::pair<ESM::RefId, float>> refs;
                 ESM::ReadersCache readers;
                 for (std::size_t i = 0; i < cell.mContextList.size() && !abort; ++i)
                 {
@@ -284,28 +289,29 @@ namespace MWWorld
                         if (deleted)
                             refs.erase(ref.mRefNum);
                         else
-                            refs.insert_or_assign(ref.mRefNum, ref.mRefID);
+                            refs.insert_or_assign(ref.mRefNum, std::pair(ref.mRefID, ref.mScale));
                     }
                 }
                 for (const auto& [ref, deleted] : cell.mLeasedRefs)
                     if (deleted)
                         refs.erase(ref.mRefNum);
                     else
-                        refs.insert_or_assign(ref.mRefNum, ref.mRefID);
+                        refs.insert_or_assign(ref.mRefNum, std::pair(ref.mRefID, ref.mScale));
                 struct Model
                 {
-                    std::size_t mCount = 0;
+                    std::vector<float> mScales;
                     bool mIndividual = false;
                 };
                 std::map<VFS::Path::Normalized, Model> models;
                 const auto model = [](const auto* record) {
                     return record ? record->mModel.getNormalized() : VFS::Path::NormalizedView{};
                 };
-                for (const auto& [number, id] : refs)
+                for (const auto& [number, reference] : refs)
                 {
                     if (abort)
                         return {};
                     VFS::Path::NormalizedView path;
+                    const auto& [id, scale] = reference;
                     const int type = store->findStatic(id);
                     switch (type)
                     {
@@ -322,7 +328,8 @@ namespace MWWorld
                     if (!models.contains(corrected) && models.size() >= 128)
                         continue; // Optional preparation is bounded; activation is unchanged.
                     auto& value = models[corrected];
-                    ++value.mCount;
+                    if (value.mScales.size() < 128)
+                        value.mScales.push_back(scale);
                     value.mIndividual |= type != ESM::REC_STAT;
                 }
                 auto prepared = std::make_shared<StaticPreloads::Resources>();
@@ -344,9 +351,9 @@ namespace MWWorld
                         prepared->mObjects.emplace_back(std::move(node));
                         prepared->mObjects.emplace_back(shapes->getShape(path));
                         bytes += 1024 * 1024; // Collision admission allowance, not measured allocation.
-                        for (std::size_t i = 0; instances && i < model.mCount && count < 128 && !abort; ++i, ++count)
+                        for (std::size_t i = 0; instances && i < model.mScales.size() && count < 128 && !abort; ++i, ++count)
                         {
-                            prepared->mObjects.emplace_back(shapes->cacheInstance(path));
+                            prepared->mObjects.emplace_back(shapes->cacheInstance(path, model.mScales[i]));
                             if (model.mIndividual)
                                 if (auto ticket = scene->cacheInstance(path, abort))
                                     prepared->mInstances.push_back(std::move(ticket));
@@ -394,7 +401,7 @@ namespace MWWorld
             const PreloadDependencyOptions options{ level, Settings::game().mDelevelCreatures,
                 Settings::game().mDelevelItems };
             std::vector<VFS::Path::NormalizedView> meshes, instanceMeshes, animationMeshes;
-            ListModelsVisitor visitor{ meshes, instanceMeshes, animationMeshes, mIsExterior,
+            ListModelsVisitor visitor{ meshes, instanceMeshes, animationMeshes, mCollisionScales, mIsExterior,
                 *MWBase::Environment::get().getESMStore(), options };
             cell->forEachConst(visitor);
             // The worker must not retain views into mutable records or settings.
@@ -435,10 +442,12 @@ namespace MWWorld
                 return path.value().starts_with("meshes/") ? VFS::Path::Normalized(path)
                                                            : Misc::ResourceHelpers::correctMeshPath(path);
             };
-            for (VFS::Path::NormalizedView path : mMeshes)
+            for (std::size_t i = 0; i < mMeshes.size(); ++i)
             {
                 if (mAbort)
                     break;
+
+                const VFS::Path::NormalizedView path = mMeshes[i];
 
                 try
                 {
@@ -460,7 +469,7 @@ namespace MWWorld
                     if (loadedMeshes.contains(mesh))
                     {
                         if (mPreloadInstances)
-                            mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
+                            mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
                         continue;
                     }
 
@@ -481,7 +490,7 @@ namespace MWWorld
                     }
                     mPreloadedObjects.insert(mSceneManager->getTemplate(mesh));
                     if (mPreloadInstances)
-                        mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
+                        mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
                     else
                         mPreloadedObjects.insert(mBulletShapeManager->getShape(mesh));
                     loadedMeshes.insert(mesh);
@@ -584,6 +593,7 @@ namespace MWWorld
         ESM::ExteriorCellLocation mCellLocation;
         ESM::RefId mCellId;
         std::vector<VFS::Path::Normalized> mMeshes;
+        std::vector<float> mCollisionScales;
         std::vector<VFS::Path::Normalized> mInstanceMeshes;
         std::vector<VFS::Path::Normalized> mAnimationMeshes;
         std::vector<Resource::SceneInstanceCache::TicketPtr> mInstanceTickets;

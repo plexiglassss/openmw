@@ -61,6 +61,7 @@
 #include "esmstore.hpp"
 #include "localscripts.hpp"
 #include "player.hpp"
+#include "postponedphysics.hpp"
 #include "worldimp.hpp"
 
 namespace
@@ -840,25 +841,14 @@ namespace MWWorld
 
     void Scene::addPostponedPhysicsObjects()
     {
-        for (const auto& cell : mActiveCells)
-        {
-            cell->forEach([&](const MWWorld::Ptr& ptr) {
-                if (ptr.mRef->mData.mPhysicsPostponed)
-                {
-                    ptr.mRef->mData.mPhysicsPostponed = false;
-                    if (ptr.mRef->mData.isEnabled() && ptr.mRef->mRef.getCount() > 0)
-                    {
-                        const VFS::Path::Normalized model = getModel(ptr);
-                        if (!model.empty())
-                        {
-                            const auto rotation = makeNodeRotation(ptr, RotationOrder::direct);
-                            ptr.getClass().insertObjectPhysics(ptr, model, rotation, *mPhysics);
-                        }
-                    }
-                }
-                return true;
-            });
-        }
+        updatePostponedPhysics(mWorld.getWorldModel(), mActiveCells, [&](const MWWorld::Ptr& ptr) {
+            const VFS::Path::Normalized model = getModel(ptr);
+            if (!model.empty())
+            {
+                const auto rotation = makeNodeRotation(ptr, RotationOrder::direct);
+                ptr.getClass().insertObjectPhysics(ptr, model, rotation, *mPhysics);
+            }
+        });
     }
 
     void Scene::testExteriorCells()

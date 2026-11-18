@@ -51,7 +51,8 @@
     "520a8bcdff36f519b2fe63a2872de132856a1b90",
     "8013500753ac374291bf0cb4469e28b32d4df28b",
     "d63b95313274c794b14c70d4eaa08bf09c120cad",
-    "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26"
+    "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26",
+    "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -71,11 +72,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e3d4eb46cc6fe09c48962a869783e3aeeed6660a"
+        "blob": "10f99dcb20035b45788516428b99ae1889fe0d8c"
       },
-      "bytes": 78037,
-      "sha256": "95ece2340526ae7c0c88d64901acdd93e4b1bb415d39e58cd4587f8ad236c3be",
-      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine."
+      "sha256": "6d56697d8cd4aea75a05ad6756370ec5d2fa51c0068fcde6603e523e6ba911b3",
+      "bytes": 80331,
+      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -84,11 +85,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "16a26bb79f15d8a9b0657906280f0ff396f0f8d3"
+        "blob": "25ba4615bc8b2457adce2e83d103f3e0e7409e38"
       },
-      "bytes": 4851,
-      "sha256": "38b91b031f16d626378629020746d685b28fed6b371d45b0ae2db018d45aa043",
-      "reason": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates."
+      "sha256": "40adb4f50d46dcd8d617ffeb7983120ab4961a8966405ea6cf0935aecac02106",
+      "bytes": 4937,
+      "reason": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/components_tests/detournavigator/tilecachedrecastmeshmanager.cpp": {
       "before": {
@@ -1854,11 +1855,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "cb9917e224d506eb2608dc2d84778efcb8250238"
+        "blob": "6f151c2141a336d09f96c9869455f03bfaefd6da"
       },
-      "bytes": 52225,
-      "sha256": "78fb1484f3845bb24f1fcc7ccb98c6bd82ec98856cab31262ed6eb6e3d83724d",
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "sha256": "af72799bbbe57245ef0d79ca8c5be3bc8f4f3a6a64180c389cdfca0c3f8d34c9",
+      "bytes": 52977,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "before": {
@@ -1968,11 +1969,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c6d9646bd3e3edf912e77c4cb000eca6d52d0639"
+        "blob": "d3c4f4257e0616d1b54895251e56042f9248083b"
       },
-      "sha256": "01ccaa87c90835653b5234c3d069e2d4bdef88be6d92207ab5d3bc72769eed28",
-      "bytes": 2934,
-      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations."
+      "sha256": "c7c313d64daadbff642e483f26f2d55f379f7c3b21c31d3fa2fcaaa9843cef6e",
+      "bytes": 4838,
+      "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw/mwworld/queryrevision.hpp": {
       "before": null,
@@ -2017,11 +2018,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "2576310e6cffac21c42c78d2c0685d87cc206af7"
+        "blob": "56667a3434788c308d665f21f6065b3c4ddabcec"
       },
-      "bytes": 70345,
-      "sha256": "5bcdbe006c6776d39628251586dbae1d953d25fbaddd33e5049cbb4f008abe62",
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "sha256": "1cceef22b2ff1c83fd38401f14cf456f2b123566d279d3694b70032cd17a8a1c",
+      "bytes": 69965,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "before": {
@@ -2082,11 +2083,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "84b1f5c17ede0a7a677591e118c419d173fa87cf"
+        "blob": "1537d8c6c5935016c4ca7b874e0df58578900377"
       },
-      "sha256": "33efd13abdde09f02041eb04b4f82a3b880d118c64b8d98f9565f3cb73d379b7",
-      "bytes": 4162,
-      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "b1f23c63cf707eae793d8316d12fe2c56b8972a2668fe848b669584cc5a363fe",
+      "bytes": 4199,
+      "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "before": null,
@@ -2284,11 +2285,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f4958bd656bc7d8dde80f86fb7f6fc0d767ca33b"
+        "blob": "2e44c8d2ceeb1eb83bcebe95da4f8e0ebf51e6d8"
       },
-      "sha256": "6f2e25e2b34c34509281c5b31371a4dc3f543a71d16241ff85df169222e8710b",
-      "bytes": 20778,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "sha256": "a0fb32e4e09c9e387eef4910edf37a6c561bca326c554f5b6e9850fb87fedce7",
+      "bytes": 20801,
+      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "components/detournavigator/stats.cpp": {
       "before": {
@@ -2879,11 +2880,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "eff78f8ee821a80ed008bcb5760c16aa68c3b336"
+        "blob": "1aab0542e2f74027edc5e8ab323dbe107938954a"
       },
-      "bytes": 5304,
-      "sha256": "5ce7689f0a7b9e877e9075b3706ee7e762d9285d70e6fbf27bd0528cea05440c",
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "sha256": "75e7013b3f72d9285dfa1b7e1f6b3f5a11223667fcce81a709590f073fb734b3",
+      "bytes": 5702,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "components/misc/dialoguetext.cpp": {
       "before": {
@@ -3777,11 +3778,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "37f0365aa815478b2a8ed1d09152ccffa4092a05"
+        "blob": "1d4f45abdf595adfa3c29abe9289f672ed6f536d"
       },
-      "bytes": 10635,
-      "sha256": "1ac01b69767ef53cdf82c8757861843bda2f711d2451f9ba531cb8ed2e0db875",
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "sha256": "54eee0e3f356bd217c677eac2423365dbbca77fec509e6772514b03b5386266b",
+      "bytes": 10917,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "custom/cell-streaming/verify-tests.py": {
       "before": null,
@@ -4606,11 +4607,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "52c0bd6b8741ff555efa82ab9af91ace7971442c"
+        "blob": "aa8165a2acaf895244b9c76a4d9360a9c2f032f0"
       },
-      "sha256": "43853096f14916d857e90a035a6bfd71f6e1a1316895325f0bbdb72e3c202d7f",
+      "sha256": "15383c62684e8e22c0bce39342ceffb4a37029ffe1ffe5e637836a3e503fc7cf",
       "bytes": 5594,
-      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up."
+      "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "custom/loading-repair/check-integration.py": {
       "before": {
@@ -4981,11 +4982,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "58ed7611c5f411ce8fde18dbea2e631db4792858"
+        "blob": "eb17501c2cf610cc8249fdacbc1a04b8dda89064"
       },
-      "sha256": "713adf02f30df2c757c76837c04b68143ac17e216a5e4accca78e2754ba460be",
-      "bytes": 9617,
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "sha256": "7a5c71f9c66ca046a9bc298401ec73b28f9cdbebf595aa547f5ae52e123f5759",
+      "bytes": 10064,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "custom/performance-tests/test-streaming-paths.py": {
       "before": null,
@@ -5725,6 +5726,141 @@
       "sha256": "48ffb002773aaaeb0e90a809dfe9b344dbb9a01e64c3876d8544b6be64c3aea3",
       "bytes": 14577,
       "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
+    },
+    "apps/openmw/mwphysics/physicssystem.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3c2238bac3d31c358c342f6813958142be061fe9"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "fa7d3a5e83d546ae0e25214e2d1b7bfe638e6323"
+      },
+      "sha256": "55e4c59c9fe36650511fa677bd8f9dcec0bf88723a9fcae96bc7dfd7a8210ab0",
+      "bytes": 35566,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "apps/openmw/mwworld/worldmodel.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "233ca8ff1665323ca6efd96454c4bd3cd8ca88fd"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "b210399cb318814a3abf69cd677c2079c8e2a51b"
+      },
+      "sha256": "48e448ea1896e2cf28c3b6684be2391615db12bbf3a44c1b36de14b99201e3b6",
+      "bytes": 5274,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "components/resource/bulletshape.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "70348e956d989961a522d0c6a1ac94f9845c9a6c"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "229bf6ff5fd45b43672b123cd858c359a8a34972"
+      },
+      "sha256": "85e0cf2dc47ecd5a7a6cd12165919b6e111c86e7bdfc5900493d4cc8c249e7db",
+      "bytes": 4430,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "components/resource/bulletshapemanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "94b22564a9662227cdd44c2f218a4105b92a34e4"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "142bb087e98c8c308d0c4aa9547d6d0a6c7b8368"
+      },
+      "sha256": "1922e2055da3943b87755442fd28f1d7aadff7ec1ffc7bfa8e5f9a7574425cdb",
+      "bytes": 8163,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "components/resource/bulletshapemanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3c5a495c770202f340623b0786884c6ac690346b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "74ba700fd26ed7105e2fd4775e4a09460f00ea79"
+      },
+      "sha256": "33661e54aacc640110da94615c788953aadb69abac1e686f871f1d86fd77e4fe",
+      "bytes": 2403,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "apps/components_tests/resource/testcollisioninstancecache.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "55c9c19a157d3ef3e6c7ff8cd5cde3fcd1b37e2e"
+      },
+      "sha256": "77abeeea04b3ee2e51fa9fe3e6155443dd6ba3e860c99ed31b9fd8ceb5731b03",
+      "bytes": 7950,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "apps/components_tests/resource/testcollisionpreparation.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "139e4aa7f3435fae2db31297ec2413b297e1e0ba"
+      },
+      "sha256": "809166fa85f5e0da90a2b7ee4596e1119c6bbb7cb5fb91fe811d59384b555a20",
+      "bytes": 3293,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "apps/openmw/mwworld/postponedphysics.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "7e21d10a7a35db647bf8c1a82d2a5c250e58ae4c"
+      },
+      "sha256": "22c40bba4aeddf09df3b009d04bac46eef8458a9262fde69272ea6f09caf2c2d",
+      "bytes": 1662,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "apps/openmw_tests/mwworld/testpostponedphysics.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "e6cc55dafaaeceb74f6b8a0e8d8b07bd6f2cfc05"
+      },
+      "sha256": "69a3f2e8e171fe22da51ae1e68b6bad5f963dcdd8301f30c8819dcac8687b8f0",
+      "bytes": 10565,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "components/resource/collisioninstancecache.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2543f96b59995eb1da588916927b363221774816"
+      },
+      "sha256": "d16058131a8db79f0f47417a05fee109c5cf4489ecc06052652ed65201193053",
+      "bytes": 3319,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "custom/cell-streaming/ACTIVATION-20261118.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "ccfbf5477ca41eb71655fab8c94a1ed54fee7bd4"
+      },
+      "sha256": "bdb64908087e6b82315f7dd8d43d7d6e52aba2470811e4252c406fe79c326d70",
+      "bytes": 3118,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "custom/cell-streaming/verify-activation.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "2421901b4d6a7431e6c31772bdc19d25e2f30daf"
+      },
+      "sha256": "2c552f29c2e1d352445d3785a48cc4b658dae48407f5dd63bf1c058c8126bd4a",
+      "bytes": 5165,
+      "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     }
   }
 }

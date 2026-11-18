@@ -16,7 +16,7 @@ namespace Resource
     struct BulletShape;
     class BulletShapeInstance;
 
-    class MultiObjectCache;
+    class CollisionInstanceCache;
 
     /// Handles loading, caching and "instancing" of bullet shapes.
     /// A shape 'instance' is a clone of another shape, with the goal of setting a different scale on this instance.
@@ -35,10 +35,13 @@ namespace Resource
         /// simply return the cached instance instead of having to create a new one.
         /// @note The returned ref_ptr may be kept by the caller to ensure that the instance stays in cache for as long
         /// as needed.
-        osg::ref_ptr<BulletShapeInstance> cacheInstance(VFS::Path::NormalizedView name);
+        /// The detached instance is prepared at the exact uniform scale when enabled.
+        osg::ref_ptr<BulletShapeInstance> cacheInstance(VFS::Path::NormalizedView name, float scale = 1.f);
 
         /// @note May return a null pointer if the object has no shape.
-        osg::ref_ptr<BulletShapeInstance> getInstance(VFS::Path::NormalizedView name);
+        /// An exact prepared scale is preferred. On a miss the caller must still apply
+        /// its current scale before inserting the returned instance into the physics world.
+        osg::ref_ptr<BulletShapeInstance> getInstance(VFS::Path::NormalizedView name, float scale = 1.f);
 
         /// @see ResourceManager::updateCache
         void updateCache(double referenceTime) override;
@@ -50,7 +53,7 @@ namespace Resource
     private:
         osg::ref_ptr<BulletShapeInstance> createInstance(VFS::Path::NormalizedView name);
 
-        osg::ref_ptr<MultiObjectCache> mInstanceCache;
+        osg::ref_ptr<CollisionInstanceCache> mInstanceCache;
         SceneManager* mSceneManager;
         NifFileManager* mNifFileManager;
     };

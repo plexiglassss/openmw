@@ -11,6 +11,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwworld/testduration.cpp
     mwworld/testtimestamp.cpp
     mwworld/testptr.cpp
+    mwworld/testpostponedphysics.cpp
     mwworld/testweather.cpp
     mwworld/testpositioncellgrid.cpp
     mwworld/testpreloaddependencies.cpp

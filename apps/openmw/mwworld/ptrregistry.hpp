@@ -7,6 +7,8 @@
 #include "components/misc/combinedperformance.hpp"
 
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace MWWorld
 {
@@ -33,6 +35,7 @@ namespace MWWorld
 
         void clear()
         {
+            mPostponedPhysics.clear();
             mIndex.clear();
             mLastGenerated = ESM::RefNum{};
             ++mRevision;
@@ -41,6 +44,15 @@ namespace MWWorld
         void insert(const Ptr& ptr)
         {
             const auto id = ptr.getCellRef().getOrAssignRefNum(mLastGenerated);
+            // Placement flags are set on temporary references before they are copied
+            // into a cell. Track the registered copy, including disabled/inactive refs.
+            if (Misc::useSparsePostponedPhysics())
+            {
+                if (ptr.getRefData().mPhysicsPostponed)
+                    mPostponedPhysics.insert(id);
+                else
+                    mPostponedPhysics.erase(id);
+            }
             if (!Misc::useCombinedPerformance())
             {
                 mIndex[id] = ptr;
@@ -68,8 +80,38 @@ namespace MWWorld
             auto it = mIndex.find(refNum);
             if (it != mIndex.end() && it->second.mRef == &ref)
             {
+                mPostponedPhysics.erase(refNum);
                 mIndex.erase(it);
                 ++mRevision;
+            }
+        }
+
+        // The visitor returns true once the reference is consumed. Inactive cells
+        // remain pending. Snapshot IDs so callbacks may safely mutate the registry;
+        // resolve each current Ptr again after moves, deletion or replacement.
+        template <class Visitor>
+        void forEachPostponedPhysics(Visitor&& visitor)
+        {
+            if (mPostponedPhysics.empty())
+                return;
+            const std::vector<ESM::RefNum> pending(mPostponedPhysics.begin(), mPostponedPhysics.end());
+            for (const auto id : pending)
+            {
+                if (!mPostponedPhysics.contains(id))
+                    continue;
+                const auto ptr = getOrEmpty(id);
+                if (ptr.isEmpty() || !ptr.getRefData().mPhysicsPostponed)
+                {
+                    mPostponedPhysics.erase(id);
+                    continue;
+                }
+                if (visitor(ptr))
+                {
+                    // A callback may replace the registered object at this ID.
+                    const auto current = getOrEmpty(id);
+                    if (current.isEmpty() || current == ptr || !current.getRefData().mPhysicsPostponed)
+                        mPostponedPhysics.erase(id);
+                }
             }
         }
 
@@ -87,6 +129,7 @@ namespace MWWorld
     private:
         std::size_t mRevision = 0;
         std::unordered_map<ESM::RefNum, Ptr> mIndex;
+        std::unordered_set<ESM::RefNum> mPostponedPhysics;
         ESM::RefNum mLastGenerated;
     };
 
