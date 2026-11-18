@@ -20,6 +20,7 @@ def extract(signature):
 
 code = r'''
 #include <components/vfs/pathutil.hpp>
+#include <components/sceneutil/preparationcost.hpp>
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -61,6 +62,7 @@ struct ExteriorCellLocation{int mX,mY;RefId mWorldspace=0;
 struct ReadersCache{struct Busy{mutable ESMReader reader;ESMReader& operator*()const{return reader;}};
  Busy get(std::size_t){return {};}};
 }
+namespace Misc {bool useCostAwarePreload(){return true;}}
 namespace Misc::ResourceHelpers{VFS::Path::Normalized correctMeshPath(VFS::Path::NormalizedView p){return VFS::Path::NormalizedView("meshes")/p;}}
 namespace Resource {struct SceneInstanceCache{using TicketPtr=std::shared_ptr<int>;};}
 namespace SceneUtil {
@@ -91,6 +93,7 @@ namespace MWBase{struct Environment{ESMStore* store=nullptr;static Environment& 
 struct VFSState{std::uint64_t revision=0;auto getIndexRevision()const{return revision;}};
 struct Scene{VFSState vfs;std::uint64_t revision=0;std::set<std::string> loaded;int clones=0;
  auto modelSettingsRevision()const{return revision;}VFSState* getVFS(){return &vfs;}
+ bool getCachedTemplate(VFS::Path::NormalizedView path){return loaded.contains(std::string(path.value()));}
  auto getTemplate(VFS::Path::NormalizedView path){loaded.insert(std::string(path.value()));return std::make_shared<osg::Node>();}
  auto cacheInstance(VFS::Path::NormalizedView,const std::atomic_bool&){++clones;return std::make_shared<int>(1);}
 };
@@ -120,6 +123,10 @@ int main(){
  cell.records.clear();preload.mStaticPreloads->mJobs.run(target);
  assert(scene.loaded==(std::set<std::string>{"meshes/5.nif","meshes/7.nif"}));
  assert(shapes.shapes==2&&shapes.instances==2&&scene.clones==2&&worldCalls==0);
+ assert(preload.mStaticPreloads->mSamples.at(target)->mComplete.load());
+ assert(preload.mStaticPreloads->mSamples.at(target)->mColdAssets==2);
+ preload.mStaticPreloads->observe();
+ assert(preload.mStaticPreloads->mCost.samples()==1 && preload.mStaticPreloads->mSamples.empty());
  preload.preloadStaticExterior(target,2);assert(preload.mStaticPreloads->mJobs.submissions==1);
  assert(preload.mStaticPreloads->mJobs.entries.at(target).last==2);
  // Bounded unique models and collision/render instances, even with thousands of refs.

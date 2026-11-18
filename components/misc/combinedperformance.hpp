@@ -61,6 +61,18 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useCostAwarePreload()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_COST_AWARE_PRELOAD");
+        return useCellRenderPreparation() && enabled;
+    }
+
+    inline bool useGranularCompile()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_GRANULAR_COMPILE");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useAsyncObjectPaging()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ASYNC_OBJECT_PAGING");

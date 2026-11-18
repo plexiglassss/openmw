@@ -12,6 +12,7 @@ file(GLOB UNITTEST_SRC_FILES
     terrain/testpagingray.cpp
     terrain/testrayacceleration.cpp
     terrain/testscenerycoverage.cpp
+    terrain/testpreloadprediction.cpp
 
     esm/testfixedstring.cpp
     esm/testrefid.cpp

@@ -4,6 +4,7 @@
 #include "positioncellgrid.hpp"
 
 #include <components/sceneutil/workqueue.hpp>
+#include <components/sceneutil/preparationcost.hpp>
 #include <components/esm/exteriorcelllocation.hpp>
 
 #include <osg/ref_ptr>
@@ -57,6 +58,7 @@ namespace MWWorld
         void preload(MWWorld::CellStore& cell, double timestamp);
         void prioritize(const MWWorld::CellStore& cell);
         void preloadStaticExterior(ESM::ExteriorCellLocation cell, double timestamp);
+        double preparationLeadTime(double configured);
 
         void notifyLoaded(MWWorld::CellStore* cell);
 
@@ -105,6 +107,7 @@ namespace MWWorld
         void clearAllTasks();
         struct StaticPreloads;
         std::unique_ptr<StaticPreloads> mStaticPreloads;
+        SceneUtil::PreparationCost mPreparationCost;
         void retireArrival();
         bool startArrival(Terrain::World* world, const PositionCellGrid& target, bool required);
         osg::ref_ptr<ExteriorArrivalJob> mArrivalJob;
@@ -129,9 +132,11 @@ namespace MWWorld
 
         struct PreloadEntry
         {
-            PreloadEntry(double timestamp, osg::ref_ptr<SceneUtil::WorkItem> workItem)
+            PreloadEntry(double timestamp, osg::ref_ptr<SceneUtil::WorkItem> workItem,
+                std::shared_ptr<SceneUtil::PreparationSample> timing = {})
                 : mTimeStamp(timestamp)
                 , mWorkItem(std::move(workItem))
+                , mTiming(std::move(timing))
             {
             }
             PreloadEntry()
@@ -141,6 +146,7 @@ namespace MWWorld
 
             double mTimeStamp;
             osg::ref_ptr<SceneUtil::WorkItem> mWorkItem;
+            std::shared_ptr<SceneUtil::PreparationSample> mTiming;
         };
         typedef std::map<const MWWorld::CellStore*, PreloadEntry> PreloadMap;
 

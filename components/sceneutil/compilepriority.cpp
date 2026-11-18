@@ -1,5 +1,8 @@
 #include "compilepriority.hpp"
 
+#include <components/diagnostics/timing.hpp>
+#include <components/misc/combinedperformance.hpp>
+
 #include <osg/Drawable>
 #include <osg/Program>
 #include <osg/StateSet>
@@ -7,13 +10,143 @@
 #include <osg/Geometry>
 #include <osg/GraphicsContext>
 #include <osg/State>
+#include <osg/BufferObject>
+#include <osg/GLExtensions>
 
 #include <algorithm>
 #include <mutex>
 #include <stdexcept>
+#include <typeinfo>
 
 namespace SceneUtil
 {
+    namespace
+    {
+        using Operation = osgUtil::IncrementalCompileOperation;
+
+        class CompileShader final : public Operation::CompileOp
+        {
+            osg::ref_ptr<osg::Shader> mShader;
+        public:
+            explicit CompileShader(osg::Shader* shader) : mShader(shader) {}
+            double estimatedTimeForCompile(Operation::CompileInfo&) const override { return 0; }
+            bool compile(Operation::CompileInfo& info) override
+            {
+                Diagnostics::Scope timing("graphics", "preparation", "shader");
+                const auto* extensions = info.getState()->get<osg::GLExtensions>();
+                if (extensions && extensions->isGlslSupported)
+                    mShader->compileShader(*info.getState());
+                return true;
+            }
+        };
+
+        class CompileBuffer final : public Operation::CompileOp
+        {
+            osg::ref_ptr<osg::BufferObject> mBuffer;
+        public:
+            explicit CompileBuffer(osg::BufferObject* buffer) : mBuffer(buffer) {}
+            double estimatedTimeForCompile(Operation::CompileInfo&) const override { return 0; }
+            bool compile(Operation::CompileInfo& info) override
+            {
+                Diagnostics::Scope timing("graphics", "preparation", "buffer");
+                auto& state = *info.getState();
+                auto* extensions = state.get<osg::GLExtensions>();
+                const auto target = mBuffer->getTarget();
+                if (!state.useVertexBufferObject(true) || !extensions || !extensions->glBindBuffer
+                    || (target != GL_ARRAY_BUFFER_ARB && target != GL_ELEMENT_ARRAY_BUFFER_ARB))
+                    return true;
+                auto* buffer = mBuffer->getOrCreateGLBufferObject(state.getContextID());
+                if (buffer && buffer->isDirty())
+                {
+                    // EBO binding belongs to the current VAO. Restore the actual
+                    // binding so an intervening draw and OSG's state cache agree.
+                    GLint previous = 0;
+                    glGetIntegerv(target == GL_ARRAY_BUFFER_ARB ? GL_ARRAY_BUFFER_BINDING_ARB
+                                                               : GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB, &previous);
+                    struct Restore
+                    {
+                        osg::GLExtensions* mExtensions;
+                        GLenum mTarget;
+                        GLuint mPrevious;
+                        ~Restore() { mExtensions->glBindBuffer(mTarget, mPrevious); }
+                    } restore{ extensions, target, static_cast<GLuint>(previous) };
+                    buffer->compileBuffer();
+                }
+                return true;
+            }
+        };
+
+        class MeasuredCompile final : public Operation::CompileOp
+        {
+            osg::ref_ptr<Operation::CompileOp> mOperation;
+            const char* mStage;
+        public:
+            MeasuredCompile(Operation::CompileOp* operation, const char* stage) : mOperation(operation), mStage(stage) {}
+            double estimatedTimeForCompile(Operation::CompileInfo& info) const override
+            { return mOperation->estimatedTimeForCompile(info); }
+            bool compile(Operation::CompileInfo& info) override
+            {
+                Diagnostics::Scope timing("graphics", "preparation", mStage);
+                return mOperation->compile(info);
+            }
+        };
+    }
+
+    void ResourceCompileSet::splitCompileOperations()
+    {
+        for (auto& [context, list] : _compileMap)
+        {
+            Operation::CompileList::CompileOps split;
+            std::unordered_set<osg::BufferObject*> buffers;
+            std::unordered_set<osg::Shader*> shaders;
+            for (const auto& operation : list._compileOps)
+            {
+                const char* stage = "other";
+                if (const auto* drawable = dynamic_cast<const Operation::CompileDrawableOp*>(operation.get()))
+                {
+                    stage = "drawable finalization";
+                    const auto* geometry = drawable->_drawable->asGeometry();
+                    if (geometry && typeid(*geometry) == typeid(osg::Geometry)
+                        && geometry->getUseVertexBufferObjects()
+                        && geometry->getDataVariance() != osg::Object::DYNAMIC)
+                    {
+                        const auto add = [&](osg::BufferObject* buffer) {
+                            if (buffer && buffers.insert(buffer).second)
+                                split.emplace_back(new CompileBuffer(buffer));
+                        };
+                        osg::Geometry::ArrayList arrays;
+                        geometry->getArrayList(arrays);
+                        for (const auto& array : arrays)
+                            if (array)
+                                add(array->getBufferObject());
+                        for (const auto& primitive : geometry->getPrimitiveSetList())
+                            if (primitive)
+                                add(primitive->getBufferObject());
+                    }
+                }
+                else if (const auto* program = dynamic_cast<const Operation::CompileProgramOp*>(operation.get()))
+                {
+                    stage = "program finalization";
+                    const auto& value = *program->_program;
+                    if (!value.getProgramBinary() && (typeid(value) == typeid(osg::Program)
+                        || dynamic_cast<const SplitShaderCompilation*>(&value)))
+                        for (unsigned i = 0; i < value.getNumShaders(); ++i)
+                        {
+                            auto* shader = program->_program->getShader(i);
+                            if (shader && shaders.insert(shader).second)
+                                split.emplace_back(new CompileShader(shader));
+                        }
+                }
+                else if (dynamic_cast<const Operation::CompileTextureOp*>(operation.get()))
+                    stage = "texture";
+                // Never replace virtual finalization: VAO setup, custom drawables,
+                // program reflection and texture behavior remain owned by OSG.
+                split.emplace_back(new MeasuredCompile(operation, stage));
+            }
+            list._compileOps.swap(split);
+        }
+    }
+
     void ResourceCompileSet::captureResources()
     {
         using Operation = osgUtil::IncrementalCompileOperation;
@@ -40,6 +173,8 @@ namespace SceneUtil
         else
             result->buildCompileMap(operation.getContextSet());
         result->captureResources();
+        if (Misc::useGranularCompile())
+            result->splitCompileOperations();
         return result;
     }
 
@@ -83,6 +218,8 @@ namespace SceneUtil
         result.mSet = new ResourceCompileSet(node);
         result.mSet->buildCompileMap(contexts, state);
         result.mSet->captureResources();
+        if (Misc::useGranularCompile())
+            result.mSet->splitCompileOperations();
         result.mSet->_compileCompletedCallback = complete;
         result.mEstimatedBytes = state._drawablesHandled.size() * 512 + state._statesetsHandled.size() * 512;
         std::unordered_set<const osg::BufferData*> counted;

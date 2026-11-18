@@ -1,5 +1,6 @@
 #include "scene.hpp"
 #include <components/terrain/nextgrid.hpp>
+#include <components/terrain/preloadprediction.hpp>
 
 #include <components/diagnostics/exteriorarrival.hpp>
 #include <components/diagnostics/loading.hpp>
@@ -619,7 +620,7 @@ namespace MWWorld
     {
         Diagnostics::ExteriorArrival::clear();
         mNextExitPrediction = 0;
-        mNextStaticPrediction = 0;
+        mLastStaticPrediction = -1;
         auto navigatorUpdateGuard = mNavigator.makeUpdateGuard();
         for (auto iter = mActiveCells.begin(); iter != mActiveCells.end();)
         {
@@ -1097,7 +1098,7 @@ namespace MWWorld
         Log(Debug::Info) << "Changing to interior";
         Diagnostics::ExteriorArrival::clear();
         mNextExitPrediction = 0;
-        mNextStaticPrediction = 0;
+        mLastStaticPrediction = -1;
         if (mCurrentCell && mCurrentCell->isExterior())
             mPreloader->leaveExterior(mRendering.getTerrain(),
                 { mWorld.getPlayerPtr().getRefData().getPosition().asVec3(), gridCenterToBounds(mCurrentGridCenter) },
@@ -1339,6 +1340,16 @@ namespace MWWorld
         osg::Vec3f moved = playerPos - mLastPlayerPos;
         osg::Vec3f predictedPos = playerPos + moved / dt * mPredictionTime;
 
+        mStaticPredictionInterval = 0.25;
+        if (mCurrentCell->isExterior() && Misc::useCostAwarePreload())
+        {
+            const auto prediction = Terrain::predictPreload(moved.x(), moved.y(), dt,
+                mPreloader->preparationLeadTime(mPredictionTime),
+                static_cast<float>(ESM::getCellSize(mCurrentCell->getCell()->getWorldSpace())));
+            predictedPos = playerPos + osg::Vec3f(prediction.mX, prediction.mY, 0.f);
+            mStaticPredictionInterval = prediction.mInterval;
+        }
+
         if (mCurrentCell->isExterior())
         {
             const MWRender::Camera& camera = *mRendering.getCamera();
@@ -1507,9 +1518,10 @@ namespace MWWorld
             mPreloader->prioritize(mWorld.getWorldModel().getExterior(it->second));
 
         const double time = mRendering.getReferenceTime();
-        if (Misc::useCellRenderPreparation() && time >= mNextStaticPrediction)
+        if (Misc::useCellRenderPreparation()
+            && (time < mLastStaticPrediction || time >= mLastStaticPrediction + mStaticPredictionInterval))
         {
-            mNextStaticPrediction = time + 0.25;
+            mLastStaticPrediction = time;
             const auto motion = predictedPos - playerPos;
             for (const auto& [x, y] : Terrain::nextGridCells(cellX, cellY, mHalfGridSize,
                      motion.x(), motion.y(), static_cast<float>(cellSize)))

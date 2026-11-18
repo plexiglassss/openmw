@@ -11,7 +11,8 @@ requirements = {
                              'AsyncPreparation': 17, 'LuaScriptCache': 7,
                              'StreamingLookAhead': 4, 'CompileReadiness': 3,
                              'SceneryCoverage': 6, 'NextGridPreparation': 2,
-                             'CompileReadinessCache': 5, 'ShaderManagerTest': 12},
+                             'CompileReadinessCache': 5, 'ShaderManagerTest': 12,
+                             'CostAwarePreload': 5},
     'cell-packages-legacy.xml': {'CellPackagesTest': 4},
     'openmw-tests.xml': {'PreloadDependenciesTest': 13},
 }

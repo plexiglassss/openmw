@@ -1,5 +1,7 @@
 #include "gameplaycompile.hpp"
 
+#include <components/diagnostics/timing.hpp>
+
 #include <osg/FrameStamp>
 #include <osg/GLObjects>
 #include <osg/Timer>
@@ -34,6 +36,7 @@ namespace SceneUtil
             info.allocatedTime = mGameplayBudget;
             CompileSets pending;
             {
+                Diagnostics::Scope timing("graphics", "preparation", "queue snapshot");
                 const OpenThreads::ScopedLock<OpenThreads::Mutex> lock(_toCompileMutex);
                 pending = _toCompile;
             }
@@ -42,8 +45,12 @@ namespace SceneUtil
             double flushTime = std::max(0.0, std::min(mGameplayBudget * 0.1,
                 mGameplayBudget - info.timer.elapsedTime()));
             if (flushTime > 0)
+            {
+                Diagnostics::Scope timing("graphics", "preparation", "deletion");
                 osg::flushDeletedGLObjects(context->getState()->getContextID(),
                     stamp ? stamp->getReferenceTime() : 0.0, flushTime);
+            }
+            Diagnostics::Scope timing("graphics", "preparation", "queue execution");
             compileSets(pending, info);
         }
         if (stamp && mStats && mStats->collectStats("resource"))

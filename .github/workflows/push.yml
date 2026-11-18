@@ -925,6 +925,7 @@ jobs:
         run: |
           python3 custom/cell-streaming/test-scenery-handover.py
           python3 custom/cell-streaming/test-static-preload.py
+          python3 custom/performance-tests/test-transition-preload.py
       - name: Verify complete scenery handover with actual graphics compilation
         run: |
           g++ -std=c++20 -O2 -pthread -I. custom/cell-streaming/scenery-graphics.cpp \

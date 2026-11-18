@@ -165,7 +165,7 @@ with tempfile.TemporaryDirectory() as directory:
                 'components/debug/debuglog.cpp', '-Wl,--gc-sections']
     if args.lib_dir:
         command += ['-L', args.lib_dir]
-    command += ['-losgUtil', '-losg', '-lOpenThreads', '-o', str(exe)]
+    command += ['-losgUtil', '-losg', '-lOpenThreads', '-lGL', '-o', str(exe)]
     subprocess.run(command, cwd=root, check=True)
     env = dict(os.environ)
     if args.lib_dir:

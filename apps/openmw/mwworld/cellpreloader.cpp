@@ -25,6 +25,7 @@
 #include <components/esm3/readerscache.hpp>
 #include <components/sceneutil/asyncpreparation.hpp>
 #include <components/sceneutil/scenefootprint.hpp>
+#include <components/sceneutil/preparationcost.hpp>
 #include <components/loadinglistener/reporter.hpp>
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/constants.hpp>
@@ -173,10 +174,61 @@ namespace MWWorld
         };
         using Jobs = SceneUtil::AsyncPreparation<ESM::ExteriorCellLocation, std::shared_ptr<Resources>>;
         Jobs mJobs;
+        std::map<ESM::ExteriorCellLocation, std::shared_ptr<SceneUtil::PreparationSample>> mSamples;
+        SceneUtil::PreparationCost mCost;
         std::pair<std::uint64_t, std::uint64_t> mGeneration;
         explicit StaticPreloads(SceneUtil::WorkQueue* queue)
             : mJobs(queue, 2, 8, 256ull * 1024 * 1024, 4.0, 10.0) {}
+
+        double observe()
+        {
+            double oldest = 0;
+            for (auto it = mSamples.begin(); it != mSamples.end();)
+            {
+                const auto& sample = *it->second;
+                if (sample.mComplete.load(std::memory_order_acquire))
+                {
+                    if (sample.mSuccessful)
+                        mCost.observe(sample.mQueueSeconds, sample.mWorkSeconds, sample.mAssets, sample.mColdAssets);
+                    it = mSamples.erase(it);
+                }
+                else if (!mJobs.contains(it->first))
+                    it = mSamples.erase(it); // Cancelled queued work may never run.
+                else
+                {
+                    oldest = std::max(oldest, sample.age());
+                    ++it;
+                }
+            }
+            return oldest;
+        }
     };
+
+    double CellPreloader::preparationLeadTime(double configured)
+    {
+        double oldest = 0;
+        for (auto& [cell, entry] : mPreloadCells)
+        {
+            if (!cell->isExterior() || !entry.mTiming)
+                continue;
+            const auto& sample = *entry.mTiming;
+            if (sample.mComplete.load(std::memory_order_acquire))
+            {
+                if (sample.mSuccessful)
+                    mPreparationCost.observe(sample.mQueueSeconds, sample.mWorkSeconds, sample.mAssets, sample.mColdAssets);
+                entry.mTiming.reset();
+            }
+            else
+                oldest = std::max(oldest, sample.age());
+        }
+        double lead = mPreparationCost.leadTime(configured, oldest);
+        if (mStaticPreloads)
+        {
+            oldest = mStaticPreloads->observe();
+            lead = std::max(lead, mStaticPreloads->mCost.leadTime(configured, oldest));
+        }
+        return lead;
+    }
 
     void CellPreloader::preloadStaticExterior(ESM::ExteriorCellLocation location, double timestamp)
     {
@@ -192,6 +244,8 @@ namespace MWWorld
         if (generation != mStaticPreloads->mGeneration)
         {
             mStaticPreloads->mJobs.clear();
+            mStaticPreloads->mSamples.clear();
+            mStaticPreloads->mCost = {};
             mStaticPreloads->mGeneration = generation;
         }
         if (mStaticPreloads->mJobs.contains(location))
@@ -205,11 +259,13 @@ namespace MWWorld
         const auto* source = store->get<ESM::Cell>().searchStatic(location.mX, location.mY);
         if (!source)
             return;
+        auto sample = Misc::useCostAwarePreload() ? std::make_shared<SceneUtil::PreparationSample>() : nullptr;
         // Copy immutable plugin metadata. Do not call WorldModel::getExterior,
         // load a CellStore, register references, choose spawns or emit Lua events.
         mStaticPreloads->mJobs.request(location, timestamp,
             [cell = *source, store, scene, shapes = mBulletShapeManager,
-                instances = mPreloadInstances](const std::atomic_bool& abort) -> StaticPreloads::Jobs::Prepared {
+                instances = mPreloadInstances, sample](const std::atomic_bool& abort) -> StaticPreloads::Jobs::Prepared {
+                SceneUtil::PreparationSample::Run measured(sample.get(), abort);
                 std::map<ESM::RefNum, ESM::RefId> refs;
                 ESM::ReadersCache readers;
                 for (std::size_t i = 0; i < cell.mContextList.size() && !abort; ++i)
@@ -278,6 +334,11 @@ namespace MWWorld
                         break;
                     try
                     {
+                        if (sample)
+                        {
+                            ++sample->mAssets;
+                            sample->mColdAssets += !scene->getCachedTemplate(path);
+                        }
                         auto node = scene->getTemplate(path);
                         bytes += footprint.measure(const_cast<osg::Node&>(*node));
                         prepared->mObjects.emplace_back(std::move(node));
@@ -298,12 +359,15 @@ namespace MWWorld
                 }
                 return { std::move(prepared), {}, {}, bytes };
             });
+        if (sample && mStaticPreloads->mJobs.contains(location))
+            mStaticPreloads->mSamples.emplace(location, std::move(sample));
     }
 
     /// Worker thread item: preload models in a cell.
     class PreloadItem : public SceneUtil::WorkItem
     {
     public:
+        std::shared_ptr<SceneUtil::PreparationSample> mTiming;
         /// Constructor to be called from the main thread.
         explicit PreloadItem(MWWorld::CellStore* cell, Resource::SceneManager* sceneManager,
             Resource::BulletShapeManager* bulletShapeManager, Resource::KeyframeManager* keyframeManager,
@@ -344,6 +408,7 @@ namespace MWWorld
         /// Preload work to be called from the worker thread.
         void doWork() override
         {
+            SceneUtil::PreparationSample::Run measured(mTiming.get(), mAbort);
             if (mIsExterior)
             {
                 try
@@ -409,6 +474,11 @@ namespace MWWorld
                             mPreloadedObjects.insert(mKeyframeManager->get(kfname));
                     }
 
+                    if (mTiming)
+                    {
+                        ++mTiming->mAssets;
+                        mTiming->mColdAssets += !mSceneManager->getCachedTemplate(mesh);
+                    }
                     mPreloadedObjects.insert(mSceneManager->getTemplate(mesh));
                     if (mPreloadInstances)
                         mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
@@ -743,9 +813,11 @@ namespace MWWorld
 
         osg::ref_ptr<PreloadItem> item(new PreloadItem(&cell, mResourceSystem->getSceneManager(), mBulletShapeManager,
             mResourceSystem->getKeyframeManager(), mTerrain, mLandManager, mPreloadInstances));
+        if (cell.isExterior() && Misc::useCostAwarePreload())
+            item->mTiming = std::make_shared<SceneUtil::PreparationSample>();
         mWorkQueue->addWorkItem(item);
 
-        mPreloadCells.emplace(&cell, PreloadEntry(timestamp, item));
+        mPreloadCells.emplace(&cell, PreloadEntry(timestamp, item, item->mTiming));
         ++mAdded;
     }
 
@@ -777,8 +849,13 @@ namespace MWWorld
     void CellPreloader::clear()
     {
         clearArrivals();
+        mPreparationCost = {};
         if (mStaticPreloads)
+        {
             mStaticPreloads->mJobs.clear();
+            mStaticPreloads->mSamples.clear();
+            mStaticPreloads->mCost = {};
+        }
         for (PreloadMap::iterator it = mPreloadCells.begin(); it != mPreloadCells.end();)
         {
             if (it->second.mWorkItem)
@@ -1085,6 +1162,7 @@ namespace MWWorld
 
     void CellPreloader::clearAllTasks()
     {
+        mPreparationCost = {};
         mStaticPreloads.reset(); // joins detached readers before their resource/store owners disappear
         if (mTerrainPreloadItem)
         {

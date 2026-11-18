@@ -23,6 +23,7 @@
 #include <components/misc/strings/algorithm.hpp>
 #include <components/misc/strings/conversion.hpp>
 #include <components/settings/settings.hpp>
+#include <components/sceneutil/compilepriority.hpp>
 
 namespace
 {
@@ -580,7 +581,7 @@ namespace Shader
         return shaderIt->second;
     }
 
-    class SamplerProgram : public osg::Program
+    class SamplerProgram : public osg::Program, public SceneUtil::SplitShaderCompilation
     {
     public:
         SamplerProgram() = default;

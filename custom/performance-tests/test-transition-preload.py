@@ -17,6 +17,7 @@ assert grid.index('mPreloader->preload(cell,') < grid.index('mPreloader->syncTer
 assert 'if (mPreloadEnabled)' in grid
 assert grid.count('sortCellsToLoad(')==1
 code=r'''
+#include <components/sceneutil/preparationcost.hpp>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -25,6 +26,7 @@ code=r'''
 #include <memory>
 #include <vector>
 namespace Debug {enum {Error,Warning};}
+namespace Misc {bool useCostAwarePreload(){return true;}}
 std::ostream& Log(int) {return std::cerr;}
 namespace osg {template<class T> using ref_ptr=std::shared_ptr<T>;}
 namespace ESM {using RefId=int; struct ExteriorCellLocation {int x,y,world; ExteriorCellLocation(int a,int b,int c):x(a),y(b),world(c) {}};}
@@ -33,10 +35,12 @@ struct CellStore {enum State {State_Unloaded,State_Preloaded,State_Loaded};State
  State getState(){return state;}bool isExterior(){return exterior;}Cell* getCell(){return &info;}};
 using PreloadItemCell=CellStore;
 namespace MWWorld {using CellStore=::CellStore;}
-struct PreloadItem {bool aborted=false;template<class... Args> explicit PreloadItem(Args&&...) {} void abort(){aborted=true;}};
+struct PreloadItem {std::shared_ptr<SceneUtil::PreparationSample> mTiming;
+ bool aborted=false;template<class... Args> explicit PreloadItem(Args&&...) {} void abort(){aborted=true;}};
 struct WorkQueue {int jobs=0;void cancelWorkItem(const osg::ref_ptr<PreloadItem>& item){item->abort();}void addWorkItem(const osg::ref_ptr<PreloadItem>&){++jobs;}};
 struct Resource {int getSceneManager(){return 0;}int getKeyframeManager(){return 0;}};
-struct PreloadEntry {double mTimeStamp;osg::ref_ptr<PreloadItem> mWorkItem;PreloadEntry(double t,osg::ref_ptr<PreloadItem> i):mTimeStamp(t),mWorkItem(i){}};
+struct PreloadEntry {double mTimeStamp;osg::ref_ptr<PreloadItem> mWorkItem;std::shared_ptr<SceneUtil::PreparationSample> mTiming;
+ PreloadEntry(double t,osg::ref_ptr<PreloadItem> i,std::shared_ptr<SceneUtil::PreparationSample> timing):mTimeStamp(t),mWorkItem(i),mTiming(std::move(timing)){}};
 struct CellPreloader {
  WorkQueue queue;WorkQueue* mWorkQueue=&queue;Resource resource;Resource* mResourceSystem=&resource;
  int mBulletShapeManager=0,mTerrain=0,mLandManager=0;bool mPreloadInstances=true;
@@ -62,6 +66,7 @@ code+=r'''
 int main(){
  CellPreloader p;Scene scene;scene.mPreloader=&p;CellStore center;
  scene.preloadCellWithSurroundings(center);assert(p.queue.jobs==9 && p.getCacheSize()==9);
+ for(auto& [cell,e]:p.mPreloadCells){(void)cell;assert(e.mTiming && e.mTiming==e.mWorkItem->mTiming);}
  scene.mRendering.time=11;scene.preloadCellWithSurroundings(center);
  assert(p.queue.jobs==9);for(auto& [cell,e]:p.mPreloadCells){(void)cell;assert(e.mTimeStamp==11);}
  // Full cache still refreshes hits; no duplicate jobs. A recent cache refuses new destinations.
@@ -77,10 +82,11 @@ int main(){
  for(auto& [cell,e]:limited.mPreloadCells){(void)cell;assert(e.mTimeStamp==12);}
  CellStore interior;interior.exterior=false;CellPreloader inside;Scene indoors;indoors.mPreloader=&inside;
  indoors.preloadCellWithSurroundings(interior);assert(inside.queue.jobs==1 && indoors.mWorld.model.lookups==0);
+ assert(!inside.mPreloadCells.at(&interior).mTiming);
  std::cout<<"PASS: production door-grid and preload admission: full-cache refresh, no duplicate jobs, eviction, small/zero capacity, interior; transition scheduling precedes terrain wait and insertion.\n";
 }
 '''
 with tempfile.TemporaryDirectory() as d:
  cpp=Path(d)/'test.cpp';exe=Path(d)/'test';cpp.write_text(code)
- subprocess.run(['g++','-std=c++20','-Wall','-Wextra','-Werror',str(cpp),'-o',str(exe)],check=True)
+ subprocess.run(['g++','-std=c++20','-Wall','-Wextra','-Werror','-I',str(root),str(cpp),'-o',str(exe)],check=True)
  subprocess.run([str(exe)],check=True)

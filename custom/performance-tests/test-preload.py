@@ -16,6 +16,7 @@ body = source[start:end]
 preamble = r'''
 #include <components/vfs/pathutil.hpp>
 #include <components/misc/resourcehelpers.hpp>
+#include <components/sceneutil/preparationcost.hpp>
 #include <cassert>
 #include <array>
 #include <map>
@@ -55,10 +56,12 @@ namespace Debug { enum {Warning}; }
 std::ostream& Log(int) { return std::cerr; }
 struct CellLocation {int mX=0,mY=0;};
 std::ostream& operator<<(std::ostream& os,const CellLocation&) {return os;}
-bool mAbort=false;
+std::atomic_bool mAbort{false};
+std::shared_ptr<SceneUtil::PreparationSample> mTiming;
 struct SceneManager {
  VFS::Manager vfs;
  const VFS::Manager* getVFS() {return &vfs;}
+ bool getCachedTemplate(const Normalized&) {return false;}
  int cacheInstance(const Normalized&, bool) { ++renderClones; return 7; }
  int getTemplate(const Normalized&) {
   ++attempts; if(failOnce){failOnce=false;throw std::runtime_error("expected failure");}
@@ -94,6 +97,7 @@ tests = r'''
 void reset() {
  corrections=actorCorrections=templates=instances=shapes=keys=attempts=0;
  scene.vfs.checks=0; mAbort=false; failOnce=false; abortOnInstance=false; abortOnKey=false; failKeyOnce=false;
+ mTiming=std::make_shared<SceneUtil::PreparationSample>();
  mPreloadAdditionalAnimations=false; mAnimationMeshes.clear(); requestedKeys.clear(); templatesBeforeFirstKey=-1;
  mPreloadInstances=true; mPreloadedObjects.clear(); mInstanceMeshes.clear(); mInstanceTickets.clear(); renderClones=0;clonesBeforeFirstKey=-1;
  scene.vfs.files={"meshes/a.nif","meshes/xanim.nif","meshes/xanim.kf"};
@@ -102,6 +106,7 @@ int main() {
  reset(); mMeshes.assign(2000,NormalizedView("a.nif")); run();
  assert(corrections==1 && actorCorrections==1 && scene.vfs.checks==1);
  assert(templates==1 && instances==2000 && shapes==0 && mPreloadedObjects.size()==2001);
+ assert(mTiming->mComplete.load() && mTiming->mSuccessful && mTiming->mAssets==1 && mTiming->mColdAssets==1);
  reset(); mPreloadInstances=false; run();
  assert(templates==1 && instances==0 && shapes==1 && corrections==1);
  reset(); mMeshes={NormalizedView("a.nif"),NormalizedView("alias.nif"),NormalizedView("a.nif")}; run();

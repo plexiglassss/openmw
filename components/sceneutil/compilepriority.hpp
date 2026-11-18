@@ -13,6 +13,14 @@
 
 namespace SceneUtil
 {
+    // Opt-in contract for Program subclasses that retain osg::Program's shader
+    // compilation semantics. Unknown custom compile overrides stay indivisible.
+    class SplitShaderCompilation
+    {
+    public:
+        virtual ~SplitShaderCompilation() = default;
+    };
+
     // Capture dependencies before enqueue. OSG mutates its CompileLists on the
     // graphics thread without holding the queue mutex: never inspect live lists.
     class ResourceCompileSet final : public osgUtil::IncrementalCompileOperation::CompileSet
@@ -21,6 +29,8 @@ namespace SceneUtil
         explicit ResourceCompileSet(osg::Node* node)
             : CompileSet(node) {}
         void captureResources();
+        // Only before enqueue: live compile maps belong to the graphics thread.
+        void splitCompileOperations();
         const std::unordered_set<const osg::Object*>& resources() const { return mResources; }
 
     private:

@@ -8,6 +8,7 @@
 #include <osg/State>
 #include <osg/GLObjects>
 #include <osg/Program>
+#include <osg/BufferObject>
 #include <osg/FrameStamp>
 #include <gtest/gtest.h>
 #include <array>
@@ -247,5 +248,150 @@ namespace
         EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
         bridge->releaseGLObjects(context->getState());left->releaseGLObjects(context->getState());
         right->releaseGLObjects(context->getState());operation->removeGraphicsContext(context);
+    }
+
+    TEST(GranularCompilation, BufferStepsPreserveBindingsAndDoNotCompleteTheDrawable)
+    {
+        osg::ref_ptr<Context> context = new Context;
+        auto* state = context->getState();
+        auto* extensions = state->get<osg::GLExtensions>();
+        const auto geometry = quad(-1, 1, {1, 0, 0, 1});
+        // Distinct VBOs plus an EBO; duplicate arrays sharing a VBO must not
+        // duplicate its upload operation.
+        geometry->getColorArray()->setVertexBufferObject(new osg::VertexBufferObject);
+        const std::array<unsigned, 6> indices{0, 1, 2, 3, 4, 5};
+        geometry->removePrimitiveSet(0);
+        geometry->addPrimitiveSet(new osg::DrawElementsUInt(GL_TRIANGLES, indices.begin(), indices.end()));
+        const std::array<osg::BufferObject*, 3> uploads{ geometry->getVertexArray()->getBufferObject(),
+            geometry->getColorArray()->getBufferObject(), geometry->getPrimitiveSet(0)->getBufferObject() };
+        for (auto* buffer : uploads)
+        {
+            ASSERT_TRUE(buffer);
+            EXPECT_TRUE(buffer->getOrCreateGLBufferObject(state->getContextID())->isDirty());
+        }
+        osg::ref_ptr<SceneUtil::ResourceCompileSet> set = new SceneUtil::ResourceCompileSet(geometry);
+        auto& list = set->_compileMap[context];
+        list.add(geometry);
+        set->captureResources();
+        set->splitCompileOperations();
+        ASSERT_EQ(list._compileOps.size(), 4u);
+        ASSERT_TRUE(extensions->glGenVertexArrays && extensions->glBindVertexArray);
+        GLuint vao = 0, bindings[2]{};
+        extensions->glGenVertexArrays(1, &vao);
+        extensions->glBindVertexArray(vao);
+        extensions->glGenBuffers(2, bindings);
+        extensions->glBindBuffer(GL_ARRAY_BUFFER_ARB, bindings[0]);
+        extensions->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB, bindings[1]);
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> operation = new osgUtil::IncrementalCompileOperation;
+        for (unsigned step = 0; step < 3; ++step)
+        {
+            osgUtil::IncrementalCompileOperation::CompileInfo info(context, operation);
+            info.maxNumObjectsToCompile = 1;
+            info.allocatedTime = 1;
+            EXPECT_FALSE(list.compile(info));
+            EXPECT_EQ(list._compileOps.size(), 3u - step);
+            unsigned completed = 0;
+            for (auto* buffer : uploads)
+                completed += !buffer->getOrCreateGLBufferObject(state->getContextID())->isDirty();
+            EXPECT_EQ(completed, step + 1);
+            GLint actual = 0;
+            glGetIntegerv(GL_ARRAY_BUFFER_BINDING_ARB, &actual);
+            EXPECT_EQ(static_cast<GLuint>(actual), bindings[0]);
+            glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING_ARB, &actual);
+            EXPECT_EQ(static_cast<GLuint>(actual), bindings[1]);
+            glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &actual);
+            EXPECT_EQ(static_cast<GLuint>(actual), vao);
+            EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
+        }
+        extensions->glBindVertexArray(0);
+        extensions->glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);
+        auto* colors = static_cast<osg::Vec4Array*>(geometry->getColorArray());
+        (*colors)[0].set(0, 1, 0, 1);
+        colors->dirty();
+        EXPECT_TRUE(uploads[1]->getOrCreateGLBufferObject(state->getContextID())->isDirty());
+        osgUtil::IncrementalCompileOperation::CompileInfo finish(context, operation);
+        finish.compileAll = true;
+        EXPECT_TRUE(list.compile(finish));
+        // The final standard drawable remains functional after staged uploads.
+        glClearColor(0,0,0,1);glClear(GL_COLOR_BUFFER_BIT);
+        osg::RenderInfo render(state, nullptr);
+        state->pushStateSet(geometry->getStateSet());state->apply();geometry->draw(render);state->popStateSet();
+        EXPECT_EQ(pixel(16), (std::array<unsigned char,3>{0,255,0}));
+        EXPECT_FALSE(uploads[1]->getOrCreateGLBufferObject(state->getContextID())->isDirty());
+        EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
+        geometry->releaseGLObjects(state);
+        extensions->glDeleteBuffers(2, bindings);
+        extensions->glDeleteVertexArrays(1, &vao);
+    }
+
+    TEST(GranularCompilation, ShaderStagesFinishBeforeLinkAndDirtySourcesStillRelink)
+    {
+        osg::ref_ptr<Context> context = new Context;
+        const auto geometry = quad(-1, 1, {0,1,0,1});
+        auto* program = static_cast<osg::Program*>(geometry->getStateSet()->getAttribute(osg::StateAttribute::PROGRAM));
+        osg::ref_ptr<SceneUtil::ResourceCompileSet> set = new SceneUtil::ResourceCompileSet(geometry);
+        auto& list = set->_compileMap[context];
+        list.add(program);
+        set->splitCompileOperations();
+        ASSERT_EQ(list._compileOps.size(), 3u);
+        EXPECT_FALSE(program->getShader(0)->getPCS(*context->getState())->isCompiled());
+        EXPECT_FALSE(program->getShader(1)->getPCS(*context->getState())->isCompiled());
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> operation = new osgUtil::IncrementalCompileOperation;
+        for (unsigned step = 0; step < 2; ++step)
+        {
+            osgUtil::IncrementalCompileOperation::CompileInfo info(context, operation);
+            info.maxNumObjectsToCompile = 1;
+            info.allocatedTime = 1;
+            EXPECT_FALSE(list.compile(info));
+            for (unsigned shader = 0; shader < 2; ++shader)
+                EXPECT_EQ(program->getShader(shader)->getPCS(*context->getState())->isCompiled(), shader <= step);
+            EXPECT_TRUE(program->getPCP(*context->getState())->needsLink());
+        }
+        // Source changes between staging and finalization cannot make a stale
+        // compiled shader/program appear ready.
+        program->getShader(1)->setShaderSource("#version 120\nvoid main(){gl_FragColor=vec4(1,0,0,1);}");
+        osgUtil::IncrementalCompileOperation::CompileInfo finish(context, operation);
+        finish.compileAll = true;
+        EXPECT_TRUE(list.compile(finish));
+        EXPECT_FALSE(program->getPCP(*context->getState())->needsLink());
+        auto* state = context->getState();
+        glClearColor(0,0,0,1);glClear(GL_COLOR_BUFFER_BIT);
+        osg::RenderInfo render(state, nullptr);
+        state->pushStateSet(geometry->getStateSet());state->apply();geometry->draw(render);state->popStateSet();
+        EXPECT_EQ(pixel(16), (std::array<unsigned char,3>{255,0,0}));
+        EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
+        geometry->releaseGLObjects(state);
+    }
+
+    TEST(GranularCompilation, CustomCompileOverridesKeepTheirOriginalContract)
+    {
+        struct CustomGeometry : osg::Geometry
+        {
+            mutable int mCalls = 0;
+            void compileGLObjects(osg::RenderInfo&) const override { ++mCalls; }
+        };
+        struct CustomProgram : osg::Program
+        {
+            mutable int mCalls = 0;
+            void compileGLObjects(osg::State&) const override { ++mCalls; }
+        };
+        osg::ref_ptr<Context> context = new Context;
+        osg::ref_ptr<CustomGeometry> geometry = new CustomGeometry;
+        geometry->setVertexArray(new osg::Vec3Array(3));
+        geometry->setUseVertexBufferObjects(true);
+        osg::ref_ptr<CustomProgram> program = new CustomProgram;
+        program->addShader(new osg::Shader(osg::Shader::VERTEX, "this must not compile"));
+        osg::ref_ptr<SceneUtil::ResourceCompileSet> set = new SceneUtil::ResourceCompileSet(geometry);
+        auto& list = set->_compileMap[context];
+        list.add(geometry);list.add(program);
+        set->splitCompileOperations();
+        ASSERT_EQ(list._compileOps.size(), 2u);
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> operation = new osgUtil::IncrementalCompileOperation;
+        osgUtil::IncrementalCompileOperation::CompileInfo info(context, operation);
+        info.compileAll = true;
+        EXPECT_TRUE(list.compile(info));
+        EXPECT_EQ(geometry->mCalls, 1);
+        EXPECT_EQ(program->mCalls, 1);
+        EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
     }
 }

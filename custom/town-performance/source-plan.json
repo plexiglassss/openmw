@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4. Address Detailed town-traversal evidence with bounded CPU/graphics admission and isolated LuaJIT prototype reuse; preserve cumulative tools, gameplay, tooltip, QuickLoot and HBFS fixes. Keep the routing fixture aligned with separate CPU and graphics admission limits; all tested engine changes remain byte-identical. Require the expanded queue and Lua prototype test suites in the Windows result gate; all tested engine changes remain byte-identical. Verify Lua instance lifetime independently of retained code and JIT heap capacity; repeat both cache modes before linking and retain explicitly unverified failure diagnostics without relaxing acceptance gates.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4. Address Detailed town-traversal evidence with bounded CPU/graphics admission and isolated LuaJIT prototype reuse; preserve cumulative tools, gameplay, tooltip, QuickLoot and HBFS fixes. Keep the routing fixture aligned with separate CPU and graphics admission limits; all tested engine changes remain byte-identical. Require the expanded queue and Lua prototype test suites in the Windows result gate; all tested engine changes remain byte-identical. Verify Lua instance lifetime independently of retained code and JIT heap capacity; repeat both cache modes before linking and retain explicitly unverified failure diagnostics without relaxing acceptance gates. Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -47,7 +47,8 @@
     "b9fd7797f0574542871027718d9b17e1d932e2be",
     "a2eaec2e2c17dbfb4db5a24116bbbced73c33357",
     "dfd8a5d87881505a29f0162441aee9ada1b32950",
-    "3909680cd695363600857b33b2ed0087e4861344"
+    "3909680cd695363600857b33b2ed0087e4861344",
+    "520a8bcdff36f519b2fe63a2872de132856a1b90"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -67,11 +68,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "afa2e71553cd14d37428f1c731adb7e7bdb663d1"
+        "blob": "825f8a8393199720a60914be5f7f7ea375ef82c4"
       },
-      "bytes": 75714,
-      "sha256": "73366b58fc6b59f3b018fbc37dab7fd3de3c6b8bc4913ef915b5b5f524cd3260",
-      "reason": "Run the preserved cumulative Windows workflow for the tooltip repair branch. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Verify collection of cold and reused Lua sandbox instances directly with weak references and retained-root controls; stress both cache modes before engine linking, and retain explicitly unverified compiled binaries after failed runs. Production engine bytes unchanged."
+      "bytes": 75784,
+      "sha256": "55453888fcb158e11ab0380ba282e31cc7fe9f28ebf83ddd37c634d023535f97",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -80,11 +81,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c1e531fbff3aedffbc0b83feed2729a51f35ce16"
+        "blob": "c21825fd1c1e8776aa25a87c81c9bff094308154"
       },
-      "bytes": 4781,
-      "sha256": "00bfb4a5844d4a101feb1f32d1cba4af04ec49266ea205e8d60c721ef79700e0",
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
+      "bytes": 4819,
+      "sha256": "83ec369cd4731a151da859eea335c17e40b34ace590408ab07199566b68b7233",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/components_tests/esm/testrefid.cpp": {
       "before": {
@@ -1570,11 +1571,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "129a900a187b4635bb85ccc4a5d1bd85e9cdf705"
+        "blob": "cb9917e224d506eb2608dc2d84778efcb8250238"
       },
-      "bytes": 48906,
-      "sha256": "798f208209c60beae79c817196d0d01fd5c3f4a9ad0b12cb7424f96dd968939e",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 52225,
+      "sha256": "78fb1484f3845bb24f1fcc7ccb98c6bd82ec98856cab31262ed6eb6e3d83724d",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "before": {
@@ -1583,11 +1584,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6ed924717ea18cc4f809cf9c2c01ff4e79806bea"
+        "blob": "a889a8600ab9019487d93dfff1892abeaeb00bc8"
       },
-      "bytes": 5422,
-      "sha256": "e2e0069bf50e67e1322277a04b2286748f9cc86abfbd7d6af0ce5e30dd4d2838",
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 5769,
+      "sha256": "d1c2fe113fcaa95c07796f41a2cbaf812d33f83b1ef964614bb4abbe29634257",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/openmw/mwworld/cellref.cpp": {
       "before": {
@@ -1733,11 +1734,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "3abff26098906e4450657ddcb3518510e168551a"
+        "blob": "2576310e6cffac21c42c78d2c0685d87cc206af7"
       },
-      "bytes": 69693,
-      "sha256": "8274b742a91f660f9f35d4f6c8895ffb16c6fb84467939203b8ad799db802349",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 70345,
+      "sha256": "5bcdbe006c6776d39628251586dbae1d953d25fbaddd33e5049cbb4f008abe62",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "before": {
@@ -1746,11 +1747,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "91a37a183f8a8f7e7d90d42fec3d639202bc8c2f"
+        "blob": "5c1e2b629dfd2484298bea6c76524d433e091248"
       },
-      "bytes": 6075,
-      "sha256": "c04df725f53be38ffa1d11df585ba052b06981f6442196fc45fd0d9f20a4035d",
-      "reason": "Predict the data-defined exterior landing, wait for gameplay cells and retain/cancel/reuse correct destination work. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 6125,
+      "sha256": "7ab8ad4224256f7c073ea50a7b44b850b8d309c0ec71b1072f9d7d968768c0b0",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/openmw/mwworld/worldimp.cpp": {
       "before": {
@@ -2419,11 +2420,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "fd6d1a124189345ca430d5b4f8566a37d13d25ed"
+        "blob": "eff78f8ee821a80ed008bcb5760c16aa68c3b336"
       },
-      "bytes": 4931,
-      "sha256": "bd85083c9b2422b37c3913a7f325778ac5872b29c532822f25ce05cbe31f0b12",
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features."
+      "bytes": 5304,
+      "sha256": "5ce7689f0a7b9e877e9075b3706ee7e762d9285d70e6fbf27bd0528cea05440c",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "components/misc/nativejobpool.cpp": {
       "before": null,
@@ -2629,31 +2630,31 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "900a46391d099823cb8aef55555035cf45cc7307"
+        "blob": "50dec0773303983b85aea19c095bf7bfe1a074e4"
       },
-      "bytes": 7875,
-      "sha256": "cbd53ebe4b2c58485aaf0ed9aa525c7094796ab44351a7dc4ac010b6891e06c0",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
+      "bytes": 14583,
+      "sha256": "2cb3d16ccb05325c22163492c6129ed3dd00972583d338af0abdcf65e370d960",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "components/sceneutil/compilepriority.hpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "5646c931d56867e51484f536c7e41350ed12a0b4"
+        "blob": "63d1b193803e328f94adb6f4c43b8775c73728c9"
       },
-      "bytes": 3079,
-      "sha256": "1774aec31a9214dd20b1b4652f35b0ed07844159feb78ec26151457017d97144",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
+      "bytes": 3472,
+      "sha256": "35f6006b8bc2c6c0debcd68e129b3d2b9048932076d564e3d51662b939b0a6b9",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "components/sceneutil/gameplaycompile.cpp": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "57bccdf173252aba8ef0eea48bea0a54513a0235"
+        "blob": "ea26809f73c62c69318a31fab41e05cb6c81079b"
       },
-      "bytes": 2181,
-      "sha256": "3a1c90d0b965d190b984fa2d51ad4a823f85c3a25ba81db1ade7b8cac7754eab",
-      "reason": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 2510,
+      "sha256": "372e139b7bb03b7301ac3a61caad18d5c095782013ad593672220294dd4ebd9a",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "components/sceneutil/gameplaycompile.hpp": {
       "before": null,
@@ -2969,11 +2970,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5512845e1d60d22db8e37452a790a617931d5d8b"
+        "blob": "3d86950e9f6232197307c900c6bff2d54f96a2bf"
       },
-      "bytes": 37592,
-      "sha256": "b212a1572bcfe8622a5c7e6897126fbfeb00b63881e845ae0c2d9f3cab861337",
-      "reason": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Reuse verified shader and texture-companion decisions while respecting mutable state, VFS revisions and location profiles. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Preserve completed distant scenery using weak lifetime receipts, invalidate on shader/resource/context changes, and test actual queue routing and lifetime."
+      "bytes": 37686,
+      "sha256": "c83d6603040b3576a9954b24df6dce56c3ced5b8ff15e1ec42994bc726cc2605",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "components/shader/shadermanager.hpp": {
       "before": {
@@ -3231,41 +3232,41 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "cae88664455b014d9d7a1b63f2025dcc6ba66537"
+        "blob": "3349089eb866f07c44e27dc03c4106ca65bc1796"
       },
-      "bytes": 12309,
-      "sha256": "ce99c8a22d7d550d18c8cb10b77a6e8488dc3ff8d95b65367f2f7830bdd0deb8",
-      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 20388,
+      "sha256": "517407dbc96abbecf0032c8d6471400c52272b325a711f53ca0321a028e19f48",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "custom/cell-streaming/test-scenery-handover.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "b967b0528b2ad2335ac23ff4d48bfabce9d6b1b7"
+        "blob": "1a4bc6917502ecca1b0d6e137e2c5097876529c7"
       },
-      "bytes": 10890,
-      "sha256": "4680b2d8169619951d0ea00d5b32feffeed411c9e8548d46c8ec73106abec072",
-      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 10898,
+      "sha256": "586d6dd3e984ad088475a00285b28c741fd2d379a2f90e3c0baa1177c8dac103",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "custom/cell-streaming/test-static-preload.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "21906069e75091c84d6d01517aa822f9255b9bae"
+        "blob": "37f0365aa815478b2a8ed1d09152ccffa4092a05"
       },
-      "bytes": 10137,
-      "sha256": "1eb100937d1a5950973f8fc9467969740441205e4fc419b28e12b446724e91dc",
-      "reason": "Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation."
+      "bytes": 10635,
+      "sha256": "1ac01b69767ef53cdf82c8757861843bda2f711d2451f9ba531cb8ed2e0db875",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "custom/cell-streaming/verify-tests.py": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2c9057cd9849cebf8598360dc6baa66e1f4d8202"
+        "blob": "e3ac30e54c475740a9c260fb6c2745665eec2534"
       },
-      "bytes": 2222,
-      "sha256": "d4d4364aaf31de97a1c7d7f73b6459b36c53c4c1fd26d3c8bf91aa2f757a72f4",
-      "reason": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Require all 17 AsyncPreparation cases and all seven LuaScriptCache cases in the Windows result gate, matching the executed native XML; production engine bytes unchanged."
+      "bytes": 2274,
+      "sha256": "e820d113e077d3db0d4166ca70a1dc191ae357c656488473317f0e8f73ea7530",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "custom/combined-performance/.gitattributes": {
       "before": null,
@@ -4435,11 +4436,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8659244f60990d6f48fc7ab417efe610aa9ee763"
+        "blob": "58ed7611c5f411ce8fde18dbea2e631db4792858"
       },
-      "sha256": "70acb91f6a0e30f7c4cb2261a6b4a3dcd79458a2195f5a1a9b07cda795f8e956",
-      "bytes": 9269,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage."
+      "sha256": "713adf02f30df2c757c76837c04b68143ac17e216a5e4accca78e2754ba460be",
+      "bytes": 9617,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "custom/performance-tests/test-streaming-paths.py": {
       "before": null,
@@ -4458,11 +4459,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "c536c6604f50656c3ecbaf3520fc50e504d6833f"
+        "blob": "9ae150013b66d739a34ea598e3801be285645530"
       },
-      "sha256": "88ad52669838a0a838b93aace8b049e783f22249173b24f20ff4431a81c3880f",
-      "bytes": 5928,
-      "reason": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration."
+      "sha256": "f3e7b9d0e32ffdb31f94ef96a38f42b90e1407d0bb991684de7fc9c3202838ef",
+      "bytes": 6402,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "custom/review-tests/lua-arrival-benchmark.cpp": {
       "before": null,
@@ -5073,6 +5074,46 @@
       "bytes": 14577,
       "sha256": "48ffb002773aaaeb0e90a809dfe9b344dbb9a01e64c3876d8544b6be64c3aea3",
       "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
+    },
+    "apps/components_tests/terrain/testpreloadprediction.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "0a803e00d9ea73ae45c779caa54ea2f3618099c9"
+      },
+      "bytes": 4376,
+      "sha256": "39faabfeadc25afa8f7f9d17d307a0bed9917e80445504c5f8cacdb740583576",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+    },
+    "components/sceneutil/preparationcost.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "5e46382d271a0fb70b9a787ea12df696d3b18e32"
+      },
+      "bytes": 3335,
+      "sha256": "c4490f14d599564f290bd7128a484cedff7229be1e61eb8a26a746bf39bc6f10",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+    },
+    "components/terrain/preloadprediction.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "0244cf7b62f1921d0d5e38d1e9dc0a191628162d"
+      },
+      "bytes": 1221,
+      "sha256": "77b80f34e3a9e26cb087c30ff02588f65f121f329783d605a4bc9235a89b678f",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+    },
+    "custom/cell-streaming/READINESS-20261118.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6a79c6712b8148d10426e0a023d61c8f1e1caae5"
+      },
+      "bytes": 3237,
+      "sha256": "9639f53177e533a0b3ba06b96ecef13481552b3d38f68b838155284d6bf2e464",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     }
   }
 }
