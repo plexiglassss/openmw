@@ -1,6 +1,7 @@
 #include "containeritemmodel.hpp"
 
 #include <algorithm>
+#include <unordered_map>
 
 #include "../mwmechanics/actorutil.hpp"
 #include "../mwmechanics/creaturestats.hpp"
@@ -163,6 +164,7 @@ namespace MWGui
     void ContainerItemModel::update()
     {
         mItems.clear();
+        std::unordered_map<ESM::RefId, std::vector<size_t>> stacksById;
         for (auto& source : mItemSources)
         {
             MWWorld::ContainerStore& store = source.first.getClass().getContainerStore(source.first);
@@ -172,9 +174,11 @@ namespace MWGui
                 if (!(*it).getClass().showsInInventory(*it))
                     continue;
 
+                auto& candidates = stacksById[it->getCellRef().getRefId()];
                 bool found = false;
-                for (ItemStack& itemStack : mItems)
+                for (const size_t index : candidates)
                 {
+                    ItemStack& itemStack = mItems[index];
                     if (stacks(*it, itemStack.mBase))
                     {
                         // we already have an item stack of this kind, add to it
@@ -188,15 +192,18 @@ namespace MWGui
                 {
                     // no stack yet, create one
                     ItemStack newItem(*it, this, it->getCellRef().getCount());
+                    candidates.push_back(mItems.size());
                     mItems.push_back(newItem);
                 }
             }
         }
         for (MWWorld::Ptr& source : mWorldItems)
         {
+            auto& candidates = stacksById[source.getCellRef().getRefId()];
             bool found = false;
-            for (ItemStack& itemStack : mItems)
+            for (const size_t index : candidates)
             {
+                ItemStack& itemStack = mItems[index];
                 if (stacks(source, itemStack.mBase))
                 {
                     // we already have an item stack of this kind, add to it
@@ -210,6 +217,7 @@ namespace MWGui
             {
                 // no stack yet, create one
                 ItemStack newItem(source, this, source.getCellRef().getCount());
+                candidates.push_back(mItems.size());
                 mItems.push_back(newItem);
             }
         }

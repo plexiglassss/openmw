@@ -401,3 +401,8 @@ ClearedDungeonMapTitle: "Show cleared status in the map title"
 ClearedDungeonSuffix: "(Cleared)"
 TooltipOptionsReset: "Reset tooltip options"
 TooltipOptionsHint: "Travel previews require the Travel Tooltips data folder. Cleared status tracks hostiles in each visited interior, rather than quests or loot. Tracking starts with visits in this build; hiding the labels keeps your history. Reset changes only the options on this page."
+
+DialogueColourRemoval: "Items removed"
+DialogueColourSampleRemoval: "A note has been removed from your inventory."
+
+ModKeybindings: "Mod Keybindings"

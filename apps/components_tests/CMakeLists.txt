@@ -39,6 +39,7 @@ file(GLOB UNITTEST_SRC_FILES
 
     misc/compression.cpp
     misc/progressreporter.cpp
+    misc/testbindingcapture.cpp
     misc/testdialoguetext.cpp
     misc/testendianness.cpp
     misc/testmathutil.cpp

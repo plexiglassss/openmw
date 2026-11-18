@@ -16,6 +16,7 @@ namespace MWGui
         CountDialog();
         void openCountDialog(const std::string& item, const std::string& message, const int maxCount);
         void setCount(int count);
+        void confirm() { onOkButtonClicked(nullptr); }
 
         /** Event : Ok button was clicked.\n
             signature : void method(MyGUI::Widget* sender, std::size_t count)\n

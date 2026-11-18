@@ -1,6 +1,8 @@
 #include <tuple>
 #include <components/widgets/windowsnap.hpp>
 #include "uibindings.hpp"
+#include <components/lua_ui/input.hpp>
+#include <SDL_keyboard.h>
 
 #include <components/lua/util.hpp>
 #include <components/lua_ui/alignment.hpp>
@@ -322,7 +324,13 @@ namespace MWLua
             { { "Start", LuaUi::Alignment::Start }, { "Center", LuaUi::Alignment::Center },
                 { "End", LuaUi::Alignment::End } }));
 
+        if (!menu)
+            api["registerUiActionHandler"] = [](std::string id, const sol::table& callback) {
+                LuaUi::registerUiActionHandler(std::move(id), LuaUtil::Callback::fromLua(callback));
+            };
+        api["isTextInputActive"] = []() { return SDL_IsTextInputActive() == SDL_TRUE; };
         api["registerSettingsPage"] = &LuaUi::registerSettingsPage;
+        api["_controlsPageVisible"] = &LuaUi::controlsPageVisible;
         api["removeSettingsPage"] = &LuaUi::removeSettingsPage;
 
         api["texture"] = [luaManager = context.mLuaManager](const sol::table& options) {

@@ -521,6 +521,22 @@ namespace MWInput
         }
     }
 
+    int BindingsManager::getActionBinding(int action, int device)
+    {
+        if (mInputBinder->getChannel(action)->getControlsCount() == 0)
+            return -1;
+        ICS::Control* c = mInputBinder->getChannel(action)->getAttachedControls().front().control;
+        if (device == 0)
+        {
+            const auto key = mInputBinder->getKeyBinding(c, ICS::Control::INCREASE);
+            return key == SDL_SCANCODE_UNKNOWN ? -1 : static_cast<int>(key);
+        }
+        const auto button = device == 1
+            ? mInputBinder->getMouseButtonBinding(c, ICS::Control::INCREASE)
+            : mInputBinder->getJoystickButtonBinding(c, sFakeDeviceId, ICS::Control::INCREASE);
+        return button == ICS_MAX_DEVICE_BUTTONS ? -1 : static_cast<int>(button);
+    }
+
     std::string BindingsManager::getActionKeyBindingName(int action)
     {
         if (mInputBinder->getChannel(action)->getControlsCount() == 0)

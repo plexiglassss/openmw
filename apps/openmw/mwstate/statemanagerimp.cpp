@@ -276,6 +276,16 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         writeScreenshot(profile.mScreenshot);
         savePhase("screenshot");
 
+        // Capture the thumbnail first; then present feedback before any blocking serialization.
+        Loading::Listener& listener = *MWBase::Environment::get().getWindowManager()->getLoadingScreen();
+        const size_t savedCells = world.countSavedGameCells();
+        const size_t finalizationWork = std::max<size_t>(savedCells / 4, 4);
+        const size_t progressRange = savedCells + finalizationWork;
+        listener.setProgressRange(progressRange);
+        listener.setLabel("#{OMWEngine:SavingInProgress}", false);
+        Loading::ScopedLoad load(&listener);
+        listener.refresh(true);
+
         if (!slot)
             slot = character->createSlot(profile);
         else
@@ -316,13 +326,6 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
 
         writer.save(stream);
 
-        Loading::Listener& listener = *MWBase::Environment::get().getWindowManager()->getLoadingScreen();
-        // Using only Cells for progress information, since they typically have the largest records by far
-        listener.setProgressRange(MWBase::Environment::get().getWorld()->countSavedGameCells());
-        listener.setLabel("#{OMWEngine:SavingInProgress}", true);
-
-        Loading::ScopedLoad load(&listener);
-
         savePhase("slot, animations, record counts and writer setup");
         writer.startRecord(ESM::REC_SAVE);
         slot->mProfile.save(writer);
@@ -341,6 +344,7 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         MWBase::Environment::get().getMechanicsManager()->write(writer, listener);
         MWBase::Environment::get().getInputManager()->write(writer, listener);
         savePhase("scripts, mechanics and input");
+        listener.refresh(true); // Map encoding may still be running on the worker.
         MWBase::Environment::get().getWindowManager()->write(writer, listener);
         savePhase("map and UI");
 
@@ -356,6 +360,8 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
                 "Write operation failed (memory stream): " + std::generic_category().message(errno));
 
         savePhase("finish serialization");
+        listener.setProgress(savedCells + finalizationWork / 2);
+        listener.refresh(true);
         // All good, write to file
         std::ofstream filestream(slot->mPath, std::ios::binary);
         filestream << stream.rdbuf();
@@ -364,6 +370,8 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         if (filestream.fail())
             throw std::runtime_error("Write operation failed (file stream): " + std::generic_category().message(errno));
 
+        listener.setProgress(progressRange);
+        listener.refresh(true);
         savePhase("file write and stream flush");
         Settings::saves().mCharacter.set(Files::pathToUnicodeString(slot->mPath.parent_path().filename()));
         mLastSavegame = slot->mPath;

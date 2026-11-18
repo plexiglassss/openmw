@@ -82,13 +82,13 @@ namespace
     constexpr std::array<std::string_view, 4> dialogueColourToggleSettings{
         "dialogue colouring", "dialogue use system colour", "dialogue classify narration", "journal colour narration"
     };
-    constexpr std::array<std::string_view, 7> dialogueColourSettings{ "color dialogue normal",
+    constexpr std::array<std::string_view, 8> dialogueColourSettings{ "color dialogue normal",
         "color dialogue inventory", "color dialogue stat", "color dialogue narration", "color dialogue journal",
-        "color journal narration", "color dialogue topic" };
-    constexpr std::array<std::string_view, 7> dialogueColourSamples{ "#{OMWEngine:DialogueColourSampleNormal}",
+        "color journal narration", "color dialogue topic", "color dialogue inventory removal" };
+    constexpr std::array<std::string_view, 8> dialogueColourSamples{ "#{OMWEngine:DialogueColourSampleNormal}",
         "#{OMWEngine:DialogueColourSampleInventory}", "#{OMWEngine:DialogueColourSampleStat}",
         "#{OMWEngine:DialogueColourSampleNarration}", "#{OMWEngine:DialogueColourSampleJournal}",
-        "#{OMWEngine:DialogueColourSampleJournalNarration}", "#{OMWEngine:DialogueColourSampleTopic}" };
+        "#{OMWEngine:DialogueColourSampleJournalNarration}", "#{OMWEngine:DialogueColourSampleTopic}", "#{OMWEngine:DialogueColourSampleRemoval}" };
 
     std::array<Settings::SettingValue<bool>*, 8> tooltipToggleSettings()
     {
@@ -278,6 +278,9 @@ namespace MWGui
 
     void SettingsWindow::onFrame(float duration)
     {
+        LuaUi::setControlsPageVisible(mModControlsMode && mModControlsView->getInheritedVisible());
+        if (mModControlsMode && mModControlsView->getCanvasSize() != mModControlsAdapter->getSize())
+            mModControlsView->setCanvasSize(mModControlsAdapter->getSize());
         if (mScriptView->getVisible())
         {
             const auto scriptsSize = mScriptAdapter->getSize();
@@ -326,6 +329,10 @@ namespace MWGui
         getWidget(mResetControlsButton, "ResetControlsButton");
         getWidget(mKeyboardSwitch, "KeyboardButton");
         getWidget(mControllerSwitch, "ControllerButton");
+        getWidget(mModControlsSwitch, "ModControlsButton");
+        getWidget(mModControlsView, "ModControlsView");
+        getWidget(mModControlsAdapter, "ModControlsAdapter");
+        mModControlsSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onModControlsSwitchClicked);
         getWidget(mWaterRefractionButton, "WaterRefractionButton");
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
@@ -1460,11 +1467,32 @@ namespace MWGui
         updateLightSettings();
     }
 
+    void SettingsWindow::updateControlsVisibility()
+    {
+        mControlsBox->setVisible(!mModControlsMode);
+        mModControlsView->setVisible(mModControlsMode);
+        mResetControlsButton->setVisible(!mModControlsMode);
+        mModControlsSwitch->setStateSelected(mModControlsMode);
+        mKeyboardSwitch->setStateSelected(!mModControlsMode && mKeyboardMode);
+        mControllerSwitch->setStateSelected(!mModControlsMode && !mKeyboardMode);
+        LuaUi::setControlsPageVisible(mModControlsMode);
+        if (mModControlsMode)
+            LuaUi::attachControlsPage(mModControlsAdapter);
+    }
+
+    void SettingsWindow::onModControlsSwitchClicked(MyGUI::Widget*)
+    {
+        mModControlsMode = true;
+        updateControlsVisibility();
+    }
+
     void SettingsWindow::onKeyboardSwitchClicked(MyGUI::Widget* /*sender*/)
     {
-        if (mKeyboardMode)
+        if (mKeyboardMode && !mModControlsMode)
             return;
+        mModControlsMode = false;
         mKeyboardMode = true;
+        updateControlsVisibility();
         mKeyboardSwitch->setStateSelected(true);
         mControllerSwitch->setStateSelected(false);
         updateControlsBox();
@@ -1473,9 +1501,11 @@ namespace MWGui
 
     void SettingsWindow::onControllerSwitchClicked(MyGUI::Widget* /*sender*/)
     {
-        if (!mKeyboardMode)
+        if (!mKeyboardMode && !mModControlsMode)
             return;
+        mModControlsMode = false;
         mKeyboardMode = false;
+        updateControlsVisibility();
         mKeyboardSwitch->setStateSelected(false);
         mControllerSwitch->setStateSelected(true);
         updateControlsBox();
@@ -1649,6 +1679,7 @@ namespace MWGui
         for (size_t i = 0; i < LuaUi::scriptSettingsPageCount(); ++i)
         {
             LuaUi::ScriptSettingsPage page = LuaUi::scriptSettingsPageAt(i);
+            if (page.mControls) continue;
             size_t nameWeight = weightedSearch(page.mName, patternArray);
             size_t hintWeight = weightedSearch(page.mSearchHints, patternArray);
             if ((nameWeight + hintWeight) > 0)
@@ -1725,6 +1756,7 @@ namespace MWGui
 
     void SettingsWindow::onOpen()
     {
+        updateControlsVisibility();
         highlightCurrentResolution();
         updateControlsBox();
         updateLightSettings();
@@ -1742,6 +1774,8 @@ namespace MWGui
 
     void SettingsWindow::onClose()
     {
+        LuaUi::setControlsPageVisible(false);
+        MWBase::Environment::get().getInputManager()->cancelBindingCapture();
         // Save user settings
         Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
         MWBase::Environment::get().getLuaManager()->savePermanentStorage(mCfgMgr.getUserConfigPath());

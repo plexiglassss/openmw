@@ -182,7 +182,9 @@ namespace
         const float multiplier = 1000;
         const bool average = true;
         const bool averageInInverseSpace = false;
-        const float maxValue = 10000;
+        // GraphUpdateCallback reads raw seconds; the multiplier only formats text.
+        // Match OSG's built-in traversal graphs (16 ms at the top of the graph).
+        const float maxValue = 0.016f;
 
         OMW::forEachUserStatsValue([&](const OMW::UserStats& v) {
             profiler.addUserStatsLine(v.mLabel, textColor, barColor, v.mTaken, multiplier, average,

@@ -322,9 +322,15 @@ namespace MWGui
         mSceneImage->setVisible(true);
     }
 
-    void LoadingScreen::draw()
+    void LoadingScreen::refresh(bool force)
     {
-        if (!needToDrawLoadingScreen())
+        if (mNestedLoadingCount > 0)
+            draw(force);
+    }
+
+    void LoadingScreen::draw(bool force)
+    {
+        if (!force && !needToDrawLoadingScreen())
             return;
 
         if (mShowWallpaper && mTimer.time_m() > mLastWallpaperChangeTime + 5000 * 1)
