@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4. Address Detailed town-traversal evidence with bounded CPU/graphics admission and isolated LuaJIT prototype reuse; preserve cumulative tools, gameplay, tooltip, QuickLoot and HBFS fixes. Keep the routing fixture aligned with separate CPU and graphics admission limits; all tested engine changes remain byte-identical. Require the expanded queue and Lua prototype test suites in the Windows result gate; all tested engine changes remain byte-identical. Verify Lua instance lifetime independently of retained code and JIT heap capacity; repeat both cache modes before linking and retain explicitly unverified failure diagnostics without relaxing acceptance gates. Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions.",
+  "scope": "Preserve the full cumulative engine. Restore the saved world map in parallel with later load stages, retain explored pixels on immediate saves, batch visited marker widgets, and time the owner and worker stages separately. Prepare exterior object models across neighboring terrain chunks and refresh the inventory avatar and visible armor caption efficiently. Predict one exterior exit, publish the active grid before distant scenery, retain one validated return view, and share immutable Lua attachment plans. Reuse published exterior geometry for matching ray views, conservatively reject disjoint terrain and paged geometry, and filter indexed VFS paths by directory component. Prioritize required arrivals, remove obsolete queued work, prioritize nearby graphics resources, and share immutable position reads during safe Lua phases. Preserve the 15 November god-mode magic-effect accounting and old-save repair from 809fc3b3. Generic actor spatial searches and selective immutable nearby distance queries, retaining the complete transition-readiness baseline. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Explicit empty Lua world-tooltip overrides suppress the native panel, including restoration on close; preserve the complete 83d2c9b exterior preparation baseline including the corrected independent scene-preparation fixture. Predict bounded initial equipment, possible leveled actors and renderer animation resources without gameplay side effects; own queued filenames and diagnose slow activation/cull phases. Preserve both 8ba2af82 and dd179b23 histories. Continuous distant-object preparation returns pending to camera traversal, keeps terrain visible, validates per-context completion and cache generations, and prioritizes detached cell clones before optional animations. Active gameplay and exact-query semantics remain intact; runtime gains require matched in-game validation. Preserve completed distant scenery across view rebuilds using bounded weak node-lifetime receipts, with resource/context invalidation and ownership/routing regressions. Preserve complete cumulative head 068f8322 while adding scenery continuity, whole-cell ready-only handover, retained arrival cover and bounded static next-grid resource preparation without early gameplay activation. Correct the 157fc965 scenery regression with default optimized coverage, cooperative graphics compilation and source-cell revisions; keep the prior unmerged cover diagnostic-only and preserve all cumulative fixes. Refresh the exact loading-screen binding used by the build-time lookup-only transformation; production engine bytes remain identical to 788aafb4. Address Detailed town-traversal evidence with bounded CPU/graphics admission and isolated LuaJIT prototype reuse; preserve cumulative tools, gameplay, tooltip, QuickLoot and HBFS fixes. Keep the routing fixture aligned with separate CPU and graphics admission limits; all tested engine changes remain byte-identical. Require the expanded queue and Lua prototype test suites in the Windows result gate; all tested engine changes remain byte-identical. Verify Lua instance lifetime independently of retained code and JIT heap capacity; repeat both cache modes before linking and retain explicitly unverified failure diagnostics without relaxing acceptance gates. Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Preserve 80135007 while sharing overlapping navigation source-geometry preparation, allocating tile snapshots by spatial matches and rejecting obsolete cache publication; retain actor-specific navigation rules, default thread counts and uncached navmeshtool semantics. Add deterministic real-traversal/lifetime and three-mode native evidence with an isolated comparison launcher. Gameplay improvement remains unmeasured.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -48,7 +48,8 @@
     "a2eaec2e2c17dbfb4db5a24116bbbced73c33357",
     "dfd8a5d87881505a29f0162441aee9ada1b32950",
     "3909680cd695363600857b33b2ed0087e4861344",
-    "520a8bcdff36f519b2fe63a2872de132856a1b90"
+    "520a8bcdff36f519b2fe63a2872de132856a1b90",
+    "8013500753ac374291bf0cb4469e28b32d4df28b"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -68,11 +69,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "825f8a8393199720a60914be5f7f7ea375ef82c4"
+        "blob": "909be4cad2938245d879ee670986b54ab91f6594"
       },
-      "bytes": 75784,
-      "sha256": "55453888fcb158e11ab0380ba282e31cc7fe9f28ebf83ddd37c634d023535f97",
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "bytes": 77745,
+      "sha256": "c0aba10486c5ed4d1cf0a334620258e1cb4c76f58ba08cd81e3eb40971f5504d",
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -3772,11 +3773,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "567e3f6ddb36d039e24817e07debc9df35806e19"
+        "blob": "058907e7044fb879b5733c05a87e1dede1471227"
       },
-      "bytes": 13562,
-      "sha256": "0c5003481ccdcffa9725c0fc481a086bc27be580d34f6cba28c64832398c391b",
-      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence."
+      "bytes": 13683,
+      "sha256": "295b3c0555f18bfea6700f410e5ceca8e1ec539a30be8dea387ce5e9f5853969",
+      "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification."
     },
     "custom/combined-performance/reuse-windows-engine.py": {
       "before": null,
@@ -4397,11 +4398,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "fcc73216cb01bedbfa8d5afd7ff8192ad1e2240c"
+        "blob": "6fd45e775e64054301861c254778a6d0837e5c49"
       },
-      "bytes": 53069,
-      "sha256": "7c1dd273633564c96afabaa88df0e7934b819bbd43b9ee8d32b0034bcb738edb",
-      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 53114,
+      "sha256": "de4129f445aef1f3fbd469d730b65ddbf7b6fe5bc093aa78e0211575a889ff61",
+      "reason": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "before": {
@@ -5114,6 +5115,101 @@
       "bytes": 3237,
       "sha256": "9639f53177e533a0b3ba06b96ecef13481552b3d38f68b838155284d6bf2e464",
       "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+    },
+    "apps/components_tests/detournavigator/tilecachedrecastmeshmanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "66c865be6c2ade117b750927d22c9906d6887c03"
+      },
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "e9986e7c370fe3b9365f6521149fecda5a6fc2f3"
+      },
+      "bytes": 51639,
+      "sha256": "633a1618ea0387d6c52b0936a69d45a189754314174b9a519a942d0d23206760"
+    },
+    "components/detournavigator/stats.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "4e7faba35f0033743c200b7e1f3fac1ac0795418"
+      },
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "5fd19522617b470206222ea830ce496e5d1a89bd"
+      },
+      "bytes": 3442,
+      "sha256": "ed651c42fc6d5729436832b7b48648136d39c2cd197d0ad165a21d4687d72e49"
+    },
+    "components/detournavigator/stats.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f6cd03b70a837872d35514c6d07a3c42e42bdb74"
+      },
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "f9b33e4fa9b47b6c12616d3550c64a7b7ee8a03a"
+      },
+      "bytes": 1753,
+      "sha256": "ecb7b0a64cc9907398292bded592ea3233d0d362c07ae49bc17fb87517ee2396"
+    },
+    "components/detournavigator/tilecachedrecastmeshmanager.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "5ea19db0e9dde79249346e9a3f54c05f3462d3b3"
+      },
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "5b03897a4e2f264602747588121531fe85f40676"
+      },
+      "bytes": 27639,
+      "sha256": "9700340259963b7b53e36b2315ce449eb4be267e6f0d25c58b00650dc5d47d43"
+    },
+    "components/detournavigator/tilecachedrecastmeshmanager.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "33a3c01bb0f0ae453ccc9023e501b6c2a8be8de8"
+      },
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "b04eb2c2d626dcadb991ae138a566989397f35e0"
+      },
+      "bytes": 7168,
+      "sha256": "77644583dda7872fc9b133ac5627bdd0ce4428086e4248a4b3214231e91e3744"
+    },
+    "custom/cell-streaming/NAVIGATION-PREPARATION.md": {
+      "before": null,
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "df7283f73c4019d29e2df1b5d5d017b5608f668d"
+      },
+      "bytes": 2992,
+      "sha256": "2e79c5e5b931aece53a63d1f5e32149804bf1b3bebe11f5468c4839374a50f2f"
+    },
+    "custom/combined-performance/Run-Previous-Navigation.cmd": {
+      "before": null,
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "91086425b67464485aee7f8f14c993cf0cb48c60"
+      },
+      "bytes": 99,
+      "sha256": "47a780e13b32f201816abaaa4e6e5a552218c723617cb65236992de858a55788"
+    },
+    "custom/combined-performance/tests/verify-navigation-geometry.py": {
+      "before": null,
+      "reason": "Navigation geometry preparation: narrow generic production, regression, comparison or delivery support; preserve the complete cumulative engine.",
+      "after": {
+        "mode": "100644",
+        "blob": "d14773ea6b02041ca1cad57f92f49cedad31def8"
+      },
+      "bytes": 3729,
+      "sha256": "a64986e6fb697396ce1dc778e22e7301b1f5c20566048e758df7f65df11003dc"
     }
   }
 }

@@ -428,6 +428,14 @@ jobs:
           components/CMakeFiles/components.dir/lua/scriptscontainer.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
+      - name: Compile navigation geometry preparation and concurrency regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/detournavigator/tilecachedrecastmeshmanager.cpp.obj
+          components/CMakeFiles/components.dir/detournavigator/stats.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/detournavigator/tilecachedrecastmeshmanager.cpp.obj
       - name: Compile lookup change first
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -530,6 +538,19 @@ jobs:
           if ($LASTEXITCODE) { throw 'Component regression build failed' }
           ./build/components-tests.exe --gtest_output=xml:components-tests-early.xml
           if ($LASTEXITCODE) { throw 'Early component regressions failed' }
+          try {
+            $env:OPENMW_SHARED_NAVIGATION_GEOMETRY = '0'
+            ./build/components-tests.exe --gtest_filter=NavMeshGeometryPreparation.*:DetourNavigatorTileCachedRecastMeshManagerTest.* --gtest_output=xml:navigation-previous.xml
+            if ($LASTEXITCODE) { throw 'Navigation comparison regressions failed' }
+            Remove-Item Env:OPENMW_SHARED_NAVIGATION_GEOMETRY
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe --gtest_filter=NavMeshGeometryPreparation.*:DetourNavigatorTileCachedRecastMeshManagerTest.* --gtest_output=xml:navigation-master-off.xml
+            if ($LASTEXITCODE) { throw 'Navigation master-switch regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SHARED_NAVIGATION_GEOMETRY,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-navigation-geometry.py components-tests-early.xml navigation-previous.xml navigation-master-off.xml
+          if ($LASTEXITCODE) { throw 'Navigation geometry evidence failed verification' }
           try {
             foreach ($mode in @('1','0')) {
               $env:OPENMW_LUA_PROTOTYPE_CACHE = $mode
@@ -745,6 +766,8 @@ jobs:
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
           Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
           Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
+          Copy-Item custom/cell-streaming/NAVIGATION-PREPARATION.md install/NAVIGATION-PREPARATION.md
+          Copy-Item navigation-geometry-tests.json,navigation-previous.xml,navigation-master-off.xml install/
           Copy-Item custom/cell-streaming/SCENERY-CONTINUITY.md install/SCENERY-CONTINUITY.md
           Copy-Item cell-streaming-tests.json,cell-packages-legacy.xml install/
           "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nTown performance source: town-performance-source-manifest.json`nCompiled source after lookup patch: town-performance-build-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
@@ -890,6 +913,9 @@ jobs:
             previous-spell-reads.xml
             previous-position-reads.xml
             transition-readiness-tests.json
+            navigation-geometry-tests.json
+            navigation-previous.xml
+            navigation-master-off.xml
             cell-streaming-tests.json
             actor-resource-preload-windows.log
             streaming-paths-windows.log

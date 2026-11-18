@@ -143,7 +143,7 @@ def prepare(destination):
 
     target.mkdir(parents=True)
     shutil.copy2(HERE / "TRANSITION-READINESS.txt", destination / "TRANSITION-READINESS.txt")
-    for name in ("Start-Combined.ps1", "Run-Combined.cmd", "Run-Detailed-Town.cmd", "Run-Inherited.cmd", "Run-Previous-Frame-Updates.cmd", "Run-Previous-HUD.cmd", "Run-Previous-Spell-Reads.cmd", "Run-Previous-Parallel-Queries.cmd", "Run-Without-Ray-Batching.cmd", "Run-Without-Async-Distances.cmd", "Run-Without-Lua-Workers.cmd"):
+    for name in ("Start-Combined.ps1", "Run-Combined.cmd", "Run-Detailed-Town.cmd", "Run-Inherited.cmd", "Run-Previous-Frame-Updates.cmd", "Run-Previous-HUD.cmd", "Run-Previous-Spell-Reads.cmd", "Run-Previous-Parallel-Queries.cmd", "Run-Without-Ray-Batching.cmd", "Run-Without-Async-Distances.cmd", "Run-Without-Lua-Workers.cmd", "Run-Previous-Navigation.cmd"):
         shutil.copy2(HERE / name, target / name)
     shutil.copytree(HERE / "Proximity Tool - Sparse HUD", target / "Proximity Tool - Sparse HUD")
     shutil.copytree(HERE / "Parallel Query Adapters", target / "Parallel Query Adapters")
@@ -186,7 +186,8 @@ def prepare(destination):
                           ("Run-Previous-Parallel-Queries.cmd", "Run-Previous-Parallel-Queries.cmd"),
                           ("Run-Without-Ray-Batching.cmd", "Run-Without-Ray-Batching.cmd"),
                           ("Run-Without-Async-Distances.cmd", "Run-Without-Async-Distances.cmd"),
-                          ("Run-Without-Lua-Workers.cmd", "Run-Without-Lua-Workers.cmd")):
+                          ("Run-Without-Lua-Workers.cmd", "Run-Without-Lua-Workers.cmd"),
+                          ("Run-Previous-Navigation.cmd", "Run-Previous-Navigation.cmd")):
         (destination / name).write_bytes(
             ('@echo off\r\ncall "%~dp0tools\\combined-performance\\' + command + '"\r\n').encode())
     write_root_adapter_command(destination)
