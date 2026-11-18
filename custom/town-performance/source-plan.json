@@ -5826,10 +5826,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "e6cc55dafaaeceb74f6b8a0e8d8b07bd6f2cfc05"
+        "blob": "6b87fcd75951b93e16c3f972d2396e381c25a77f"
       },
-      "sha256": "69a3f2e8e171fe22da51ae1e68b6bad5f963dcdd8301f30c8819dcac8687b8f0",
-      "bytes": 10565,
+      "sha256": "c52c1bd7a98a6e8c97587dfd3598e770fdd26da8baf39de018276b745b708cd8",
+      "bytes": 10957,
       "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "components/resource/collisioninstancecache.hpp": {

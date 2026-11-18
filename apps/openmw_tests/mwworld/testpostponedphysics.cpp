@@ -174,7 +174,11 @@ namespace MWWorld
 
         TEST_F(PostponedPhysicsTest, DynamicCountZeroMatchesCellAccessibility)
         {
-            const auto ptr = place(cell("active"));
+            auto& room = cell("active");
+            const auto ptr = place(room);
+            // An activated cell has published its accessible refs before gameplay
+            // changes their visibility. Raw fixture edits do not rebuild that view.
+            ASSERT_EQ(room.count(), 1u);
             ESM::ObjectState state;
             ptr.getCellRef().writeState(state);
             state.mRef.mCount = 0;
@@ -204,7 +208,10 @@ namespace MWWorld
 
         TEST_F(PostponedPhysicsTest, ContentDeletionIsSkippedUntilRestored)
         {
-            const auto ptr = place(cell("active"));
+            auto& room = cell("active");
+            const auto ptr = place(room);
+            // Establish the same published cell view before the raw flag edit.
+            ASSERT_EQ(room.count(), 1u);
             ptr.getRefData().setDeletedByContentFile(true);
             drain();
             EXPECT_TRUE(mInserted.empty());
