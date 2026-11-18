@@ -1,7 +1,7 @@
 name: OpenMW - combined native performance
 on:
   push:
-    branches: [perf/generic-native-jobs-20261109, fix/quickloot-tooltips-20261116, feat/unified-mod-controls-20261117]
+    branches: [perf/generic-native-jobs-20261109, fix/quickloot-tooltips-20261116, feat/unified-mod-controls-20261117, feat/follower-balance-api-20261118]
   pull_request:
     branches: [perf/gameplay-activation-20261106]
     types: [opened, synchronize, reopened]
@@ -1228,3 +1228,4 @@ jobs:
             install/verification/CI-PACKAGE-SHA256.json
             install/verification/original-upgrade/**
           if-no-files-found: error
+

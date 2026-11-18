@@ -1,6 +1,8 @@
 #include "magicbindings.hpp"
 
+#include <cmath>
 #include <format>
+#include <limits>
 #include <tuple>
 #include <variant>
 
@@ -408,6 +410,7 @@ namespace MWLua
     {
         sol::state_view state = context.sol();
         sol::table magicApi(state, sol::create);
+        magicApi["effectMagnitudeMultipliers"] = true;
 
         // Constants
         magicApi["RANGE"] = LuaUtil::makeStrictReadOnly(LuaUtil::tableFromPairs<std::string_view, ESM::RangeType>(state,
@@ -1024,11 +1027,50 @@ namespace MWLua
                 auto [name, enams] = getNameAndMagicEffects(spells.mActor.ptr(), id, effects, quiet);
                 name = options.get_or<std::string_view>("name", name);
 
+                // Scale this application only. The source record, caster, item,
+                // duration and native resistance/absorption rules are preserved.
+                // Validate the entire map before adding anything to the store.
+                const sol::object rawMultipliers = options["effectMagnitudeMultipliers"];
+                if (rawMultipliers != sol::nil && rawMultipliers.get_type() != sol::type::table)
+                    throw std::runtime_error("effectMagnitudeMultipliers must be a table");
+                sol::optional<sol::table> multipliers;
+                if (rawMultipliers.get_type() == sol::type::table)
+                    multipliers = rawMultipliers.as<sol::table>();
+                if (multipliers)
+                {
+                    for (const auto& entry : *multipliers)
+                    {
+                        if (entry.first.get_type() != sol::type::number || entry.second.get_type() != sol::type::number)
+                            throw std::runtime_error("effectMagnitudeMultipliers requires numeric indexes and factors");
+                        const double index = entry.first.as<double>();
+                        const double factor = entry.second.as<double>();
+                        if (!std::isfinite(index) || index < 0 || std::floor(index) != index
+                            || !std::isfinite(factor) || factor < 0 || factor > 1000)
+                            throw std::runtime_error("Invalid effectMagnitudeMultipliers index or factor (expected 0..1000)");
+                        bool selected = false;
+                        for (const auto& enam : enams)
+                        {
+                            if (static_cast<double>(enam.mIndex) != index)
+                                continue;
+                            selected = true;
+                            const float minimum = static_cast<float>(enam.mData.mMagnMin) * static_cast<float>(factor);
+                            const float maximum = static_cast<float>(enam.mData.mMagnMax) * static_cast<float>(factor);
+                            const float rollWidth = maximum - minimum + 1.f;
+                            if (!std::isfinite(rollWidth) || rollWidth < 1.f
+                                || static_cast<double>(rollWidth) > std::numeric_limits<int>::max())
+                                throw std::runtime_error("Scaled effect magnitude range exceeds native dice bounds");
+                        }
+                        if (!selected)
+                            throw std::runtime_error("effectMagnitudeMultipliers index is not in the selected effects");
+                    }
+                }
+
+
                 MWWorld::Ptr casterPtr;
                 if (caster)
                     casterPtr = caster->ptrOrEmpty();
-                bool casterIsPlayer = casterPtr == MWMechanics::getPlayer();
-                bool targetIsPlayer = spells.mActor.ptr() == MWMechanics::getPlayer();
+                const bool casterIsPlayer = !casterPtr.isEmpty() && getLiveCellRefType(casterPtr.mRef) == ESM::REC_INTERNAL_PLAYER;
+                const bool targetIsPlayer = getLiveCellRefType(spells.mActor.ptr().mRef) == ESM::REC_INTERNAL_PLAYER;
 
                 bool affectsHealth = false;
                 MWMechanics::ActiveSpells::ActiveSpellParams params(casterPtr, id, name, itemId);
@@ -1047,6 +1089,13 @@ namespace MWLua
                     effect.mMagnitude = 0.f;
                     effect.mMinMagnitude = static_cast<float>(enam.mData.mMagnMin);
                     effect.mMaxMagnitude = static_cast<float>(enam.mData.mMagnMax);
+                    if (multipliers)
+                    {
+                        const float factor = multipliers->raw_get<sol::optional<float>>(enam.mIndex).value_or(1.f);
+                        effect.mMinMagnitude *= factor;
+                        effect.mMaxMagnitude *= factor;
+                    }
+
                     effect.mEffectIndex = static_cast<int32_t>(enam.mIndex);
                     effect.mFlags = ESM::ActiveEffect::Flag_None;
                     if (ignoreReflect)
@@ -1219,3 +1268,4 @@ namespace MWLua
         };
     }
 }
+

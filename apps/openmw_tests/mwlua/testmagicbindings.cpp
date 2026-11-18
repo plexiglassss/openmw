@@ -7,6 +7,7 @@
 #include <components/settings/values.hpp>
 #include <components/esm/attr.hpp>
 #include <components/esm3/loadskil.hpp>
+#include <components/esm3/loadspel.hpp>
 #include "apps/openmw/mwlua/magicbindingshelper.hpp"
 #include "apps/openmw/mwlua/magicqueries.hpp"
 #include "apps/openmw/mwlua/types/types.hpp"
@@ -1195,5 +1196,329 @@ namespace MWLua
             RecordProperty("actors", actorCount);
             RecordProperty("queries_per_round", actorCount * cycles);
         }
+// Independent proposed tests for apps/openmw_tests/mwlua/testmagicbindings.cpp.
+// Insert inside its anonymous namespace, before its two closing braces.
+// Add explicit include <components/esm3/loadspel.hpp> if not transitively available.
+// Successful add-path tests need the agreed nonplayer type check in magicbindings.cpp;
+// the existing fixture intentionally supplies WorldModel but no MWBase::World.
+// Tests inspect the REAL binding's native pending queue through writeState. They do
+// not execute the graphics/mechanics loop and do not claim live DOT/death testing.
+
+        static ESM::Spell magnitudeMultiplierFixtureSpell()
+        {
+            ESM::Spell spell;
+            spell.blank();
+            spell.mId = ESM::RefId::stringRefId("multiplier_fixture_spell");
+            spell.mName = "Original magnitude fixture";
+            spell.mData.mType = ESM::Spell::ST_Spell;
+            spell.mData.mCost = 17;
+            spell.mData.mFlags = 0;
+            for (std::uint32_t index = 0; index != 3; ++index)
+            {
+                ESM::IndexedENAMstruct effect{};
+                effect.mIndex = index;
+                effect.mData.mEffectID = ESM::RefId::stringRefId("fixture_effect");
+                effect.mData.mRange = ESM::RT_Target;
+                effect.mData.mArea = 12;
+                effect.mData.mDuration = 4 + index;
+                effect.mData.mMagnMin = 10 * (index + 1);
+                effect.mData.mMagnMax = 20 * (index + 1);
+                spell.mEffects.mList.push_back(effect);
+            }
+            return spell;
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ApplicationMagnitudeMultipliersDefaultLeavesSourceAndIdentityUnchanged)
+        {
+            installSpellReadBindings();
+            const auto original = magnitudeMultiplierFixtureSpell();
+            mStore.insertStatic(original);
+            const auto victim = actor(false), caster = actor(false), item = actor(false);
+            stats(victim).setHealth(MWMechanics::DynamicStat<float>(100.f));
+            sol::state_view lua = mLua.unsafeState();
+            lua["selfVictim"] = object(victim, 2).asSelfObject();
+            lua["caster"] = LObject(caster);
+            lua["item"] = LObject(item); // controlled identity carrier, not a simulated enchantment
+            ASSERT_NO_THROW(runSpellScript(R"(
+                assert(magic.effectMagnitudeMultipliers == true)
+                firstId = actorAPI.activeSpells(selfVictim):add {
+                    id = 'multiplier_fixture_spell', effects = {0, 1, 2},
+                    caster = caster, item = item, name = 'Display override', stackable = true,
+                    ignoreReflect = true, ignoreSpellAbsorption = true, ignoreResistances = true,
+                }
+            )"));
+            ESM::ActiveSpells saved;
+            stats(victim).getActiveSpells().writeState(saved);
+            ASSERT_EQ(saved.mQueue.size(), 1u);
+            const auto& pending = saved.mQueue.front();
+            EXPECT_EQ(pending.mSourceSpellId, original.mId);
+            EXPECT_EQ(pending.mCaster, getId(caster));
+            EXPECT_EQ(pending.mItem, getId(item));
+            EXPECT_EQ(pending.mDisplayName, "Display override");
+            EXPECT_EQ(pending.mActiveSpellId.serializeText(), lua["firstId"].get<std::string>());
+            EXPECT_TRUE(pending.mFlags & ESM::ActiveSpells::Flag_Lua);
+            EXPECT_TRUE(pending.mFlags & ESM::ActiveSpells::Flag_Temporary);
+            EXPECT_TRUE(pending.mFlags & ESM::ActiveSpells::Flag_Stackable);
+            ASSERT_EQ(pending.mEffects.size(), 3u);
+            for (std::size_t i = 0; i != pending.mEffects.size(); ++i)
+            {
+                const auto& effect = pending.mEffects[i];
+                const auto& source = original.mEffects.mList[i];
+                EXPECT_EQ(effect.mEffectIndex, static_cast<int>(i));
+                EXPECT_EQ(effect.mEffectId, source.mData.mEffectID);
+                EXPECT_FLOAT_EQ(effect.mMinMagnitude, source.mData.mMagnMin);
+                EXPECT_FLOAT_EQ(effect.mMaxMagnitude, source.mData.mMagnMax);
+                EXPECT_FLOAT_EQ(effect.mDuration, source.mData.mDuration);
+                EXPECT_FLOAT_EQ(effect.mTimeLeft, effect.mDuration);
+                EXPECT_FLOAT_EQ(effect.mMagnitude, 0.f);
+                EXPECT_TRUE(effect.mFlags & ESM::ActiveEffect::Flag_Ignore_Reflect);
+                EXPECT_TRUE(effect.mFlags & ESM::ActiveEffect::Flag_Ignore_SpellAbsorption);
+                EXPECT_TRUE(effect.mFlags & ESM::ActiveEffect::Flag_Ignore_Resistances);
+            }
+            EXPECT_FLOAT_EQ(stats(victim).getHealth().getCurrent(), 100.f);
+            const auto* record = mStore.get<ESM::Spell>().find(original.mId);
+            EXPECT_EQ(record->mData.mCost, 17);
+            EXPECT_EQ(record->mEffects.mList[0].mData.mMagnMin, 10);
+            EXPECT_EQ(record->mEffects.mList[2].mData.mMagnMax, 60);
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ApplicationMagnitudeMultipliersArePerEffectAndPerActorAndPersistInPendingSave)
+        {
+            installSpellReadBindings();
+            const auto original = magnitudeMultiplierFixtureSpell();
+            mStore.insertStatic(original);
+            const auto first = actor(false), second = actor(false), caster = actor(false);
+            stats(first).setHealth(MWMechanics::DynamicStat<float>(100.f));
+            stats(second).setHealth(MWMechanics::DynamicStat<float>(75.f));
+            sol::state_view lua = mLua.unsafeState();
+            lua["selfFirst"] = object(first, 2).asSelfObject();
+            lua["selfSecond"] = object(second, 2).asSelfObject();
+            lua["caster"] = LObject(caster);
+            ASSERT_NO_THROW(runSpellScript(R"(
+                scales = {[0] = 0.125, [2] = 0}
+                scaledId = actorAPI.activeSpells(selfFirst):add {
+                    id = 'multiplier_fixture_spell', effects = {0, 1, 2}, caster = caster,
+                    effectMagnitudeMultipliers = scales,
+                }
+                scales[0] = 9 -- queued native values must not alias the Lua map
+                unscaledId = actorAPI.activeSpells(selfSecond):add {
+                    id = 'multiplier_fixture_spell', effects = {0, 1, 2}, caster = caster,
+                    effectMagnitudeMultipliers = {},
+                }
+            )"));
+            ESM::ActiveSpells scaled, unscaled;
+            stats(first).getActiveSpells().writeState(scaled);
+            stats(second).getActiveSpells().writeState(unscaled);
+            ASSERT_EQ(scaled.mQueue.size(), 1u);
+            ASSERT_EQ(unscaled.mQueue.size(), 1u);
+            ASSERT_EQ(scaled.mQueue[0].mEffects.size(), 3u);
+            const auto& effects = scaled.mQueue[0].mEffects;
+            EXPECT_FLOAT_EQ(effects[0].mMinMagnitude, 1.25f);
+            EXPECT_FLOAT_EQ(effects[0].mMaxMagnitude, 2.5f);
+            EXPECT_FLOAT_EQ(effects[1].mMinMagnitude, 20.f); // omitted entry stays 1x
+            EXPECT_FLOAT_EQ(effects[1].mMaxMagnitude, 40.f);
+            EXPECT_FLOAT_EQ(effects[2].mMinMagnitude, 0.f);
+            EXPECT_FLOAT_EQ(effects[2].mMaxMagnitude, 0.f);
+            for (std::size_t i = 0; i != effects.size(); ++i)
+            {
+                EXPECT_EQ(effects[i].mEffectIndex, static_cast<int>(i));
+                EXPECT_FLOAT_EQ(effects[i].mDuration, 4.f + i);
+                EXPECT_FLOAT_EQ(effects[i].mTimeLeft, 4.f + i);
+                EXPECT_FLOAT_EQ(unscaled.mQueue[0].mEffects[i].mMinMagnitude, 10.f * (i + 1));
+                EXPECT_FLOAT_EQ(unscaled.mQueue[0].mEffects[i].mMaxMagnitude, 20.f * (i + 1));
+            }
+            EXPECT_EQ(scaled.mQueue[0].mSourceSpellId, unscaled.mQueue[0].mSourceSpellId);
+            EXPECT_EQ(scaled.mQueue[0].mCaster, getId(caster));
+            EXPECT_FALSE(scaled.mQueue[0].mFlags & ESM::ActiveSpells::Flag_Stackable);
+            EXPECT_NE(scaled.mQueue[0].mActiveSpellId, unscaled.mQueue[0].mActiveSpellId);
+            EXPECT_FLOAT_EQ(stats(first).getHealth().getCurrent(), 100.f);
+            EXPECT_FLOAT_EQ(stats(second).getHealth().getCurrent(), 75.f);
+            const auto* record = mStore.get<ESM::Spell>().find(original.mId);
+            EXPECT_EQ(record->mEffects.mList[0].mData.mMagnMin, 10);
+            EXPECT_EQ(record->mEffects.mList[2].mData.mMagnMax, 60);
+            EXPECT_EQ(record->mData.mCost, 17);
+
+            // Existing native save representation retains the copied scaled values.
+            MWMechanics::ActiveSpells reloaded;
+            reloaded.readState(scaled);
+            ESM::ActiveSpells savedAgain;
+            reloaded.writeState(savedAgain);
+            ASSERT_EQ(savedAgain.mQueue.size(), 1u);
+            EXPECT_EQ(savedAgain.mQueue[0].mSourceSpellId, original.mId);
+            EXPECT_EQ(savedAgain.mQueue[0].mActiveSpellId, scaled.mQueue[0].mActiveSpellId);
+            EXPECT_FLOAT_EQ(savedAgain.mQueue[0].mEffects[0].mMinMagnitude, 1.25f);
+            EXPECT_FLOAT_EQ(savedAgain.mQueue[0].mEffects[2].mMaxMagnitude, 0.f);
+            EXPECT_FLOAT_EQ(savedAgain.mQueue[0].mEffects[1].mTimeLeft, 5.f);
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ApplicationMagnitudeMultipliersRejectMalformedMapsAtomically)
+        {
+            installSpellReadBindings();
+            mStore.insertStatic(magnitudeMultiplierFixtureSpell());
+            const auto victim = actor(false);
+            sol::state_view lua = mLua.unsafeState();
+            lua["selfVictim"] = object(victim, 2).asSelfObject();
+            ASSERT_NO_THROW(runSpellScript(R"(
+                keepId = actorAPI.activeSpells(selfVictim):add {
+                    id = 'multiplier_fixture_spell', effects = {0, 1},
+                    effectMagnitudeMultipliers = {[0] = 0.5},
+                }
+            )"));
+            const std::vector<std::string> invalidMaps{
+                "false", "4", "'bad'", "function() end",
+                "{[0] = -0.01}", "{[0] = 1000.01}", "{[0] = math.huge}",
+                "{[0] = -math.huge}", "{[0] = 0/0}", "{[0] = false}",
+                "{[0] = {}}", "{[0] = '0.5'}", "{['0'] = 0.5}",
+                "{[false] = 0.5}", "{[-1] = 0.5}", "{[0.5] = 0.5}",
+                "{[math.huge] = 0.5}", "{[2] = 0.5}", "{[100] = 0.5}",
+                "{[0] = 0.5, [1] = -1}", // valid prefix must not partially enqueue
+            };
+            for (const auto& invalid : invalidMaps)
+            {
+                SCOPED_TRACE(invalid);
+                const std::string code =
+                    "assert(not pcall(function() actorAPI.activeSpells(selfVictim):add {"
+                    "id='multiplier_fixture_spell', effects={0,1}, effectMagnitudeMultipliers="
+                    + invalid + "} end))";
+                ASSERT_NO_THROW(runSpellScript(code.c_str()));
+                ESM::ActiveSpells state;
+                stats(victim).getActiveSpells().writeState(state);
+                ASSERT_EQ(state.mQueue.size(), 1u);
+                EXPECT_TRUE(state.mSpells.empty());
+                EXPECT_EQ(state.mQueue[0].mActiveSpellId.serializeText(), lua["keepId"].get<std::string>());
+                EXPECT_FLOAT_EQ(state.mQueue[0].mEffects[0].mMinMagnitude, 5.f);
+                EXPECT_FLOAT_EQ(state.mQueue[0].mEffects[1].mMaxMagnitude, 40.f);
+                EXPECT_EQ(mStore.get<ESM::Spell>().find(ESM::RefId::stringRefId("multiplier_fixture_spell"))
+                              ->mEffects.mList[0].mData.mMagnMin,
+                    10);
+            }
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ApplicationMagnitudeMultipliersUseZeroBasedSelectedIndexesAndAllowDuplicates)
+        {
+            installSpellReadBindings();
+            mStore.insertStatic(magnitudeMultiplierFixtureSpell());
+            const auto victim = actor(false);
+            sol::state_view lua = mLua.unsafeState();
+            lua["selfVictim"] = object(victim, 2).asSelfObject();
+            lua["localVictim"] = LObject(victim);
+            ASSERT_NO_THROW(runSpellScript(R"(
+                actorAPI.activeSpells(selfVictim):add {
+                    id = 'multiplier_fixture_spell', effects = {2, 0, 2},
+                    effectMagnitudeMultipliers = {[2] = 0.25, [0] = 1000},
+                }
+                -- Permission restrictions must remain in place with the new option.
+                assert(not pcall(function()
+                    actorAPI.activeSpells(localVictim):add {
+                        id='multiplier_fixture_spell', effects={0},
+                        effectMagnitudeMultipliers={[0]=0.5},
+                    }
+                end))
+            )"));
+            ESM::ActiveSpells state;
+            stats(victim).getActiveSpells().writeState(state);
+            ASSERT_EQ(state.mQueue.size(), 1u);
+            ASSERT_EQ(state.mQueue[0].mEffects.size(), 3u);
+            std::size_t duplicateCount = 0, zeroCount = 0;
+            for (const auto& effect : state.mQueue[0].mEffects)
+            {
+                if (effect.mEffectIndex == 2)
+                {
+                    ++duplicateCount;
+                    EXPECT_FLOAT_EQ(effect.mMinMagnitude, 7.5f);
+                    EXPECT_FLOAT_EQ(effect.mMaxMagnitude, 15.f);
+                    EXPECT_FLOAT_EQ(effect.mDuration, 6.f);
+                }
+                else
+                {
+                    EXPECT_EQ(effect.mEffectIndex, 0);
+                    ++zeroCount;
+                    EXPECT_FLOAT_EQ(effect.mMinMagnitude, 10000.f);
+                    EXPECT_FLOAT_EQ(effect.mMaxMagnitude, 20000.f);
+                    EXPECT_FLOAT_EQ(effect.mDuration, 4.f);
+                }
+            }
+            EXPECT_EQ(duplicateCount, 2u);
+            EXPECT_EQ(zeroCount, 1u);
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ApplicationMagnitudeMultipliersRejectUnsafeNativeRollWidth)
+        {
+            installSpellReadBindings();
+            auto original = magnitudeMultiplierFixtureSpell();
+            original.mEffects.mList[0].mData.mMagnMin = 0;
+            original.mEffects.mList[0].mData.mMagnMax = 3000000;
+            mStore.insertStatic(original);
+            const auto victim = actor(false);
+            sol::state_view lua = mLua.unsafeState();
+            lua["selfVictim"] = object(victim, 2).asSelfObject();
+            ASSERT_NO_THROW(runSpellScript(R"(
+                -- Floats remain finite, but native roll's integer dice width would overflow.
+                assert(not pcall(function()
+                    actorAPI.activeSpells(selfVictim):add {
+                        id='multiplier_fixture_spell', effects={0,1},
+                        effectMagnitudeMultipliers={[0]=1000, [1]=0.5},
+                    }
+                end))
+            )"));
+            ESM::ActiveSpells rejected;
+            stats(victim).getActiveSpells().writeState(rejected);
+            EXPECT_TRUE(rejected.mQueue.empty());
+            EXPECT_TRUE(rejected.mSpells.empty());
+            ASSERT_NO_THROW(runSpellScript(R"(
+                actorAPI.activeSpells(selfVictim):add {
+                    id='multiplier_fixture_spell', effects={0},
+                    effectMagnitudeMultipliers={[0]=0.5},
+                }
+                actorAPI.activeSpells(selfVictim):add {
+                    id='multiplier_fixture_spell', effects={0},
+                    effectMagnitudeMultipliers={[0]=0},
+                }
+            )"));
+            ESM::ActiveSpells accepted;
+            stats(victim).getActiveSpells().writeState(accepted);
+            ASSERT_EQ(accepted.mQueue.size(), 2u);
+            EXPECT_FLOAT_EQ(accepted.mQueue[0].mEffects[0].mMaxMagnitude, 1500000.f);
+            EXPECT_FLOAT_EQ(accepted.mQueue[1].mEffects[0].mMaxMagnitude, 0.f);
+            EXPECT_EQ(mStore.get<ESM::Spell>().find(original.mId)->mEffects.mList[0].mData.mMagnMax, 3000000);
+        }
+
+        TEST_F(MWLuaMagicBindingsTest, ApplicationMagnitudeMultipliersDoNotUseUnvalidatedMetatableValues)
+        {
+            installSpellReadBindings();
+            mStore.insertStatic(magnitudeMultiplierFixtureSpell());
+            const auto victim = actor(false);
+            sol::state_view lua = mLua.unsafeState();
+            lua["selfVictim"] = object(victim, 2).asSelfObject();
+            ASSERT_NO_THROW(runSpellScript(R"(
+                local scales = setmetatable({[0] = 0.5}, {
+                    __index = function() error('omitted multiplier must default to one without __index') end,
+                })
+                local reads = 0
+                local options = setmetatable({
+                    id='multiplier_fixture_spell', effects={0,1},
+                }, {
+                    __index = function(_, key)
+                        if key == 'effectMagnitudeMultipliers' then
+                            reads = reads + 1
+                            if reads > 1 then error('multiplier options must be resolved only once') end
+                            return scales
+                        end
+                    end,
+                })
+                actorAPI.activeSpells(selfVictim):add(options)
+                assert(reads == 1)
+            )"));
+            ESM::ActiveSpells state;
+            stats(victim).getActiveSpells().writeState(state);
+            ASSERT_EQ(state.mQueue.size(), 1u);
+            ASSERT_EQ(state.mQueue[0].mEffects.size(), 2u);
+            EXPECT_FLOAT_EQ(state.mQueue[0].mEffects[0].mMinMagnitude, 5.f);
+            EXPECT_FLOAT_EQ(state.mQueue[0].mEffects[0].mMaxMagnitude, 10.f);
+            EXPECT_FLOAT_EQ(state.mQueue[0].mEffects[1].mMinMagnitude, 20.f);
+            EXPECT_FLOAT_EQ(state.mQueue[0].mEffects[1].mMaxMagnitude, 40.f);
+        }
+
     }
 }
+

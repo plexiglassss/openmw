@@ -461,6 +461,11 @@
 -- And may contain the following optional parameters:
 --
 --   * `name` - The name to show in the list of active effects in the UI. Default: Name of the record identified by the id.
+--   * `effectMagnitudeMultipliers` - Optional table mapping selected zero-based effect indexes to finite factors in [0,1000].
+--     Scales the copied minimum/maximum magnitude ranges before native resistance processing; omitted indexes use 1.
+--     Does not change the source record, duration, caster, item, cost or any already-active effect.
+--     Reflected applications are new calls using the original record; handlers must choose their factors again.
+--     Check core.magic.effectMagnitudeMultipliers before using this extension. Native magnitude rolling still applies.
 --   * `ignoreResistances` - If true, resistances will be ignored. Default: false
 --   * `ignoreSpellAbsorption` - If true, spell absorption will not be applied. Default: false.
 --   * `ignoreReflect` - If true, reflects will not be applied. Default: false.
@@ -2795,3 +2800,4 @@
 -- @field #string closeSound FormId of the door closing sound
 
 return nil
+

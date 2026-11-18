@@ -52,7 +52,8 @@
     "8013500753ac374291bf0cb4469e28b32d4df28b",
     "d63b95313274c794b14c70d4eaa08bf09c120cad",
     "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26",
-    "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c"
+    "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c",
+    "d2df2892ab8f8728d5c7f0135ac80edad4f033f3"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -72,11 +73,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e3d4eb46cc6fe09c48962a869783e3aeeed6660a"
+        "blob": "757b82ba4f7795cda7a65ac098abc3f1cb1a204e"
       },
-      "bytes": 78037,
-      "sha256": "95ece2340526ae7c0c88d64901acdd93e4b1bb415d39e58cd4587f8ad236c3be",
-      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine."
+      "bytes": 78074,
+      "sha256": "34ddbd45098b0af539cf5cb2c0d4691e738a92f9ccb6785e076cb306bd431dbf",
+      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -1255,11 +1256,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "17c4fb12975339f52afda4fc471b870689873a68"
+        "blob": "aebec6eb30d46103f699f7d1ba680255fce4ea20"
       },
-      "sha256": "550dd2db8dfb96a1ec3786d87416e25f3bf195a2b2df5ae888e2f9ad60044edf",
-      "bytes": 56791,
-      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Return independent public Lua spell values with shared details and revalidate retained iterators after world changes."
+      "sha256": "fe35e2ff6cee5487653a7e875e68a1e4f8a32556fa2a6ff57b5e21895f78c09b",
+      "bytes": 59944,
+      "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Return independent public Lua spell values with shared details and revalidate retained iterators after world changes.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "apps/openmw/mwlua/magicbindings.hpp": {
       "before": {
@@ -2149,11 +2150,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0bbb866eccfb86ccc9e4d18672ffce3b51ddfd53"
+        "blob": "46151b40eb3b0cf8f2ad48d213b2b87603fba456"
       },
-      "sha256": "ed8627ef0e0cbf81e0367f0b510264b9b09ea846d2d0ab5caf28fd4ffdea9de5",
-      "bytes": 61389,
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies."
+      "sha256": "7c5b14f263df1260643f2befe1c59f3d740a3ec89a7178fa93a4faad96c4fabe",
+      "bytes": 79003,
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "apps/openmw_tests/mwlua/testmodkeybindings.cpp": {
       "before": null,
@@ -5528,11 +5529,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6516480ab9440629a78c387e48f74008138a0aad"
+        "blob": "f9ac4c62fe688b586056eac61195431c08fa8a64"
       },
-      "sha256": "c11e40c0cbc617692afd6d8abfec3627ab83f7ab934063927ff984c974781cf4",
-      "bytes": 107516,
-      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs."
+      "sha256": "1ff5301aac521ba481797246ba8bfa4ff4c085b9b5ff548b10a1c702774c54de",
+      "bytes": 108096,
+      "reason": "Combined performance candidate: Add compiled live native effect-source/magnitude queries and immutable Lua snapshots with documented fallback-safe APIs.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     },
     "files/lua_api/openmw/ui.lua": {
       "before": {
@@ -5726,6 +5727,19 @@
       "sha256": "48ffb002773aaaeb0e90a809dfe9b344dbb9a01e64c3876d8544b6be64c3aea3",
       "bytes": 14577,
       "reason": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions."
+    },
+    "files/lua_api/openmw/core.lua": {
+      "before": {
+        "mode": "100644",
+        "blob": "51ade4a4a5f7099acaa79acd3890c4be237b5c9d"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "bc0ac5e598e0ff3e6308aa4650d71787aeccadd5"
+      },
+      "sha256": "fdf3c80f65b62a8cbf27ffc3781894f6ed78ae897dfc581ff17af36558592557",
+      "bytes": 73967,
+      "reason": "; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
     }
   }
 }
