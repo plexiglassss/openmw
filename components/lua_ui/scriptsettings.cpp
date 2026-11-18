@@ -13,6 +13,9 @@ namespace LuaUi
     {
         std::vector<sol::table> allPages;
         bool controlsVisible = false;
+        int controlsWidth = 600;
+        int controlsNavigationWidth = 220;
+        bool controlsScrollReset = false;
         ScriptSettingsPage parse(const sol::table& options)
         {
             auto name = options.get_or("name", std::string());
@@ -47,6 +50,7 @@ namespace LuaUi
     void clearSettings()
     {
         controlsVisible = false;
+        controlsScrollReset = false;
         allPages.clear();
     }
 
@@ -71,12 +75,34 @@ namespace LuaUi
     void setControlsPageVisible(bool visible) { controlsVisible = visible; }
     bool controlsPageVisible() { return controlsVisible; }
 
-    void attachControlsPage(LuaAdapter* adapter)
+    void setControlsPageWidths(int content, int navigation)
     {
+        controlsWidth = content;
+        controlsNavigationWidth = navigation;
+    }
+    int controlsPageWidth(bool navigation) { return navigation ? controlsNavigationWidth : controlsWidth; }
+    void resetControlsPageScroll() { controlsScrollReset = true; }
+    bool consumeControlsPageScrollReset()
+    {
+        const bool reset = controlsScrollReset;
+        controlsScrollReset = false;
+        return reset;
+    }
+
+    void attachControlsPage(LuaAdapter* adapter, LuaAdapter* navigation)
+    {
+        navigation->detach();
         for (size_t i = 0; i < allPages.size(); ++i)
             if (allPages[i].get_or("controls", false))
             {
                 attachPageAt(i, adapter);
+                const auto element = allPages[i].get_or<std::shared_ptr<Element>>("navigationElement", nullptr);
+                if (element)
+                {
+                    if (element->mState == Element::New)
+                        element->create();
+                    navigation->attach(element);
+                }
                 return;
             }
         adapter->detach();

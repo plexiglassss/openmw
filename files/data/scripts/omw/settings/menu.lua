@@ -22,6 +22,7 @@ require('scripts.omw.settings.renderers')(registerRenderer)
 local interfaceL10n = core.l10n('Interface')
 
 local pages = {}
+local pageRevision = 0
 local groups = {}
 local pageOptions = {}
 local groupElements = {}
@@ -465,6 +466,8 @@ local function resetPlayerGroups()
                 end
                 ui.removeSettingsPage(options)
                 pageOptions[pageKey] = nil
+                pages[pageKey] = nil
+                pageRevision = pageRevision + 1
             else
                 renderPage(pages[pageKey], options)
             end
@@ -495,6 +498,7 @@ local function registerPage(options)
         description = options.description,
     }
     pages[page.key] = page
+    pageRevision = pageRevision + 1
     groups[page.key] = groups[page.key] or {}
     pageOptions[page.key] = pageOptions[page.key] or {}
     renderPage(page, pageOptions[page.key])
@@ -509,7 +513,14 @@ end
 return {
     interfaceName = 'Settings',
     interface = {
-        version = 1,
+        version = 2,
+        -- Return a copy: controls may read the owning page without changing it.
+        getPageInfo = function(key)
+            local p = pages[key]
+            if not p then return nil end
+            return {key=p.key, l10n=p.l10n, name=p.name, description=p.description}
+        end,
+        getPageRevision = function() return pageRevision end,
         registerPage = function(options)
             registerPage(options)
             menuPages[options.key] = true

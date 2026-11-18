@@ -331,6 +331,8 @@ namespace MWLua
         api["isTextInputActive"] = []() { return SDL_IsTextInputActive() == SDL_TRUE; };
         api["registerSettingsPage"] = &LuaUi::registerSettingsPage;
         api["_controlsPageVisible"] = &LuaUi::controlsPageVisible;
+        api["_controlsPageWidth"] = &LuaUi::controlsPageWidth;
+        api["_resetControlsPageScroll"] = &LuaUi::resetControlsPageScroll;
         api["removeSettingsPage"] = &LuaUi::removeSettingsPage;
 
         api["texture"] = [luaManager = context.mLuaManager](const sol::table& options) {

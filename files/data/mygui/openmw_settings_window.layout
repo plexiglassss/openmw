@@ -294,67 +294,75 @@
                     </Widget>
                 </Widget>
 
-                <Widget type="Widget" skin="MW_Box" position="4 38 352 154" align="Stretch">
+                <Widget type="Widget" skin="MW_Box" position="4 38 352 154" align="Stretch" name="ControlsFrame">
                     <Widget type="ScrollView" skin="MW_ScrollView" position="4 4 344 146" align="Stretch" name="ControlsBox">
                         <Property key="CanvasAlign" value="Left Top"/>
                     </Widget>
-                    <Widget type="ScrollView" skin="MW_ScrollViewVH" position="4 4 344 146" align="Stretch" name="ModControlsView">
+                    <Widget type="Widget" position="4 4 344 146" align="Stretch" name="ModControlsPanel">
                         <Property key="Visible" value="false"/>
-                        <Property key="CanvasAlign" value="Left Top"/>
-                        <Widget type="LuaAdapter" name="ModControlsAdapter"/>
+                        <Widget type="ScrollView" skin="MW_ScrollView" position="0 0 150 146" name="ModControlsNavigation">
+                            <Property key="CanvasAlign" value="Left Top"/>
+                            <Widget type="LuaAdapter" name="ModControlsNavigationAdapter"/>
+                        </Widget>
+                        <Widget type="ScrollView" skin="MW_ScrollView" position="162 0 182 146" name="ModControlsView">
+                            <Property key="CanvasAlign" value="Left Top"/>
+                            <Widget type="LuaAdapter" name="ModControlsAdapter"/>
+                        </Widget>
                     </Widget>
                 </Widget>
-                <Widget type="AutoSizedButton" skin="MW_Button" position="4 198 137 24" align="Left Bottom" name="ResetControlsButton">
-                    <Property key="Caption" value="#{OMWEngine:ResetControls}"/>
-                </Widget>
-                <Widget type="HBox" position="4 228 600 28" align="Left Bottom">
-                    <Widget type="AutoSizedButton" skin="MW_Button">
+                <Widget type="Widget" position="0 198 360 158" align="HStretch Bottom" name="NativeControlsOptions">
+                    <Widget type="AutoSizedButton" skin="MW_Button" position="4 0 137 24" align="Left Bottom" name="ResetControlsButton">
+                        <Property key="Caption" value="#{OMWEngine:ResetControls}"/>
+                    </Widget>
+                    <Widget type="HBox" position="4 30 600 28" align="Left Bottom">
+                        <Widget type="AutoSizedButton" skin="MW_Button">
+                            <UserString key="SettingCategory" value="Input"/>
+                            <UserString key="SettingName" value="invert x axis"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText">
+                            <Property key="Caption" value="#{OMWEngine:InvertXAxis} "/>
+                        </Widget>
+                        <Widget type="AutoSizedButton" skin="MW_Button">
+                            <UserString key="SettingCategory" value="Input"/>
+                            <UserString key="SettingName" value="invert y axis"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="56 4 78 16" align="Left Bottom">
+                            <Property key="Caption" value="#{OMWEngine:InvertYAxis}"/>
+                        </Widget>
+                    </Widget>
+                    <Widget type="TextBox" skin="NormalText" position="4 60 352 18" align="Left Bottom">
+                        <Property key="Caption" value="#{OMWEngine:CameraSensitivity}"/>
+                    </Widget>
+                    <Widget type="ScrollBar" skin="MW_HScroll" position="4 84 352 18" align="HStretch Bottom">
+                        <Property key="Range" value="10000"/>
+                        <Property key="Page" value="300"/>
+                        <Property key="WheelPage" value="300"/>
+                        <UserString key="SettingType" value="Slider"/>
                         <UserString key="SettingCategory" value="Input"/>
-                        <UserString key="SettingName" value="invert x axis"/>
-                        <UserString key="SettingType" value="CheckButton"/>
+                        <UserString key="SettingName" value="camera sensitivity"/>
+                        <UserString key="SettingValueType" value="Float"/>
+                        <UserString key="SettingMin" value="0.2"/>
+                        <UserString key="SettingMax" value="5.0"/>
                     </Widget>
-                    <Widget type="AutoSizedTextBox" skin="SandText">
-                        <Property key="Caption" value="#{OMWEngine:InvertXAxis} "/>
+                    <Widget type="TextBox" skin="SandText" position="4 108 352 18" align="Left Bottom">
+                        <Property key="Caption" value="#{OMWEngine:SensitivityLow}"/>
+                        <Property key="TextAlign" value="Left"/>
                     </Widget>
-                    <Widget type="AutoSizedButton" skin="MW_Button">
-                        <UserString key="SettingCategory" value="Input"/>
-                        <UserString key="SettingName" value="invert y axis"/>
-                        <UserString key="SettingType" value="CheckButton"/>
+                    <Widget type="TextBox" skin="SandText" position="4 108 352 18" align="Right Bottom">
+                        <Property key="Caption" value="#{OMWEngine:SensitivityHigh}"/>
+                        <Property key="TextAlign" value="Right"/>
                     </Widget>
-                    <Widget type="AutoSizedTextBox" skin="SandText" position="56 4 78 16" align="Left Bottom">
-                        <Property key="Caption" value="#{OMWEngine:InvertYAxis}"/>
-                    </Widget>
-                </Widget>
-                <Widget type="TextBox" skin="NormalText" position="4 258 352 18" align="Left Bottom">
-                    <Property key="Caption" value="#{OMWEngine:CameraSensitivity}"/>
-                </Widget>
-                <Widget type="ScrollBar" skin="MW_HScroll" position="4 282 352 18" align="HStretch Bottom">
-                    <Property key="Range" value="10000"/>
-                    <Property key="Page" value="300"/>
-                    <Property key="WheelPage" value="300"/>
-                    <UserString key="SettingType" value="Slider"/>
-                    <UserString key="SettingCategory" value="Input"/>
-                    <UserString key="SettingName" value="camera sensitivity"/>
-                    <UserString key="SettingValueType" value="Float"/>
-                    <UserString key="SettingMin" value="0.2"/>
-                    <UserString key="SettingMax" value="5.0"/>
-                </Widget>
-                <Widget type="TextBox" skin="SandText" position="4 306 352 18" align="Left Bottom">
-                    <Property key="Caption" value="#{OMWEngine:SensitivityLow}"/>
-                    <Property key="TextAlign" value="Left"/>
-                </Widget>
-                <Widget type="TextBox" skin="SandText" position="4 306 352 18" align="Right Bottom">
-                    <Property key="Caption" value="#{OMWEngine:SensitivityHigh}"/>
-                    <Property key="TextAlign" value="Right"/>
-                </Widget>
-                <Widget type="HBox" position="4 328 352 28" align="Left Bottom">
-                    <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Bottom">
-                        <UserString key="SettingCategory" value="Input"/>
-                        <UserString key="SettingName" value="enable controller"/>
-                        <UserString key="SettingType" value="CheckButton"/>
-                    </Widget>
-                    <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 78 16" align="Left Bottom">
-                        <Property key="Caption" value="#{OMWEngine:EnableController}"/>
+                    <Widget type="HBox" position="4 130 352 28" align="Left Bottom">
+                        <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Bottom">
+                            <UserString key="SettingCategory" value="Input"/>
+                            <UserString key="SettingName" value="enable controller"/>
+                            <UserString key="SettingType" value="CheckButton"/>
+                        </Widget>
+                        <Widget type="AutoSizedTextBox" skin="SandText" position="28 4 78 16" align="Left Bottom">
+                            <Property key="Caption" value="#{OMWEngine:EnableController}"/>
+                        </Widget>
                     </Widget>
                 </Widget>
             </Widget>

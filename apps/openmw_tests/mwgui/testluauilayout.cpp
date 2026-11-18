@@ -7,6 +7,7 @@
 #include <components/lua_ui/util.hpp>
 #include <components/lua_ui/widget.hpp>
 #include <components/misc/combinedperformance.hpp>
+#include <components/lua/utilpackage.hpp>
 
 #include <MyGUI_DataFileStream.h>
 #include <MyGUI_DataManager.h>
@@ -324,6 +325,83 @@ namespace LuaUi
         };
 
         class TownUiPerformanceTest : public LuaUiLayoutTest {};
+
+        TEST_F(LuaUiLayoutTest, ModKeybindingsUsesViewportWidthAndWrappedDescriptions)
+        {
+            mLua.open_libraries(sol::lib::package);
+            mLua["nativeUtil"] = LuaUtil::initUtilPackage(mLua);
+            mLua["sourceRoot"] = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }.generic_string();
+            mLua["checkControlsBounds"] = [](const std::shared_ptr<Element>& root, int width) {
+                const auto origin = root->mRoot->widget()->getAbsolutePosition();
+                EXPECT_LE(root->mRoot->widget()->getWidth(), width);
+                size_t paragraphs = 0;
+                bool wrappedDescription = false;
+                const auto inspect = [&](const auto& self, MyGUI::Widget* widget) -> void {
+                    if (auto* edit = dynamic_cast<MyGUI::EditBox*>(widget))
+                    {
+                        ++paragraphs;
+                        EXPECT_GE(edit->getAbsoluteLeft(), origin.left);
+                        EXPECT_LE(edit->getAbsoluteLeft() + edit->getWidth(), origin.left + width);
+                        EXPECT_LE(edit->getTextSize().height, edit->getHeight());
+                        if (edit->getCaption().asUTF8().starts_with("Opens the detailed equipment comparison"))
+                            wrappedDescription = edit->getTextSize().height > edit->getFontHeight();
+                    }
+                    for (size_t i = 0; i < widget->getChildCount(); ++i)
+                        self(self, widget->getChildAt(i));
+                };
+                inspect(inspect, root->mRoot->widget());
+                EXPECT_GT(paragraphs, 3u);
+                if (width >= 340)
+                    EXPECT_TRUE(wrappedDescription);
+            };
+            run(R"(
+                package.path=sourceRoot..'/files/data/?.lua;'..package.path
+                local types={Flex='LuaFlex',Text='LuaText',TextEdit='LuaTextEdit',Container='LuaContainer',
+                    Image='LuaImage',Widget='LuaWidget'}
+                package.loaded['openmw.util']=nativeUtil
+                package.loaded['openmw.core']={getGMST=function()return '223,201,159' end}
+                package.loaded['openmw.ui']={TYPE=types,content=content,
+                    _getDefaultFontSize=function()return 16 end,_getMenuTransparency=function()return .8 end,
+                    texture=function(options)return texture(options.path)end}
+                local templates={}
+                for _,part in ipairs{'text','textEdit','space','borders'} do
+                    require('scripts.omw.mwui.'..part)(templates)
+                end
+                package.loaded['openmw.util']=nil
+                package.loaded['openmw.core']=nil
+                package.loaded['openmw.ui']=nil
+                local function convert(node)
+                    if node.layout then node=node.layout end
+                    local result={}
+                    if node.template then result.template=templates[node.template.testTemplate] end
+                    if node.type then result.type=({flex='LuaFlex',edit='LuaTextEdit'})[node.type] end
+                    if node.props then
+                        result.props={}
+                        for k,v in pairs(node.props) do
+                            if type(v)=='table' and v.x then v=nativeUtil.vector2(v.x,v.y)
+                            elseif type(v)=='table' and v.r then v=nativeUtil.color.rgb(v.r,v.g,v.b) end
+                            result.props[k]=v
+                        end
+                    end
+                    if node.content then
+                        local children={}
+                        for _,child in ipairs(node.content) do children[#children+1]=convert(child) end
+                        result.content=content(children)
+                    end
+                    return result
+                end
+                function modBindingsLayoutProbe(detail, navigation, width, navWidth)
+                    roots={element(convert(detail)),element(convert(navigation))}
+                    for _,root in ipairs(roots) do refresh(root) end
+                    checkControlsBounds(roots[1],width)
+                    checkControlsBounds(roots[2],navWidth)
+                    snapshot('mod-controls-'..width)
+                end
+                arg={sourceRoot}
+            )");
+            ASSERT_NO_THROW(mLua.safe_script_file(
+                (std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR } / "custom/unified-controls/test-bindings.lua").string()));
+        }
 
         TEST_F(TownUiPerformanceTest, UnattachedSettingsGroupUsesLatestLayoutOnFirstDisplay)
         {

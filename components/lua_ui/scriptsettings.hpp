@@ -19,9 +19,13 @@ namespace LuaUi
     ScriptSettingsPage scriptSettingsPageAt(size_t index);
     void ensureScriptSettingsPage(size_t index);
     void attachPageAt(size_t index, LuaAdapter* adapter);
-    void attachControlsPage(LuaAdapter* adapter);
+    void attachControlsPage(LuaAdapter* adapter, LuaAdapter* navigation);
     void setControlsPageVisible(bool visible);
     bool controlsPageVisible();
+    void setControlsPageWidths(int content, int navigation);
+    int controlsPageWidth(bool navigation);
+    void resetControlsPageScroll();
+    bool consumeControlsPageScrollReset();
 }
 
 #endif // !OPENMW_LUAUI_SCRIPTSETTINGS

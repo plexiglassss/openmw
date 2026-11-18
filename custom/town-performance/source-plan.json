@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution.",
+  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution. Refine the mod keybindings page: readable owner/description metadata, searchable mod navigation, responsive wrapped rows, per-counterpart conflict details and full tab height. Preserve the complete cb4fe859 engine.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -51,7 +51,8 @@
     "520a8bcdff36f519b2fe63a2872de132856a1b90",
     "8013500753ac374291bf0cb4469e28b32d4df28b",
     "d63b95313274c794b14c70d4eaa08bf09c120cad",
-    "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26"
+    "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26",
+    "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -816,11 +817,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a0dc5c7fb26aed6f31d2dfcc0bd67da79db5bb48"
+        "blob": "9207db15d92cf72f2a6c10e2caac308ebf803be3"
       },
-      "sha256": "cf98e0656872da6e9e2861d0cb5e9e8d8ac39bb977afbaaa25cbf1e05bad11c6",
-      "bytes": 78867,
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "526869e63248f344c626a4b67c0ff9b268a41c163dc1cb7d7ca3e37c669f9013",
+      "bytes": 80724,
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "apps/openmw/mwgui/settingswindow.hpp": {
       "before": {
@@ -829,11 +830,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "f28e10150f04f9aa563f422910838da5581d0d25"
+        "blob": "c8b72add052711d666399a2777da924b3893b133"
       },
-      "sha256": "c02fa5ecfa3a6a07e305784da44430940e92b1dd4f64410048e59f976597472d",
-      "bytes": 8327,
-      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "f6cb2e67579d3b6b88f899dc33264c6501ebac14c56bb8a83eebe24239618827",
+      "bytes": 8598,
+      "reason": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "apps/openmw/mwgui/tooltipcontrols.cpp": {
       "before": null,
@@ -1424,11 +1425,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "8a4abd5800c8fedd72a08a0dc60f21ffbea437a5"
+        "blob": "ab8f049a4cc32694129a0bd9679aa46e92e3749e"
       },
-      "sha256": "a398c814a952fbc041c0a0732a92b75d14d50d7ea9f53d925bee5f45c9fdba82",
-      "bytes": 25219,
-      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "38aa515ee9bf70fea7351de3c9284c46a8c85838b38542860b9a21d3727baf81",
+      "bytes": 25357,
+      "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "apps/openmw/mwlua/vfsbindings.cpp": {
       "before": {
@@ -2115,11 +2116,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "cf5cb6e387affc8ee0786084af2413f8f7f6c0ef"
+        "blob": "2f7a36494e3fad5f533923c99f7e8e25325bc56a"
       },
-      "sha256": "0c798bd8b524422353fe5fac989791b9e08ccb516b541c7b433aa06e85ce4010",
-      "bytes": 72130,
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups."
+      "sha256": "bbb70707a3f3bd080ea40f94585c4482c05868575878c22a837f8802ef926666",
+      "bytes": 76669,
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -2685,11 +2686,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "bae090bf8025917cb719b54178264a4c5ed99814"
+        "blob": "db7fdfff895ca79146a7b83ba0149699f9face8e"
       },
-      "sha256": "f3c5fc28d194aaa2c61537f50e582d3e0fc7390aaa32b98047597e5cb381ec0e",
-      "bytes": 2754,
-      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "0a6f4f803b99f74dc085100e534f7b9964e7af4e2dc0c9235e4356b8ec53a35c",
+      "bytes": 3778,
+      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "components/lua_ui/scriptsettings.hpp": {
       "before": {
@@ -2698,11 +2699,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "0204b058148ce1ccb9d0d4460ca0abcf1209a25a"
+        "blob": "c169c5e8b4191a69b6d9c67c56811e5325784fac"
       },
-      "sha256": "f6483d571484894221069d5f7e58665cfe905939785efe76d045bc5b241f0997",
-      "bytes": 724,
-      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "e4009e6451305e292eb8532dfffa72a9cd15388be5195beb37ca75872f7410ff",
+      "bytes": 932,
+      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "components/lua_ui/text.cpp": {
       "before": {
@@ -5124,11 +5125,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0931e89b7ae54aa7cbb207bcbbd1deb78f1a93b5"
+        "blob": "e9608cc9dfdce1725e968f0eedb97609337a3d67"
       },
-      "sha256": "6f238609b9efc2b8f6ccb1f903fa5c6bfc8321183c7301de5267f3b3f806cf4f",
-      "bytes": 8771,
-      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "e13cf4cf4c48157e1413380ef65b23cf33975f5a10c62fca839a25ae04ef7e39",
+      "bytes": 15246,
+      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "custom/unified-controls/test-native.cpp": {
       "before": null,
@@ -5268,31 +5269,31 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "bfe45f1dccde2f854e4d7a60def3e1fb7ea01ff0"
+        "blob": "665eb0dbb35efe0d8a7f127070792f6715d3cd9c"
       },
-      "sha256": "b755e0a7b5bed780b6810158608d7c11cc710ee854c4895e6e003e9cd7d91112",
-      "bytes": 80674,
-      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "551fe6c8aa5936507edee6b365706c29ae4d57fdef00ed82024e961fc6ba2e16",
+      "bytes": 81506,
+      "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "files/data/scripts/omw/input/modbindingmodel.lua": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "c5a765cc60cedb40501342771270a018f89d2d30"
+        "blob": "ef9e0a0fd9c56143bcd65702cecc9dfbec2c7d3e"
       },
-      "sha256": "28defb91d21fd0b222248a5c3fe0dbc127a43fa3f5972cdf74ef2fc88511707f",
-      "bytes": 787,
-      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "5a7aa8307206a6fe83fd5de1603991524266cb7e56f4b4577f3c885df1b9f384",
+      "bytes": 1769,
+      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "files/data/scripts/omw/input/modbindings.lua": {
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ebdb975b55bff70fc3dfe3c643cadb88977732f6"
+        "blob": "e54ef46abc2fc7df88786a1d75bc1c0374494363"
       },
-      "sha256": "2a84eccba82d0abb02d43589b690e79db1f9fb7904e57dbae3466242bebade12",
-      "bytes": 13883,
-      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up."
+      "sha256": "fc2f8134d02b02b46abaa963461d43b3c416e4a28af51a7774f9191fded45131",
+      "bytes": 21937,
+      "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "files/data/scripts/omw/settings/common.lua": {
       "before": {
@@ -5314,11 +5315,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "4a94f5fdd1416d1bb8e56fd0f4d6df8d19b0a910"
+        "blob": "07eeeb7ac7326ca30cf5508d4ac20dc43075b15d"
       },
-      "sha256": "928e6040d92a42f4ff672bd24f7dc20a0a10226486ce2bbd348c28dc7ffde4f1",
-      "bytes": 17125,
-      "reason": "Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work."
+      "sha256": "ed5b1d86926970633c89cab9ebc7a361be604718bdf8479e53f735bdbbd70c3b",
+      "bytes": 17619,
+      "reason": "Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "files/data/shader_profiles/horror_mod.yaml": {
       "before": null,
