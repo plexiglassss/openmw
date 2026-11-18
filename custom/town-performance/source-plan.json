@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending.",
+  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -71,11 +71,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "82738ceeb37fea5c726bbb350e4cecafb91a660e"
+        "blob": "e3d4eb46cc6fe09c48962a869783e3aeeed6660a"
       },
-      "bytes": 77781,
-      "sha256": "42b79881523632b076c7ca8fe49ef7c68136c68aa8afa5de75907f22a359d5ce",
-      "reason": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates."
+      "bytes": 78037,
+      "sha256": "95ece2340526ae7c0c88d64901acdd93e4b1bb415d39e58cd4587f8ad236c3be",
+      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -4077,11 +4077,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "0202d2707fe396dc643bcd332b17020f848d8b0a"
+        "blob": "4ebb32aff055febfe7348b695249211624a5cbbf"
       },
-      "sha256": "09450b4764860afa1763e47cb5fd15381110d098a2e883eded11e0edf7ab1e95",
-      "bytes": 12995,
-      "reason": "Package and record isolated actor/HUD comparison controls alongside the complete cumulative Windows distribution."
+      "sha256": "e521c9d48096da09b5d9146abe5d9f51aec0449b1231aabea5e578ed696bb951",
+      "bytes": 15795,
+      "reason": "Verify common and Morrowind built-in Lua source files, all descriptor references and exact ordered descriptor entries against source/template before accepting the staged Windows distribution."
     },
     "custom/combined-performance/mods/AdvancedWorldMap/Install.cmd": {
       "before": null,
@@ -5140,6 +5140,16 @@
       "bytes": 1850,
       "reason": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up."
     },
+    "custom/unified-controls/test-package-scripts.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d4871a36ea6ba52a0ee35b815630f5162ef03bbe"
+      },
+      "sha256": "84a2c4cd1297a1be4ba43f54b8fb1590df4cdf11d56f65993355c8e383f56ecf",
+      "bytes": 4241,
+      "reason": "Exercise the production resource gate with complete inputs and missing, altered, unsafe or stale built-in Lua resource/descriptor controls."
+    },
     "custom/unified-controls/test-stacks.py": {
       "before": null,
       "after": {
@@ -5219,11 +5229,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "076435c2208b045f65a9d4c22ed2eed3db71a0e7"
+        "blob": "a3c4469d6cd4d57214f550566393a27a08a79b21"
       },
-      "sha256": "e34a30d4f33016b2b6a477446489f131259b572ec2c0f2f5b7d5c3b0d60b677c",
-      "bytes": 9641,
-      "reason": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides."
+      "sha256": "b84d09308c9f17570adff49be0060c86677560f11e8fbd315f1fb77d0ed831a2",
+      "bytes": 9721,
+      "reason": "Ship both the unified keybinding entry module and its required model helper through the existing built-in resource install list."
     },
     "files/data/builtin.omwscripts": {
       "before": {

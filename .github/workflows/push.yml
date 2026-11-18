@@ -136,6 +136,11 @@ jobs:
           }
           python custom/town-performance/verify-source.py
           if ($LASTEXITCODE) { throw 'Town performance source or combined feature preservation failed' }
+      - name: Reject missing built-in Lua entry scripts and helpers
+        shell: pwsh
+        run: |
+          python custom/unified-controls/test-package-scripts.py
+          if ($LASTEXITCODE) { throw 'Built-in Lua packaging regression tests failed' }
       - name: Test script installer preflight and rollback on authored fixtures
         shell: powershell
         run: |

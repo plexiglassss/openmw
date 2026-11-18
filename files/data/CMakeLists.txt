@@ -188,6 +188,8 @@ set(BUILTIN_DATA_FILES
     scripts/omw/worldeventhandlers.lua
     scripts/omw/input/button.lua
     scripts/omw/input/settings.lua
+    scripts/omw/input/modbindings.lua
+    scripts/omw/input/modbindingmodel.lua
     scripts/omw/input/playercontrols.lua
     scripts/omw/input/actionbindings.lua
     scripts/omw/input/smoothmovement.lua

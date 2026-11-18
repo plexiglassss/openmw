@@ -6,7 +6,7 @@ from ctypes import wintypes
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import struct
@@ -26,6 +26,56 @@ ROOT = Path(__file__).resolve().parents[2]
 def digest(path):
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def confirm_builtin_lua(install):
+    """Require the shipped entry scripts and their source Lua helpers, not just EXEs."""
+    sources = {"vfs": ROOT / "files/data", "vfs-mw": ROOT / "files/data-mw"}
+    checked = {}
+    for directory, source in sources.items():
+        scripts = sorted((source / "scripts").rglob("*.lua"))
+        if not scripts:
+            raise ValueError("No built-in Lua source files found: " + directory)
+        for script in scripts:
+            name = directory + "/" + script.relative_to(source).as_posix()
+            target = install / "resources" / name
+            if not target.is_file():
+                raise ValueError("Missing built-in Lua file: " + name)
+            if target.read_bytes() != script.read_bytes():
+                raise ValueError("Built-in Lua differs from the source: " + name)
+            checked[name] = digest(target)
+    base = (sources["vfs"] / "builtin.omwscripts").read_text(encoding="utf-8-sig")
+    template = (sources["vfs-mw"] / "builtin.omwscripts.in").read_text(encoding="utf-8-sig")
+    if template.count("@BUILTIN_SCRIPTS@") != 1:
+        raise ValueError("Unexpected built-in script descriptor template")
+    expected = {"vfs": base, "vfs-mw": template.replace("@BUILTIN_SCRIPTS@", base)}
+
+    def lines(text):
+        return [row for line in text.splitlines() if (row := line.split("#", 1)[0].strip())]
+
+    descriptors = {}
+    for directory in ("vfs", "vfs-mw"):
+        descriptor = install / "resources" / directory / "builtin.omwscripts"
+        if not descriptor.is_file():
+            raise ValueError("Missing built-in script descriptor: " + directory)
+        refs = []
+        actual = lines(descriptor.read_text(encoding="utf-8-sig"))
+        for line in actual:
+            if ":" not in line:
+                raise ValueError("Invalid built-in script descriptor line: " + line)
+            name = line.split(":", 1)[1].strip()
+            path = PurePosixPath(name)
+            if path.is_absolute() or ".." in path.parts or "\\" in name or ":" in name:
+                raise ValueError("Unsafe built-in script path: " + name)
+            if not any((install / "resources" / folder / name).is_file() for folder in (directory, "vfs")):
+                raise ValueError("Missing referenced built-in script: " + name)
+            refs.append(name)
+        if not refs:
+            raise ValueError("Empty built-in script descriptor: " + directory)
+        if actual != lines(expected[directory]):
+            raise ValueError("Built-in script descriptor differs from the source: " + directory)
+        descriptors[directory] = refs
+    return {"source_scripts": checked, "descriptor_references": descriptors}
 
 
 def refresh_adapter_installers(install):
@@ -229,6 +279,7 @@ def main():
         return
     before = json.loads((install / "PACKAGE-SHA256.json").read_bytes())["files"] if args.preserve_existing else {}
     stage(args.build.resolve(), install)
+    builtin_lua = confirm_builtin_lua(install)
     imports = confirm_distribution(install)
     launches = smoke_tools(install)
     for name, row in before.items():
@@ -242,6 +293,7 @@ def main():
                   tested_original_files_preserved=0,
                   updated_installer_paths=updated, updated_town_launcher_paths=town_updates,
                   public_applications=list(PUBLIC), command_checks=launches,
+                  builtin_lua=builtin_lua,
                   tool_hashes={name: digest(install / (name + ".exe")) for name in PUBLIC}, imports=imports)
     folder = install / "verification"
     folder.mkdir(exist_ok=True)
