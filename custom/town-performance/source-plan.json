@@ -1425,10 +1425,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "ab8f049a4cc32694129a0bd9679aa46e92e3749e"
+        "blob": "07b4c0fdd23b267ef0c11279a777f41e9763dfd6"
       },
-      "sha256": "38aa515ee9bf70fea7351de3c9284c46a8c85838b38542860b9a21d3727baf81",
-      "bytes": 25357,
+      "sha256": "034a5cdfc889e27699280d964196299dabfe9aa36357c5ae3032ff6d121a1c77",
+      "bytes": 25405,
       "reason": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
     },
     "apps/openmw/mwlua/vfsbindings.cpp": {

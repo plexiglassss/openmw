@@ -10,6 +10,7 @@
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/layers.hpp>
 #include <components/lua_ui/registerscriptsettings.hpp>
+#include <components/lua_ui/scriptsettings.hpp>
 #include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 
