@@ -4411,11 +4411,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e72c2da72854b7af5e3ba02d4ef6a01b9ef25af4"
+        "blob": "055eb1252062294e6bdf183ea7f434f2733180d2"
       },
-      "bytes": 21247,
-      "sha256": "ac5ca8a86665357380bf575aeae9db7c1065e1b35ebc711939ed8eac773e9377",
-      "reason": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
+      "bytes": 21525,
+      "sha256": "ff97c40810c8832118680dfb89ad0bb9e1ed06eec99c714ba4da893f91aa5cb1",
+      "reason": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum."
     },
     "custom/performance-capture/Start-Capture.ps1": {
       "before": {
