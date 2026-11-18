@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution. Refine the mod keybindings page: readable owner/description metadata, searchable mod navigation, responsive wrapped rows, per-counterpart conflict details and full tab height. Preserve the complete cb4fe859 engine.",
+  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution. Refine the mod keybindings page: readable owner/description metadata, searchable mod navigation, responsive wrapped rows, per-counterpart conflict details and full tab height. Preserve the complete cb4fe859 engine. Supply the actual internal util library loader in the standalone mod-keybindings layout fixture before native util initialization; preserve every layout assertion and all Follower Balance production changes.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -53,7 +53,8 @@
     "d63b95313274c794b14c70d4eaa08bf09c120cad",
     "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26",
     "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c",
-    "d2df2892ab8f8728d5c7f0135ac80edad4f033f3"
+    "d2df2892ab8f8728d5c7f0135ac80edad4f033f3",
+    "407469c78a5d7b8afce30403d565b91d57aadb16"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -73,11 +74,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "43d54441856c87f74a0701f49874dfd2757c90ec"
+        "blob": "3e264362f3fb8fbbe2ca1af91e1c51ded0ec51e7"
       },
-      "bytes": 78073,
-      "sha256": "a3e8dc4e36b87bc7b7c5bee23611bc6b3eb3ebff39e4e6c05d7aae651083f963",
-      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
+      "bytes": 78119,
+      "sha256": "bb651fa9c8be9785dfdb9c73f59478f035926774809533992efbc7ce41cd67d0",
+      "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance.; Run the unchanged full validation workflow on the isolated follower-balance fixture repair branch."
     },
     "apps/components_tests/CMakeLists.txt": {
       "before": {
@@ -2117,11 +2118,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "2f7a36494e3fad5f533923c99f7e8e25325bc56a"
+        "blob": "fa97507490cadb9e783dbbf1e6df0be60e6b42e4"
       },
-      "sha256": "bbb70707a3f3bd080ea40f94585c4482c05868575878c22a837f8802ef926666",
-      "bytes": 76669,
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture."
+      "sha256": "0c87b7ca188d843ba06612f6effa0637fae59ed9a2e01f39de0dd46ff58ea057",
+      "bytes": 77088,
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture.; Initialize the standalone native keybindings fixture with the actual internal util library loader; no layout assertion or production behavior change."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {

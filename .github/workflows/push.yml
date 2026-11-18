@@ -1,7 +1,7 @@
 name: OpenMW - combined native performance
 on:
   push:
-    branches: [perf/generic-native-jobs-20261109, fix/quickloot-tooltips-20261116, feat/unified-mod-controls-20261117, feat/follower-balance-api-20261118]
+    branches: [perf/generic-native-jobs-20261109, fix/quickloot-tooltips-20261116, feat/unified-mod-controls-20261117, feat/follower-balance-api-20261118, fix/follower-balance-layout-fixture-20261118]
   pull_request:
     branches: [perf/gameplay-activation-20261106]
     types: [opened, synchronize, reopened]

@@ -329,8 +329,16 @@ namespace LuaUi
         TEST_F(LuaUiLayoutTest, ModKeybindingsUsesViewportWidthAndWrappedDescriptions)
         {
             mLua.open_libraries(sol::lib::package);
-            mLua["nativeUtil"] = LuaUtil::initUtilPackage(mLua);
             mLua["sourceRoot"] = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }.generic_string();
+            // The standalone layout fixture does not construct LuaState, which
+            // normally installs this loader before the native util package.
+            // Load the actual internal library used by the engine.
+            run(R"(
+                function loadInternalLib(name)
+                    return assert(loadfile(sourceRoot..'/components/lua/'..name..'.lua'))
+                end
+            )");
+            mLua["nativeUtil"] = LuaUtil::initUtilPackage(mLua);
             mLua["checkControlsBounds"] = [](const std::shared_ptr<Element>& root, int width) {
                 const auto origin = root->mRoot->widget()->getAbsolutePosition();
                 EXPECT_LE(root->mRoot->widget()->getWidth(), width);
