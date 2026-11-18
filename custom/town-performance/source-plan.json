@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "baseline": "ce3d5a2e981999df432cf8df416352cc85842e97",
-  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution. Refine the mod keybindings page: readable owner/description metadata, searchable mod navigation, responsive wrapped rows, per-counterpart conflict details and full tab height. Preserve the complete cb4fe859 engine. Supply the actual internal util library loader in the standalone mod-keybindings layout fixture before native util initialization; preserve every layout assertion and all Follower Balance production changes.",
+  "scope": "Merge the complete d63b9531 navigation/graphics performance build with the complete f41ed8fc unified mod controls, removal colours, barter/save feedback and source preservation corrections. Preserve both histories and their regression suites. No reduction in scenery coverage or navigation tests. In-game performance and UI validation remain pending. Include both new built-in keybinding modules in installed resources and verify every source Lua helper and every built-in descriptor reference before accepting a Windows distribution. Refine the mod keybindings page: readable owner/description metadata, searchable mod navigation, responsive wrapped rows, per-counterpart conflict details and full tab height. Preserve the complete cb4fe859 engine. Supply the actual internal util library loader in the standalone mod-keybindings layout fixture before native util initialization; preserve every layout assertion and all Follower Balance production changes. Mirror the production LObject-to-Object inheritance registration in the native magic fixture and assert nonempty caster/item conversions before preserving their queued identities.",
   "preserved_heads": [
     "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
     "c0377d4d5732b454ac3fee69d9c4ece83776a876",
@@ -54,7 +54,8 @@
     "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26",
     "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c",
     "d2df2892ab8f8728d5c7f0135ac80edad4f033f3",
-    "407469c78a5d7b8afce30403d565b91d57aadb16"
+    "407469c78a5d7b8afce30403d565b91d57aadb16",
+    "e34132e01c9d2f2af4c66cc8e40f42c74e17fbda"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -2151,11 +2152,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "ceb4a3d51446b01423277c363510c692696a6035"
+        "blob": "4d0fb9fbd8ec0dbcc1b472e3071aa421ef33b3b6"
       },
-      "sha256": "aea0de9688e5f8871cd9733423ac7a79f7d7a167b934a1cdf866530bda043e2f",
-      "bytes": 79002,
-      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance."
+      "sha256": "84c50de5d5dbdc7b212eb8359542d8e68940ea4bb454da19303b4a6cee747330",
+      "bytes": 80145,
+      "reason": "Exercise the previous and optimized actor/HUD paths on the same Windows binaries and check retained state and errors. Exercise retained ordinary Lua spell reads across native changes, legacy conversions, empty actors and separate iterators; measure shared and independent copies.; Add generic per-application effect magnitude scaling, strict validation and independent actual-binding tests for Follower Balance.; Register the production LObject base-class relationship in the headless fixture and assert valid caster/item binding inputs before the original native identity checks."
     },
     "apps/openmw_tests/mwlua/testmodkeybindings.cpp": {
       "before": null,

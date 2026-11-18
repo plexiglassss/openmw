@@ -163,6 +163,9 @@ namespace MWLua
                 Context context{ Context::Local };
                 context.mLua = &mLua;
                 sol::state_view lua = mLua.unsafeState();
+                // Match production objectbindings.cpp: optional<Object> spell
+                // arguments must accept LObject userdata through its base type.
+                lua.new_usertype<LObject>("LObject", sol::base_classes, sol::bases<Object>());
                 mResources = std::make_unique<Resource::ResourceSystem>(&mVfs, 1.0, &mEncoder.getStatelessEncoder());
                 mEnvironment.setResourceSystem(*mResources);
                 lua["magic"] = initCoreMagicBindings(context);
@@ -1201,6 +1204,8 @@ namespace MWLua
 // Add explicit include <components/esm3/loadspel.hpp> if not transitively available.
 // Successful add-path tests need the agreed nonplayer type check in magicbindings.cpp;
 // the existing fixture intentionally supplies WorldModel but no MWBase::World.
+// installSpellReadBindings must register LObject with sol::bases<Object>(), as
+// production objectbindings.cpp does, before passing optional caster/item objects.
 // Tests inspect the REAL binding's native pending queue through writeState. They do
 // not execute the graphics/mechanics loop and do not claim live DOT/death testing.
 
@@ -1239,6 +1244,14 @@ namespace MWLua
             lua["selfVictim"] = object(victim, 2).asSelfObject();
             lua["caster"] = LObject(caster);
             lua["item"] = LObject(item); // controlled identity carrier, not a simulated enchantment
+            const auto boundCaster = lua["caster"].get<sol::optional<Object>>();
+            const auto boundItem = lua["item"].get<sol::optional<Object>>();
+            ASSERT_TRUE(boundCaster.has_value());
+            ASSERT_TRUE(boundItem.has_value());
+            ASSERT_EQ(boundCaster->id(), getId(caster));
+            ASSERT_EQ(boundItem->id(), getId(item));
+            ASSERT_EQ(boundCaster->ptrOrEmpty(), caster);
+            ASSERT_EQ(boundItem->ptrOrEmpty(), item);
             ASSERT_NO_THROW(runSpellScript(R"(
                 assert(magic.effectMagnitudeMultipliers == true)
                 firstId = actorAPI.activeSpells(selfVictim):add {
@@ -1294,6 +1307,10 @@ namespace MWLua
             lua["selfFirst"] = object(first, 2).asSelfObject();
             lua["selfSecond"] = object(second, 2).asSelfObject();
             lua["caster"] = LObject(caster);
+            const auto boundCaster = lua["caster"].get<sol::optional<Object>>();
+            ASSERT_TRUE(boundCaster.has_value());
+            ASSERT_EQ(boundCaster->id(), getId(caster));
+            ASSERT_EQ(boundCaster->ptrOrEmpty(), caster);
             ASSERT_NO_THROW(runSpellScript(R"(
                 scales = {[0] = 0.125, [2] = 0}
                 scaledId = actorAPI.activeSpells(selfFirst):add {
