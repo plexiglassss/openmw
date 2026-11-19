@@ -8,6 +8,13 @@ import xml.etree.ElementTree as ET
 
 
 IMAGE_INHERITANCE_CASE = "ImageTemplatesInheritResourcesAcrossOverridesAndUpdates"
+RC1_CURSOR_CASE = "Rc1CursorsAndLegacyPointersPreservePrecedenceAndInheritance"
+RC1_CURSOR_SNAPSHOTS = (
+    "cursor-inherited-and-explicit",
+    "cursor-parent-updated",
+    "cursor-resource-removed",
+    "cursor-pointer-removed",
+)
 MOD_KEYBINDINGS_CASE = "ModKeybindingsUsesViewportWidthAndWrappedDescriptions"
 MOD_KEYBINDINGS_SNAPSHOTS = ("mod-controls-340", "mod-controls-700", "mod-controls-1000")
 IMAGE_INHERITANCE_SNAPSHOTS = (
@@ -18,6 +25,7 @@ IMAGE_INHERITANCE_SNAPSHOTS = (
     "image-unchanged",
 )
 EXPECTED = {
+    RC1_CURSOR_CASE,
     MOD_KEYBINDINGS_CASE,
     "StableTemplateHierarchyAndSiblingOrderRepair",
     "RetainedAttachmentsPreserveOwnershipAndDynamicObservations",
@@ -78,6 +86,11 @@ def read_cases(path, expected_mode):
                            if line.startswith("[") and line.endswith("]"))
             if labels != MOD_KEYBINDINGS_SNAPSHOTS:
                 raise ValueError("Missing or reordered native mod keybindings snapshots: " + path.name)
+        if name == RC1_CURSOR_CASE:
+            labels = tuple(line[1:-1] for line in properties["layout_snapshots"].splitlines()
+                           if line.startswith("[") and line.endswith("]"))
+            if labels != RC1_CURSOR_SNAPSHOTS:
+                raise ValueError("Missing or reordered native RC1 cursor snapshots: " + path.name)
         cases[name] = properties
     if set(cases) != EXPECTED:
         raise ValueError("Layout suite is missing or changed: " + repr(sorted(set(cases) ^ EXPECTED)))
@@ -126,6 +139,12 @@ def compare(optimized, legacy):
         "schema_version": 1, "result": "PASS", "native_layout_cases": len(cases),
         "native_property_cases_per_mode": len(EXPECTED_PROPERTIES),
         "property_cases": sorted(EXPECTED_PROPERTIES),
+        "rc1_cursor_inheritance": {
+            "case": RC1_CURSOR_CASE,
+            "snapshot_labels": list(RC1_CURSOR_SNAPSHOTS),
+            "modes": ["optimized", "legacy"],
+            "snapshots_equal": True,
+        },
         "image_resource_inheritance": {
             "case": IMAGE_INHERITANCE_CASE,
             "snapshot_labels": list(IMAGE_INHERITANCE_SNAPSHOTS),

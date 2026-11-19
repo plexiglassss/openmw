@@ -214,7 +214,7 @@ namespace LuaUi
                 out << path << ':' << widget->getTypeName() << ':' << coord.left << ',' << coord.top << ','
                     << coord.width << ',' << coord.height << ':' << absolute.left << ',' << absolute.top << ':'
                     << widget->getVisible() << ',' << widget->getInheritedVisible() << ','
-                    << widget->getNeedMouseFocus();
+                    << widget->getNeedMouseFocus() << ":pointer=" << widget->getPointer();
                 if (auto* text = dynamic_cast<MyGUI::TextBox*>(widget))
                     out << ':' << text->getCaption().asUTF8();
                 if (auto* edit = dynamic_cast<MyGUI::EditBox*>(widget))
@@ -1087,15 +1087,19 @@ namespace LuaUi
             EXPECT_EQ(pointer("inherited"), "ibeam");
             EXPECT_EQ(pointer("explicit"), "hand");
             EXPECT_EQ(pointer("modern"), cursor->mName);
+            snapshot("cursor-inherited-and-explicit");
             run("root.layout.props.pointer='arrow'; refresh(root)");
             EXPECT_EQ(pointer("inherited"), "arrow");
             EXPECT_EQ(pointer("explicit"), "hand");
             EXPECT_EQ(pointer("modern"), cursor->mName);
+            snapshot("cursor-parent-updated");
             run("modern.props.cursor=nil; refresh(root)");
             EXPECT_EQ(pointer("modern"), "hand");
+            snapshot("cursor-resource-removed");
             run("modern.props.pointer=nil; explicit.props.pointer=nil; refresh(root)");
             EXPECT_EQ(pointer("modern"), "arrow");
             EXPECT_EQ(pointer("explicit"), "arrow");
+            snapshot("cursor-pointer-removed");
         }
 
         TEST_F(LuaUiLayoutTest, ImageTemplatesInheritResourcesAcrossOverridesAndUpdates)

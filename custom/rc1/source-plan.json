@@ -2035,7 +2035,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "13db2b1855e9bf035b02dac062567484da78c6d2"
+        "blob": "978465fb2dde04f0b7122be30bdc797355a8e6b9"
       },
       "status": "adapted_for_rc1"
     },
@@ -5214,9 +5214,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dab350f3a7603a3187a4c6b590deb3de1e83309d"
+        "blob": "07cbf5c1947c6371945b06771bcdf78fb69906d9"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/town-performance/verify-source.py": {
       "cumulative": {
@@ -8200,7 +8200,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "13db2b1855e9bf035b02dac062567484da78c6d2"
+        "blob": "978465fb2dde04f0b7122be30bdc797355a8e6b9"
       },
       "purpose": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Retained or adapted to the official RC1 source/API."
     },
@@ -12543,7 +12543,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "dab350f3a7603a3187a4c6b590deb3de1e83309d"
+        "blob": "07cbf5c1947c6371945b06771bcdf78fb69906d9"
       },
       "purpose": "Bind same-executable parity, performance measurements, packaging and existing features. Retained or adapted to the official RC1 source/API."
     },
