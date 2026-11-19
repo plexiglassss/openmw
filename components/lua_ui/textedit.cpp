@@ -9,6 +9,9 @@ namespace LuaUi
         mEditBox = createWidget<MyGUI::EditBox>("LuaTextEdit", MyGUI::IntCoord(0, 0, 0, 0), MyGUI::Align::Default);
         mEditBox->eventEditTextChange += MyGUI::newDelegate(this, &LuaTextEdit::textChange);
         mEditBox->setMaxTextLength(std::numeric_limits<std::size_t>::max());
+        // MyGUI forwards presses/releases from the EditBox client, but not
+        // clicks. Wrapped paragraph labels must still activate their Lua button.
+        mEditBox->getClientWidget()->eventMouseButtonClick += MyGUI::newDelegate(this, &LuaTextEdit::clientClick);
         registerEvents(mEditBox);
         WidgetExtension::initialize();
     }
@@ -16,8 +19,14 @@ namespace LuaUi
     void LuaTextEdit::deinitialize()
     {
         mEditBox->eventEditTextChange -= MyGUI::newDelegate(this, &LuaTextEdit::textChange);
+        mEditBox->getClientWidget()->eventMouseButtonClick -= MyGUI::newDelegate(this, &LuaTextEdit::clientClick);
         clearEvents(mEditBox);
         WidgetExtension::deinitialize();
+    }
+
+    void LuaTextEdit::clientClick(MyGUI::Widget*)
+    {
+        mEditBox->eventMouseButtonClick(mEditBox);
     }
 
     void LuaTextEdit::updateProperties()

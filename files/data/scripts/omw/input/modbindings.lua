@@ -15,6 +15,7 @@ local dirty, visible, recording = true, false, nil
 local filter, selectedMod, status = '', nil, ''
 local conflictsOnly, showHelp = false, false
 local expanded = {}
+local pendingReset
 local element, navigationElement, filterElement
 local filterWidth
 local contentWidth, navigationWidth, pageRevision = 600, 220, -1
@@ -49,8 +50,17 @@ adapters.inputBinding = {
         bindingSection:set(id, binding)
         set(id)
     end,
+    reset = function(id, _, default, set)
+        -- A built-in setting's default is an ID, not a physical key. The
+        -- built-in format has no declared physical default: restore unbound.
+        if type(default) ~= 'string' then error('No default binding ID was registered') end
+        if type(id) == 'string' and id ~= default then bindingSection:set(id, nil) end
+        bindingSection:set(default, nil)
+        set(default)
+    end,
     modifiers = 'any',
 }
+local builtInBindingAdapter = adapters.inputBinding
 subscribe(bindingSection, "bindings")
 subscribe(common.getSection(false, common.groupSectionKey), 'false:groups')
 local function updateGlobalSubscription()
@@ -104,6 +114,7 @@ local function collect()
                         name=metadata.name, owner=metadata.owner, modId=metadata.modId,
                         section=metadata.section, description=metadata.description,
                         adapter=adapter, bindings=ok and bindings or {}, metadata=setting.binding or {},
+                        default=setting.default,
                         error=not ok and tostring(bindings) or nil,
                     }
                     entries[#entries+1] = entry
@@ -210,10 +221,12 @@ local function label(binding)
     return 'Controller '..(controllerNames[binding.button] or ('button '..tostring(binding.button)))
 end
 local function changedView()
+    pendingReset=nil
     ui._resetControlsPageScroll()
     dirty=true
 end
 local function write(entry, index, binding)
+    pendingReset=nil
     -- Read current values again: another settings page/global event may have changed them.
     local value = common.getSection(entry.global, entry.group):getCopy(entry.setting)
     local arg = common.getArgumentSection(entry.global, entry.group):getCopy(entry.setting)
@@ -224,10 +237,50 @@ local function write(entry, index, binding)
     dirty = true
 end
 local function record(entry, index)
+    pendingReset=nil
     recording = {entry=entry, index=index}
     status = 'Press and release a key or button. Escape cancels. Use Clear to unbind.'
     input._beginBindingCapture()
     dirty = true
+end
+
+local function resetControls()
+    local request=pendingReset
+    pendingReset=nil
+    if not request then return end
+    local restored, failed, firstError=0,0,nil
+    local latest,seen=collect(),{}
+    local outsideBindings={}
+    for _,entry in ipairs(latest) do
+        if not request.ids[entry.id] and entry.adapter==builtInBindingAdapter and type(entry.value)=='string' then
+            outsideBindings[entry.value]=true
+        end
+    end
+    -- Freeze the confirmed identities, but read current values and defaults.
+    -- New registrations during confirmation are never silently included.
+    for _,entry in ipairs(latest) do
+        if request.ids[entry.id] then
+            seen[entry.id]=true
+            local ok,err=pcall(function()
+                if entry.adapter==builtInBindingAdapter then
+                    if outsideBindings[entry.value] or outsideBindings[entry.default] then
+                        error('A binding ID is shared with a shortcut outside this reset')
+                    end
+                end
+                local function set(value) setValue(entry.global,entry.group,entry.setting,value) end
+                if entry.adapter.reset then
+                    entry.adapter.reset(entry.value,entry.arg,entry.default,set)
+                else
+                    set(entry.default)
+                end
+            end)
+            if ok then restored=restored+1 else failed=failed+1; firstError=firstError or tostring(err) end
+        end
+    end
+    for id in pairs(request.ids) do if not seen[id] then failed=failed+1 end end
+    status='Restored '..restored..' shortcuts to defaults.'
+    if failed>0 then status=status..' '..failed..' could not be reset'..(firstError and ': '..firstError or '.') end
+    dirty=true
 end
 local function hasConflict(entry)
     for _, binding in ipairs(entry.bindings) do
@@ -330,6 +383,21 @@ local function render()
     local width=contentWidth
     local content={text(selectedMod and mods[selectedMod].name or 'Mod Keybindings',width,heading),
         text("Select a key to change it. Changes also apply in the mod's own settings.",width,muted)}
+    content[#content+1]=button('Reset controls',function()
+        local ids,n={},0
+        for _,entry in ipairs(entries) do
+            if not selectedMod or selectedMod==entry.modId then ids[entry.id]=true; n=n+1 end
+        end
+        pendingReset={ids=ids,count=n,owner=selectedMod and mods[selectedMod].name or 'all listed mods'}
+        dirty=true
+    end,math.min(230,width))
+    if pendingReset then
+        content[#content+1]=text('Reset '..pendingReset.count..' shortcuts for '..pendingReset.owner..'?',width,heading)
+        content[#content+1]=text('Restores the registered defaults. Built-in bindings without a default key become unassigned. Search and conflict filters do not limit the reset. Other mod settings and base game controls are unchanged.',width,muted)
+        local actions={button('Restore defaults',resetControls,math.min(190,width)),
+            button('Cancel',function()pendingReset=nil;dirty=true end,math.min(110,width))}
+        content[#content+1]=width<320 and column(actions,width,6) or row(actions,8)
+    end
     if status~='' then content[#content+1]=text(status,width,heading) end
     if showHelp then
         content[#content+1]=text('Red: bindings with overlapping declared contexts. Amber: possible overlap where a context is unknown. Select a warning to see the other actions.',width)
@@ -390,16 +458,18 @@ ui.registerSettingsPage(page)
 return {
     interfaceName='ModKeybindings',
     interface={
-        version=1,
+        version=2,
         registerAdapter=function(renderer, adapter)
             assert(type(renderer)=='string' and type(adapter)=='table' and type(adapter.read)=='function'
-                and type(adapter.write)=='function' and type(adapter.devices)=='table', 'Invalid keybinding adapter')
+                and type(adapter.write)=='function' and type(adapter.devices)=='table'
+                and (adapter.reset==nil or type(adapter.reset)=='function'), 'Invalid keybinding adapter')
             adapters[renderer]=adapter
             dirty=true
         end,
     },
     engineHandlers={
     onStateChanged=function()
+        pendingReset=nil
         updateGlobalSubscription()
         if recording then input._cancelBindingCapture(); recording=nil end
         dirty=true
@@ -409,6 +479,7 @@ return {
         if shown and not visible then dirty=true end
         visible=shown
         if not shown then
+            if pendingReset then pendingReset=nil;dirty=true end
             if recording then input._cancelBindingCapture(); recording=nil; status=''; dirty=true end
             return
         end

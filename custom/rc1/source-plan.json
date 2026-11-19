@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b125668d768d09aafa61e557d4731c3871f5ef08"
+        "blob": "7147d08e0eb8b3e13fbf329202e2ea8451cbfd4b"
       },
       "status": "adapted_for_rc1"
     },
@@ -2035,7 +2035,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "978465fb2dde04f0b7122be30bdc797355a8e6b9"
+        "blob": "4d670d43343e5f2bfa94206f9469528032b1f7ed"
       },
       "status": "adapted_for_rc1"
     },
@@ -2552,9 +2552,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e78b63d20d5d4c8bdd03f41101edf9681d8e0121"
+        "blob": "373618aa3596fac562bab187e39a1077801146c6"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/lua_ui/input.hpp": {
       "cumulative": {
@@ -2629,9 +2629,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "91d02602185465eb123083a084e35bbeb6370654"
+        "blob": "24521c4ff2a2dc3249e313145f5f83e05a3269f4"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/lua_ui/textedit.hpp": {
       "cumulative": {
@@ -2640,9 +2640,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c4c32b741cfc808696f32159cfec3825377bcf5b"
+        "blob": "86cc175a4745b11b9e562a3e0b360024b333a8b6"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/lua_ui/util.cpp": {
       "cumulative": {
@@ -2662,7 +2662,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ea43caa81c1ae02219d534bb4c3e87a126c63c53"
+        "blob": "437d3832dcb4f59cf02d1832593e281b6d881509"
       },
       "status": "adapted_for_rc1"
     },
@@ -2673,7 +2673,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "311bcfd5271630e96577d87f83843a8621e66dbd"
+        "blob": "38dac318e000931e50aeb13aa0f5a2fc2dd22fbf"
       },
       "status": "adapted_for_rc1"
     },
@@ -5236,9 +5236,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "518aae2aeb1ffb2210e7ee9c2f2437aaa6924898"
+        "blob": "22d782109e0c64ebd38541961a9c5c2d32e05fb5"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/unified-controls/save-feedback-preservation.json": {
       "cumulative": {
@@ -5258,9 +5258,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e9608cc9dfdce1725e968f0eedb97609337a3d67"
+        "blob": "114d32d3779d3f6ec465beb67fcbaa8140f96b81"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/unified-controls/test-native.cpp": {
       "cumulative": {
@@ -5412,9 +5412,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e54ef46abc2fc7df88786a1d75bc1c0374494363"
+        "blob": "ff9b141f6c93371eeec4f13bba88dbd936a1fe2e"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "files/data/scripts/omw/settings/common.lua": {
       "cumulative": {
@@ -5937,7 +5937,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b125668d768d09aafa61e557d4731c3871f5ef08"
+        "blob": "7147d08e0eb8b3e13fbf329202e2ea8451cbfd4b"
       },
       "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API."
     },
@@ -8200,7 +8200,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "978465fb2dde04f0b7122be30bdc797355a8e6b9"
+        "blob": "4d670d43343e5f2bfa94206f9469528032b1f7ed"
       },
       "purpose": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Retained or adapted to the official RC1 source/API."
     },
@@ -8887,7 +8887,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e78b63d20d5d4c8bdd03f41101edf9681d8e0121"
+        "blob": "373618aa3596fac562bab187e39a1077801146c6"
       },
       "purpose": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
     },
@@ -8964,7 +8964,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "91d02602185465eb123083a084e35bbeb6370654"
+        "blob": "24521c4ff2a2dc3249e313145f5f83e05a3269f4"
       },
       "purpose": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks. Retained or adapted to the official RC1 source/API."
     },
@@ -8975,7 +8975,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c4c32b741cfc808696f32159cfec3825377bcf5b"
+        "blob": "86cc175a4745b11b9e562a3e0b360024b333a8b6"
       },
       "purpose": "Combined performance candidate: Reuse dependency-stable native geometry within one Element action; preserve parsing, ordering and dynamic/editor fallbacks. Retained or adapted to the official RC1 source/API."
     },
@@ -8997,7 +8997,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ea43caa81c1ae02219d534bb4c3e87a126c63c53"
+        "blob": "437d3832dcb4f59cf02d1832593e281b6d881509"
       },
       "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Retained or adapted to the official RC1 source/API."
     },
@@ -9008,7 +9008,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "311bcfd5271630e96577d87f83843a8621e66dbd"
+        "blob": "38dac318e000931e50aeb13aa0f5a2fc2dd22fbf"
       },
       "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Retained or adapted to the official RC1 source/API."
     },
@@ -12287,7 +12287,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "0407c201502b04ac71cfe1bf36c350d60c328780"
+        "blob": "c4aedae413308f16fd1b406eb32347cd9ec441d3"
       },
       "purpose": "RC1 provenance, source verification and installation documentation."
     },
@@ -12303,7 +12303,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "77000a2be81c1a63fb704ec93a6f5174e8fd5fa3"
+        "blob": "b6402bc3997a99d9a0b1eb38feb3285c14842721"
       },
       "purpose": "RC1 provenance, source verification and installation documentation."
     },
@@ -12831,7 +12831,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "518aae2aeb1ffb2210e7ee9c2f2437aaa6924898"
+        "blob": "22d782109e0c64ebd38541961a9c5c2d32e05fb5"
       },
       "purpose": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
     },
@@ -12847,9 +12847,17 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "e9608cc9dfdce1725e968f0eedb97609337a3d67"
+        "blob": "114d32d3779d3f6ec465beb67fcbaa8140f96b81"
       },
       "purpose": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+    },
+    "custom/unified-controls/test-interactions.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "16c9833479247f0801aa0c8c7f4e4d2649035409"
+      },
+      "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1."
     },
     "custom/unified-controls/test-native.cpp": {
       "upstream": null,
@@ -13038,7 +13046,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "e54ef46abc2fc7df88786a1d75bc1c0374494363"
+        "blob": "ff9b141f6c93371eeec4f13bba88dbd936a1fe2e"
       },
       "purpose": "Unified mod controls, semantic removal notices, exclusive barter confirmation and visible saving feedback; tests and integration. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
     },

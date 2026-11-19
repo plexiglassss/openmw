@@ -1,5 +1,9 @@
 # OpenMW 0.52 RC1 — cumulative custom port
 
+All future custom engine improvements use `openmw-0.52-rc1-custom`, as requested
+after the user tested the RC1 distribution on 19 November 2026. Keep subsequent
+changes on this branch and preserve its cumulative features.
+
 This branch combines official `openmw-52-rc1` (`4ff261bf7c0d42a6cc06dd1ebc5d451802cff055`)
 with the cumulative custom engine through `c4b71b6754e905ec820a05407038c37ef6c51c02`.
 Its tree is identical to the reviewed local integration `61bf55d21b5537f0665fd86540ab9dcf635209f6`.

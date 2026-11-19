@@ -1,4 +1,6 @@
 #include <components/lua_ui/content.hpp>
+#include <components/lua_ui/adapter.hpp>
+#include <components/lua_ui/input.hpp>
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/flex.hpp>
 #include <components/lua_ui/image.hpp>
@@ -8,6 +10,7 @@
 #include <components/lua_ui/widget.hpp>
 #include <components/misc/combinedperformance.hpp>
 #include <components/lua/utilpackage.hpp>
+#include <apps/openmw/mwgui/resourceskin.hpp>
 
 #include <MyGUI_DataFileStream.h>
 #include <MyGUI_DataManager.h>
@@ -18,8 +21,10 @@
 #include <MyGUI_InputManager.h>
 #include <MyGUI_LayerManager.h>
 #include <MyGUI_LogManager.h>
+#include <MyGUI_OverlappedLayer.h>
 #include <MyGUI_RenderManager.h>
 #include <MyGUI_ResourceManager.h>
+#include <MyGUI_ScrollView.h>
 #include <MyGUI_TextBox.h>
 
 #include <gtest/gtest.h>
@@ -325,6 +330,236 @@ namespace LuaUi
         };
 
         class TownUiPerformanceTest : public LuaUiLayoutTest {};
+
+        class ModControlsInteractionTest : public LuaUiLayoutTest
+        {
+        protected:
+            MyGUI::ScrollView* mDetail = nullptr;
+            MyGUI::ScrollView* mNavigation = nullptr;
+            LuaAdapter* mDetailAdapter = nullptr;
+            LuaAdapter* mNavigationAdapter = nullptr;
+            sol::table mPage;
+            int mWheel = 0;
+            int mLastNativeOffset = 0;
+
+            void SetUp() override
+            {
+                LuaUiLayoutTest::SetUp();
+                MyGUI::LayerManager::getInstance().getByName("LuaUiTest")->castType<MyGUI::OverlappedLayer>()->setPick(true);
+                auto& resources = MyGUI::ResourceManager::getInstance();
+                MyGUI::FactoryManager::getInstance().registerFactory<MWGui::AutoSizedResourceSkin>(resources.getCategoryName());
+                for (const auto* file : { "core.skin", "openmw_resources.xml", "openmw_text.skin.xml",
+                         "openmw_windows.skin.xml", "openmw_button.skin.xml", "openmw_list.skin.xml",
+                         "openmw_box.skin.xml", "openmw_scroll.skin.xml" })
+                    ASSERT_TRUE(resources.load(file)) << file;
+                mNavigation = mGui.createWidget<MyGUI::ScrollView>(
+                    "MW_ScrollView", { 10, 10, 248, 450 }, MyGUI::Align::Default, "LuaUiTest");
+                mDetail = mGui.createWidget<MyGUI::ScrollView>(
+                    "MW_ScrollView", { 270, 10, 728, 450 }, MyGUI::Align::Default, "LuaUiTest");
+                for (auto* view : { mNavigation, mDetail })
+                    view->setCanvasAlign(MyGUI::Align::Left | MyGUI::Align::Top);
+                mNavigationAdapter = mNavigation->createWidget<LuaAdapter>("", {}, MyGUI::Align::Default);
+                mDetailAdapter = mDetail->createWidget<LuaAdapter>("", {}, MyGUI::Align::Default);
+                mLua.open_libraries(sol::lib::package);
+                mLua["sourceRoot"] = std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }.generic_string();
+                run(R"(
+                    function loadInternalLib(name)
+                        return assert(loadfile(sourceRoot..'/components/lua/'..name..'.lua'))
+                    end
+                )");
+                mLua["nativeUtil"] = LuaUtil::initUtilPackage(mLua);
+                mLua["nativeCallback"] = [this](sol::main_protected_function fn) {
+                    auto hidden = mLua.create_table();
+                    hidden[LuaUtil::ScriptsContainer::sScriptIdKey] = LuaUtil::ScriptId{};
+                    return LuaUtil::Callback::make({ nullptr, -1, hidden }, std::move(fn),
+                        LuaUtil::Callback::makeMetatable(mLua));
+                };
+                sol::usertype<Element> elementType = mLua["UiElement"];
+                elementType["layout"] = sol::property([](Element& e) { return e.mLayout; },
+                    [](Element& e, sol::table layout) { e.mLayout = sol::main_object(layout); });
+                elementType["update"] = [](Element& e) {
+                    if (e.mState != Element::New) e.mState = Element::Update;
+                };
+                mLua["registerPage"] = [this](sol::table page) { mPage = page; mLua["page"] = page; };
+                mLua["attachPage"] = [this]() {
+                    auto detail = mPage.get<std::shared_ptr<Element>>("element");
+                    auto navigation = mPage.get<std::shared_ptr<Element>>("navigationElement");
+                    detail->create();
+                    navigation->create();
+                    mDetailAdapter->attach(detail);
+                    mNavigationAdapter->attach(navigation);
+                    flush();
+                };
+                mLua["flush"] = [this]() { flush(); };
+                mLua["clickLabel"] = [this](bool navigation, const std::string& caption) {
+                    auto* text = label(navigation, caption);
+                    if (!text) throw std::runtime_error("Missing caption: " + caption);
+                    const auto point = text->getAbsolutePosition() + MyGUI::IntPoint(10, text->getHeight() / 2);
+                    auto& input = MyGUI::InputManager::getInstance();
+                    input.injectMouseMove(point.left, point.top, mWheel);
+                    std::ostringstream picked;
+                    picked << caption << " at " << point.left << ',' << point.top << " picked";
+                    for (auto* w = input.getMouseFocusWidget(); w; w = w->getParent())
+                        picked << ' ' << w->getTypeName() << ':' << w->getName() << ':' << w->getCoord();
+                    RecordProperty("last_click", picked.str());
+                    input.injectMousePress(point.left, point.top, MyGUI::MouseButton::Left);
+                    input.injectMouseRelease(point.left, point.top, MyGUI::MouseButton::Left);
+                };
+                mLua["wheelLabel"] = [this](bool navigation, const std::string& caption, int delta) {
+                    auto* text = label(navigation, caption);
+                    if (!text) throw std::runtime_error("Missing caption: " + caption);
+                    wheelAt(text->getAbsolutePosition() + MyGUI::IntPoint(10, 8), delta);
+                };
+                mLua["offset"] = [this](bool navigation) {
+                    return (navigation ? mNavigation : mDetail)->getViewOffset().top;
+                };
+                mLua["scrollTop"] = [this](bool navigation) {
+                    (navigation ? mNavigation : mDetail)->setViewOffset({ 0, 0 });
+                };
+                mLua["scrollBottom"] = [this](bool navigation) {
+                    (navigation ? mNavigation : mDetail)->setViewOffset({ 0, -100000 });
+                };
+                mLua["hasLabel"] = [this](bool navigation, const std::string& caption) {
+                    return label(navigation, caption) != nullptr;
+                };
+                mLua["typeText"] = [](const std::string& text) {
+                    auto& input = MyGUI::InputManager::getInstance();
+                    for (unsigned char c : text)
+                        input.injectKeyPress(MyGUI::KeyCode::None, c);
+                };
+                mLua["backspace"] = [](int count) {
+                    auto& input = MyGUI::InputManager::getInstance();
+                    for (int i = 0; i < count; ++i)
+                    {
+                        input.injectKeyPress(MyGUI::KeyCode::Backspace);
+                        input.injectKeyRelease(MyGUI::KeyCode::Backspace);
+                    }
+                };
+            }
+
+            void flush()
+            {
+                for (const auto& element : mElements)
+                    if (element->mState == Element::Update) element->update();
+                mDetail->setCanvasSize(mDetailAdapter->getSize());
+                mNavigation->setCanvasSize(mNavigationAdapter->getSize());
+            }
+
+            MyGUI::TextBox* label(bool navigation, const std::string& caption)
+            {
+                const auto visit = [&](const auto& self, MyGUI::Widget* node) -> MyGUI::TextBox* {
+                    if (auto* text = dynamic_cast<MyGUI::TextBox*>(node);
+                        text && text->getCaption().asUTF8() == caption) return text;
+                    for (size_t i = 0; i < node->getChildCount(); ++i)
+                        if (auto* result = self(self, node->getChildAt(i))) return result;
+                    return nullptr;
+                };
+                return visit(visit, navigation ? mNavigationAdapter : mDetailAdapter);
+            }
+
+            void wheelAt(MyGUI::IntPoint point, int delta, int horizontal = 0)
+            {
+                auto& input = MyGUI::InputManager::getInstance();
+                input.injectMouseMove(point.left, point.top, mWheel);
+                // Match InputWrapper: native wheel injection precedes the precise Lua event.
+                mWheel += delta * 120;
+                input.injectMouseMove(point.left, point.top, mWheel);
+                mLastNativeOffset = mDetail->getViewOffset().top;
+                std::ostringstream picked;
+                picked << point.left << ',' << point.top;
+                for (auto* w = input.getMouseFocusWidget(); w; w = w->getParent())
+                    picked << ' ' << w->getTypeName() << ':' << w->getName() << ':' << w->getCoord();
+                RecordProperty("last_wheel", picked.str());
+                dispatchMouseWheel(input.getMouseFocusWidget(), point.left, point.top, horizontal, delta);
+            }
+
+            void TearDown() override
+            {
+                if (mDetailAdapter) mDetailAdapter->detach();
+                if (mNavigationAdapter) mNavigationAdapter->detach();
+                mPage = sol::nil;
+                LuaUiLayoutTest::TearDown();
+            }
+        };
+
+        TEST_F(ModControlsInteractionTest, ActualLabelsSelectModsCaptureKeysAndScrollBothPanels)
+        {
+            ASSERT_NO_THROW(mLua.safe_script_file((std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }
+                / "custom/unified-controls/test-interactions.lua").string()));
+            // Native scrollbar/client handling must not be doubled by the Lua bridge.
+            mDetail->setViewOffset({ 0, 0 });
+            wheelAt(mDetail->getAbsolutePosition() + MyGUI::IntPoint(mDetail->getWidth() - 12, 80), -1);
+            EXPECT_EQ(mDetail->getViewOffset().top, mLastNativeOffset);
+            // Expose native canvas rather than a Lua label.
+            mDetailAdapter->setVisible(false);
+            mDetail->setViewOffset({ 0, 0 });
+            wheelAt(mDetail->getAbsolutePosition() + MyGUI::IntPoint(50, 80), -1);
+            EXPECT_EQ(mDetail->getViewOffset().top, -50);
+            EXPECT_EQ(mDetail->getViewOffset().top, mLastNativeOffset);
+        }
+
+        TEST_F(ModControlsInteractionTest, ConsumedLuaWheelDoesNotScrollTheNativeHost)
+        {
+            ASSERT_NO_THROW(mLua.safe_script_file((std::filesystem::path{ OPENMW_PROJECT_SOURCE_DIR }
+                / "custom/unified-controls/test-interactions.lua").string()));
+            run(R"(
+                calls=0
+                page.element.layout.events={mouseWheel=nativeCallback(function()calls=calls+1 end)}
+                page.element:update();flush();scrollTop(false)
+                wheelLabel(false,'Mod20',-1)
+                assert(calls==1 and offset(false)==0,'Consumed Lua wheel must not reach the host')
+                page.element.layout.events.mouseWheel=nativeCallback(function()calls=calls+1;return true end)
+                page.element:update();flush()
+                wheelLabel(false,'Mod20',-1)
+                assert(calls==2 and offset(false)==-50,'Explicit propagation must scroll the host once')
+                scrollTop(false)
+                page.element.layout.props.propagateEvents=false
+                page.element:update();flush()
+                wheelLabel(false,'Mod20',-1)
+                assert(calls==3 and offset(false)==0,'A propagation barrier must also stop the host bridge')
+            )");
+        }
+
+        TEST_F(ModControlsInteractionTest, OverflowingNativeEditorKeepsWheelOwnershipAtItsBounds)
+        {
+            run(R"(
+                root=element {type='LuaFlex',props={size=vec2(700,0)},content=content{
+                    {type='LuaTextEdit',name='editor',props={size=vec2(200,100),textSize=16,
+                        multiline=true,wordWrap=true,text=string.rep('A line of editable text\n',80)}},
+                    {props={size=vec2(200,900)}}}}
+                refresh(root)
+            )");
+            auto root = mLua["root"].get<std::shared_ptr<Element>>();
+            mDetailAdapter->attach(root);
+            flush();
+            // Complete the native host placement after adding its descendants,
+            // as the settings window does when it is positioned for display.
+            mDetail->setPosition({ 270, 11 });
+            mDetail->setPosition({ 270, 10 });
+            auto* edit = dynamic_cast<MyGUI::EditBox*>(require(root, "editor")->widget()->getChildAt(1));
+            ASSERT_NE(edit, nullptr);
+            ASSERT_GT(edit->getVScrollRange(), 1u);
+            edit->setVScrollPosition(0);
+            wheelAt(edit->getAbsolutePosition() + MyGUI::IntPoint(10, 20), -1);
+            EXPECT_EQ(edit->getVScrollPosition(), 50u);
+            EXPECT_EQ(mDetail->getViewOffset().top, 0);
+            edit->setVScrollPosition(edit->getVScrollRange() - 1);
+            wheelAt(edit->getAbsolutePosition() + MyGUI::IntPoint(10, 20), -1);
+            EXPECT_EQ(edit->getVScrollPosition(), edit->getVScrollRange() - 1);
+            EXPECT_EQ(mDetail->getViewOffset().top, 0);
+        }
+
+        TEST_F(ModControlsInteractionTest, HorizontalWheelMovesHostedContentInTheRequestedDirection)
+        {
+            run(R"(root=element {props={size=vec2(1400,900)}};refresh(root))");
+            mDetailAdapter->attach(mLua["root"].get<std::shared_ptr<Element>>());
+            flush();
+            const auto point = mDetail->getAbsolutePosition() + MyGUI::IntPoint(30, 30);
+            wheelAt(point, 0, 1);
+            EXPECT_EQ(mDetail->getViewOffset().left, -50);
+            wheelAt(point, 0, -1);
+            EXPECT_EQ(mDetail->getViewOffset().left, 0);
+        }
 
         TEST_F(LuaUiLayoutTest, ModKeybindingsUsesViewportWidthAndWrappedDescriptions)
         {

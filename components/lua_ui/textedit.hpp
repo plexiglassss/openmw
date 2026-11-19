@@ -31,6 +31,7 @@ namespace LuaUi
 
     private:
         void textChange(MyGUI::EditBox*);
+        void clientClick(MyGUI::Widget*);
 
         MyGUI::EditBox* mEditBox = nullptr;
         bool mMultiline{ false };

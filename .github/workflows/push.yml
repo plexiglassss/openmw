@@ -593,7 +593,7 @@ jobs:
           if ($componentTestExit) { throw 'Component regressions failed' }
           try {
             $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
-            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:ModControlsInteractionTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
             if ($LASTEXITCODE) { throw 'Legacy native layout and Image inheritance regressions failed' }
           } finally {
             Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
@@ -602,14 +602,14 @@ jobs:
           if ($LASTEXITCODE) { throw 'Required native UI regressions or layout/Image parity verification failed' }
           try {
             $env:OPENMW_LUA_UI_LEGACY_UPDATES = '1'
-            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-updates-tests.xml
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:ModControlsInteractionTest.* --gtest_output=xml:lua-ui-legacy-updates-tests.xml
             if ($LASTEXITCODE) { throw 'Inherited native update traversal regressions failed' }
           } finally {
             Remove-Item Env:OPENMW_LUA_UI_LEGACY_UPDATES -ErrorAction SilentlyContinue
           }
           try {
             $env:OPENMW_COMBINED_PERFORMANCE = '0'
-            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:MWLuaMagicBindingsTest.nativeQueryFactoriesMatchLuaAdapterCallsAndMasterMode --gtest_output=xml:combined-performance-off-tests.xml
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:ModControlsInteractionTest.*:MWLuaMagicBindingsTest.nativeQueryFactoriesMatchLuaAdapterCallsAndMasterMode --gtest_output=xml:combined-performance-off-tests.xml
             if ($LASTEXITCODE) { throw 'Same-executable inherited fallback regressions failed' }
           } finally {
             Remove-Item Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue

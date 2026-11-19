@@ -146,7 +146,7 @@ namespace LuaUi
         virtual MyGUI::IntSize calculateSize() const;
         virtual MyGUI::IntPoint calculatePosition(const MyGUI::IntSize& size) const;
         MyGUI::IntCoord calculateCoord() const;
-        void mouseWheel(MyGUI::Widget*, float, float, float, float);
+        bool mouseWheel(MyGUI::Widget*, float, float, float, float);
 
         virtual bool isTextInput() { return false; }
         virtual bool allowsLayoutReuse() const { return true; }
@@ -200,7 +200,7 @@ namespace LuaUi
 
         void triggerEvent(std::string_view name, sol::object argument) const;
         template <class ArgFactory>
-        void propagateEvent(std::string_view name, const ArgFactory& argumentFactory) const
+        bool propagateEvent(std::string_view name, const ArgFactory& argumentFactory) const
         {
             invalidateLayoutReuse();
             const WidgetExtension* w = this;
@@ -221,11 +221,11 @@ namespace LuaUi
                         shouldPropagate = false;
                     }
                 }
-                if (w->mParent && w->mPropagateEvents && shouldPropagate)
-                    w = w->mParent;
-                else
-                    w = nullptr;
+                if (!w->mPropagateEvents || !shouldPropagate)
+                    return true;
+                w = w->mParent;
             }
+            return false;
         }
 
         bool collectUnusedWarnings(std::vector<std::string>& warnings, bool generateWarningStrings) const;

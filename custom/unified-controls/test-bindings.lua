@@ -211,4 +211,100 @@ if modBindingsLayoutProbe then
         modBindingsLayoutProbe(registered.element.layout,registered.navigationElement.layout,width,navigationWidth)
     end
 end
-print('Binding conflicts, runtime discovery, metadata, original-store synchronization, cancel/clear/controller and subscription stability: PASS')
+-- Reset uses registered defaults, keeps unrelated settings and honours its
+-- confirmed scope even when a search hides some of that mod's shortcuts.
+pages.G.name='Global Mod'; pageRevision=pageRevision+1
+group.settings.key.default=31;storage.globalSection('OmwSettingGroups'):set('SettingsGlobal',group)
+storage.playerSection('SettingsTest'):set('unrelated',false)
+manager.engineHandlers.onFrame()
+findButton(registered.navigationElement,'Renamed Test Mod')();manager.engineHandlers.onFrame()
+local beforeResetEvents=#events
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+assert(storage.playerSection('OMWInputBindings'):get('test-id').button==4)
+findButton(registered.element,'Cancel')();manager.engineHandlers.onFrame()
+assert(storage.playerSection('OMWInputBindings'):get('test-id').button==4)
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+findButton(registered.element,'Restore defaults')();manager.engineHandlers.onFrame()
+assert(storage.playerSection('OMWInputBindings'):get('test-id')==nil)
+assert(storage.playerSection('OMWInputBindings'):get('new-id')==nil)
+assert(storage.playerSection('SettingsTest'):get('action')=='test-id')
+assert(storage.playerSection('SettingsTest'):get('unrelated')==false)
+assert(#events==beforeResetEvents,'Selected mod reset must not alter a different global mod')
+-- The search filters rows, not the explicitly stated all-mod reset scope.
+editor.layout.events.textChanged('New action');manager.engineHandlers.onFrame()
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+assert(table.concat(strings(registered.element),'\n'):find('for all listed mods?',1,true))
+findButton(registered.element,'Restore defaults')();manager.engineHandlers.onFrame()
+assert(events[#events].data.groupKey=='SettingsGlobal' and events[#events].data.value==31)
+assert(storage.globalSection('SettingsGlobal'):get('key')==19,'Global writes must use the event path')
+editor.layout.events.textChanged('');manager.engineHandlers.onFrame()
+-- Optional adapters can restore defaults held outside the setting value.
+local adapterResets=0
+I.ModKeybindings.registerAdapter('numericKey',{devices={keyboard=true},read=function(v)
+    return v and {{device='keyboard',button=v}} or {}
+end,write=function(_,_,_,b,set)set(b and b.button)end,
+reset=function(value,arg,default,set)
+    assert(value==19 and default==31);adapterResets=adapterResets+1;set(default)
+end})
+manager.engineHandlers.onFrame()
+findButton(registered.navigationElement,'Global Mod')();manager.engineHandlers.onFrame()
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+findButton(registered.element,'Restore defaults')();manager.engineHandlers.onFrame()
+assert(adapterResets==1)
+-- Closing the panel discards an unconfirmed reset and keeps idle frames cheap.
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+shown=false;manager.engineHandlers.onFrame();shown=true;manager.engineHandlers.onFrame()
+assert(not findButton(registered.element,'Restore defaults'))
+local idleUpdates=updates
+for i=1,50 do manager.engineHandlers.onFrame() end
+assert(updates==idleUpdates)
+assert(not pcall(I.ModKeybindings.registerAdapter,'invalidReset',{read=function()end,
+    write=function()end,devices={},reset=true}))
+-- Default nil is meaningful, failures remain isolated, and confirmation freezes
+-- identities while fresh registrations/default values can still change.
+pages.Reset={key='Reset',name='Reset edge cases',l10n='test'}
+I.ModKeybindings.registerAdapter('resetValue',{devices={keyboard=true},
+    read=function(v)return v and {{device='keyboard',button=v}} or {}end,
+    write=function(_,_,_,b,set)set(b and b.button)end})
+I.ModKeybindings.registerAdapter('resetError',{devices={keyboard=true},
+    read=function()return {}end,write=function()end,reset=function()error('Reset fixture failure')end})
+common.registerGroup{key='SettingsReset',page='Reset',l10n='test',name='Reset edge cases',permanentStorage=true,settings={
+    {key='clear',name='Clear default',renderer='resetValue'},
+    {key='fresh',name='Changed default',renderer='resetValue',default=10},
+    {key='missing',name='Removed setting',renderer='resetValue',default=1},
+    {key='bad',name='Missing default ID',renderer='inputBinding',argument={key='B',type='trigger'}},
+    {key='throws',name='Failing adapter',renderer='resetError'},
+}}
+local resetStore=storage.playerSection('SettingsReset')
+resetStore:set('clear',12);resetStore:set('fresh',13);resetStore:set('bad','bad-id')
+storage.playerSection('OMWInputBindings'):set('bad-id',{device='keyboard',button=9})
+manager.engineHandlers.onFrame()
+findButton(registered.navigationElement,'Reset edge cases')();manager.engineHandlers.onFrame()
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+local changed=storage.playerSection('OmwSettingGroups'):getCopy('SettingsReset')
+changed.settings.fresh.default=15
+changed.settings.missing=nil
+changed.settings.added={key='added',name='Added later',renderer='resetValue',default=1}
+storage.playerSection('OmwSettingGroups'):set('SettingsReset',changed);resetStore:set('added',29)
+manager.engineHandlers.onFrame()
+findButton(registered.element,'Restore defaults')();manager.engineHandlers.onFrame()
+assert(resetStore:get('clear')==nil and resetStore:get('fresh')==15 and resetStore:get('added')==29)
+assert(resetStore:get('bad')=='bad-id' and storage.playerSection('OMWInputBindings'):get('bad-id').button==9)
+assert(table.concat(strings(registered.element),'\n'):find('3 could not be reset',1,true))
+-- A drifted ID is cleaned up, but a shared mapping outside this mod is protected.
+changed.settings.bad.default='default-id'
+storage.playerSection('OmwSettingGroups'):set('SettingsReset',changed)
+storage.playerSection('OMWInputBindings'):set('default-id',{device='keyboard',button=10})
+manager.engineHandlers.onFrame()
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+findButton(registered.element,'Restore defaults')();manager.engineHandlers.onFrame()
+assert(resetStore:get('bad')=='default-id')
+assert(storage.playerSection('OMWInputBindings'):get('bad-id')==nil)
+assert(storage.playerSection('OMWInputBindings'):get('default-id')==nil)
+resetStore:set('bad','test-id')
+storage.playerSection('OMWInputBindings'):set('test-id',{device='keyboard',button=6})
+manager.engineHandlers.onFrame()
+findButton(registered.element,'Reset controls')();manager.engineHandlers.onFrame()
+findButton(registered.element,'Restore defaults')();manager.engineHandlers.onFrame()
+assert(resetStore:get('bad')=='test-id' and storage.playerSection('OMWInputBindings'):get('test-id').button==6)
+print('Binding discovery, synchronization, capture, reset scopes/defaults, global events and idle subscriptions: PASS')

@@ -8,8 +8,26 @@ player/global groups. Newly enabled mods appear after the engine loads their scr
 source scan or manually generated installed-mod list is needed. Changes go to the original
 setting storage; inputBinding settings retain their binding ID and update OMWInputBindings.
 Global settings use OMWSettingsGlobalSet. Settings changes invalidate the page; idle frames
-perform no registry scans. The page supports search, pages of 30 settings, multiple bindings
-for adapters that support them, and clearing/canceling.
+perform no registry scans. The page supports search, independently scrolling mod and
+action panels, multiple bindings for adapters that support them, and clearing/canceling.
+
+Reset controls asks for confirmation for the selected mod, or all listed mods when
+All mods is selected. Search/conflict filters do not narrow that stated reset scope.
+It restores the registered setting defaults and leaves unrelated settings/native
+controls alone. Built-in inputBinding defaults are binding IDs, not physical keys;
+reset clears their physical mappings to the format's unassigned default. An adapter
+may provide `reset(value, argument, default, set)` for mappings stored separately;
+otherwise the registered default is written through the original setting store.
+Global defaults still use the existing global-event writeback path. Failed resets
+are reported rather than counted as restored. A built-in binding ID shared with a
+shortcut outside the confirmed reset is left unchanged and reported, so resetting
+one mod cannot silently clear another mod's shared mapping.
+
+The RC1 input repair forwards paragraph-label clicks and bridges unconsumed Lua
+wheel events to their native scroll host. Native scrollbars and overflowing text
+editors retain their own wheel handling. Native regression tests inject real
+coordinates and both wheel phases, including search, rebinding, scrolling, reset,
+and the diagnostic legacy layout/update modes.
 
 A red binding has overlapping declared contexts and modifier matching. Amber means a
 possible conflict whose context or modifier rules are not declared. Native controls are

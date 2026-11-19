@@ -38,6 +38,12 @@ def verify(source_root, evidence_root, commit):
 
 
 def require_rc1_cases(evidence_root):
+    interactions = {
+        ("ModControlsInteractionTest", "ActualLabelsSelectModsCaptureKeysAndScrollBothPanels"),
+        ("ModControlsInteractionTest", "ConsumedLuaWheelDoesNotScrollTheNativeHost"),
+        ("ModControlsInteractionTest", "OverflowingNativeEditorKeepsWheelOwnershipAtItsBounds"),
+        ("ModControlsInteractionTest", "HorizontalWheelMovesHostedContentInTheRequestedDirection"),
+    }
     required = {
         "components-tests.xml": {
             ("LuaScriptsContainerTest", "RealTimersRemainLiveDuringIdleAndPausedSimulation"),
@@ -45,8 +51,11 @@ def require_rc1_cases(evidence_root):
         },
         "openmw-tests.xml": {
             ("LuaUiLayoutTest", "Rc1CursorsAndLegacyPointersPreservePrecedenceAndInheritance"),
-        },
+            ("ModKeybindings", "RuntimeDiscoveryWritebackConflictSemanticsAndCaptureLifecycle"),
+        } | interactions,
     }
+    for name in ("lua-ui-legacy-tests.xml", "lua-ui-legacy-updates-tests.xml", "combined-performance-off-tests.xml"):
+        required[name] = interactions
     for name, expected in required.items():
         cases = {(c.get("classname"), c.get("name")): c
                  for c in ET.parse(Path(evidence_root) / name).getroot().iter("testcase")}
