@@ -3773,9 +3773,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1a4bc6917502ecca1b0d6e137e2c5097876529c7"
+        "blob": "6c3a5130c083ccb4b1209c9ebff56a9fa94bf665"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/cell-streaming/test-static-preload.py": {
       "cumulative": {
@@ -3784,9 +3784,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1d4f45abdf595adfa3c29abe9289f672ed6f536d"
+        "blob": "e0fb7773cc43447595bab119753a58c7d200c583"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/cell-streaming/verify-activation.py": {
       "cumulative": {
@@ -10119,7 +10119,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "1a4bc6917502ecca1b0d6e137e2c5097876529c7"
+        "blob": "6c3a5130c083ccb4b1209c9ebff56a9fa94bf665"
       },
       "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API."
     },
@@ -10127,7 +10127,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "1d4f45abdf595adfa3c29abe9289f672ed6f536d"
+        "blob": "e0fb7773cc43447595bab119753a58c7d200c583"
       },
       "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
     },

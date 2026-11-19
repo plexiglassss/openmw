@@ -71,7 +71,7 @@ template<class Key,class Value>struct AsyncPreparation{
  struct Prepared{Value mValue{};std::shared_ptr<std::atomic_bool> mCompletion;std::function<void()> mCancel;std::size_t mEstimatedBytes=0;};
  struct Entry{std::function<Prepared(const std::atomic_bool&)> factory;Prepared value;double last=0;};
  std::map<Key,Entry> entries;int submissions=0,clears=0;
- template<class... A>explicit AsyncPreparation(WorkQueue*,A...){}
+ template<class... A>explicit AsyncPreparation(std::shared_ptr<WorkQueue>,A...){}
  void clear(){entries.clear();++clears;}bool contains(Key k)const{return entries.contains(k);}std::size_t size()const{return entries.size();}
  void poll(Key k,double t){entries.at(k).last=t;}
  template<class F>void request(Key k,double t,F f){entries.emplace(k,Entry{std::move(f),{},t});++submissions;}
@@ -97,15 +97,16 @@ struct Scene{VFSState vfs;std::uint64_t revision=0;std::set<std::string> loaded;
  auto getTemplate(VFS::Path::NormalizedView path){loaded.insert(std::string(path.value()));return std::make_shared<osg::Node>();}
  auto cacheInstance(VFS::Path::NormalizedView,const std::atomic_bool&){++clones;return std::make_shared<int>(1);}
 };
+struct Shape{};
 struct Shapes{int shapes=0,instances=0;std::multiset<std::pair<std::string,float>> scales;
- auto getShape(VFS::Path::NormalizedView){++shapes;return std::make_shared<osg::Node>();}
- auto cacheInstance(VFS::Path::NormalizedView path,float scale){++instances;scales.emplace(path.value(),scale);return std::make_shared<osg::Node>();}};
+ auto getShape(VFS::Path::NormalizedView){++shapes;return std::make_shared<Shape>();}
+ auto cacheInstance(VFS::Path::NormalizedView path,float scale){++instances;scales.emplace(path.value(),scale);return std::make_shared<Shape>();}};
 struct Resources{Scene* scene;Scene* getSceneManager(){return scene;}};
 struct ExistingCell{ESM::ExteriorCellLocation location;bool isExterior()const{return true;}const ExistingCell* getCell()const{return this;}
  ESM::ExteriorCellLocation getExteriorCellLocation()const{return location;}};
 struct CellPreloader{
  struct StaticPreloads;std::unique_ptr<StaticPreloads> mStaticPreloads;
- SceneUtil::WorkQueue queue;SceneUtil::WorkQueue* mWorkQueue=&queue;std::size_t mMaxCacheSize=9;
+ std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue=std::make_shared<SceneUtil::WorkQueue>();std::size_t mMaxCacheSize=9;
  std::map<const ExistingCell*,int> mPreloadCells;Resources* mResourceSystem;Shapes* mBulletShapeManager;
  bool mPreloadInstances=true;
  void preloadStaticExterior(ESM::ExteriorCellLocation,double);

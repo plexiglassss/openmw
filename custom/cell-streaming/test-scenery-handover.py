@@ -55,8 +55,9 @@ struct ObjectPaging {
  std::unique_ptr<SceneryState> mScenery;std::unique_ptr<AsyncState> mAsync;
  std::mutex mRefTrackerMutex;std::atomic_uint64_t mSelectionRevision{0};int mWorldspace=0;
  Scene scene;Scene* mSceneManager=&scene;CacheEpoch epoch{};bool asynchronous=true;
- osg::ref_ptr<Resource::GenericObjectCache<ChunkId>> cache=new Resource::GenericObjectCache<ChunkId>;
- osg::ref_ptr<SceneUtil::WorkQueue> queue=new SceneUtil::WorkQueue(1);
+ std::unique_ptr<Resource::GenericObjectCache<ChunkId,osg::ref_ptr<osg::Node>>> cache=
+  std::make_unique<Resource::GenericObjectCache<ChunkId,osg::ref_ptr<osg::Node>>>();
+ std::shared_ptr<SceneUtil::WorkQueue> queue=std::make_shared<SceneUtil::WorkQueue>(1);
  std::map<ChunkId,std::shared_ptr<std::atomic_bool>> gates;
  unsigned bridgeBuilds=0;
  ObjectPaging();~ObjectPaging();
@@ -94,7 +95,7 @@ void ObjectPaging::requestChunk(const ChunkRequest& r,const osg::Vec3f& point,do
  });
 }
 struct Barrier:SceneUtil::WorkItem {void doWork()override{}};
-void ObjectPaging::drain(){mAsync->mRequests.update(1);osg::ref_ptr<Barrier> b=new Barrier;queue->addWorkItem(b);b->waitTillDone();}
+void ObjectPaging::drain(){mAsync->mRequests.update(1);auto b=std::make_shared<Barrier>();queue->addWorkItem(b);b->waitTillDone();}
 ''' + extract('    void ObjectPaging::acceptScenery(') + r'''
 struct Seen:osg::NodeVisitor {
  int full=0,bridges=0;std::set<std::string> cells;
