@@ -1,0 +1,103 @@
+4 November FPS overlay position controls
+---------------------------------------
+The F8 menu is wider and both position sliders now use a full row. Horizontal
+and vertical offsets each have an editable integer field with -/+ buttons;
+each button step changes the selected offset by exactly 1 pixel, including
+Ctrl-click. Drag a slider for placement, then use -/+ or type an exact value.
+Changes appear live. Click Save Settings to retain the position after restart.
+
+Close OpenMW and its launcher, back up version.dll beside openmw.exe, then
+replace only version.dll with this build. Keep openmw_fg.ini and lua51.dll.
+Existing anchors, saved offsets, and Reset FPS overlay position still apply.
+This build includes the startup loading-progress repair described below and
+all preceding FG repairs. No engine executable update is needed.
+
+Build validation covers compilation, DLL loading/version forwarding, and the
+existing framebuffer regressions. Live menu operation in OpenMW remains a
+separate user check. BUILD-ID.txt identifies the exact source and build run.
+
+Earlier release information follows:
+
+4 November startup loading-progress repair
+-----------------------------------------
+Fixes the startup handoff that could leave FG displaying the first captured
+plugin name and progress bar while OpenMW continued loading other plugins.
+The redirect now immediately binds already-active default read/draw targets;
+it no longer depends on the loading camera issuing another framebuffer bind.
+Nondefault engine targets are preserved. No new per-frame work is added.
+
+Close OpenMW, back up the existing version.dll beside openmw.exe, and replace
+only version.dll. Keep your existing openmw_fg.ini and lua51.dll. No engine
+replacement, plugin change, save conversion, or new game is required.
+
+Check that plugin names and bar positions update during startup with FG loaded.
+The package has an automated GL regression and Windows DLL smoke-test gate;
+your actual OpenMW/NVIDIA startup remains the final runtime check. See
+LOADING-PROGRESS-REPAIR.md and BUILD-ID.txt for scope and build evidence.
+
+Earlier release information follows:
+
+24 October startup handoff repair (offline test build)
+---------------------------------------------------
+Seed the first redirected texture from the native back buffer before activating
+the redirect. Previously the initial ring texture was uninitialised; loading
+could read it before drawing. The per-frame preservation and shutdown repairs
+remain. This adds one GPU framebuffer blit per initialisation/resize, not a new
+per-frame copy. MSAA is resolved by the blit; bindings, read selection, scissor
+and sRGB state are restored. Tests cover native EGL default framebuffer, FBO,
+MSAA source, masked/scissored state, and prior loading continuity. Live Windows
+startup remains to be confirmed. This does not claim to repair Xbox Game Bar.
+
+Keep your INI. The End toggle leaves the hook/presenter loaded; fully remove or
+rename version.dll with OpenMW closed for a native-presentation comparison.
+
+Earlier release information follows:
+
+OpenMW Frame Generation 0.2.0 - recovered fixes plus GPU texture reuse synchronization
+Loading-frame continuity build 2026-10-23. Offline test build; live NVIDIA/OpenMW validation remains required.
+
+Close OpenMW. Back up the version.dll next to the custom build's openmw.exe.
+Copy this version.dll beside that openmw.exe, replacing the existing FG version.dll.
+Keep your existing openmw_fg.ini. openmw_fg.example.ini is a reference only: do not
+rename it over your settings unless you want the supplied defaults. A saved user INI
+in Documents/My Games/OpenMW takes precedence over an install-directory INI.
+No plugin, content entry, save conversion or new game is required.
+Rubic0n lua51.dll is independent; keep your existing sandboxed build when updating
+OpenMW, because the engine's standard distribution also supplies a lua51.dll.
+
+Preserved repairs: F8 mouse-motion gate, passive FPS display positioning, optional
+native/generated counters, readable logging and writable INI fallback, screenshot
+helper suppression, near-static UI transition guard, >=250 ms history reset.
+Added: GPU-side fences before reusing a texture previously sampled by the presenter.
+This prevents a missing cross-context dependency; it is not a claim of higher FPS.
+The GPU wait is queued; glFinish is used only if fence creation fails.
+
+The Windows CI package is built as x64 Release with MSVC and is produced only after
+the DLL-load/version-export-forwarding smoke test passes. BUILD-ID.txt identifies
+the exact commit and build run. See that run for the complete engine-test outcome.
+The smoke test does not exercise hooking, optical flow or the real NVIDIA display
+path. Earlier LLVM-MinGW rebuilds remain separate recovery/test packages.
+Check in game: F8 camera isolation and restored mouse; F9 display; End toggle;
+quick-save/load and F12; resize and alt-tab; fast camera turns; cap and vsync behavior.
+Compare native frame time and input response, not only generated FPS.
+To revert, restore the backed-up DLL; settings need not change.
+
+Complete modified source and AGPLv3 license are included in source/. CMake downloads
+Dear ImGui v1.91.8 and MinHook v1.3.4 with their own licenses. The package validation
+records source/toolchain provenance; CI packages additionally include BUILD-ID.txt.
+Existing runtime DLL injection remains
+separate from the engine source to preserve independent rollback.
+
+Loading-background continuity repair
+-----------------------------------
+After each submitted game frame, the next writable texture inherits that frame
+instead of exposing an older viewpoint during OpenMW loading-screen readbacks.
+No engine executable change is required. This adds one GPU image copy per native
+frame (RGBA8, current window resolution), with no CPU pixel readback. Performance
+cost on your GPU is unmeasured. Keep your INI and lua51.dll unchanged.
+
+Focused test: repeat the filmed Seyda Neen route across both cell boundaries.
+The loading pause may remain, but the background should stop rocking backward
+and forward. Check normal movement afterward, save/load, F12, F8, resize and
+alt-tab. Report any remaining oscillation with openmw_fg.log and a short video.
+See LOADING-CONTINUITY-AUDIT.md for cause, scope and validation limits.

@@ -1,6 +1,10 @@
 #include "objects.hpp"
 
+#include <components/diagnostics/timing.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <osg/Group>
+#include <osg/Stats>
+#include <osg/UserDataContainer>
 
 #include <components/misc/resourcehelpers.hpp>
 #include <components/misc/strings/algorithm.hpp>
@@ -31,6 +35,7 @@ namespace MWRender
     Objects::~Objects()
     {
         mObjects.clear();
+        mObjectsByCell.clear();
 
         for (CellMap::iterator iter = mCellSceneNodes.begin(); iter != mCellSceneNodes.end(); ++iter)
             iter->second->getParent(0)->removeChild(iter->second);
@@ -87,6 +92,8 @@ namespace MWRender
 
         mObjects.emplace(
             ptr.mRef, std::make_unique<ObjectAnimation>(ptr, animationMesh, mResourceSystem, animated, allowLight));
+        if (Misc::useCellObjectIndex())
+            mObjectsByCell.set(ptr.mRef, ptr.getCell());
     }
 
     void Objects::insertCreature(const MWWorld::Ptr& ptr, const std::string& mesh, bool weaponsShields)
@@ -110,7 +117,11 @@ namespace MWRender
 
         ActorAnimation* listener = anim.get();
         if (mObjects.emplace(ptr.mRef, std::move(anim)).second)
+        {
+            if (Misc::useCellObjectIndex())
+                mObjectsByCell.set(ptr.mRef, ptr.getCell());
             ptr.getClass().getContainerStore(ptr).setContListener(listener);
+        }
     }
 
     void Objects::insertNPC(const MWWorld::Ptr& ptr)
@@ -123,6 +134,8 @@ namespace MWRender
             mObjects.emplace(ptr.mRef,
                 std::make_unique<ESM4NpcAnimation>(
                     ptr, osg::ref_ptr<osg::Group>(ptr.getRefData().getBaseNode()), mResourceSystem));
+            if (Misc::useCellObjectIndex())
+                mObjectsByCell.set(ptr.mRef, ptr.getCell());
         }
         else
         {
@@ -132,6 +145,8 @@ namespace MWRender
             NpcAnimation* listener = anim.get();
             if (mObjects.emplace(ptr.mRef, std::move(anim)).second)
             {
+                if (Misc::useCellObjectIndex())
+                    mObjectsByCell.set(ptr.mRef, ptr.getCell());
                 ptr.getClass().getInventoryStore(ptr).setInvListener(listener);
                 ptr.getClass().getInventoryStore(ptr).setContListener(listener);
             }
@@ -148,6 +163,7 @@ namespace MWRender
         {
             iter->second->removeFromScene();
             mUnrefQueue.push(std::move(iter->second));
+            mObjectsByCell.erase(iter->first);
             mObjects.erase(iter);
 
             if (ptr.getClass().isActor())
@@ -168,25 +184,41 @@ namespace MWRender
 
     void Objects::removeCell(const MWWorld::CellStore* store)
     {
-        for (PtrAnimationMap::iterator iter = mObjects.begin(); iter != mObjects.end();)
-        {
+        Diagnostics::Scope measured("scene-unload", "renderer", "removeCell");
+        const auto remove = [&](PtrAnimationMap::iterator iter) {
             MWWorld::Ptr ptr = iter->second->getPtr();
-            if (ptr.getCell() == store)
+            if (ptr.getClass().isActor() && ptr.getRefData().getCustomData())
             {
-                if (ptr.getClass().isActor() && ptr.getRefData().getCustomData())
-                {
-                    if (ptr.getClass().hasInventoryStore(ptr))
-                        ptr.getClass().getInventoryStore(ptr).setInvListener(nullptr);
-                    ptr.getClass().getContainerStore(ptr).setContListener(nullptr);
-                }
-
-                iter->second->removeFromScene();
-                mUnrefQueue.push(std::move(iter->second));
-                iter = mObjects.erase(iter);
+                if (ptr.getClass().hasInventoryStore(ptr))
+                    ptr.getClass().getInventoryStore(ptr).setInvListener(nullptr);
+                ptr.getClass().getContainerStore(ptr).setContListener(nullptr);
             }
-            else
-                ++iter;
+
+            iter->second->removeFromScene();
+            mUnrefQueue.push(std::move(iter->second));
+            ++mUnloadRemoved;
+            return mObjects.erase(iter);
+        };
+        if (Misc::useCellObjectIndex())
+        {
+            for (const auto key : mObjectsByCell.take(store))
+            {
+                ++mUnloadVisited;
+                const auto iter = mObjects.find(key);
+                assert(iter != mObjects.end() && iter->second->getPtr().getCell() == store);
+                if (iter != mObjects.end())
+                    remove(iter);
+            }
         }
+        else
+            for (auto iter = mObjects.begin(); iter != mObjects.end();)
+            {
+                ++mUnloadVisited;
+                if (iter->second->getPtr().getCell() == store)
+                    iter = remove(iter);
+                else
+                    ++iter;
+            }
 
         CellMap::iterator cell = mCellSceneNodes.find(store);
         if (cell != mCellSceneNodes.end())
@@ -225,7 +257,17 @@ namespace MWRender
 
         PtrAnimationMap::iterator iter = mObjects.find(old.mRef);
         if (iter != mObjects.end())
+        {
             iter->second->updatePtr(cur);
+            if (Misc::useCellObjectIndex())
+                mObjectsByCell.set(iter->first, newCell);
+        }
+    }
+
+    void Objects::reportStats(unsigned int frameNumber, osg::Stats& stats) const
+    {
+        stats.setAttribute(frameNumber, "Cell Unload Objects Visited", static_cast<double>(mUnloadVisited));
+        stats.setAttribute(frameNumber, "Cell Unload Objects Removed", static_cast<double>(mUnloadRemoved));
     }
 
     Animation* Objects::getAnimation(const MWWorld::Ptr& ptr)

@@ -65,3 +65,45 @@ Map Settings
 
    Controls viewing distance on the local map when 'distant terrain' is enabled.
    Increasing this may increase cell load times.
+
+
+Location icons
+--------------
+
+The native world map can display categorized location icons. These settings do not
+change the local map or require Advanced World Map. They can also be changed under
+Options > Map icons.
+
+``location icons`` (boolean, default true)
+    Enable categorized native markers. Disabling restores ordinary named markers
+    and hides additional discovered entrance markers.
+
+``location entrance icons`` (boolean, default true)
+    Discover and show meaningful interior entrances in exterior cells entered by
+    the player. Ordinary settlement doors are excluded.
+
+``location icon tooltips`` (boolean, default true)
+    Include the location type in marker tooltips.
+
+``location icon size`` (integer, 16 to 40, default 24)
+    Icon size in logical UI pixels. Interface scaling applies.
+
+``location icon colours`` (integer, default 0)
+    0 selects the original artwork colours on both maps. 2 selects colours by marker type.
+    Earlier value 1 selects the original artwork colours.
+
+``location local door icons`` (boolean, default true)
+    Use the selected marker skin on teleport doors in the local map and HUD minimap.
+
+``location local icon size`` (integer, 8 to 40, default 15)
+    The local door size at normal zoom, in logical interface pixels.
+
+``location icon maximum size`` (integer, 8 to 64, default 24)
+    Maximum side length after zoom and world marker grouping, in logical interface pixels.
+    World and local map positions continue to follow the zoom. The interface scale still applies.
+
+``location icon categories`` (integer bit mask, default 524287)
+    Categories with their bit clear use square markers. Bits 0 through 18 are:
+    city, town, settlement, house, cave, mine, tomb, barrow, Dwemer, Daedric,
+    stronghold, fort, tower, ruin, camp, ship, shipwreck, landmark and miscellaneous.
+    Use the in-game category controls for ordinary configuration.

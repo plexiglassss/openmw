@@ -1,0 +1,7 @@
+{
+  "release_id": "OMW-MCP-2.0.0",
+  "baseline_revision": "2026-10-24-r18",
+  "release_archive_sha256": "99108a1777cb5259f2755b2b30cf886c86b283e6438b2bb4be588c95ea3ad8c2",
+  "release_manifest_sha256": "ca4f8d92e29be468b9c6a0d81374eb6972afbbda3dbf1b552a59e7cd7653bddb",
+  "requirements_sha256": "e48f1ed231380310700a5c2c9fa6a83d642c336f5dbc022c679acb4fe8893bd0"
+}

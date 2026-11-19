@@ -72,7 +72,12 @@ namespace MWRender
         void markForRemoval(osg::Camera* camera);
 
         void write(ESM::GlobalMap& map);
+        /// Takes ownership of the encoded image. Markers stay with the caller.
         void read(ESM::GlobalMap& map);
+        /// Publish the restoration on the scene owner before returning control to gameplay.
+        void finishRestore();
+        bool readyForDisplay() const;
+        void update();
 
         std::unique_ptr<MyGUI::ITexture> makeBaseGuiTexture();
         std::unique_ptr<MyGUI::ITexture> makeOverlayGuiTexture();
@@ -83,13 +88,17 @@ namespace MWRender
 
     private:
         struct WritePng;
+        struct ReadPng;
+        void applySavedImage(osg::ref_ptr<osg::Image> image);
+        void flushExploredCells();
+        void exploreCellTexture(int cellX, int cellY, osg::ref_ptr<osg::Texture2D> localMapTexture);
 
         /**
          * Request rendering a 2d quad onto mOverlayTexture.
          * x, y, width and height are the destination coordinates (top-left coordinate origin)
          * @param cpuCopy copy the resulting render onto mOverlayImage as well?
          */
-        void requestOverlayTextureUpdate(int x, int y, int width, int height, osg::ref_ptr<osg::Texture2D> texture,
+        osg::Camera* requestOverlayTextureUpdate(int x, int y, int width, int height, osg::ref_ptr<osg::Texture2D> texture,
             bool clear, bool cpuCopy, float srcLeft = 0.f, float srcTop = 0.f, float srcRight = 1.f,
             float srcBottom = 1.f);
 
@@ -125,6 +134,12 @@ namespace MWRender
         std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue;
         std::shared_ptr<CreateMapWorkItem> mWorkItem;
         std::shared_ptr<WritePng> mWritePng;
+        // Original PNG and original bounds are one save snapshot, including during a resized GPU readback.
+        std::shared_ptr<ReadPng> mSavedOverlay;
+        std::map<std::pair<int, int>, osg::ref_ptr<osg::Texture2D>> mQueuedExploration;
+        osg::Camera* mRestoreCamera = nullptr;
+        bool mRestorePending = false;
+        double mBaseBuildMs = 0;
 
         int mWidth;
         int mHeight;

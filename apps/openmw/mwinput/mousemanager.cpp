@@ -119,6 +119,11 @@ namespace MWInput
 
     void MouseManager::mouseReleased(const SDL_MouseButtonEvent& arg, Uint8 id)
     {
+        if (MWBase::Environment::get().getInputManager()->captureBinding(1, arg.button, false))
+        {
+            mBindingsManager->mouseReleased(arg, id);
+            return;
+        }
         MWBase::Environment::get().getInputManager()->setJoystickLastUsed(false);
 
         if (mBindingsManager->isDetectingBindingState())
@@ -146,6 +151,7 @@ namespace MWInput
 
     void MouseManager::mouseWheelMoved(const SDL_MouseWheelEvent& arg)
     {
+        if (MWBase::Environment::get().getInputManager()->isCapturingBinding()) return;
         MWBase::InputManager* input = MWBase::Environment::get().getInputManager();
         if (mBindingsManager->isDetectingBindingState() || (!mGuiCursorEnabled && !input->controlsDisabled()))
         {
@@ -165,6 +171,8 @@ namespace MWInput
 
     void MouseManager::mousePressed(const SDL_MouseButtonEvent& arg, Uint8 id)
     {
+        if (MWBase::Environment::get().getInputManager()->captureBinding(1, arg.button, true))
+            return;
         MWBase::InputManager* input = MWBase::Environment::get().getInputManager();
         input->setJoystickLastUsed(false);
         bool guiMode = false;

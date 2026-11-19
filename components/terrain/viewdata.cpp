@@ -28,6 +28,7 @@ namespace Terrain
         mActiveGrid = other.mActiveGrid;
         mWorldUpdateRevision = other.mWorldUpdateRevision;
         mNodes = other.mNodes;
+        mScenery = other.mScenery;
     }
 
     void ViewData::add(QuadTreeNode* node)
@@ -74,6 +75,8 @@ namespace Terrain
         mChanged = false;
         mHasViewPoint = false;
         mNodes.clear();
+        mStreamingLookAhead = {};
+        mScenery.reset();
     }
 
     bool ViewData::suitableToUse(const osg::Vec4i& activeGrid) const
@@ -122,6 +125,9 @@ namespace Terrain
             mNode = node;
             // clear cached data
             mRenderingNode = nullptr;
+            mRenderingComplete = true;
+            mRenderingReadyForCamera = false;
+            mRenderingSeparateScenery = false;
             return true;
         }
     }
@@ -176,6 +182,16 @@ namespace Terrain
             }
         }
         return vd;
+    }
+
+    ViewData* ViewDataMap::getCompletedView(const osg::Vec4i& grid) const
+    {
+        ViewData* latest = nullptr;
+        for (const auto& [camera, view] : mViewers)
+            if (camera && view->suitableToUse(grid) && view->getWorldUpdateRevision() == mWorldUpdateRevision
+                && (!latest || view->getLastUsageTimeStamp() > latest->getLastUsageTimeStamp()))
+                latest = view;
+        return latest;
     }
 
     ViewData* ViewDataMap::createOrReuseView()

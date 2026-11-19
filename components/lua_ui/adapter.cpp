@@ -41,6 +41,13 @@ namespace LuaUi
         setVisible(!getVisible());
     }
 
+    void LuaAdapter::refresh()
+    {
+        // Lua widgets retain their own inherited visibility state. Recalculate
+        // from the container down after a previously hidden host is shown.
+        mContainer->updateCoord();
+    }
+
     void LuaAdapter::detach()
     {
         detachElement();

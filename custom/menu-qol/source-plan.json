@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "baseline": "de695387ff24adac5ff28a56eaac30d996e45011",
+  "latest_accepted_merge": "d9283d9b5373d2910c81db3eed3cd16a81d179b7",
+  "scope": "Requested rest/wait and Continue UI features, including the bounded Continue colour/hover repair. Preserve all other cumulative engine files and accepted installer repair; no game plugin, save-format, rest mechanics or load-order changes.",
+  "files": {
+    ".github/workflows/push.yml": {
+      "before": {
+        "mode": "100644",
+        "blob": "bcb6a86012c96ae1e87e98e988fd62620517418e"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "24b7c1fe1bf02b25b6d2758ce1694ca122f9c3b7"
+      },
+      "bytes": 38081,
+      "sha256": "827f80db6d9d9f87d5ee030e49e897b90b8cb2de3e93bdbc4fe2638ea64530f5",
+      "reason": "Build and verify exact feature/cumulative source, native suites and complete package. Fetch original hash-pinned tools through authenticated read-only release API calls and original source archives with verified retries; serialize LTO links without changing optimization; preserve explicitly unverified files only on post-install packaging failure."
+    },
+    "apps/openmw/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "c0141cb15f403b78e6571585fc3b3c5d8221d91b"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2eb7d1bb0feddbb8acdd152067c990ca8d5b9067"
+      },
+      "bytes": 11815,
+      "sha256": "ba05efdab70ebc64928618c9e1020d426cbf6f769ce5cdc699b954ee7e3f1f59",
+      "reason": "Include the time-preview, save-selection and dedicated title-menu button headers in source groups."
+    },
+    "apps/openmw/mwgui/mainmenu.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "010159be00406b1314e7b0a727d2cd56d2a09966"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "3d8f44693878ed51b795c4844014a08377223f85"
+      },
+      "bytes": 18437,
+      "sha256": "8281ef189d046ac4eb39a0cf8e5d4e810bf064fa5e393a1f3b42dde7401568dd",
+      "reason": "Add title-screen Continue with newest-save selection and native input/focus behavior; instantiate the scoped text button so mouse hover remains distinct from initial keyboard focus."
+    },
+    "apps/openmw/mwgui/mainmenu.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "29270e42db619568cca04c1d746dbf5b2d395f22"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "67c5b7c82e2e758804cd82264fb79f96391168b9"
+      },
+      "bytes": 1759,
+      "sha256": "93f1fdbd43987883b1bd952367588e4fc624833f366d60cb7363bc8e6d7a7eb4",
+      "reason": "Store the native Continue button widget."
+    },
+    "apps/openmw/mwgui/mainmenutextbutton.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "a6e532e3e9c1b6b4774a2110ed581a0bb2114b19"
+      },
+      "bytes": 2789,
+      "sha256": "9a1c5afde9cbd90f9c3ca10f65f34950eb5cd90965a0f85979e1dc9eed837500",
+      "reason": "Retain native MyGUI activation while distinguishing normal, keyboard-focused, mouse-hover, left-pressed and disabled appearance for Continue."
+    },
+    "apps/openmw/mwgui/waitdialog.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "3f41a78d3846273743a3180f8388cb5749154043"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "8e234f8992d8f6aa686774044f2f897130d25f8b"
+      },
+      "bytes": 16790,
+      "sha256": "9058f7882b7ae75367706ea542af6abecfd2c0c0713554179ca023291b1e5fa7",
+      "reason": "Update the displayed finish clock time when the fixed-duration rest/wait selection changes."
+    },
+    "apps/openmw/mwgui/waitdialog.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "fb25ddc1faa8dca2102c268ba7cf771e0dfb1512"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "6bb04b2cd079de64d89238b39d50aac43d4c8133"
+      },
+      "bytes": 2403,
+      "sha256": "6a516677f607b62e93f75b29506f409cdd8567a5a2d9d3e7e5a2f64706d2936e",
+      "reason": "Bind the added finish-time label."
+    },
+    "apps/openmw/mwgui/waitdialogtime.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "b65f76b6a8801cac0e02f257cdd0119338982df7"
+      },
+      "bytes": 871,
+      "sha256": "313aad4b994bb5641ac534cd2152c3bd4738f30d0cc97a6a658fc1036dbebb42",
+      "reason": "Calculate clock/minute/day preview using the same hourly TimeStamp normalization as rest."
+    },
+    "apps/openmw/mwstate/saveselection.hpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "3074ac4cfc83dee6be191fe6382287b9420bfb2f"
+      },
+      "bytes": 1390,
+      "sha256": "77cdecd7c267e1620146900b4fa6977c3fedd10e444ff52980006d88af535443",
+      "reason": "Select newest recognized save across all characters with a stable timestamp-tie rule."
+    },
+    "apps/openmw_tests/CMakeLists.txt": {
+      "before": {
+        "mode": "100644",
+        "blob": "7bc46edef33e2499cd92a8b26ceb169d10631560"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "bca3fabe606ac364b42fcb75641f712e65bbdf93"
+      },
+      "bytes": 2551,
+      "sha256": "afd18876ab771343ef0735f3d74869b4672db2a7fc77274bf04833effb1d813c",
+      "reason": "Register the rest-time, save-selection and real MyGUI Continue-button regression suites."
+    },
+    "apps/openmw_tests/mwgui/testcontinuegame.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "6c50c690f7e03e0524297d37a9160c808a2cb726"
+      },
+      "bytes": 7936,
+      "sha256": "77bae5d20db7582eacf2e06660ce8016e5750cff9ecbf02529ed7ba3cdbd6a86",
+      "reason": "Exercise production save discovery and selection using real temporary save headers."
+    },
+    "apps/openmw_tests/mwgui/testmainmenubutton.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "dcc5bac8b1217a0c3b65d4b913b2ac46b052e3d3"
+      },
+      "bytes": 12929,
+      "sha256": "948f73982804f37dd0b186b300a28866a8bf0522c9300370c0afdce26636f41b",
+      "reason": "Drive the production Continue widget and shipped skin through real MyGUI input events to verify focus, hover, clicks and disabled-state recovery."
+    },
+    "apps/openmw_tests/mwgui/testresttime.cpp": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d76a898494b658b4944ca9ebccafb50d7a7832a7"
+      },
+      "bytes": 2061,
+      "sha256": "1b1be3549721b82ae6cb9077901f717dd7671268adb14df29b904888b8205778",
+      "reason": "Verify production time preview at noon, midnight, fractional-hour, full-day and float-rounding boundaries."
+    },
+    "custom/cumulative/prepare-upgrade.py": {
+      "before": {
+        "mode": "100644",
+        "blob": "1ae2eea8fad14a7e622ea1f7c9d1d568df2bd750"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "20f1fbacd369be5a68cfa5d8e1b08fb57e235be6"
+      },
+      "bytes": 8943,
+      "sha256": "baa5df4daf1ec945e75fa4fceeb99fa0036b08951ab48b8811166d3990cf4af3",
+      "reason": "Require all three executed menu regression suites and byte-exact UI resources, retaining complete-package bootstrap/runtime and historical source checks."
+    },
+    "custom/gameplay-fix-installer/Install-Fix.ps1": {
+      "before": {
+        "mode": "100644",
+        "blob": "b4d8441082452f6d4dfcc21a965b316615927abf"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "e1d040ce5edd74c982b490bf475b9bf8cb19eb5e"
+      },
+      "bytes": 18701,
+      "sha256": "9c42bd5a4aa6b1d2347684336f1374d7d0553cb8eea1ee4f9bce374b8fe86079",
+      "reason": "Resolve omitted PackageRoot after Windows PowerShell -File parameter binding. Exact generic helper passed 10 entry-point and 22 guard/transaction/rollback checks in native Windows run 42496179114 at 405b2a00a48440ae37bc27fb909edd85da227be2. No engine, configuration or Lua payload change."
+    },
+    "custom/menu-qol/README.md": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "d40e7911fd51ea6bbe630de504932d583f8d8d02"
+      },
+      "bytes": 6490,
+      "sha256": "e5ceb68a3b5db045e0272469f2f4093061637fee6f7c2cf466b4659732ee28b0",
+      "reason": "Document menu behavior, the gold palette and independent hover state, installation/rollback, verification and honest runtime limits."
+    },
+    "custom/menu-qol/verify-source.py": {
+      "before": null,
+      "after": {
+        "mode": "100644",
+        "blob": "00bcea30e40b37778de0e7de9c403f9e14160efc"
+      },
+      "bytes": 6072,
+      "sha256": "9b787c23f12142a81c8fb726560b99900924616d6a9b347acba789148ef50c71",
+      "reason": "Check complete source preservation against the exact packaging-fixed cumulative baseline and each reviewed feature delta."
+    },
+    "files/data/l10n/Interface/en.yaml": {
+      "before": {
+        "mode": "100644",
+        "blob": "cd5ee9df0d8fa6798a15ffd530e4fbcb3ec9d670"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "4ff6b1eafe9f6716ac028da4abd1ee78a9eef889"
+      },
+      "bytes": 1224,
+      "sha256": "aa47ee76db72a6e4d22f8df5ca9111707736c97ceaf4d0927dad4da19d5fbce3",
+      "reason": "Add localizable Continue and rest/wait finish-time labels."
+    },
+    "files/data/mygui/openmw_mainmenu.skin.xml": {
+      "before": {
+        "mode": "100644",
+        "blob": "33c1e7d62ff515f908ed51ec7bd9bd6757072515"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2cb9a53f941af1b84c33ccffce4444582fe8ecac"
+      },
+      "bytes": 944,
+      "sha256": "13be62ef7d11605d5f593839392dd069b43a813947493ce91b47d41ca5317368",
+      "reason": "Give Continue explicit title-menu gold colours, distinct keyboard focus and mouse hover, and visible pressed feedback without changing the global interface palette."
+    },
+    "files/data/mygui/openmw_wait_dialog.layout": {
+      "before": {
+        "mode": "100644",
+        "blob": "4b18c9b8a8554c10007dc38f2c91ce8a62f7d0b7"
+      },
+      "after": {
+        "mode": "100644",
+        "blob": "2b90288d3e4da9aeec7be79cf28e41104216a4e8"
+      },
+      "bytes": 1842,
+      "sha256": "b210661c6f0d35dc83019d12c375ea2a23f6412e27a1497fc294bb9d68d2a6bf",
+      "reason": "Add a finish-time label with measured fixed dimensions so changing the selected hours cannot resize the slider."
+    }
+  }
+}

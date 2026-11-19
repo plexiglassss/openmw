@@ -4,6 +4,7 @@
 #include "objects.hpp"
 #include "renderinginterface.hpp"
 #include "rendermode.hpp"
+#include "locationrenderingprofiles.hpp"
 
 #include <components/settings/settings.hpp>
 #include <components/vfs/pathutil.hpp>
@@ -134,8 +135,12 @@ namespace MWRender
 
         const std::shared_ptr<SceneUtil::WorkQueue>& getWorkQueue() const;
         Terrain::World* getTerrain();
+        Terrain::World* getTerrainForPreload(ESM::RefId worldspace);
 
         void preloadCommonAssets(const MWWorld::WeatherStore&);
+
+        void loadLocationRenderingProfiles(const std::vector<std::string>& activeContent);
+        void updateLocationRenderingProfile(const MWWorld::Cell* cell);
 
         double getReferenceTime() const;
 
@@ -190,6 +195,9 @@ namespace MWRender
 
         RayResult castRay(const osg::Vec3f& origin, const osg::Vec3f& dest, bool ignorePlayer,
             bool ignoreActors = false, bool ignoreTerrain = false, std::span<const MWWorld::Ptr> ignoreList = {});
+
+        std::vector<RayResult> castRays(const osg::Vec3f& origin, std::span<const osg::Vec3f> ends,
+            std::span<const MWWorld::Ptr> ignore);
 
         /// Return the object under the mouse cursor / crosshair position, given by nX and nY normalized screen
         /// coordinates, where (0,0) is the top left corner.
@@ -329,6 +337,9 @@ namespace MWRender
         osg::ref_ptr<osg::Group> mRootNode;
         osg::ref_ptr<SceneUtil::LightManager> mSceneRoot;
         Resource::ResourceSystem* mResourceSystem;
+
+        LocationRenderingProfiles mLocationRenderingProfiles;
+        std::string mActiveLocationRenderingProfile;
 
         std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue;
 

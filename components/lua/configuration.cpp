@@ -125,6 +125,16 @@ namespace LuaUtil
             }
         }
 
+        mTypeConfigurations.clear();
+        mRecordPlans.clear();
+        for (const auto& [type, ids] : mScriptsPerType)
+        {
+            auto plan = std::make_shared<ScriptIdsWithInitializationData>();
+            for (int id : ids)
+                plan->emplace(id, mScripts[id].mInitializationData);
+            mTypeConfigurations.emplace(type, std::move(plan));
+        }
+
         if (remap)
         {
             mScriptIdMapping.clear();
@@ -160,35 +170,41 @@ namespace LuaUtil
     ScriptIdsWithInitializationData ScriptsConfiguration::getLocalConf(
         uint32_t type, const ESM::RefId& recordId, ESM::RefNum refnum) const
     {
-        ScriptIdsWithInitializationData res;
-        auto typeIt = mScriptsPerType.find(type);
-        if (typeIt != mScriptsPerType.end())
-            for (int scriptId : typeIt->second)
-                res[scriptId] = mScripts[scriptId].mInitializationData;
-        auto recordIt = mScriptsPerRecordId.find(recordId);
-        if (recordIt != mScriptsPerRecordId.end())
-        {
-            for (const DetailedConf& d : recordIt->second)
+        return *sharedLocalConf(type, recordId, refnum);
+    }
+
+    SharedScriptIds ScriptsConfiguration::sharedLocalConf(
+        uint32_t type, const ESM::RefId& recordId, ESM::RefNum refnum) const
+    {
+        static const auto empty = std::make_shared<const ScriptIdsWithInitializationData>();
+        const auto typeIt = mTypeConfigurations.find(type);
+        SharedScriptIds base = typeIt == mTypeConfigurations.end() ? empty : typeIt->second;
+        const auto apply = [](const SharedScriptIds& input, const std::vector<DetailedConf>& overrides) {
+            auto plan = std::make_shared<ScriptIdsWithInitializationData>(*input);
+            for (const DetailedConf& entry : overrides)
             {
-                if (d.mAttach)
-                    res[d.mScriptId] = d.mInitializationData;
+                if (entry.mAttach)
+                    (*plan)[entry.mScriptId] = entry.mInitializationData;
                 else
-                    res.erase(d.mScriptId);
+                    plan->erase(entry.mScriptId);
             }
-        }
-        if (!refnum.hasContentFile())
-            return res;
-        auto refIt = mScriptsPerRefNum.find(refnum);
-        if (refIt == mScriptsPerRefNum.end())
-            return res;
-        for (const DetailedConf& d : refIt->second)
+            return plan;
+        };
+        if (const auto record = mScriptsPerRecordId.find(recordId); record != mScriptsPerRecordId.end())
         {
-            if (d.mAttach)
-                res[d.mScriptId] = d.mInitializationData;
-            else
-                res.erase(d.mScriptId);
+            const std::lock_guard lock(mRecordPlansMutex);
+            auto& plan = mRecordPlans[{ type, recordId }];
+            if (!plan)
+                plan = apply(base, record->second);
+            base = plan;
         }
-        return res;
+        if (refnum.hasContentFile())
+        {
+            const auto ref = mScriptsPerRefNum.find(refnum);
+            if (ref != mScriptsPerRefNum.end())
+                return apply(base, ref->second);
+        }
+        return base;
     }
 
     void ScriptsConfiguration::read(ESM::ESMReader& reader)

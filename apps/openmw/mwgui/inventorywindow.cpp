@@ -10,6 +10,9 @@
 #include <MyGUI_RenderManager.h>
 #include <MyGUI_Window.h>
 
+#include <osg/Texture2D>
+
+#include <components/diagnostics/loading.hpp>
 #include <components/misc/strings/algorithm.hpp>
 
 #include <components/settings/values.hpp>
@@ -169,6 +172,8 @@ namespace MWGui
 
     void InventoryWindow::updatePlayer()
     {
+        mPaperDollEquipment.clear();
+        mPaperDollViewport = {};
         mPtr = MWBase::Environment::get().getWorld()->getPlayerPtr();
         auto tradeModel = std::make_unique<TradeItemModel>(std::make_unique<InventoryItemModel>(mPtr), MWWorld::Ptr());
         mTradeModel = tradeModel.get();
@@ -179,7 +184,7 @@ namespace MWGui
         {
             auto sortModel = std::make_unique<SortFilterItemModel>(std::move(tradeModel));
             mSortModel = sortModel.get();
-            mItemView->setModel(std::move(sortModel));
+            mItemView->setModel(std::move(sortModel), ItemView::Refresh::OnNextUpdate);
         }
 
         mSortModel->setNameFilter(mFilterEdit->getCaption());
@@ -190,21 +195,24 @@ namespace MWGui
         mFilterMagic->setStateSelected(false);
         mFilterMisc->setStateSelected(false);
 
-        mPreview->updatePtr(mPtr);
-        mPreview->rebuild();
-        mPreview->update();
-
-        dirtyPreview();
-
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerPreviewRebuild);
+            mPreview->updatePtr(mPtr);
+            mPreview->rebuild();
+        }
         updatePreviewSize();
-
         updateEncumbranceBar();
-        mItemView->update();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerInventoryList);
+            mItemView->update();
+        }
+        // This refreshes the equipped preview and armour rating after magic effects are current.
         notifyContentChanged();
     }
 
     void InventoryWindow::clear()
     {
+        mArmorCaptionPending = false;
         mPtr = MWWorld::Ptr();
         mTradeModel = nullptr;
         mSortModel = nullptr;
@@ -545,6 +553,16 @@ namespace MWGui
         if (mPtr.isEmpty())
             return;
 
+        // This is a caption for the native inventory. A Lua paper doll only needs the model.
+        // Looking up the combat interface can initialize every player script on a freshly loaded save.
+        if (!mArmorRating->getInheritedVisible())
+        {
+            mArmorCaptionPending = true;
+            Diagnostics::Loading::Timer hidden(Diagnostics::Loading::Stage::PlayerArmorCaptionHidden);
+            return;
+        }
+        mArmorCaptionPending = false;
+        Diagnostics::Loading::Timer caption(Diagnostics::Loading::Stage::PlayerArmorCaption);
         auto rating = MyGUI::utility::toString(static_cast<int>(mPtr.getClass().getArmorRating(mPtr, true)));
         mArmorRating->setCaptionWithReplacing("#{sArmor}: " + rating);
         if (mArmorRating->getTextSize().width > mArmorRating->getSize().width)
@@ -553,6 +571,7 @@ namespace MWGui
 
     void InventoryWindow::updatePreviewSize()
     {
+        mPaperDollViewport = {};
         const MyGUI::IntSize viewport = getPreviewViewportSize();
         mPreview->setViewport(viewport.width, viewport.height);
         const float top = viewport.height / static_cast<float>(mPreview->getTextureHeight());
@@ -788,6 +807,8 @@ namespace MWGui
             notifyContentChanged();
             mUpdateNextFrame = false;
         }
+        if (mArmorCaptionPending && mArmorRating->getInheritedVisible())
+            updateArmorRating();
     }
 
     void InventoryWindow::setTrading(bool trading)
@@ -797,19 +818,27 @@ namespace MWGui
 
     void InventoryWindow::dirtyPreview()
     {
-        mPreview->update();
-
+        {
+            Diagnostics::Loading::Timer geometry(Diagnostics::Loading::Stage::PlayerPreviewGeometry);
+            mPreview->update();
+        }
         updateArmorRating();
     }
 
     void InventoryWindow::notifyContentChanged()
     {
-        // update the spell window just in case new enchanted items were added to inventory
-        MWBase::Environment::get().getWindowManager()->updateSpellWindow();
-
-        MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(MWMechanics::getPlayer());
-
-        dirtyPreview();
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerSpellWindow);
+            MWBase::Environment::get().getWindowManager()->updateSpellWindow();
+        }
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerMagicEffects);
+            MWBase::Environment::get().getMechanicsManager()->updateMagicEffects(MWMechanics::getPlayer());
+        }
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerPreviewUpdate);
+            dirtyPreview();
+        }
     }
 
     void InventoryWindow::pickUpObject(MWWorld::Ptr object)
@@ -947,6 +976,57 @@ namespace MWGui
             return;
 
         useItem(model.getItem(cycled).mBase);
+    }
+
+    void InventoryWindow::syncPaperDoll(int width, int height)
+    {
+        if (mPtr.isEmpty() || width <= 0 || height <= 0)
+            return;
+        auto& inventory = mPtr.getClass().getInventoryStore(mPtr);
+        bool changed = mPaperDollEquipment.size() != MWWorld::InventoryStore::Slots;
+        mPaperDollEquipment.resize(MWWorld::InventoryStore::Slots);
+        for (int slot = 0; slot < MWWorld::InventoryStore::Slots; ++slot)
+        {
+            const auto it = inventory.getSlot(slot);
+            const MWWorld::Ptr item = it == inventory.end() ? MWWorld::Ptr() : *it;
+            if (mPaperDollEquipment[slot] != item)
+            {
+                mPaperDollEquipment[slot] = item;
+                changed = true;
+            }
+        }
+        if (changed)
+            dirtyPreview();
+        const float scale = MWBase::Environment::get().getWindowManager()->getScalingFactor();
+        const MyGUI::IntSize viewport(std::clamp(int(width * scale), 1, mPreview->getTextureWidth()),
+            std::clamp(int(height * scale), 1, mPreview->getTextureHeight()));
+        if (viewport != mPaperDollViewport)
+        {
+            mPaperDollViewport = viewport;
+            mPreview->setViewport(viewport.width, viewport.height);
+        }
+    }
+
+    MyGUI::ITexture* InventoryWindow::paperDollTexture() const
+    {
+        return mPreviewTexture.get();
+    }
+
+    MyGUI::FloatRect InventoryWindow::paperDollUV() const
+    {
+        const auto size = mPaperDollViewport.width > 0 ? mPaperDollViewport : getPreviewViewportSize();
+        return { 0.f, size.height / float(mPreview->getTextureHeight()),
+            size.width / float(mPreview->getTextureWidth()), 0.f };
+    }
+
+    int InventoryWindow::paperDollSlot(int x, int y, int width, int height)
+    {
+        if (mPtr.isEmpty() || width <= 0 || height <= 0)
+            return -1;
+        const auto size = mPaperDollViewport.width > 0 ? mPaperDollViewport : getPreviewViewportSize();
+        return mPreview->getSlotSelected(
+            std::clamp(int(float(x) / width * (size.width - 1)), 0, std::max(0, size.width - 1)),
+            std::clamp(int((1.f - float(y) / height) * (size.height - 1)), 0, std::max(0, size.height - 1)));
     }
 
     void InventoryWindow::rebuildAvatar()

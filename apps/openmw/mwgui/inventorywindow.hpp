@@ -7,6 +7,7 @@
 #include "../mwworld/ptr.hpp"
 
 #include <components/misc/notnullptr.hpp>
+#include <vector>
 
 #include <osg/Vec2i>
 
@@ -51,6 +52,10 @@ namespace MWGui
         MWWorld::Ptr getAvatarSelectedItem(int x, int y);
 
         void rebuildAvatar();
+        void syncPaperDoll(int width, int height);
+        MyGUI::ITexture* paperDollTexture() const;
+        MyGUI::FloatRect paperDollUV() const;
+        int paperDollSlot(int x, int y, int width, int height);
 
         SortFilterItemModel* getSortFilterModel();
         TradeItemModel* getTradeModel();
@@ -118,6 +123,9 @@ namespace MWGui
 
         bool mTrading;
         bool mUpdateNextFrame;
+        bool mArmorCaptionPending = false;
+        std::vector<MWWorld::Ptr> mPaperDollEquipment;
+        MyGUI::IntSize mPaperDollViewport;
 
         void toggleMaximized();
 

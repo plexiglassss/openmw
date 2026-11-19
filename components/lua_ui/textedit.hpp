@@ -15,6 +15,9 @@ namespace LuaUi
 
     public:
         bool isTextInput() override { return mEditBox->getEditStatic(); }
+        // Measuring an autosized editor can reformat text and move its scroll
+        // position. Keep the established pass sequence for editable controls.
+        bool allowsLayoutReuse() const override { return false; }
 
     protected:
         void initialize() override;

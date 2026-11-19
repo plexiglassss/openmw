@@ -19,6 +19,8 @@ namespace Resource
     struct BulletShape;
     class BulletShapeInstance;
 
+    class CollisionInstanceCache;
+
     /// Handles loading, caching and "instancing" of bullet shapes.
     /// A shape 'instance' is a clone of another shape, with the goal of setting a different scale on this instance.
     /// @note May be used from any thread.
@@ -34,12 +36,15 @@ namespace Resource
 
         /// Create an instance of the given shape and cache it for later use, so that future calls to getInstance() can
         /// simply return the cached instance instead of having to create a new one.
-        /// @note The returned shared_ptr may be kept by the caller to ensure that the instance stays in cache for as
-        /// long as needed.
-        std::shared_ptr<BulletShapeInstance> cacheInstance(VFS::Path::NormalizedView name);
+        /// @note The returned shared_ptr may be kept by the caller to ensure that the instance stays in cache for as long
+        /// as needed.
+        /// The detached instance is prepared at the exact uniform scale when enabled.
+        std::shared_ptr<BulletShapeInstance> cacheInstance(VFS::Path::NormalizedView name, float scale = 1.f);
 
         /// @note May return a null pointer if the object has no shape.
-        std::shared_ptr<BulletShapeInstance> getInstance(VFS::Path::NormalizedView name);
+        /// An exact prepared scale is preferred. On a miss the caller must still apply
+        /// its current scale before inserting the returned instance into the physics world.
+        std::shared_ptr<BulletShapeInstance> getInstance(VFS::Path::NormalizedView name, float scale = 1.f);
 
         /// @see ResourceManager::updateCache
         void updateCache(double referenceTime) override;
@@ -51,7 +56,7 @@ namespace Resource
     private:
         std::shared_ptr<BulletShapeInstance> createInstance(VFS::Path::NormalizedView name);
 
-        std::unique_ptr<MultiObjectCache<std::shared_ptr<BulletShapeInstance>>> mInstanceCache;
+        std::unique_ptr<CollisionInstanceCache> mInstanceCache;
         SceneManager* mSceneManager;
         NifFileManager* mNifFileManager;
     };

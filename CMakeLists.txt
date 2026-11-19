@@ -509,7 +509,7 @@ if(OPENMW_USE_SYSTEM_OSG)
                 endif()
             endif()
         endforeach()
-        
+
         if(NOT OSG_STATIC AND NOT APPLE)
             if(WIN32)
                 set(osg_plugin_destination "${CMAKE_INSTALL_BINDIR}")
@@ -1117,7 +1117,7 @@ elseif(NOT APPLE)
         ENDIF(BUILD_OPENCS)
 
     endif(WIN32)
-    
+
     install(FILES "${OpenMW_SOURCE_DIR}/CHANGELOG.md" TYPE DOC)
     install(FILES "${OpenMW_SOURCE_DIR}/README.md" TYPE DOC)
     install(FILES "${OpenMW_SOURCE_DIR}/LICENSE" TYPE DOC RENAME "LICENSE.txt")
@@ -1128,7 +1128,7 @@ elseif(NOT APPLE)
     install(FILES "${RUNTIME_OUTPUT_DIRECTORY}/defaults.bin"
                   "${RUNTIME_OUTPUT_DIRECTORY}/gamecontrollerdb.txt"
                   TYPE SYSCONF)
-    
+
     if (OPENMW_LOCAL_INSTALL)
         install(FILES "${OpenMW_SOURCE_DIR}/files/openmw.cfg.local" TYPE SYSCONF RENAME "openmw.cfg")
     else ()

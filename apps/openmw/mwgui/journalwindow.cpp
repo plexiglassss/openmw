@@ -1,5 +1,7 @@
 #include "journalwindow.hpp"
 
+#include <algorithm>
+#include <array>
 #include <set>
 #include <stack>
 #include <string>
@@ -19,6 +21,7 @@
 
 #include "bookpage.hpp"
 #include "journalbooks.hpp"
+#include "journaltypography.hpp"
 #include "journalviewmodel.hpp"
 #include "windowbase.hpp"
 
@@ -44,6 +47,7 @@ namespace
     static constexpr std::string_view LeftTopicIndex = "LeftTopicIndex";
     static constexpr std::string_view CenterTopicIndex = "CenterTopicIndex";
     static constexpr std::string_view RightTopicIndex = "RightTopicIndex";
+    static constexpr std::array IndexPages = { LeftTopicIndex, CenterTopicIndex, RightTopicIndex };
 
     struct JournalWindowImpl : MWGui::JournalBooks, MWGui::JournalWindow
     {
@@ -60,6 +64,18 @@ namespace
         bool mTopicsMode;
         bool mAllQuests;
 
+        struct PageNumberLayout
+        {
+            MyGUI::TextBox* mWidget;
+            MyGUI::IntCoord mCoord;
+            int mFontHeight;
+        };
+
+        std::vector<std::pair<Gui::ImageButton*, MyGUI::IntCoord>> mButtonLayouts;
+        std::vector<PageNumberLayout> mPageNumberLayouts;
+        std::array<MyGUI::IntCoord, 3> mIndexLayouts;
+        int mPageNumberFontSize = 0;
+
         template <typename T>
         T* getWidget(std::string_view name)
         {
@@ -71,7 +87,12 @@ namespace
         template <typename value_type>
         void setText(std::string_view name, value_type const& value)
         {
-            getWidget<MyGUI::TextBox>(name)->setCaption(MyGUI::utility::toString(value));
+            auto* widget = getWidget<MyGUI::TextBox>(name);
+            widget->setCaption(MyGUI::utility::toString(value));
+            if (mPageNumberFontSize > 0)
+                for (const auto& layout : mPageNumberLayouts)
+                    if (layout.mWidget == widget)
+                        widget->setCoord(MWGui::resizeJournalPageNumber(layout.mCoord, widget->getTextSize()));
         }
 
         void setVisible(std::string_view name, bool visible) { getWidget<MyGUI::Widget>(name)->setVisible(visible); }
@@ -146,7 +167,7 @@ namespace
             }
 
             adjustButton(PrevPageBTN);
-            float nextButtonScale = adjustButton(NextPageBTN);
+            adjustButton(NextPageBTN);
             adjustButton(CloseBTN);
             adjustButton(CancelBTN);
             adjustButton(JournalBTN);
@@ -161,8 +182,7 @@ namespace
             {
                 // english button has a 7 pixel wide strip of garbage on its right edge
                 nextButton->setSize(64 - 7, nextButton->getSize().height);
-                nextButton->setImageCoord(MyGUI::IntCoord(0, 0, static_cast<int>((64 - 7) * nextButtonScale),
-                    static_cast<int>(nextButton->getSize().height * nextButtonScale)));
+                nextButton->setTextureRect(MyGUI::IntCoord(0, 0, 64 - 7, nextButton->getHeight()));
             }
 
             if (!questList)
@@ -220,11 +240,24 @@ namespace
                 }
             }
 
-            // Latin = 26 (13 + 13)
-            mIndexRowCount = 13;
-            bool isRussian = (mEncoding == ToUTF8::WINDOWS_1251);
-            if (isRussian) // Cyrillic is either (10 + 10 + 10) or (15 + 15)
-                mIndexRowCount = MWGui::getCyrillicIndexPageCount();
+            // Snapshot the native, texture-adjusted geometry once. Every reopen
+            // derives the requested scale from these coordinates, never from an
+            // already rounded or scaled widget.
+            for (const auto name : { OptionsBTN, PrevPageBTN, NextPageBTN, CloseBTN, JournalBTN,
+                     TopicsBTN, QuestsBTN, CancelBTN, ShowAllBTN, ShowActiveBTN })
+            {
+                auto* button = getWidget<Gui::ImageButton>(name);
+                button->setTextureReferenceHeight(button->getHeight());
+                mButtonLayouts.emplace_back(button, button->getCoord());
+            }
+            for (const auto name : { PageOneNum, PageTwoNum })
+            {
+                auto* widget = getWidget<MyGUI::TextBox>(name);
+                mPageNumberLayouts.push_back(
+                    { widget, widget->getCoord(), static_cast<int>(widget->getFontHeight()) });
+            }
+            for (std::size_t i = 0; i < IndexPages.size(); ++i)
+                mIndexLayouts[i] = getPage(IndexPages[i])->getCoord();
 
             mControllerButtons.mA = "#{Interface:Select}";
             mControllerButtons.mX = "#{OMWEngine:JournalQuests}";
@@ -239,6 +272,8 @@ namespace
         void onOpen() override
         {
             mModel->load();
+
+            applyJournalTypography();
 
             setBookMode();
 
@@ -277,6 +312,24 @@ namespace
                 mStates.pop();
 
             mTopicIndexBook.reset();
+        }
+
+        void applyJournalTypography()
+        {
+            for (const auto name : { QuestsList, TopicsList })
+                getWidget<Gui::MWList>(name)->setFontHeight(MWGui::getJournalFontSize());
+
+            for (const auto& [button, original] : mButtonLayouts)
+                button->setCoord(MWGui::scaleJournalButton(original, Settings::gui().mJournalButtonScale));
+
+            mPageNumberFontSize = Settings::gui().mJournalPageNumberFontSize;
+            for (const auto& layout : mPageNumberLayouts)
+            {
+                layout.mWidget->setFontHeight(mPageNumberFontSize > 0 ? mPageNumberFontSize : layout.mFontHeight);
+                layout.mWidget->setCoord(mPageNumberFontSize > 0
+                        ? MWGui::resizeJournalPageNumber(layout.mCoord, layout.mWidget->getTextSize())
+                        : layout.mCoord);
+            }
         }
 
         void setVisible(bool newValue) override { WindowBase::setVisible(newValue); }
@@ -473,7 +526,17 @@ namespace
             setOptionsMode();
 
             if (!mTopicIndexBook)
-                mTopicIndexBook = createTopicIndexBook();
+            {
+                const int characterCount = mEncoding == ToUTF8::WINDOWS_1251 ? 30 : 26;
+                const int columns = MWGui::getJournalIndexColumnCount(characterCount, MWGui::getJournalFontSize());
+                const auto layout = MWGui::layoutJournalIndexColumns(mIndexLayouts, columns);
+                for (std::size_t i = 0; i < IndexPages.size(); ++i)
+                    getPage(IndexPages[i])->setCoord(layout[i]);
+                mTopicIndexBook = createTopicIndexBook(std::min(layout.front().width, layout.back().width));
+                mIndexRowCount = MWGui::getJournalIndexRowCount(characterCount, mIndexPagesCount);
+            }
+
+            setVisible(CenterTopicIndex, !mQuestMode && mIndexPagesCount == 3);
 
             if (mIndexPagesCount == 3)
             {
@@ -484,6 +547,7 @@ namespace
             else
             {
                 getPage(LeftTopicIndex)->showPage(mTopicIndexBook, 0);
+                getPage(CenterTopicIndex)->showPage({}, 0);
                 getPage(RightTopicIndex)->showPage(mTopicIndexBook, 1);
             }
 
@@ -535,8 +599,10 @@ namespace
 
             if (Settings::gui().mControllerMenus)
             {
+                // adjustSize() replaced the row widgets. Refresh their pointers
+                // before changing focus, which reads the previous selection.
+                addControllerButtons(list, 0);
                 setControllerFocusedQuest(0);
-                addControllerButtons(list, mSelectedQuest);
             }
 
             MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("book page"));
@@ -548,7 +614,7 @@ namespace
             mQuestMode = false;
             mTopicsMode = false;
             setVisible(LeftTopicIndex, true);
-            setVisible(CenterTopicIndex, true);
+            setVisible(CenterTopicIndex, mIndexPagesCount == 3);
             setVisible(RightTopicIndex, true);
             setVisible(TopicsList, false);
             setVisible(QuestsList, false);
@@ -734,31 +800,8 @@ namespace
         {
             setIndexControllerFocus(false);
 
-            int numChars = mEncoding == ToUTF8::WINDOWS_1251 ? 30 : 26;
-            size_t col = mSelectedIndex / mIndexRowCount;
-
-            if (offset == -1) // Up
-            {
-                if (mSelectedIndex % mIndexRowCount == 0)
-                    mSelectedIndex = (col * mIndexRowCount) + mIndexRowCount - 1;
-                else
-                    mSelectedIndex--;
-            }
-            else if (offset == 1) // Down
-            {
-                if (mSelectedIndex % mIndexRowCount == mIndexRowCount - 1)
-                    mSelectedIndex = col * mIndexRowCount;
-                else
-                    mSelectedIndex++;
-            }
-            else
-            {
-                // mSelectedIndex is unsigned, so we have to be careful with our math.
-                if (offset < 0)
-                    offset += numChars;
-
-                mSelectedIndex = (mSelectedIndex + offset) % numChars;
-            }
+            const size_t numChars = mEncoding == ToUTF8::WINDOWS_1251 ? 30 : 26;
+            mSelectedIndex = MWGui::moveJournalIndexSelection(mSelectedIndex, offset, numChars, mIndexRowCount);
 
             setIndexControllerFocus(true);
             setText(PageOneNum, 1); // Redraw the list
@@ -784,16 +827,8 @@ namespace
                 }
                 else
                 {
-                    // Choose an index. Cyrillic capital A is a 0xd090 in UTF-8.
-                    // Words can not be started with characters 26 or 28.
-                    int russianOffset = 0xd090;
-                    if (mSelectedIndex >= 26)
-                        russianOffset++;
-                    if (mSelectedIndex >= 27)
-                        russianOffset++; // 27, not 28, because of skipping char 26
-                    bool isRussian = (mEncoding == ToUTF8::WINDOWS_1251);
-                    size_t ch = isRussian ? mSelectedIndex + russianOffset : mSelectedIndex + 'A';
-                    notifyIndexLinkClicked(static_cast<Utf8Stream::UnicodeChar>(ch));
+                    notifyIndexLinkClicked(MWGui::getJournalIndexCharacter(
+                        mSelectedIndex, mEncoding == ToUTF8::WINDOWS_1251));
                 }
             }
             else if (arg.button == SDL_CONTROLLER_BUTTON_B) // B: Back

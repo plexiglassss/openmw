@@ -28,6 +28,7 @@ namespace SceneUtil
         ShadowsBin(const ShadowsBin& rhs, const osg::CopyOp& copyop)
             : osgUtil::RenderBin(rhs, copyop)
             , mNoTestStateSet(rhs.mNoTestStateSet)
+            , mNoTestRigStateSet(rhs.mNoTestRigStateSet)
             , mShaderAlphaTestStateSet(rhs.mShaderAlphaTestStateSet)
             , mAlphaFuncShaders(rhs.mAlphaFuncShaders)
         {
@@ -72,6 +73,7 @@ namespace SceneUtil
         ShadowsBin() {}
 
         osg::ref_ptr<osg::StateSet> mNoTestStateSet;
+        osg::ref_ptr<osg::StateSet> mNoTestRigStateSet;
         osg::ref_ptr<osg::StateSet> mShaderAlphaTestStateSet;
 
         Array<osg::ref_ptr<osg::StateSet>> mAlphaFuncShaders;

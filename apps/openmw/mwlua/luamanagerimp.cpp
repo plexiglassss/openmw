@@ -1,4 +1,11 @@
+#include <components/diagnostics/timing.hpp>
 #include "luamanagerimp.hpp"
+#include <array>
+#include <components/misc/combinedperformance.hpp>
+#include "../mwphysics/raycasting.hpp"
+
+#include <cstdlib>
+#include <utility>
 
 #include <cassert>
 #include <chrono>
@@ -110,6 +117,9 @@ namespace MWLua
 
     LuaManager::LuaManager(const VFS::Manager* vfs, const std::filesystem::path& libsDir)
         : mLua(vfs, &mConfiguration, createLuaStateSettings())
+        , mNativeQueryService(*MWBase::Environment::get().getNativeJobPool())
+        , mScriptTracker(Settings::lua().mInactiveScriptCacheDuration,
+              Settings::lua().mInactiveScriptCacheMemoryThreshold)
     {
         Log(Debug::Info) << "Lua version: " << LuaUtil::getLuaVersion();
         mLua.addInternalLibSearchPath(libsDir);
@@ -135,6 +145,7 @@ namespace MWLua
             Log(Debug::Verbose) << "#" << i << " " << LuaUtil::scriptCfgToString(mConfiguration[i]);
         mMenuScripts.setAutoStartConf(mConfiguration.getMenuConf());
         mGlobalScripts.setAutoStartConf(mConfiguration.getGlobalConf());
+        mLoadScripts.setAutoStartConf(mConfiguration.getLoadConf());
     }
 
     void LuaManager::initPreLoad()
@@ -160,7 +171,6 @@ namespace MWLua
     void LuaManager::contentFilesLoaded()
     {
         initConfiguration(false);
-        mLoadScripts.setAutoStartConf(mConfiguration.getLoadConf());
         mLoadScripts.addAutoStartedScripts();
         mLoadScripts.contentFilesLoaded();
         mLoadScripts.removeAllScripts();
@@ -174,6 +184,7 @@ namespace MWLua
             globalContext.mLuaManager = this;
             globalContext.mLua = &mLua;
             globalContext.mObjectLists = &mObjectLists;
+            globalContext.mNativeQueryService = &mNativeQueryService;
             globalContext.mLuaEvents = &mLuaEvents;
             globalContext.mSerializer = mGlobalSerializer.get();
 
@@ -259,13 +270,17 @@ namespace MWLua
         }
 
         mObjectLists.update();
+        NativeQueryService::PositionReadScope positionReads(mNativeQueryService);
 
-        for (const LuaUtil::ScriptsContainerWeakPtr& ptr : mQueuedAutoStartedScripts)
         {
-            if (LocalScripts* scripts = asLocal(ptr))
-                scripts->addAutoStartedScripts();
+            Diagnostics::Scope timing("lua-arrival", "LuaManager", "attachNewScripts");
+            for (const LuaUtil::ScriptsContainerWeakPtr& ptr : mQueuedAutoStartedScripts)
+            {
+                if (LocalScripts* scripts = asLocal(ptr))
+                    scripts->addAutoStartedScripts();
+            }
+            mQueuedAutoStartedScripts.clear();
         }
-        mQueuedAutoStartedScripts.clear();
 
         std::erase_if(mActiveLocalScripts, [](const LuaUtil::ScriptsContainerWeakPtr& ptr) {
             LocalScripts* l = asLocal(ptr);
@@ -296,12 +311,18 @@ namespace MWLua
 
         mLua.protectedCall([&](LuaUtil::LuaView& lua) {
             // Run queued callbacks
-            for (CallbackWithData& c : mQueuedCallbacks)
-                c.mCallback.tryCall(c.mArg);
-            mQueuedCallbacks.clear();
+            {
+                Diagnostics::Scope timing("lua-arrival", "LuaManager", "queuedCallbacks");
+                for (CallbackWithData& c : mQueuedCallbacks)
+                    c.mCallback.tryCall(c.mArg);
+                mQueuedCallbacks.clear();
+            }
 
             // Run engine handlers
-            mEngineEvents.callEngineHandlers();
+            {
+                Diagnostics::Scope timing("lua-arrival", "LuaManager", "activationAndEngineEvents");
+                mEngineEvents.callEngineHandlers();
+            }
             bool isPaused = timeManager.isPaused();
 
             float frameDuration = MWBase::Environment::get().getFrameDuration();
@@ -309,12 +330,13 @@ namespace MWLua
                 mActiveLocalScripts, [&](LocalScripts* scripts) { scripts->update(isPaused ? 0 : frameDuration); });
             mGlobalScripts.update(isPaused ? 0 : frameDuration);
 
-            mScriptTracker.unloadInactiveScripts(lua);
+            mScriptTracker.unloadInactiveScripts(lua, frameDuration);
         });
     }
 
     bool LuaManager::gcStep(int steps)
     {
+        Diagnostics::Scope timing("gc", "Lua", "step");
         return lua_gc(mLua.unsafeState(), LUA_GCSTEP, steps) == 1;
     }
 
@@ -334,6 +356,10 @@ namespace MWLua
 
     void LuaManager::questUpdated(const ESM::RefId& questId, int stage)
     {
+        Diagnostics::Scope timing("journal", Diagnostics::enabled() ? questId.serializeText() : std::string{},
+            "dispatchQuestUpdate");
+        if (Diagnostics::enabled())
+            Log(Debug::Info) << "[DialogueTrace] quest=" << questId << " stage=" << stage;
         if (mPlayer.isEmpty())
             return; // The game is not started yet.
         PlayerScripts* playerScripts = dynamic_cast<PlayerScripts*>(mPlayer.getRefData().getLuaScripts());
@@ -345,6 +371,7 @@ namespace MWLua
 
     void LuaManager::synchronizedUpdate()
     {
+        Diagnostics::Scope timing("phase", "LuaManager", "synchronizedUpdate");
         mLua.protectedCall([&](LuaUtil::LuaView&) { synchronizedUpdateUnsafe(); });
     }
 
@@ -365,6 +392,7 @@ namespace MWLua
         // We apply input events in `synchronizedUpdate` rather than in `update` in order to reduce input latency.
         {
             BoolScopeGuard processingGuard(mProcessingInputEvents);
+            NativeQueryService::PositionReadScope positionReads(mNativeQueryService);
 
             for (const auto& event : mMenuInputEvents)
                 mMenuScripts.processInputEvent(event);
@@ -411,10 +439,14 @@ namespace MWLua
 
     void LuaManager::applyDelayedActions()
     {
+        mNativeQueryService.invalidatePositions();
+        Diagnostics::Scope timing("phase", "LuaManager", "queuedActions");
+        mTailRays.reset();
         BoolScopeGuard applyingGuard(mApplyingDelayedActions);
         for (DelayedAction& action : mActionQueue)
             action.apply();
         mActionQueue.clear();
+        mRenderingRays.clear();
 
         if (mTeleportPlayerAction)
             mTeleportPlayerAction->apply();
@@ -423,7 +455,10 @@ namespace MWLua
 
     void LuaManager::clear()
     {
+        mNativeQueryService.reset();
+        mTailRays.reset();
         mActionQueue.clear();
+        mRenderingRays.clear();
         mTeleportPlayerAction.reset();
         LuaUi::clearGameInterface();
         for (const std::string& name : mUiResourceManager.gameCursorNames())
@@ -455,7 +490,10 @@ namespace MWLua
         mQueuedAutoStartedScripts.clear();
         clearObjectCaches(mLua.unsafeState());
         for (int i = 0; i < 5; ++i)
+        {
+            Diagnostics::Scope timing("gc", "Lua", "fullCollection");
             lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
+        }
     }
 
     void LuaManager::setupPlayer(const MWWorld::Ptr& ptr)
@@ -545,6 +583,11 @@ namespace MWLua
     void LuaManager::onDialogueResponse(
         const MWWorld::Ptr& actor, const ESM::DialInfo& info, const ESM::Dialogue& record)
     {
+        Diagnostics::Scope timing("dialogue", Diagnostics::enabled() ? info.mId.serializeText() : std::string{},
+            "queueDialogueResponse");
+        if (Diagnostics::enabled() && record.mType != ESM::Dialogue::Type::Voice)
+            Log(Debug::Info) << "[DialogueTrace] response actor=" << actor.getCellRef().getRefId()
+                             << " topic=" << record.mId << " info=" << info.mId;
         mLua.protectedCall([&](LuaUtil::LuaView& view) {
             sol::table data = view.newTable();
             data["actor"] = LObject(actor);
@@ -759,9 +802,9 @@ namespace MWLua
         LocalScripts* localScripts = ptr.getRefData().getLuaScripts();
         if (!localScripts)
         {
-            LuaUtil::ScriptIdsWithInitializationData autoStartConf
-                = mConfiguration.getLocalConf(getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), getId(ptr));
-            if (!autoStartConf.empty())
+            LuaUtil::SharedScriptIds autoStartConf
+                = mConfiguration.sharedLocalConf(getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), getId(ptr));
+            if (!autoStartConf->empty())
             {
                 localScripts = createLocalScripts(ptr, std::move(autoStartConf));
                 mQueuedAutoStartedScripts.push_back(localScripts->getWeakPointer());
@@ -820,7 +863,7 @@ namespace MWLua
     }
 
     LocalScripts* LuaManager::createLocalScripts(
-        const MWWorld::Ptr& ptr, std::optional<LuaUtil::ScriptIdsWithInitializationData> autoStartConf)
+        const MWWorld::Ptr& ptr, LuaUtil::SharedScriptIds autoStartConf)
     {
         assert(mInitialized);
         std::shared_ptr<LocalScripts> scripts;
@@ -837,9 +880,9 @@ namespace MWLua
         else
         {
             scripts = std::make_shared<LocalScripts>(&mLua, LObject(getId(ptr)), &mScriptTracker);
-            if (!autoStartConf.has_value())
-                autoStartConf = mConfiguration.getLocalConf(type, ptr.getCellRef().getRefId(), getId(ptr));
-            scripts->setAutoStartConf(std::move(*autoStartConf));
+            if (!autoStartConf)
+                autoStartConf = mConfiguration.sharedLocalConf(type, ptr.getCellRef().getRefId(), getId(ptr));
+            scripts->setSharedAutoStartConf(std::move(autoStartConf));
             for (const auto& [name, package] : mLocalPackages)
                 scripts->addPackage(name, package);
         }
@@ -922,6 +965,7 @@ namespace MWLua
 
     void LuaManager::reloadAllScriptsImpl()
     {
+        mNativeQueryService.reset();
         Log(Debug::Info) << "Reload Lua";
 
         LuaUi::clearGameInterface();
@@ -959,6 +1003,20 @@ namespace MWLua
         }
 
         initConfiguration(true);
+
+        // Rebind every surviving container before any refreshed menu or player script can
+        // inspect an actor. IDs and the storage behind initialization-data views can both change.
+        for (const auto& [id, ptr] : MWBase::Environment::get().getWorldModel()->getPtrRegistryView())
+        {
+            if (auto* scripts = ptr.getRefData().getLuaScripts())
+            {
+                if (ptr == mPlayer)
+                    scripts->setAutoStartConf(mConfiguration.getPlayerConf());
+                else
+                    scripts->setSharedAutoStartConf(mConfiguration.sharedLocalConf(
+                        getLiveCellRefType(ptr.mRef), ptr.getCellRef().getRefId(), id));
+            }
+        }
 
         mMenuScripts.removeAllScripts();
 
@@ -1011,6 +1069,7 @@ namespace MWLua
     LuaManager::DelayedAction::DelayedAction(LuaUtil::LuaState* state, std::function<void()> fn, std::string_view name)
         : mFn(std::move(fn))
         , mName(name)
+        , mTimingSource(Diagnostics::Scope::currentSource())
     {
         if (Settings::lua().mLuaDebug)
             mCallerTraceback = state->debugTraceback();
@@ -1018,6 +1077,7 @@ namespace MWLua
 
     void LuaManager::DelayedAction::apply() const
     {
+        Diagnostics::Scope timing("action", mTimingSource, mName);
         try
         {
             mFn();
@@ -1035,19 +1095,136 @@ namespace MWLua
 
     void LuaManager::addAction(std::function<void()> action, std::string_view name)
     {
+        // Removal and teleport bindings can mark an object deleted before queuing
+        // its remaining side effects. Later callbacks must not reuse that snapshot.
+        mNativeQueryService.invalidatePositions();
         if (mApplyingDelayedActions)
             throw std::runtime_error("DelayedAction is not allowed to create another DelayedAction");
+        mTailRays.reset();
         mActionQueue.emplace_back(&mLua, std::move(action), name);
+    }
+
+    void LuaManager::addRenderingRay(const osg::Vec3f& from, const osg::Vec3f& to,
+        std::vector<MWWorld::Ptr> ignore, LuaUtil::Callback callback)
+    {
+        ++mRayRequests;
+        if (!Misc::useBatchedVisualRays())
+        {
+            addAction([this, from, to, ignore = std::move(ignore), cb = std::move(callback)] {
+                MWPhysics::RayCastingResult res;
+                MWBase::Environment::get().getWorld()->castRenderingRay(res, from, to, false, false, false, ignore);
+                queueCallback(cb, sol::main_object(mLua.unsafeState(), sol::in_place, res));
+            }, "asyncCastRenderingRay");
+            return;
+        }
+        if (mApplyingDelayedActions)
+            throw std::runtime_error("DelayedAction is not allowed to create another DelayedAction");
+        const std::size_t next = mRenderingRays.size();
+        const bool append = mTailRays && mRenderingRays[*mTailRays].count < 16
+            && mRenderingRays[*mTailRays].from == from && mRenderingRays[*mTailRays].ignore == ignore;
+        mRenderingRays.push_back({ from, to, std::move(ignore), std::move(callback) });
+        if (append)
+            ++mRenderingRays[*mTailRays].count;
+        else
+        {
+            try { addAction([this, next] { applyRenderingRays(next); }, "asyncCastRenderingRay"); }
+            catch (...) { mRenderingRays.pop_back(); throw; }
+            mTailRays = next;
+        }
+    }
+
+    void LuaManager::applyRenderingRays(std::size_t begin)
+    {
+        const auto& first = mRenderingRays[begin];
+        const auto world = MWBase::Environment::get().getWorld();
+        auto deliver = [&](const QueuedRay& request, const MWPhysics::RayCastingResult& hit) {
+            queueCallback(request.callback, sol::main_object(mLua.unsafeState(), sol::in_place, hit));
+        };
+        if (first.count == 1)
+        {
+            MWPhysics::RayCastingResult hit;
+            world->castRenderingRay(hit, first.from, first.to, false, false, false, first.ignore);
+            deliver(first, hit);
+            return;
+        }
+        std::array<osg::Vec3f, 16> ends;
+        std::array<MWPhysics::RayCastingResult, 16> hits;
+        for (std::size_t i = 0; i < first.count; ++i)
+            ends[i] = mRenderingRays[begin + i].to;
+        bool grouped = false;
+        try
+        {
+            world->castRenderingRays(std::span(hits).first(first.count), first.from,
+                std::span(ends).first(first.count), first.ignore);
+            ++mRayGroups;
+            mRaySaved += first.count - 1;
+            grouped = true;
+        }
+        catch (const std::exception& e)
+        {
+            Log(Debug::Warning) << "Retrying individual visual rays: " << e.what();
+        }
+        for (std::size_t i = 0; i < first.count; ++i)
+        {
+            try
+            {
+                if (!grouped)
+                    world->castRenderingRay(hits[i], first.from, ends[i], false, false, false, first.ignore);
+                deliver(mRenderingRays[begin + i], hits[i]);
+            }
+            catch (const std::exception& e)
+            {
+                Log(Debug::Error) << "Error in asyncCastRenderingRay: " << e.what();
+            }
+        }
     }
 
     void LuaManager::addTeleportPlayerAction(std::function<void()> action)
     {
+        mNativeQueryService.invalidatePositions();
         mTeleportPlayerAction = DelayedAction(&mLua, std::move(action), "TeleportPlayer");
     }
 
     void LuaManager::reportStats(unsigned int frameNumber, Misc::FrameStats& stats) const
     {
         stats.setAttribute(frameNumber, "Lua UsedMemory", static_cast<double>(mLua.getTotalMemoryUsage()));
+    }
+
+    ActiveSpellReadStats* LuaManager::activeSpellReadStats()
+    {
+        static const bool capture = std::getenv("OPENMW_OSG_STATS_FILE") != nullptr;
+        return capture ? &mSpellReadStats : nullptr;
+    }
+
+    void LuaManager::reportActiveSpellReads(unsigned int frameNumber, Misc::FrameStats& stats)
+    {
+        if (!activeSpellReadStats())
+            return;
+        const auto values = std::exchange(mSpellReadStats, ActiveSpellReadStats{});
+        const auto record = [&](const char* name, std::uint64_t value) {
+            stats.setAttribute(frameNumber, name, static_cast<double>(value));
+        };
+        record("Lua Async Distance Jobs Submitted", std::exchange(mNativeQueryService.mDistanceSubmitted, 0));
+        record("Lua Isolated Jobs Submitted", std::exchange(mNativeQueryService.mLuaSubmitted, 0));
+        record("Lua Position Objects Resolved", std::exchange(mNativeQueryService.mPositionsResolved, 0));
+        record("Lua Position Objects Reused", std::exchange(mNativeQueryService.mPositionsReused, 0));
+        record("Lua Position Lists Built", std::exchange(mNativeQueryService.mPositionListsBuilt, 0));
+        record("Lua Position Lists Reused", std::exchange(mNativeQueryService.mPositionListsReused, 0));
+        record("Lua Distance Indices Built", std::exchange(mNativeQueryService.mDistanceIndicesBuilt, 0));
+        record("Lua Distance Indices Reused", std::exchange(mNativeQueryService.mDistanceIndicesReused, 0));
+        record("Lua Visual Rays Requested", std::exchange(mRayRequests, 0));
+        record("Lua Visual Ray Shared Traversals", std::exchange(mRayGroups, 0));
+        record("Lua Visual Ray Traversals Saved", std::exchange(mRaySaved, 0));
+        record("Lua Active Spell Scans", values.mScans);
+        record("Lua Active Spell Empty Scans", values.mEmptyScans);
+        record("Lua Active Spell Entries", values.mYielded);
+        record("Lua Active Spell Lookups", values.mLookups);
+        record("Lua Active Spell Lookup Hits", values.mLookupHits);
+        record("Lua Active Spell Snapshot Copies", values.mCopies);
+        record("Lua Active Spell Native Effects Copied", values.mEffectsCopied);
+        record("Lua Active Spell Snapshot Reuses", values.mReuses);
+        record("Lua Active Spell Effects Tables", values.mEffectsTables);
+        record("Lua Active Spell Effects Exported", values.mEffectsExported);
     }
 
     std::string LuaManager::formatResourceUsageStats() const

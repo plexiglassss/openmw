@@ -13,6 +13,7 @@
 #include <components/esm/refid.hpp>
 #include <components/esm3/loadgmst.hpp>
 #include <components/misc/tuplemeta.hpp>
+#include <components/misc/celltypeindex.hpp>
 
 #include "store.hpp"
 
@@ -169,9 +170,12 @@ namespace MWWorld
         {
             int mCount = 0;
             std::vector<const ESM::Cell*> mCells;
+            // Includes superseded placements. Only a negative result may skip a preload.
+            std::vector<const ESM::Cell*> mPossibleCells;
         };
 
         std::unordered_map<ESM::RefId, RefInfo> mRefInfo;
+        Misc::CellTypeIndex<const ESM::Cell*> mCellTypeCandidates;
 
         std::vector<StoreBase*> mStores;
         std::vector<DynamicStore*> mDynamicStores;
@@ -211,6 +215,10 @@ namespace MWWorld
         int find(const ESM::RefId& id) const;
 
         int findStatic(const ESM::RefId& id) const;
+
+        // False only for a fully indexed ESM3 cell with no candidate of this type.
+        bool cellMayContainType(const ESM::Cell& cell, uint32_t type) const;
+        bool cellMayContainRecord(const ESM::Cell& cell, const ESM::RefId& id) const;
 
         ESMStore();
         ~ESMStore();

@@ -52,6 +52,7 @@ namespace MWGui
         MyGUI::TextBox* mDateTimeText;
         MyGUI::TextBox* mRestText;
         MyGUI::TextBox* mHourText;
+        MyGUI::TextBox* mEndTimeText;
         MyGUI::Button* mUntilHealedButton;
         MyGUI::Button* mWaitButton;
         MyGUI::Button* mCancelButton;

@@ -1,4 +1,5 @@
 #include "window.hpp"
+#include <components/widgets/windowsnap.hpp>
 
 #include <MyGUI_Delegate.h>
 #include <MyGUI_MouseButton.h>
@@ -9,6 +10,12 @@ namespace LuaUi
     LuaWindow::LuaWindow()
         : mCaption(nullptr)
     {
+        Gui::registerSnapWindow(this);
+    }
+
+    LuaWindow::~LuaWindow()
+    {
+        Gui::unregisterSnapWindow(this);
     }
 
     void LuaWindow::updateTemplate()
@@ -62,6 +69,7 @@ namespace LuaUi
         if (id != MyGUI::MouseButton::Left)
             return;
 
+        mSnapOffset = {};
         mPreviousMouse.left = left;
         mPreviousMouse.top = top;
 
@@ -82,9 +90,25 @@ namespace LuaUi
         change.width *= (left - mPreviousMouse.left);
         change.height *= (top - mPreviousMouse.top);
 
+        const bool moving = mChangeScale.width == 0 && mChangeScale.height == 0;
+        if (moving)
+        {
+            change.left -= mSnapOffset.left;
+            change.top -= mSnapOffset.top;
+        }
         mMoveResize = mMoveResize + change;
         forceCoord(mMoveResize);
         updateCoord();
+        if (moving)
+        {
+            const auto raw = getAbsoluteCoord();
+            const auto snapped = Gui::snapWindow(this, raw);
+            mSnapOffset = snapped - raw.point();
+            mMoveResize.left += mSnapOffset.left;
+            mMoveResize.top += mSnapOffset.top;
+            forceCoord(mMoveResize);
+            updateCoord();
+        }
 
         mPreviousMouse.left = left;
         mPreviousMouse.top = top;

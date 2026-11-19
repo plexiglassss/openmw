@@ -1,7 +1,9 @@
 #ifndef OPENMW_COMPONENTS_RESOURCE_RESOURCESYSTEM_H
 #define OPENMW_COMPONENTS_RESOURCE_RESOURCESYSTEM_H
 
+#include <cstdint>
 #include <memory>
+#include <shared_mutex>
 #include <vector>
 
 namespace VFS
@@ -53,6 +55,16 @@ namespace Resource
         /// @note May be called from any thread if you do not add or remove resource managers at that point.
         void updateCache(double referenceTime);
 
+        /// Update one manager and advance cursor. Same lifetime requirements as
+        /// updateCache apply across the entire sweep, including yielded slices.
+        /// Returns true once all managers have been visited.
+        struct CacheUpdateCursor
+        {
+            std::size_t mNext = 0;
+            std::uint64_t mRevision = 0;
+        };
+        bool updateCacheStep(double referenceTime, CacheUpdateCursor& cursor);
+
         /// Indicates to each resource manager to clear the entire cache.
         /// @note May be called from any thread if you do not add or remove resource managers at that point.
         void clearCache();
@@ -86,6 +98,8 @@ namespace Resource
         // Store the base classes separately to get convenient access to the common interface
         // Here users can register their own resourcemanager as well
         std::vector<BaseResourceManager*> mResourceManagers;
+        mutable std::shared_mutex mResourceManagersMutex;
+        std::uint64_t mResourceManagersRevision = 0;
 
         const VFS::Manager* mVFS;
 

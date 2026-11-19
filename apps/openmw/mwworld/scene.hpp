@@ -1,6 +1,7 @@
 #ifndef GAME_MWWORLD_SCENE_H
 #define GAME_MWWORLD_SCENE_H
 
+#include <osg/Vec2f>
 #include <osg/Vec2i>
 #include <osg/Vec4i>
 
@@ -14,6 +15,10 @@
 
 #include <components/esm/exteriorcelllocation.hpp>
 #include <components/misc/constants.hpp>
+#include <components/sceneutil/pendingpreload.hpp>
+#include <components/sceneutil/preloadplancache.hpp>
+#include <components/vfs/pathutil.hpp>
+#include <tuple>
 
 namespace osg
 {
@@ -103,6 +108,10 @@ namespace MWWorld
 
         bool mPreloadExteriorGrid;
         bool mPreloadDoors;
+        double mNextExitPrediction = 0;
+        double mLastStaticPrediction = -1;
+        double mStaticPredictionInterval = 0.25;
+        void predictExteriorExit(const osg::Vec3f& position, const osg::Vec3f& predicted);
         bool mPreloadFastTravel;
         float mPredictionTime;
         float mLowestPoint;
@@ -114,6 +123,14 @@ namespace MWWorld
         std::vector<ESM::RefNum> mPagedRefs;
 
         std::vector<std::shared_ptr<SceneUtil::WorkItem>> mWorkItems;
+        SceneUtil::PendingPreload<VFS::Path::Normalized> mPendingMeshes;
+        std::size_t mMeshRequestsCoalesced = 0;
+        using DoorRevision = std::pair<std::uint64_t, std::uint64_t>;
+        SceneUtil::PreloadPlanCache<const CellStore*, DoorRevision, std::vector<ConstPtr>> mDoorPlans{ 256 };
+        using GridPlanKey = std::tuple<ESM::ExteriorCellLocation, int, std::size_t>;
+        SceneUtil::PreloadPlanCache<GridPlanKey, int, std::vector<CellStore*>> mDestinationPlans{ 32 };
+        using BorderCell = std::pair<ESM::ExteriorCellLocation, osg::Vec2f>;
+        SceneUtil::PreloadPlanCache<GridPlanKey, int, std::vector<BorderCell>> mBorderPlans{ 1 };
 
         std::optional<ChangeCellGridRequest> mChangeCellGridRequest;
 

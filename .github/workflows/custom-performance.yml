@@ -1,0 +1,54 @@
+name: Custom performance and frame generation build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [performance-and-framegen-2062366]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  Engine:
+    uses: ./.github/workflows/windows.yml
+    with:
+      image: "2022"
+      msvc: "2022"
+      build-type: Release
+      package: false
+      release: false
+
+  FrameGeneration:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure and build modified Frame Generation
+        shell: pwsh
+        run: |
+          cmake -S custom/frame-generation -B fg-build -A x64 -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          if ($LASTEXITCODE) { throw "FG configure failed" }
+          cmake --build fg-build --config Release --parallel
+          if ($LASTEXITCODE) { throw "FG build failed" }
+      - name: Verify DLL and assemble install package with source
+        shell: pwsh
+        run: |
+          cl /nologo /EHsc custom/frame-generation/tests/proxy_smoke.cpp /Fe:fg-proxy-test.exe
+          if ($LASTEXITCODE) { throw "Smoke test compile failed" }
+          ./fg-proxy-test.exe "$PWD/fg-build/Release/version.dll"
+          if ($LASTEXITCODE) { throw "DLL load/export forwarding test failed" }
+          New-Item -ItemType Directory -Force fg-package/source | Out-Null
+          Copy-Item fg-build/Release/version.dll fg-package/
+          Copy-Item custom/frame-generation/openmw_fg.ini fg-package/openmw_fg.example.ini
+          Copy-Item custom/frame-generation/INSTALL-CUSTOM.txt fg-package/README.txt
+          Copy-Item custom/frame-generation/PATCH_NOTES.txt fg-package/
+          Copy-Item custom/frame-generation/LICENSE fg-package/
+          Copy-Item custom/frame-generation/* fg-package/source/ -Recurse
+          "Commit ${{ github.sha }}`nRun ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`n" | Set-Content fg-package/BUILD-ID.txt
+          Get-FileHash fg-package/version.dll -Algorithm SHA256 | Format-List | Out-File fg-package/SHA256.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: OpenMW-Frame-Generation-0.2.0-Custom-2026-10-20
+          path: fg-package/
+          if-no-files-found: error

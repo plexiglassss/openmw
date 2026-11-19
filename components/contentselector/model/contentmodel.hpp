@@ -86,6 +86,9 @@ namespace ContentSelectorModel
 
         const EsmFile* mGameFile;
         ContentFileList mFiles;
+        // Stable object pointers: row reordering does not invalidate this index.
+        QHash<QString, EsmFile*> mFilesByName;
+        QHash<QString, bool> mDirectoriesWithDataFiles;
         QStringList mNonUserContent;
         std::set<const EsmFile*> mCheckedFiles;
         QHash<QString, bool> mNewFiles;

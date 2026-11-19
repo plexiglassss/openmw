@@ -1,9 +1,12 @@
 #include "components/misc/strings/conversion.hpp"
 #include "components/settings/parser.hpp"
 #include "components/settings/values.hpp"
+#include "components/testing/util.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <array>
 
 #ifndef OPENMW_PROJECT_SOURCE_DIR
 #define OPENMW_PROJECT_SOURCE_DIR "."
@@ -149,6 +152,345 @@ namespace Settings
             Values values(index);
             values.mCamera.mFieldOfView.set(values.mCamera.mFieldOfView.get());
             EXPECT_THAT(Manager::mChangedSettings, ElementsAre());
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyDefaultsPreserveExistingAppearance)
+        {
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 100);
+        }
+
+        TEST_F(SettingsValuesTest, dialogueColoursKeepTheThemeForNormalDialogueByDefault)
+        {
+            Index index;
+            Values values(index);
+            EXPECT_TRUE(values.mGUI.mDialogueColouring.get());
+            EXPECT_TRUE(values.mGUI.mDialogueUseSystemColour.get());
+            EXPECT_TRUE(values.mGUI.mDialogueClassifyNarration.get());
+            EXPECT_TRUE(values.mGUI.mJournalColourNarration.get());
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), MyGUI::Colour(0.55f, 0.85f, 0.85f));
+            const auto& journalNotice = values.mGUI.mColorDialogueJournal.get();
+            EXPECT_FLOAT_EQ(journalNotice.red, journalNotice.green);
+            EXPECT_FLOAT_EQ(journalNotice.green, journalNotice.blue);
+            EXPECT_LT(values.mGUI.mColorJournalNarration.get().red, values.mGUI.mColorDialogueNarration.get().red);
+        }
+
+        TEST_F(SettingsValuesTest, dialogueColoursRoundTripAllRolesWithoutChangingOtherInterfaceSettings)
+        {
+            const auto path = TestingOpenMW::outputFilePath("dialogue-colour-settings.cfg");
+            const std::array<std::pair<std::string_view, MyGUI::Colour>, 7> colours{ {
+                { "color dialogue normal", MyGUI::Colour(37.f / 255.f, 121.f / 255.f, 231.f / 255.f) },
+                { "color dialogue topic", MyGUI::Colour(0.17f, 0.63f, 0.89f) },
+                { "color dialogue inventory", MyGUI::Colour(0.13f, 0.37f, 0.61f) },
+                { "color dialogue stat", MyGUI::Colour(0.71f, 0.19f, 0.83f) },
+                { "color dialogue narration", MyGUI::Colour(0.21f, 0.51f, 0.81f) },
+                { "color dialogue journal", MyGUI::Colour(0.31f, 0.41f, 0.51f) },
+                { "color journal narration", MyGUI::Colour(0.11f, 0.22f, 0.33f) },
+            } };
+            MyGUI::Colour topicColour;
+            {
+                Index index;
+                Values values(index);
+                topicColour = values.mGUI.mColorTopicSpecific.get();
+                values.mGUI.mDialogueColouring.set(false);
+                values.mGUI.mDialogueUseSystemColour.set(false);
+                values.mGUI.mDialogueClassifyNarration.set(false);
+                values.mGUI.mJournalColourNarration.set(false);
+                for (const auto& [name, colour] : colours)
+                    index.get<MyGUI::Colour>("GUI", name).set(colour);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_FALSE(values.mGUI.mDialogueColouring.get());
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
+            EXPECT_FALSE(values.mGUI.mDialogueClassifyNarration.get());
+            EXPECT_FALSE(values.mGUI.mJournalColourNarration.get());
+            for (const auto& [name, expected] : colours)
+            {
+                SCOPED_TRACE(name);
+                const auto& actual = index.get<MyGUI::Colour>("GUI", name).get();
+                EXPECT_NEAR(actual.red, expected.red, 0.000001f);
+                EXPECT_NEAR(actual.green, expected.green, 0.000001f);
+                EXPECT_NEAR(actual.blue, expected.blue, 0.000001f);
+                EXPECT_FLOAT_EQ(actual.alpha, expected.alpha);
+            }
+            EXPECT_EQ(values.mGUI.mColorTopicSpecific.get(), topicColour);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+            EXPECT_EQ(values.mGUI.mFontSize.get(), 16);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), 1.f);
+        }
+
+        TEST_F(SettingsValuesTest, resettingOneDialogueColourKeepsOtherColoursAndThemeChoice)
+        {
+            Index index;
+            // Mirror StaticValues::initDefaults()/init(): the move captures the
+            // default palette before reading the saved user settings.
+            Values defaultValues(index);
+            const auto defaultStatColour = defaultValues.mGUI.mColorDialogueStat.get();
+            const auto defaultTopicColour = defaultValues.mGUI.mColorDialogueTopic.get();
+            const MyGUI::Colour customNormal(0.123456f, 0.345678f, 0.567891f);
+            const MyGUI::Colour customInventory(0.15f, 0.35f, 0.75f);
+            const MyGUI::Colour customTopic(0.17f, 0.63f, 0.89f);
+            Manager::mUserSettings[{ "GUI", "color dialogue normal" }] = "0.123456 0.345678 0.567891 1";
+            Manager::mUserSettings[{ "GUI", "color dialogue inventory" }] = "0.15 0.35 0.75 1";
+            Manager::mUserSettings[{ "GUI", "color dialogue topic" }] = "0.17 0.63 0.89 1";
+            Manager::mUserSettings[{ "GUI", "color dialogue stat" }] = "0.9 0.8 0.7 1";
+            Manager::mUserSettings[{ "GUI", "dialogue use system colour" }] = "false";
+            Values values(std::move(defaultValues));
+            EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
+            EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
+            EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), MyGUI::Colour(0.9f, 0.8f, 0.7f));
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), customTopic);
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
+            values.mGUI.mColorDialogueStat.set(MyGUI::Colour::Black);
+            index.get<MyGUI::Colour>("GUI", "color dialogue stat").reset();
+            EXPECT_EQ(values.mGUI.mColorDialogueStat.get(), defaultStatColour);
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), customTopic);
+            EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
+            EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
+
+            index.get<MyGUI::Colour>("GUI", "color dialogue topic").reset();
+            EXPECT_EQ(values.mGUI.mColorDialogueTopic.get(), defaultTopicColour);
+            EXPECT_EQ(values.mGUI.mColorDialogueNormal.get(), customNormal);
+            EXPECT_EQ(values.mGUI.mColorDialogueInventory.get(), customInventory);
+            EXPECT_FALSE(values.mGUI.mDialogueUseSystemColour.get());
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyRoundTripsWithoutChangingGlobalFontOrScale)
+        {
+            const auto path = TestingOpenMW::outputFilePath("journal-typography-settings.cfg");
+            int globalFontSize = 0;
+            float globalScale = 0;
+            {
+                Index index;
+                Values values(index);
+                globalFontSize = values.mGUI.mFontSize.get();
+                globalScale = values.mGUI.mScalingFactor.get();
+                values.mGUI.mJournalFontSize.set(12);
+                values.mGUI.mJournalTextAlignment.set(3);
+                values.mGUI.mJournalPageNumberFontSize.set(14);
+                values.mGUI.mJournalButtonScale.set(75);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 12);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 3);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 14);
+            EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 75);
+            EXPECT_EQ(values.mGUI.mFontSize.get(), globalFontSize);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), globalScale);
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyAcceptsEveryOfferedChoice)
+        {
+            Index index;
+            Values values(index);
+            for (int size = 10; size <= 24; ++size)
+            {
+                values.mGUI.mJournalFontSize.set(size);
+                EXPECT_EQ(values.mGUI.mJournalFontSize.get(), size);
+                values.mGUI.mJournalPageNumberFontSize.set(size);
+                EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), size);
+            }
+            values.mGUI.mJournalFontSize.set(0);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            values.mGUI.mJournalPageNumberFontSize.set(0);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
+            for (int percent = 50; percent <= 100; ++percent)
+            {
+                values.mGUI.mJournalButtonScale.set(percent);
+                EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), percent);
+            }
+            for (int alignment = 0; alignment < 4; ++alignment)
+            {
+                values.mGUI.mJournalTextAlignment.set(alignment);
+                EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), alignment);
+            }
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyRejectsUnsupportedValues)
+        {
+            Index index;
+            Values values(index);
+            for (int size : { -1, 1, 9, 25, 1000 })
+            {
+                EXPECT_THROW(values.mGUI.mJournalFontSize.set(size), std::runtime_error);
+                EXPECT_THROW(values.mGUI.mJournalPageNumberFontSize.set(size), std::runtime_error);
+            }
+            for (int alignment : { -1, 4, 1000 })
+                EXPECT_THROW(values.mGUI.mJournalTextAlignment.set(alignment), std::runtime_error);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 0);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 0);
+        }
+
+        TEST_F(SettingsValuesTest, journalTypographyClampsButtonScaleWithoutChangingTextSettings)
+        {
+            Index index;
+            Values values(index);
+            const int globalFontSize = values.mGUI.mFontSize.get();
+            const float globalScale = values.mGUI.mScalingFactor.get();
+            values.mGUI.mJournalFontSize.set(12);
+            values.mGUI.mJournalTextAlignment.set(3);
+            values.mGUI.mJournalPageNumberFontSize.set(14);
+
+            for (int percent : { -1000, 0, 49 })
+            {
+                values.mGUI.mJournalButtonScale.set(percent);
+                EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 50);
+            }
+            for (int percent : { 101, 1000 })
+            {
+                values.mGUI.mJournalButtonScale.set(percent);
+                EXPECT_EQ(values.mGUI.mJournalButtonScale.get(), 100);
+            }
+
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 12);
+            EXPECT_EQ(values.mGUI.mJournalTextAlignment.get(), 3);
+            EXPECT_EQ(values.mGUI.mJournalPageNumberFontSize.get(), 14);
+            EXPECT_EQ(values.mGUI.mFontSize.get(), globalFontSize);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), globalScale);
+        }
+
+        TEST_F(SettingsValuesTest, messagePositionLoadsSavedValuesAndResetsToOriginalPosition)
+        {
+            Index index;
+            Values defaultValues(index);
+            EXPECT_EQ(defaultValues.mGUI.mMessageBoxPosition.get(), 7);
+            EXPECT_EQ(defaultValues.mGUI.mMessageBoxHorizontalOffset.get(), 0);
+            EXPECT_EQ(defaultValues.mGUI.mMessageBoxVerticalOffset.get(), 0);
+            Manager::mUserSettings[{ "GUI", "message box position" }] = "1";
+            Manager::mUserSettings[{ "GUI", "message box horizontal offset" }] = "125";
+            Manager::mUserSettings[{ "GUI", "message box vertical offset" }] = "-80";
+            Values values(std::move(defaultValues));
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 1);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), 125);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), -80);
+            values.mGUI.mMessageBoxPosition.reset();
+            values.mGUI.mMessageBoxHorizontalOffset.reset();
+            values.mGUI.mMessageBoxVerticalOffset.reset();
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 7);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), 0);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), 0);
+        }
+
+        TEST_F(SettingsValuesTest, messagePositionRoundTripsWithoutChangingOtherInterfaceSettings)
+        {
+            const auto path = TestingOpenMW::outputFilePath("message-position-settings.cfg");
+            {
+                Index index;
+                Values values(index);
+                values.mGUI.mMessageBoxPosition.set(1);
+                values.mGUI.mMessageBoxHorizontalOffset.set(-123);
+                values.mGUI.mMessageBoxVerticalOffset.set(87);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 1);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), -123);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), 87);
+            EXPECT_EQ(values.mGUI.mJournalFontSize.get(), 0);
+            EXPECT_TRUE(values.mGUI.mDialogueColouring.get());
+            EXPECT_EQ(values.mGUI.mFontSize.get(), 16);
+            EXPECT_EQ(values.mGUI.mScalingFactor.get(), 1.f);
+        }
+
+        TEST_F(SettingsValuesTest, messagePositionSanitizesSavedValuesWithoutRejectingOldSettings)
+        {
+            Manager::mUserSettings[{ "GUI", "message box position" }] = "999";
+            Manager::mUserSettings[{ "GUI", "message box horizontal offset" }] = "-99999";
+            Manager::mUserSettings[{ "GUI", "message box vertical offset" }] = "99999";
+            Index index;
+            Values values(index);
+            EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), 7);
+            EXPECT_EQ(values.mGUI.mMessageBoxHorizontalOffset.get(), -1000);
+            EXPECT_EQ(values.mGUI.mMessageBoxVerticalOffset.get(), 1000);
+            for (int anchor = 0; anchor < 9; ++anchor)
+            {
+                values.mGUI.mMessageBoxPosition.set(anchor);
+                EXPECT_EQ(values.mGUI.mMessageBoxPosition.get(), anchor);
+            }
+        }
+
+        TEST_F(SettingsValuesTest, mapIconsDefaultWithoutAwmAndClampExternalValues)
+        {
+            // Match Manager::load: capture defaults before applying user values.
+            Index index;
+            Values defaultValues(index);
+            EXPECT_EQ(defaultValues.mMap.mLocationIconSize.get(), 24);
+            Manager::mUserSettings[{ "Map", "location icon size" }] = "999";
+            Manager::mUserSettings[{ "Map", "location icon colours" }] = "-10";
+            Manager::mUserSettings[{ "Map", "location icon categories" }] = "999999";
+            Values values(std::move(defaultValues));
+            EXPECT_TRUE(values.mMap.mLocationIcons.get());
+            EXPECT_TRUE(values.mMap.mLocationEntranceIcons.get());
+            EXPECT_TRUE(values.mMap.mLocationIconTooltips.get());
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 40);
+            EXPECT_EQ(values.mMap.mLocationIconColours.get(), 0);
+            EXPECT_EQ(values.mMap.mLocationIconCategories.get(), 524287);
+            values.mMap.mLocationIconSize.set(-10);
+            values.mMap.mLocationIconColours.set(99);
+            values.mMap.mLocationIconCategories.set(-1);
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 16);
+            EXPECT_EQ(values.mMap.mLocationIconColours.get(), 2);
+            EXPECT_EQ(values.mMap.mLocationIconCategories.get(), 0);
+            values.mMap.mLocationIconSize.reset();
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 24);
+        }
+
+        TEST_F(SettingsValuesTest, mapIconSettingsRoundTripWithoutChangingMapResolutionOrDeleveling)
+        {
+            const auto path = TestingOpenMW::outputFilePath("map-icon-settings.cfg");
+            {
+                Index index;
+                Values values(index);
+                values.mMap.mLocationIcons.set(false);
+                values.mMap.mLocationEntranceIcons.set(false);
+                values.mMap.mLocationIconTooltips.set(false);
+                values.mMap.mLocationIconSize.set(33);
+                values.mMap.mLocationIconColours.set(2);
+                values.mMap.mLocationIconCategories.set(0x12568);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_FALSE(values.mMap.mLocationIcons.get());
+            EXPECT_FALSE(values.mMap.mLocationEntranceIcons.get());
+            EXPECT_FALSE(values.mMap.mLocationIconTooltips.get());
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 33);
+            EXPECT_EQ(values.mMap.mLocationIconColours.get(), 2);
+            EXPECT_EQ(values.mMap.mLocationIconCategories.get(), 0x12568);
+            EXPECT_EQ(values.mMap.mGlobalMapCellSize.get(), 18);
+            EXPECT_EQ(values.mMap.mLocalMapResolution.get(), 256);
+            EXPECT_FALSE(values.mGame.mDelevelCreatures.get());
+            EXPECT_FALSE(values.mGame.mDelevelItems.get());
         }
     }
 }

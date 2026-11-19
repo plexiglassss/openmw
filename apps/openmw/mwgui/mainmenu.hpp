@@ -62,6 +62,7 @@ namespace MWGui
         const VFS::Manager* mVFS;
 
         MyGUI::Widget* mButtonBox;
+        MyGUI::Button* mContinueButton = nullptr;
         MyGUI::TextBox* mVersionText;
 
         BackgroundImage* mBackground;

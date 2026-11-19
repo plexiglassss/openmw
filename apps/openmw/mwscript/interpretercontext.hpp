@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <utility>
 
 #include <components/esm/refid.hpp>
 #include <components/interpreter/context.hpp>
@@ -26,6 +27,7 @@ namespace MWScript
         Locals* mLocals;
         mutable MWWorld::Ptr mReference;
         std::shared_ptr<GlobalScriptDesc> mGlobalScriptDesc;
+        ESM::RefId mMessageBoxSourceScriptId;
 
         /// If \a id is empty, a reference the script is run from is returned or in case
         /// of a non-local script the reference derived from the target ID.
@@ -42,6 +44,31 @@ namespace MWScript
         int findLocalVariableIndex(const ESM::RefId& scriptId, std::string_view name, char type) const;
 
     public:
+        // Only named ScriptManager execution supplies a source. An attached
+        // object script is not evidence that it issued a dialogue/native box.
+        class ScriptSourceScope
+        {
+            InterpreterContext* mContext;
+            ESM::RefId mPrevious;
+
+        public:
+            ScriptSourceScope(InterpreterContext* context, const ESM::RefId& id)
+                : mContext(context)
+            {
+                if (mContext)
+                    mPrevious = std::exchange(mContext->mMessageBoxSourceScriptId, id);
+            }
+            ~ScriptSourceScope()
+            {
+                if (mContext)
+                    mContext->mMessageBoxSourceScriptId = std::move(mPrevious);
+            }
+            ScriptSourceScope(const ScriptSourceScope&) = delete;
+            ScriptSourceScope& operator=(const ScriptSourceScope&) = delete;
+        };
+
+        const ESM::RefId& getMessageBoxSourceScriptId() const { return mMessageBoxSourceScriptId; }
+
         InterpreterContext(std::shared_ptr<GlobalScriptDesc> globalScriptDesc);
 
         InterpreterContext(MWScript::Locals* locals, const MWWorld::Ptr& reference);

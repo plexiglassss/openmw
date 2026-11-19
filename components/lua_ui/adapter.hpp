@@ -18,6 +18,7 @@ namespace LuaUi
 
         void attach(const std::shared_ptr<Element>& element);
         void detach();
+        void refresh();
 
     private:
         std::shared_ptr<Element> mElement;

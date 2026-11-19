@@ -4,6 +4,8 @@
 #include <osg/Drawable>
 
 #include <memory>
+#include <atomic>
+#include <chrono>
 #include <mutex>
 #include <set>
 
@@ -23,6 +25,20 @@ namespace Terrain
         std::vector<osg::ref_ptr<osg::Drawable>> mDrawables;
         osg::ref_ptr<osg::Texture2D> mTexture;
         size_t mCompiled = 0;
+        std::atomic_bool mImmediate{ false };
+
+        template <class Draw, class OutOfTime>
+        void drawPendingLayers(Draw&& draw, OutOfTime&& outOfTime)
+        {
+            while (mCompiled < mDrawables.size())
+            {
+                draw(*mDrawables[mCompiled]);
+                mDrawables[mCompiled++] = nullptr;
+                if (mCompiled < mDrawables.size() && !mImmediate.load(std::memory_order_relaxed) && outOfTime())
+                    return;
+            }
+            mDrawables = decltype(mDrawables){};
+        }
     };
 
     /**
@@ -37,7 +53,8 @@ namespace Terrain
 
         void drawImplementation(osg::RenderInfo& renderInfo) const override;
 
-        void compile(CompositeMap& compositeMap, osg::RenderInfo& renderInfo) const;
+        void compile(CompositeMap& compositeMap, osg::RenderInfo& renderInfo,
+            std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::time_point::max()) const;
 
         /// Set the available time in seconds for compiling (non-immediate) composite maps each frame
         void setMinimumTimeAvailableForCompile(double time);

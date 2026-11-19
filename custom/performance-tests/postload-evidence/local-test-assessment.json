@@ -1,0 +1,34 @@
+{
+  "kind": "automated",
+  "producer": "/root",
+  "method": "GCC C++20 warnings-as-errors production recorder regression plus compiled extracted engine log adapter and lifecycle-hook checks",
+  "scope": "Recorder behavior and integration adapter only; not full engine or installed runtime",
+  "findings": "Post-load tests passed: lifecycle, bounds, nested cells, worker overlap\nPost-load engine log integration passed\nPost-load lifecycle hooks passed",
+  "outcome": "PASS",
+  "bindings": {
+    "configuration": "df82572818d092cf323df694143f2a419f51b92f1ae023593ee2a92ee16bfb67",
+    "engine": "94c83e0a2586fbc26383e2bcbe49c314d111ce053abe4e6fba973e57b2a323cc",
+    "before_manifest": "83fb0cd5b7eb7832c2d7c3988f6336390d091af8e7f95d366dd21eae1b1deeb3",
+    "candidate_manifest": "1f1762d7985843c908d5907624e0ab192e06ddaab10ca81b41cb5a5d2c44d387",
+    "providers": "557052881100de61a83c730bee650a8cbf6365db6fce34d6a027fa9eed5965b9",
+    "tools": "cc46d4697f374fc4c70383773e74dda67db184a73171dba4caa29afca2d0fde3",
+    "components/diagnostics/postload.hpp": "9db4acd453f49a0343c698c516fe5711d102db6f2f4baf3098e1a91d4c4e0b29",
+    "apps/openmw/engine.cpp": "e53705f379c797b35e7f58caa3dbbf73571388005f5a8b358286d360d9425262",
+    "apps/openmw/mwstate/statemanagerimp.cpp": "db4a34c0ef9d1100f3c0425e1a58b16f1250b80cf8d442ea8375c235f34824a3",
+    "apps/openmw/mwworld/cellstore.cpp": "d5e0d1475a983145c7168257a1b27109b44473708610c7d2e93b75048e6ce144",
+    "apps/openmw/mwlua/worker.cpp": "bcb513b3d8bdf368a43acabfa54a2a0f2190e3acbd7d9a1cc78b0176e0b22ed0",
+    ".github/workflows/diagnostic-timing.yml": "6fd6ee53d813c55ed417b32ac32a81723867ac5b0e026c407548e2688ef76009",
+    "custom/performance-tests/postload.cpp": "b8db77c14da69bd76893ae862d8153d49846416e6142b44b6b636f49a939f5d5",
+    "custom/performance-tests/test-postload-integration.py": "7d5b054799be249ec9ecca4aab659120d61ef9fecefe7aaba6115a96e71ab718"
+  },
+  "run_record": {
+    "path": "custom/performance-tests/postload-evidence/local-tests.json",
+    "sha256": "3bbff002cd854c9f7eccb0d9956ff33bedc1f708190ec1a339764f9f1139b8c1"
+  },
+  "artifacts": [
+    {
+      "path": "custom/performance-tests/postload-evidence/local-tests.json",
+      "sha256": "3bbff002cd854c9f7eccb0d9956ff33bedc1f708190ec1a339764f9f1139b8c1"
+    }
+  ]
+}

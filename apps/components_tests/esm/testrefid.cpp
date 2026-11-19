@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <functional>
+#include <limits>
 #include <map>
 #include <string>
 
@@ -239,6 +240,16 @@ namespace ESM
             const RefId b = RefId::esm3ExteriorCell(1, 0);
             EXPECT_LT(a, b);
             EXPECT_TRUE(!(b < a));
+        }
+
+        TEST(ESMFormIdFormatting, PreservesFullContentIndicesGeneratedIdsAndPrefixes)
+        {
+            EXPECT_EQ((FormId{ 0xabcdef, 0x123 }.toString("item-")), "item-0x123abcdef");
+            EXPECT_EQ((FormId{ 0xabcdef, -1 }.toString()), "@0xabcdef");
+            EXPECT_EQ((FormId{ 0xffffffffu, std::numeric_limits<int32_t>::min() }.toString()),
+                "@0x7fffffffffffffff");
+            EXPECT_EQ((FormId{ 0, 0 }.toString("long prefix including spaces ")), "long prefix including spaces 0x0");
+            EXPECT_THROW((FormId{ 0x1000000, 0 }.toString()), std::invalid_argument);
         }
 
         struct ESMRefIdToStringTest : TestWithParam<std::pair<RefId, std::string>>

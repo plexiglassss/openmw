@@ -1,89 +1,1308 @@
-name: Build and test
-
+name: OpenMW RC1 - cumulative custom features
 on:
-- push
-- pull_request
-
+  push:
+    branches: [openmw-0.52-rc1-custom]
+  pull_request:
+    branches: [openmw-0.52-rc1-custom]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 env:
-  BUILD_TYPE: RelWithDebInfo
-
+  CUMULATIVE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cumulative-windows-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
-  Ubuntu:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Add OpenMW PPA Dependencies
-      run: sudo add-apt-repository ppa:openmw/openmw; sudo apt-get update
-
-    - name: Install Building Dependencies
-      run: sudo CI/install_debian_deps.sh gcc openmw-deps openmw-deps-dynamic
-
-    - name: Prime ccache
-      uses: hendrikmuhs/ccache-action@v1
-      with:
-        key: ${{ matrix.os }}-${{ env.BUILD_TYPE }}
-        max-size: 1000M
-
-    - name: Configure
-      run: >
-        cmake .
-        -D CMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -D OPENMW_USE_SYSTEM_RECASTNAVIGATION=ON
-        -D USE_SYSTEM_TINYXML=ON
-        -D BUILD_COMPONENTS_TESTS=ON
-        -D BUILD_OPENMW_TESTS=ON
-        -D BUILD_OPENCS_TESTS=ON
-        -D CMAKE_INSTALL_PREFIX=install
-
-    - name: Build
-      run: cmake --build . -- -j$(nproc)
-
-    - name: Run components tests
-      run: ./components-tests
-
-    - name: Run OpenMW tests
-      run: ./openmw-tests
-
-    - name: Run OpenMW-CS tests
-      run: ./openmw-cs-tests
-
-    # - name: Install
-    #   shell: bash
-    #   run: cmake --install .
-
-    # - name: Create Artifact
-    #   shell: bash
-    #   working-directory: install
-    #   run: |
-    #     ls -laR
-    #     7z a ../build_artifact.7z .
-
-    # - name: Upload Artifact
-    #   uses: actions/upload-artifact@v1
-    #   with:
-    #     path: ./build_artifact.7z
-    #     name: build_artifact.7z
-
-  MacOS:
-    strategy:
-      fail-fast: true
-      matrix:
-        args:
-          - image: macos-26
-          - image: macos-26-intel
-    uses: ./.github/workflows/macos.yml
-    with:
-      image: ${{ matrix.args.image }}
-
   Windows:
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-        - "2022"
+    if: github.head_ref != 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    env:
+      # Keep tracked bytes identical to the verified source on Windows too.
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+      SCCACHE_GHA_ENABLED: "on"
+      SCCACHE_GHA_VERSION: openmw-msvc-2022-Release-v1
+      SCCACHE_IGNORE_SERVER_IO_ERROR: "1"
+      SCCACHE_IDLE_TIMEOUT: "0"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+          fetch-depth: 0
+      - name: Exercise the actual Windows adapter installer and restore commands
+        run: python custom/combined-performance/tests/test-adapter-entrypoints.py --output native-adapter-installer-tests.json
+      - name: Reuse tested engine for eligible packaging-only changes
+        id: existing_engine
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/combined-performance/reuse-windows-engine.py
+      - name: Verify historical source gates and complete cumulative source
+        shell: pwsh
+        run: |
+          $commits = @(
+            '91cf944a0fe8a3d2333b3ae97ccb17376c577565',
+            'ce3d5a2e981999df432cf8df416352cc85842e97',
+            'de695387ff24adac5ff28a56eaac30d996e45011',
+            'cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0',
+            'b34db5770f947b0f5b90dc699627c2ccdae12f16',
+            '528bffb348872a964d25c092fa5dd574c1b7f673',
+            '1b78b9c1a566b91bbe1576387842625f3ae509d1',
+            '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0',
+            'caeede91ff424d63b398737eb0220dea29058981',
+            '541a1e13cfcdac0c1101c08a465ea2c61ab951e4',
+            '5a446619744f2b07eb5efecef75c048ad09d046b',
+            'ba5c0bb03bb13604adf61781b8afb0d63ea231f0',
+            '80ce5372258b3cffd972dbdd2565d80e940b9351'
+          )
+          foreach ($commit in $commits) {
+            git fetch --no-tags --depth=100 origin $commit
+            if ($LASTEXITCODE) { throw "Cannot recover preserved source $commit" }
+          }
+          $gates = @(
+            @{ Path = 'preservation-dialogue'; Commit = '528bffb348872a964d25c092fa5dd574c1b7f673'; Script = 'custom/dialogue-colours/verify-source.py'; Manifest = 'dialogue-colours-source-manifest.json' },
+            @{ Path = 'preservation-shrine'; Commit = '1b78b9c1a566b91bbe1576387842625f3ae509d1'; Script = 'custom/shrine-tooltips/verify-source.py'; Manifest = 'shrine-tooltips-source-manifest.json' },
+            @{ Path = 'preservation-gameplay'; Commit = '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0'; Script = 'custom/gameplay-responsiveness/verify-source.py'; Manifest = 'gameplay-responsiveness-source-manifest.json' },
+            @{ Path = 'preservation-message'; Commit = 'caeede91ff424d63b398737eb0220dea29058981'; Script = 'custom/message-position/verify-source.py'; Manifest = 'message-position-source-manifest.json' }
+          )
+          foreach ($gate in $gates) {
+            git worktree add --detach $gate.Path $gate.Commit
+            if ($LASTEXITCODE) { throw "Cannot prepare $($gate.Path)" }
+            try {
+              python "$($gate.Path)/$($gate.Script)"
+              if ($LASTEXITCODE) { throw "Preserved source gate failed: $($gate.Path)" }
+              Copy-Item "$($gate.Path)/$($gate.Manifest)" ./
+            } finally {
+              git worktree remove --force $gate.Path
+              if ($LASTEXITCODE) { throw "Cannot remove $($gate.Path)" }
+            }
+          }
+          git worktree add --detach preservation-cumulative de695387ff24adac5ff28a56eaac30d996e45011
+          if ($LASTEXITCODE) { throw 'Cannot prepare the exact preserved cumulative baseline' }
+          Push-Location preservation-cumulative
+          try {
+            python custom/cumulative/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical cumulative source union failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical waiting-stage rollback check failed' }
+            python custom/cumulative/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled source union failed' }
+            Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-cumulative
+            if ($LASTEXITCODE) { throw 'Cannot remove historical verification worktree' }
+          }
+          git worktree add --detach preservation-menu 91cf944a0fe8a3d2333b3ae97ccb17376c577565
+          if ($LASTEXITCODE) { throw 'Cannot prepare the accepted menu feature baseline' }
+          Push-Location preservation-menu
+          try {
+            python custom/menu-qol/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical menu feature preservation failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical menu lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical menu waiting-stage rollback check failed' }
+            python custom/menu-qol/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled menu feature preservation failed' }
+            Copy-Item menu-qol-source-manifest.json,menu-qol-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-menu
+            if ($LASTEXITCODE) { throw 'Cannot remove historical menu verification worktree' }
+          }
+          git worktree add --detach preservation-combined ce3d5a2e981999df432cf8df416352cc85842e97
+          if ($LASTEXITCODE) { throw 'Cannot prepare the combined Continue and deleveler baseline' }
+          Push-Location preservation-combined
+          try {
+            python custom/deleveler/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical combined engine source verification failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical combined lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical combined waiting-stage rollback check failed' }
+            python custom/deleveler/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled combined source verification failed' }
+            Copy-Item deleveler-source-manifest.json,deleveler-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-combined
+            if ($LASTEXITCODE) { throw 'Cannot remove historical combined verification worktree' }
+          }
+          git worktree add --detach preservation-town c4b71b6754e905ec820a05407038c37ef6c51c02
+          if ($LASTEXITCODE) { throw 'Cannot prepare the cumulative pre-RC1 source baseline' }
+          Push-Location preservation-town
+          try {
+            python custom/town-performance/verify-source.py
+            if ($LASTEXITCODE) { throw 'Historical cumulative source verification failed' }
+            python custom/loading-repair/apply.py
+            if ($LASTEXITCODE) { throw 'Historical cumulative lookup patch failed' }
+            python custom/loading-repair/check-integration.py
+            if ($LASTEXITCODE) { throw 'Historical loading-stage rollback check failed' }
+            python custom/town-performance/verify-source.py --after-lookup
+            if ($LASTEXITCODE) { throw 'Historical compiled cumulative source verification failed' }
+            Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json ../
+          } finally {
+            Pop-Location
+            git worktree remove --force preservation-town
+            if ($LASTEXITCODE) { throw 'Cannot remove historical cumulative worktree' }
+          }
+          python custom/rc1/verify-source.py
+          if ($LASTEXITCODE) { throw 'RC1 port source verification failed' }
+      - name: Check RC1 package evidence separation
+        run: python custom/rc1/test-package-sources.py
+      - name: Reject missing built-in Lua entry scripts and helpers
+        shell: pwsh
+        run: |
+          python custom/unified-controls/test-package-scripts.py
+          if ($LASTEXITCODE) { throw 'Built-in Lua packaging regression tests failed' }
+      - name: Test script installer preflight and rollback on authored fixtures
+        shell: powershell
+        run: |
+          ./custom/gameplay-responsiveness/Test-Installer.ps1 -InstallerScript ./custom/gameplay-responsiveness/Install-Fix.ps1 -WrapperScript ./custom/gameplay-responsiveness/Install-All.ps1 -TestRoot ./installer-fixtures -ReportPath ./gameplay-installer-tests.json
+          if ($LASTEXITCODE) { throw 'Script installer regression tests failed' }
+      - name: Compare SaneMagic adapters with captured originals in both Lua runtimes
+        shell: pwsh
+        run: |
+          python -m pip install -r custom/combined-performance/tests/requirements.txt
+          if ($LASTEXITCODE) { throw 'Lua adapter test runtime installation failed' }
+          python custom/combined-performance/tests/test_sanemagic_adapters.py --output sanemagic-adapter-parity.json
+          if ($LASTEXITCODE) { throw 'SaneMagic native/fallback adapter behavior differs from the captured originals' }
+      - name: Exercise captured map, quest and proximity adapters
+        shell: pwsh
+        run: python custom/combined-performance/tests/test_native_adapters.py --output native-job-adapter-parity.json
+      - name: Test combined launcher in Windows PowerShell
+        shell: powershell
+        run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-windows-powershell.json
+      - name: Test combined launcher in PowerShell 7
+        shell: pwsh
+        run: ./custom/combined-performance/Test-Launcher.ps1 -ReportPath combined-launcher-pwsh.json
+      - name: Test settings editing and rollback in Windows PowerShell
+        shell: powershell
+        run: |
+          ./custom/gameplay-responsiveness/Test-Settings.ps1
+          if ($LASTEXITCODE) { throw 'Windows PowerShell settings tests failed' }
+      - name: Test settings editing and rollback in PowerShell 7
+        shell: pwsh
+        run: |
+          ./custom/gameplay-responsiveness/Test-Settings.ps1
+          if ($LASTEXITCODE) { throw 'PowerShell 7 settings tests failed' }
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Test notification placement before compiling the engine
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++17 /EHsc /W4 /WX custom/message-position/test-position.cpp /Fe:message-position-tests.exe
+          if ($LASTEXITCODE) { throw 'Notification geometry test compilation failed' }
+          ./message-position-tests.exe | Tee-Object message-position-tests.txt
+          if ($LASTEXITCODE) { throw 'Notification geometry regressions failed' }
+      - name: Validate native map classification and resource budget
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /O2 /W4 /WX /I . custom/map-icons/test-classification.cpp components/mapmarkers/classification.cpp /Fe:map-icons-classifier.exe
+          if ($LASTEXITCODE) { throw 'Map icon classifier compilation failed' }
+          python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-classification.json --cmake-copy
+          if ($LASTEXITCODE) { throw 'Map icon classification, assets or allocation checks failed' }
+      - name: Verify actor preload ordering, cancellation and optional resource fallback
+        shell: pwsh
+        run: |
+          python custom/performance-tests/test-preload.py 2>&1 | Tee-Object actor-resource-preload-windows.log
+          if ($LASTEXITCODE) { throw 'Actual actor preload body regressions failed' }
+          python custom/performance-tests/test-streaming-paths.py 2>&1 | Tee-Object streaming-paths-windows.log
+          if ($LASTEXITCODE) { throw 'Production streaming traversal/publication regressions failed' }
+      - name: Verify Ninja supplied with the Visual Studio build tools
+        shell: pwsh
+        run: |
+          $ninja = Get-Command ninja.exe -ErrorAction Stop
+          Write-Host "Using $($ninja.Source)"
+          & $ninja.Source --version
+          if ($LASTEXITCODE) { throw 'The installed Ninja build tool failed its version check' }
+      - name: Prepare the verified compiler cache tool through the release asset API
+        shell: pwsh
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'sccache-v0.18.0-windows-x64.tar.gz'
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o $archive https://api.github.com/repos/mozilla/sccache/releases/assets/563130158
+          if ($LASTEXITCODE) { throw 'Compiler cache release asset download failed' }
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '1a63c1be2beab3f04d27e4cc145443e092e02d3dd83a51030989829d7023091b') {
+            throw 'Compiler cache archive does not match the official release asset digest'
+          }
+          $unpack = Join-Path $env:RUNNER_TEMP 'verified-sccache'
+          New-Item -ItemType Directory -Force $unpack | Out-Null
+          tar -xzf $archive -C $unpack
+          if ($LASTEXITCODE) { throw 'Compiler cache archive extraction failed' }
+          $toolPath = Join-Path $env:RUNNER_TOOL_CACHE 'sccache/0.18.0/x64'
+          New-Item -ItemType Directory -Force $toolPath | Out-Null
+          Copy-Item "$unpack/sccache-v0.18.0-x86_64-pc-windows-msvc/*" $toolPath
+          & "$toolPath/sccache.exe" --version
+          if ($LASTEXITCODE) { throw 'Verified compiler cache executable failed to start' }
+          New-Item -ItemType File -Force "$toolPath.complete" | Out-Null
+      - uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba
+        with:
+          version: v0.18.0
+      - name: Verify committed RC1 build source and lookup optimization
+        shell: pwsh
+        run: |
+          python custom/rc1/verify-source.py --phase build
+          if ($LASTEXITCODE) { throw 'RC1 build source or loading-stage rollback validation failed' }
+      - name: Record dependency versions
+        shell: bash
+        run: sed '/^\s*#/d; /^\s*$/d' CI/deps_versions.msvc.sh >> "$GITHUB_ENV"
+      - name: Download verified dependencies
+        shell: pwsh
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force deps, deps/Qt | Out-Null
+          Set-Location deps
+          $manifest = "vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}-manifest.txt"
+          curl --fail --retry 3 -L -o "$manifest" "https://gitlab.com/OpenMW/openmw-deps/-/raw/main/windows/$manifest"
+          if ($LASTEXITCODE) { throw 'Dependency manifest download failed' }
+          $lines = Get-Content "$manifest"
+          $parts = -split $lines[1]
+          $archiveName = 'vcpkg-x64-windows-2022-2026-10-10.7z'
+          $releaseUrl = "https://github.com/OpenMW/openmw-deps-build/releases/download/2026-10-10/$archiveName"
+          if ($parts.Count -ne 2 -or $parts[1] -ne $archiveName -or $lines[0] -ne $releaseUrl) {
+            throw 'Dependency manifest no longer identifies the pinned original release asset'
+          }
+          curl --fail --retry 3 --connect-timeout 20 --max-time 300 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o $archiveName https://api.github.com/repos/OpenMW/openmw-deps-build/releases/assets/626672698
+          if ($LASTEXITCODE) { throw 'Dependency archive download failed' }
+          if ((Get-FileHash $parts[1] -Algorithm SHA512).Hash -ne $parts[0]) { throw 'Dependency hash mismatch' }
+          7z x -y "-ovcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}" $parts[1]
+          if ($LASTEXITCODE) { throw 'Dependency extraction failed' }
+      - uses: actions/cache@v5
+        id: qt-cache
+        with:
+          path: deps/Qt/${{ env.QT_VER }}/msvc2019_64
+          key: qt-cache-${{ env.QT_VER }}-msvc2019_64-v1
+      - name: Download Qt
+        if: steps.qt-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        working-directory: deps/Qt
+        env:
+          OPENMW_RELEASE_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail --retry 3 --connect-timeout 20 --max-time 120 -L -H 'Accept: application/octet-stream' -H "Authorization: Bearer $env:OPENMW_RELEASE_TOKEN" -o aqt_x64.exe https://api.github.com/repos/miurahr/aqtinstall/releases/assets/165924575
+          if ($LASTEXITCODE) { throw 'Qt installer download failed' }
+          if ((Get-FileHash aqt_x64.exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'f9e9acc05975f2e70e4935ace76b41882cda4b53eb779c9bcf1d87a95029a6b0') {
+            throw 'Qt installer does not match the verified original v3.1.15 release asset'
+          }
+          ./aqt_x64.exe install-qt windows desktop ${{ env.QT_VER }} win64_msvc2019_64
+          if ($LASTEXITCODE) { throw 'Qt installation failed' }
+      - name: Cache the original source dependency archives with verified retries
+        shell: pwsh
+        run: |
+          $archives = @(
+            @{ Name = 'recastnavigation'; File = '03259f3287ff8330f0d66fcd98d022edddffaa97.zip'; Url = 'https://codeload.github.com/OpenMW/recastnavigation/zip/03259f3287ff8330f0d66fcd98d022edddffaa97'; Hash = '63db2ac90904764d7f1466d3c95994ec51d777cddd870b70f8ef674c09ed166b3d16ffc4ac1d18d0eab865fda4bf51b6ea17049025b66a338d3cadd0f48dc712' },
+            @{ Name = 'sqlite3'; File = 'sqlite-amalgamation-3410100.zip'; Url = 'https://www.sqlite.org/2023/sqlite-amalgamation-3410100.zip'; Hash = '7de291709e88fffc693cf24ac675950cfc35c1bf7631cfea95167105720a05cf37fb943c57c5c985db2eeaa57b31894b3c0df98a7bd2939b5746fc5a24b5ae87' },
+            @{ Name = 'yaml-cpp'; File = 'c2680200486572baf8221ba052ef50b58ecd816e.zip'; Url = 'https://codeload.github.com/jbeder/yaml-cpp/zip/c2680200486572baf8221ba052ef50b58ecd816e'; Hash = '9eb328e37ff547e7f681d64e3a8f268a8a5645cb1c258106d1d9f959eec498dfc7c466690c56f210ad7d5fb95b806a30c87ccbb019cccf5c3c6135cfc3c13fe1' },
+            @{ Name = 'googletest'; File = 'v1.17.0.zip'; Url = 'https://codeload.github.com/google/googletest/zip/refs/tags/v1.17.0'; Hash = '2712d6f6e7f38eb0c8d5ebba957588c70aff68ea433c7aa0b31bde8cacfbe47de908a6e5a99a021969da568f5075daa2c45fca602bbf56711d146d333b76562b' }
+          )
+          $declarations = Get-Content extern/CMakeLists.txt -Raw
+          foreach ($item in $archives) {
+            if (-not $declarations.Contains("URL_HASH SHA512=$($item.Hash)") -or -not $declarations.Contains("SOURCE_DIR fetched/$($item.Name)")) {
+              throw "Source archive cache no longer matches the declared original dependency: $($item.Name)"
+            }
+            $directory = "build/_deps/$($item.Name)-subbuild/$($item.Name)-populate-prefix/src"
+            New-Item -ItemType Directory -Force $directory | Out-Null
+            $archive = Join-Path $directory $item.File
+            curl --fail --retry 4 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 180 -L -o $archive $item.Url
+            if ($LASTEXITCODE) { throw "Source archive download failed: $($item.Name)" }
+            if ((Get-FileHash -LiteralPath $archive -Algorithm SHA512).Hash.ToLowerInvariant() -ne $item.Hash) {
+              throw "Source archive differs from the original CMake dependency hash: $($item.Name)"
+            }
+          }
+      - name: Exercise production spatial index and mutation traversal before the engine build
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /O2 /I. custom/combined-performance/tests/spatial-index.cpp /Fe:spatial-index-tests.exe
+          if ($LASTEXITCODE) { throw 'Spatial production-header test compile failed' }
+          ./spatial-index-tests.exe | Set-Content spatial-index-windows.json -Encoding utf8
+          if ($LASTEXITCODE) { throw 'Spatial production-header regression failed' }
+      - name: Configure Release build with existing diagnostic cache
+        shell: pwsh
+        run: >
+          cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=Release
+          -D CMAKE_TOOLCHAIN_FILE='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/scripts/buildsystems/vcpkg.cmake'
+          -D CMAKE_PREFIX_PATH='${{ github.workspace }}/deps/Qt/${{ env.QT_VER }}/msvc2019_64'
+          -D CMAKE_CXX_FLAGS_RELEASE="/O2 /Ob2 /DNDEBUG"
+          -D "CMAKE_EXE_LINKER_FLAGS_RELEASE=/DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO"
+          -D LuaJit_INCLUDE_DIR='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/include/luajit'
+          -D LuaJit_LIBRARY='${{ github.workspace }}/deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/lib/lua51.lib'
+          -D BUILD_BENCHMARKS=OFF -D BUILD_COMPONENTS_TESTS=ON -D BUILD_OPENMW_TESTS=ON
+          -D BUILD_OPENCS_TESTS=OFF -D BUILD_OPENCS=ON -D BUILD_ESSIMPORTER=ON -D BUILD_BSATOOL=ON
+          -D BUILD_ESMTOOL=ON -D BUILD_NIFTEST=ON -D BUILD_BULLETOBJECTTOOL=ON
+          -D OPENMW_USE_SYSTEM_SQLITE3=OFF -D OPENMW_USE_SYSTEM_YAML_CPP=OFF -D OPENMW_LTO_BUILD=ON
+          -D PRECOMPILE_HEADERS_WITH_MSVC=OFF -D CMAKE_POLICY_DEFAULT_CMP0141=NEW
+          -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded -D CMAKE_C_COMPILER_LAUNCHER=sccache
+          -D CMAKE_CXX_COMPILER_LAUNCHER=sccache -D CMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -D CMAKE_JOB_POOLS=link=1 -D CMAKE_JOB_POOL_LINK=link
+      - name: Compile the parallel native engine changes and their tests first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/locationrenderingprofiles.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/renderingmanager.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwrender/testlocationrenderingprofiles.cpp.obj
+          components/CMakeFiles/components.dir/lua/pureworker.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/visualraybatch.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testparallelqueries.cpp.obj
+          components/CMakeFiles/components.dir/mapmarkers/icons.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testicons.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
+          components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
+          components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
+          components/CMakeFiles/components.dir/resource/sceneinstancecache.cpp.obj
+          components/CMakeFiles/components.dir/resource/scenemanager.cpp.obj
+          components/CMakeFiles/components.dir/lua/luastate.cpp.obj
+          components/CMakeFiles/components.dir/lua/scriptscontainer.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/cellpreloader.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/scene.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/resource/testsceneinstancecache.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/lua/testcellpackages.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/engine.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/cellbindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nativequeryservice.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nearbybindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/activespells.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwrender/objectpaging.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nativequeryservice.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/nearbybindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/refdata.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testspatialdistance.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testpositionsnapshots.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testnativequeryservice.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwworld/testcelllookup.cpp.obj
+          -- -k 0
+      - name: Run actual native options forms before engine linking
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          cmake --build build --target openmw-controls-tests
+          if ($LASTEXITCODE) { throw 'Standalone native controls build failed' }
+          $deps = 'deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/bin'
+          Copy-Item "$deps/Release/MyGUIEngine.dll" build/
+          Copy-Item "$deps/*.dll" build/
+          ./build/openmw-controls-tests.exe --gtest_output=xml:map-icon-controls-early.xml
+          if ($LASTEXITCODE) { throw 'Actual native controls regressions failed' }
+          [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
+          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest')) {
+            $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
+            $expectedCases = if ($suiteName -eq 'MapIconControlsTest') { 6 } else { 4 }
+            if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne $expectedCases) {
+              throw "Missing required actual controls cases: $suiteName"
+            }
+            if (@($controlSuites[0].testcase | Where-Object { $_.status -ne 'run' -or $_.result -ne 'completed' }).Count) {
+              throw "Actual controls cases did not execute: $suiteName"
+            }
+          }
+      - name: Compile Lua UI images and native regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/lua_ui/widget.cpp.obj
+          components/CMakeFiles/components.dir/lua_ui/image.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testluauilayout.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/magicbindings.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwlua/testmagicbindings.cpp.obj
+      - name: Compile native deleveling and its engine regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/levelledlist.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwmechanics/testlevelledlist.cpp.obj
+      - name: Compile rest and Continue implementation and regression tests first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mainmenu.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/waitdialog.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testcontinuegame.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testresttime.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmainmenubutton.cpp.obj
+      - name: Compile Lua cache change and lifecycle tests first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/lua/scripttracker.cpp.obj
+          components/CMakeFiles/components.dir/lua/scriptscontainer.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/luamanagerimp.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/lua/testscriptscontainer.cpp.obj
+      - name: Compile navigation geometry preparation and concurrency regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          components/CMakeFiles/components.dir/detournavigator/tilecachedrecastmeshmanager.cpp.obj
+          components/CMakeFiles/components.dir/detournavigator/stats.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/detournavigator/tilecachedrecastmeshmanager.cpp.obj
+      - name: Compile lookup change first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: cmake --build build --target apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldmodel.cpp.obj
+      - name: Compile message position and preserved tooltip bridge first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagebox.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/messagepositioncontrols.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwlua/uibindings.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/interpretercontext.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwscript/scriptmanagerimp.cpp.obj
+      - name: Compile preserved colour implementation and focused regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/bookpage.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialogueformatting.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialoguecolourcontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/dialogue.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalbooks.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/journalwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          components/CMakeFiles/components.dir/widgets/list.cpp.obj
+          components/CMakeFiles/components.dir/widgets/imagebutton.cpp.obj
+          apps/launcher/CMakeFiles/openmw-launcher.dir/settingspage.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/settings/testvalues.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/test_journaltypography.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialogueformatting.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testdialoguecolourcontrols.cpp.obj
+          components/CMakeFiles/components.dir/misc/dialoguetext.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/misc/testdialoguetext.cpp.obj
+      - name: Compile native map icons and save regressions first
+        if: steps.existing_engine.outputs.reused != 'true'
+        run: >-
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapiconcontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/esm3/testlocationmarkers.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testclassification.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testmessagepositioncontrols.cpp.obj
+      - name: Compile native travel, key and cleared-dungeon integration first
+        if: steps.existing_engine.outputs.reused != 'true'
+        run: >-
+          cmake --build build --target
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltip.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltipdata.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/traveltooltipview.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/tooltipcontrols.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/travelwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/tooltips.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwclass/door.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwclass/container.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/actors.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwmechanics/mechanicsmanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwstate/statemanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/scene.cpp.obj
+          components/CMakeFiles/components.dir/esm3/dungeonstates.cpp.obj
+          apps/components_tests/CMakeFiles/components-tests.dir/esm3/testdungeonstates.cpp.obj
+          apps/openmw_tests/CMakeFiles/openmw-tests.dir/mwgui/testtraveltooltipdata.cpp.obj
+      - name: Prepare test DLLs
+        shell: pwsh
+        run: |
+          $deps = 'deps/vcpkg-x64-windows-2022-${{ env.VCPKG_TAG }}/installed/x64-windows/bin'
+          Copy-Item "$deps/Release/MyGUIEngine.dll" build/
+          Copy-Item "$deps/*.dll" build/
+          Get-ChildItem "$deps/osgPlugins-3.6.5" -Filter *.dll -Recurse | Copy-Item -Destination build/
+          $qt = 'deps/Qt/${{ env.QT_VER }}/msvc2019_64'
+          foreach ($dll in 'Core','Gui','Network','OpenGL','OpenGLWidgets','Widgets','Svg') {
+            Copy-Item "$qt/bin/Qt6$dll.dll" build/
+          }
+          foreach ($plugin in 'styles/qwindowsvistastyle.dll','platforms/qwindows.dll','imageformats/qsvg.dll','iconengines/qsvgicon.dll') {
+            New-Item -ItemType Directory -Force (Split-Path "build/$plugin") | Out-Null
+            Copy-Item "$qt/plugins/$plugin" "build/$plugin"
+          }
+      - name: Restore matching compiled companions for packaging-only verification
+        id: existing_tools
+        if: steps.existing_engine.outputs.reused == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python custom/combined-performance/reuse-windows-engine.py --companion-tools
+      - name: Build the Construction Set and all public command-line tools
+        id: distribution_tools
+        if: steps.existing_tools.outputs.reused != 'true'
+        shell: pwsh
+        run: >
+          cmake --build build --target openmw-cs openmw-essimporter bsatool esmtool niftest openmw-bulletobjecttool
+      - name: Run component regressions before full engine linking
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          cmake --build build --target components-tests
+          if ($LASTEXITCODE) { throw 'Component regression build failed' }
+          ./build/components-tests.exe --gtest_output=xml:components-tests-early.xml
+          if ($LASTEXITCODE) { throw 'Early component regressions failed' }
+          try {
+            $env:OPENMW_SHARED_NAVIGATION_GEOMETRY = '0'
+            ./build/components-tests.exe --gtest_filter=NavMeshGeometryPreparation.*:DetourNavigatorTileCachedRecastMeshManagerTest.* --gtest_output=xml:navigation-previous.xml
+            if ($LASTEXITCODE) { throw 'Navigation comparison regressions failed' }
+            Remove-Item Env:OPENMW_SHARED_NAVIGATION_GEOMETRY
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe --gtest_filter=NavMeshGeometryPreparation.*:DetourNavigatorTileCachedRecastMeshManagerTest.* --gtest_output=xml:navigation-master-off.xml
+            if ($LASTEXITCODE) { throw 'Navigation master-switch regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SHARED_NAVIGATION_GEOMETRY,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-navigation-geometry.py components-tests-early.xml navigation-previous.xml navigation-master-off.xml
+          if ($LASTEXITCODE) { throw 'Navigation geometry evidence failed verification' }
+          try {
+            foreach ($mode in @('1','0')) {
+              $env:OPENMW_LUA_PROTOTYPE_CACHE = $mode
+              ./build/components-tests.exe --gtest_filter=LuaStateTest.RemovedScriptsGarbageCollecting --gtest_repeat=100 "--gtest_output=xml:lua-lifetime-$mode.xml"
+              if ($LASTEXITCODE) { throw "Lua instance lifetime regression failed with prototype cache $mode" }
+            }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_PROTOTYPE_CACHE -ErrorAction SilentlyContinue
+          }
+      - name: Build engine and regression tests
+        if: steps.existing_engine.outputs.reused != 'true'
+        run: cmake --build build --target openmw openmw-launcher openmw-wizard openmw-iniimporter openmw-navmeshtool openmw-tests components-tests
+      - name: All engine tests, UI fallback modes and four lookup configurations before packaging
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          ./build/components-tests.exe --gtest_output=xml:components-tests.xml
+          $componentTestExit = $LASTEXITCODE
+          Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT,Env:OPENMW_LUA_UI_LEGACY_UPDATES,Env:OPENMW_COMBINED_PERFORMANCE,Env:OPENMW_LUA_CELL_QUERY_CACHE -ErrorAction SilentlyContinue
+          ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
+          if ($LASTEXITCODE) { throw 'Engine regressions failed' }
+          if ($componentTestExit) { throw 'Component regressions failed' }
+          try {
+            $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
+            if ($LASTEXITCODE) { throw 'Legacy native layout and Image inheritance regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT -ErrorAction SilentlyContinue
+          }
+          python custom/town-performance/verify-layout-parity.py openmw-tests.xml lua-ui-legacy-tests.xml lua-ui-layout-parity.json
+          if ($LASTEXITCODE) { throw 'Required native UI regressions or layout/Image parity verification failed' }
+          try {
+            $env:OPENMW_LUA_UI_LEGACY_UPDATES = '1'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.* --gtest_output=xml:lua-ui-legacy-updates-tests.xml
+            if ($LASTEXITCODE) { throw 'Inherited native update traversal regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_LUA_UI_LEGACY_UPDATES -ErrorAction SilentlyContinue
+          }
+          try {
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:MWLuaMagicBindingsTest.nativeQueryFactoriesMatchLuaAdapterCallsAndMasterMode --gtest_output=xml:combined-performance-off-tests.xml
+            if ($LASTEXITCODE) { throw 'Same-executable inherited fallback regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/town-performance/verify-combined-layout.py openmw-tests.xml lua-ui-legacy-updates-tests.xml combined-performance-off-tests.xml combined-layout-parity.json
+          if ($LASTEXITCODE) { throw 'Combined native UI state or fallback parity failed' }
+          python custom/combined-performance/tests/verify-native-jobs.py components-tests.xml openmw-tests.xml native-jobs-tests.json
+          if ($LASTEXITCODE) { throw 'Native job regressions did not run successfully' }
+          python custom/combined-performance/verify-native.py openmw-tests.xml combined-performance-off-tests.xml combined-native-tests.json
+          if ($LASTEXITCODE) { throw 'Required combined query regressions or fallback factory behavior did not execute' }
+          try {
+            foreach ($mode in @(@('1','1','1'), @('1','1','0'), @('0','1','1'), @('1','0','0'))) {
+              $env:OPENMW_CELL_ID_INDEX = $mode[0]
+              $env:OPENMW_WORLD_CELL_INDEX = $mode[1]
+              $env:OPENMW_WORLD_CELL_CANDIDATES = $mode[2]
+              $label = $mode -join '-'
+              ./build/openmw-tests.exe --gtest_filter=CellLookupTest.*:WorldCellLookupTest.* "--gtest_output=xml:lookup-$label.xml"
+              if ($LASTEXITCODE) { throw "Lookup configuration failed: $mode" }
+            }
+          } finally {
+            Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
+          }
+      - name: Compare streaming batch with previous and master rollback paths
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $components = 'CellObjectIndexTest.*:PreloadPlanCacheTest.*:PendingPreloadTest.*:PreloadRetentionTest.*:SlicedCleanupTest.*:ResourceResourceSystem.cleanup*:ResourceResourceSystem.managerRemoval*'
+          $engine = 'RendererCellIndexTest.*:DoorPreloadPlanTest.*'
+          try {
+            $env:OPENMW_CELL_OBJECT_INDEX = '0'
+            $env:OPENMW_PRELOAD_PLAN_CACHE = '0'
+            $env:OPENMW_PRELOAD_RETENTION = '0'
+            $env:OPENMW_SLICED_CLEANUP = '0'
+            ./build/components-tests.exe "--gtest_filter=$components" --gtest_output=xml:batch-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous-batch component regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$engine" --gtest_output=xml:batch-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous-batch engine regressions failed' }
+            Remove-Item Env:OPENMW_CELL_OBJECT_INDEX,Env:OPENMW_PRELOAD_PLAN_CACHE,Env:OPENMW_PRELOAD_RETENTION,Env:OPENMW_SLICED_CLEANUP
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe "--gtest_filter=$components" --gtest_output=xml:batch-master-off-components.xml
+            if ($LASTEXITCODE) { throw 'Master-off batch component regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$engine" --gtest_output=xml:batch-master-off-engine.xml
+            if ($LASTEXITCODE) { throw 'Master-off batch engine regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_CELL_OBJECT_INDEX,Env:OPENMW_PRELOAD_PLAN_CACHE,Env:OPENMW_PRELOAD_RETENTION,Env:OPENMW_SLICED_CLEANUP,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/cell-streaming/verify-batch.py
+          if ($LASTEXITCODE) { throw 'Streaming batch evidence did not verify' }
+      - name: Compare cell activation and collision preparation with rollback paths
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $lifecycle = 'PostponedPhysicsTest.*-PostponedPhysicsTest.DeregisteredReferencesAreNotVisited:PostponedPhysicsTest.OldReferenceRemovalDoesNotEraseReplacement:PostponedPhysicsTest.ExceptionDoesNotLoseUnprocessedObjects:PostponedPhysicsTest.CallbackMayClearRegistryWithoutInvalidatingIteration'
+          try {
+            $env:OPENMW_SPARSE_POSTPONED_PHYSICS = '0'
+            $env:OPENMW_PREPARED_COLLISION_SCALE = '0'
+            ./build/components-tests.exe --gtest_filter=CollisionInstanceCacheTest.*:CollisionPreparationTest.* --gtest_output=xml:activation-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous collision preparation regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$lifecycle" --gtest_output=xml:activation-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous postponed physics lifecycle regressions failed' }
+            Remove-Item Env:OPENMW_SPARSE_POSTPONED_PHYSICS,Env:OPENMW_PREPARED_COLLISION_SCALE
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe --gtest_filter=CollisionInstanceCacheTest.*:CollisionPreparationTest.* --gtest_output=xml:activation-master-off-components.xml
+            if ($LASTEXITCODE) { throw 'Master-off collision preparation regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$lifecycle" --gtest_output=xml:activation-master-off-engine.xml
+            if ($LASTEXITCODE) { throw 'Master-off postponed physics lifecycle regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SPARSE_POSTPONED_PHYSICS,Env:OPENMW_PREPARED_COLLISION_SCALE,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/cell-streaming/verify-activation.py
+          if ($LASTEXITCODE) { throw 'Cell activation evidence did not verify' }
+      - name: Compare spatial queries with each independent fallback in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          try {
+            foreach ($mode in @(@('0','1','actor-off'), @('1','0','distance-off'), @('0','0','both-off'))) {
+              $env:OPENMW_ACTOR_SPATIAL_QUERIES = $mode[0]
+              $env:OPENMW_SPATIAL_DISTANCE_QUERIES = $mode[1]
+              ./build/openmw-tests.exe --gtest_filter=SpatialDistance.*:PositionRevision.*:SpatialBindings.* "--gtest_output=xml:spatial-$($mode[2]).xml"
+              if ($LASTEXITCODE) { throw "Spatial query comparison failed: $($mode[2])" }
+            }
+          } finally {
+            Remove-Item Env:OPENMW_ACTOR_SPATIAL_QUERIES,Env:OPENMW_SPATIAL_DISTANCE_QUERIES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-spatial-queries.py
+          if ($LASTEXITCODE) { throw 'Required spatial query comparisons did not execute successfully' }
+      - name: Compare position snapshots with uncached object reads in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_POSITION_READS = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=PositionSnapshots.* --gtest_output=xml:previous-position-reads.xml
+            if ($LASTEXITCODE) { throw 'Uncached position query parity tests failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SHARED_POSITION_READS -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-transition-readiness.py
+          if ($LASTEXITCODE) { throw 'Transition readiness tests did not execute successfully' }
+      - name: Verify cell preparation and Lua package isolation with the previous setup path
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_SANDBOX_PACKAGES = '0'
+          try {
+            ./build/components-tests.exe --gtest_filter=CellPackagesTest.* --gtest_output=xml:cell-packages-legacy.xml
+            if ($LASTEXITCODE) { throw 'Previous Lua package setup parity failed' }
+          } finally { Remove-Item Env:OPENMW_SHARED_SANDBOX_PACKAGES -ErrorAction SilentlyContinue }
+          python custom/cell-streaming/verify-tests.py
+          if ($LASTEXITCODE) { throw 'Required cell preparation regressions did not execute successfully' }
+      - name: Compare actor and HUD updates with the previous paths in the same executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_TOWN_FRAME_UPDATES = '0'
+          try {
+            ./build/components-tests.exe --gtest_filter=LuaScriptsContainerTest.UpdateHandlersKeepTracebacksOrderAndStateAfterCollection:LuaScriptsContainerTest.RepeatedActorUpdateDispatchBenchmark --gtest_output=xml:town-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous Lua update dispatch tests failed' }
+            ./build/openmw-tests.exe --gtest_filter=MWLuaMagicBindingsTest.ModifiedStatBindingsReadLiveValuesAndPendingSelfWrites:MWLuaMagicBindingsTest.RepeatedLuaTypeQueriesObserveRecordReplacementAndRemoval:LuaUiLayoutTest.* --gtest_output=xml:town-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous actor and HUD regression tests failed' }
+          } finally {
+            Remove-Item Env:OPENMW_TOWN_FRAME_UPDATES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-town-frame-updates.py
+          if ($LASTEXITCODE) { throw 'Town update state or attachment checks failed' }
+      - name: Compare sparse and complete HUD refreshes with earlier town improvements enabled
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SPARSE_UI_UPDATES = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.SparsePropertyRequestsMergeAndPreserveFullRefresh:LuaUiLayoutTest.BatchedHudPropertiesBenchmark --gtest_output=xml:previous-hud-tests.xml
+            if ($LASTEXITCODE) { throw 'Previous HUD refresh regression failed' }
+          } finally {
+            Remove-Item Env:OPENMW_SPARSE_UI_UPDATES -ErrorAction SilentlyContinue
+          }
+          python custom/combined-performance/tests/verify-sparse-hud.py
+          if ($LASTEXITCODE) { throw 'Changed widget geometry or count differs' }
+      - name: Compare ordinary active-spell reads in the same Windows executable
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_SHARED_ACTIVE_SPELL_READS = '0'
+          try {
+            ./build/openmw-tests.exe --gtest_filter=MWLuaMagicBindingsTest.OrdinarySpellReads*:MWLuaMagicBindingsTest.SpellReadDetailsValidateMutableEffectsAndLegacySaveReferences --gtest_output=xml:previous-spell-reads.xml
+            if ($LASTEXITCODE) { throw 'Independent spell-copy control failed' }
+          } finally { Remove-Item Env:OPENMW_SHARED_ACTIVE_SPELL_READS -ErrorAction SilentlyContinue }
+          python custom/combined-performance/tests/verify-spell-reads.py
+          if ($LASTEXITCODE) { throw 'Spell read contents, copy counts or benchmark comparison failed' }
+      - name: Compare the three parallel query features on the same engine
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $env:OPENMW_BATCHED_VISUAL_RAYS = '0'
+          $env:OPENMW_ASYNC_DISTANCE_JOBS = '0'
+          $env:OPENMW_ISOLATED_LUA_WORKERS = '0'
+          ./build/openmw-tests.exe --gtest_filter=ParallelQueryBindings.* --gtest_output=xml:previous-parallel-queries.xml
+          if ($LASTEXITCODE) { throw 'Parallel query control failed' }
+          python custom/combined-performance/tests/verify-parallel-queries.py
+          if ($LASTEXITCODE) { throw 'Parallel query, worker or adapter regressions failed' }
+      - name: Verify world and local marker selection, size caps and native controls
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          python custom/map-icons/verify-skin-tests.py
+          if ($LASTEXITCODE) { throw 'Native map icon and zoom checks failed' }
+      - name: Require executed native tooltip tests
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          python custom/native-tooltips/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
+          if ($LASTEXITCODE) { throw 'Required tooltip forms, selection or save regressions did not execute successfully' }
+      - name: Package only after test success
+        if: steps.existing_engine.outputs.reused != 'true'
+        id: package
+        shell: pwsh
+        run: |
+          cmake --install build --prefix install
+          if ($LASTEXITCODE) { throw 'Installation failed' }
+          $env:OPENMW_TEST_PROFILE_DATA = (Resolve-Path 'install/resources/vfs').Path
+          try {
+            ./build/openmw-tests.exe --gtest_filter=LocationRenderingProfileTest.* --gtest_output=xml:location-rendering-profile-tests.xml
+            if ($LASTEXITCODE) { throw 'Location rendering tests on the installed data failed' }
+          } finally { Remove-Item Env:OPENMW_TEST_PROFILE_DATA -ErrorAction SilentlyContinue }
+          python custom/combined-performance/tests/verify-rendering-profile.py install
+          if ($LASTEXITCODE) { throw 'Installed location rendering resources or native regression proof is incomplete' }
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value 'installed=true'
+          Remove-Item install/bin,install/_deps -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
+          Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
+          Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
+          Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
+          Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
+          Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
+          Copy-Item custom/gameplay-responsiveness/README.md install/GAMEPLAY-RESPONSIVENESS.md
+          Copy-Item gameplay-responsiveness-source-manifest.json install/
+          Copy-Item custom/message-position/README.md install/MESSAGE-POSITION.md
+          Copy-Item custom/cumulative/README.md install/CUMULATIVE-UPGRADE.md
+          Copy-Item message-position-source-manifest.json,message-position-tests.txt install/
+          Copy-Item cumulative-source-manifest.json,cumulative-build-source-manifest.json install/
+          Copy-Item menu-qol-source-manifest.json,menu-qol-build-source-manifest.json install/
+          Copy-Item custom/menu-qol/README.md install/REST-TIME-AND-CONTINUE.md
+          Copy-Item deleveler-source-manifest.json,deleveler-build-source-manifest.json install/
+          Copy-Item custom/deleveler/README.md install/NATIVE-DELEVELER.md
+          Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
+          Copy-Item rc1-source-manifest.json,rc1-build-source-manifest.json install/
+          Copy-Item custom/rc1/README.md install/RC1-PORT.md
+          Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
+          Copy-Item custom/cell-streaming/ACTIVATION-20261118.md install/CELL-ACTIVATION.md
+          Copy-Item activation-tests.json install/
+          Copy-Item custom/cell-streaming/BATCH-20261119.md install/STREAMING-BATCH.md
+          Copy-Item streaming-batch-tests.json install/
+          Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
+          Copy-Item custom/native-tooltips/README.md install/NATIVE-TOOLTIPS.md
+          Copy-Item native-tooltip-tests.json install/
+          python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-package.json --resources install/resources/vfs
+          if ($LASTEXITCODE) { throw 'Installed map icon resource verification failed' }
+          Copy-Item map-icons-classification.json,map-icons-package.json install/
+          Copy-Item map-icon-controls-early.xml,components-tests-early.xml install/
+          Copy-Item lua-ui-legacy-tests.xml,lua-ui-layout-parity.json install/
+          New-Item -ItemType Directory -Force install/tools/town-performance/capture | Out-Null
+          Copy-Item custom/town-performance/Start-Comparison.ps1,custom/town-performance/Compare-Optimized.cmd,custom/town-performance/Compare-Legacy-Layout.cmd install/tools/town-performance/
+          Copy-Item custom/performance-capture-followup/Start-Capture.ps1 install/tools/town-performance/capture/
+          Copy-Item lookup-*.xml install/
+          Copy-Item shrine-tooltips-source-manifest.json install/
+          Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
+          Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
+          Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
+          Copy-Item custom/cell-streaming/NAVIGATION-PREPARATION.md install/NAVIGATION-PREPARATION.md
+          Copy-Item navigation-geometry-tests.json,navigation-previous.xml,navigation-master-off.xml install/
+          Copy-Item custom/cell-streaming/SCENERY-CONTINUITY.md install/SCENERY-CONTINUITY.md
+          Copy-Item cell-streaming-tests.json,cell-packages-legacy.xml install/
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nOfficial OpenMW 0.52 RC1 baseline 4ff261bf7c0d42a6cc06dd1ebc5d451802cff055`nRC1 source: rc1-source-manifest.json`nCompiled source: rc1-build-source-manifest.json; lookup optimization is committed`nHistorical cumulative source: town-performance-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          python custom/combined-performance/prepare-package.py install --rc1
+          if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
+          python custom/cumulative/prepare-upgrade.py install --rc1
+          if ($LASTEXITCODE) { throw 'Complete package runtime or defaults verification failed' }
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup
+          Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
+      - name: Verify the full portable Windows distribution
+        id: distribution
+        shell: pwsh
+        run: |
+          ./custom/combined-performance/stage-msvc-runtime.ps1 -PackageRoot install
+          $options = @()
+          if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') { $options += '--preserve-existing' }
+          python custom/combined-performance/complete-windows-distribution.py build install @options
+          if ($LASTEXITCODE) { throw 'Windows tools, public files or dependencies failed verification' }
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot distribution-startup
+          $startupEvidence = 'install/verification/distribution-startup'
+          if (Test-Path -LiteralPath $startupEvidence) { Remove-Item -LiteralPath $startupEvidence -Recurse -Force }
+          Copy-Item -LiteralPath distribution-startup -Destination $startupEvidence -Recurse
+          if ((Get-FileHash 'distribution-startup/startup-report.json').Hash -ne (Get-FileHash "$startupEvidence/startup-report.json").Hash) {
+            throw 'The packaged startup evidence differs from the run just completed'
+          }
+          Copy-Item -LiteralPath native-adapter-installer-tests.json -Destination install/verification/
+          if ('${{ steps.existing_engine.outputs.reused }}' -eq 'true') {
+            python custom/combined-performance/complete-windows-distribution.py build install --record-final-preservation
+            if ($LASTEXITCODE) { throw 'Final preserved file verification failed' }
+          }
+          python custom/dialogue-colours/package-manifest.py install
+          if ($LASTEXITCODE) { throw 'Final Windows distribution inventory validation failed' }
+      - uses: actions/upload-artifact@v6
+        with:
+          name: openmw-0.52-rc1-custom-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          path: install/*
+          if-no-files-found: error
+      - name: Retain compiled companion tools if later packaging verification fails
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-tools-diagnostics-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            build/openmw-cs.exe
+            build/openmw-essimporter.exe
+            build/bsatool.exe
+            build/esmtool.exe
+            build/niftest.exe
+            build/openmw-bulletobjecttool.exe
+            build/defaults-cs.bin
+          retention-days: 3
+          if-no-files-found: error
+      - name: Stage unverified compiled binaries and source evidence after a failure
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        shell: pwsh
+        run: |
+          $root = (Get-Location).Path
+          $stage = Join-Path $root 'UNVERIFIED-ci-binaries'
+          $files = @(Get-ChildItem build -File | Where-Object { $_.Extension -in @('.exe','.dll','.bin') })
+          foreach ($dir in @('build/styles','build/platforms','build/imageformats','build/iconengines')) {
+            if (Test-Path $dir) { $files += @(Get-ChildItem $dir -File -Recurse) }
+          }
+          $files += @(Get-ChildItem -File -Path '*source-manifest.json','*.xml')
+          $files += @(Get-Item build/CMakeCache.txt,build/compile_commands.json -ErrorAction SilentlyContinue)
+          $hashes = @()
+          foreach ($file in $files) {
+            $relative = $file.FullName.Substring($root.Length + 1)
+            $target = Join-Path $stage $relative
+            New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
+            Copy-Item -LiteralPath $file.FullName -Destination $target
+            $hashes += @{ path = $relative.Replace('\','/'); bytes = $file.Length; sha256 = (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() }
+          }
+          $expected = @('openmw','openmw-launcher','openmw-wizard','openmw-iniimporter','openmw-navmeshtool','openmw-cs','openmw-essimporter','bsatool','esmtool','niftest','openmw-bulletobjecttool','components-tests','openmw-tests')
+          $missing = @($expected | Where-Object { -not (Test-Path (Join-Path $stage "build/$_.exe")) })
+          @{ status = 'UNVERIFIED_FAILED_RUN_DIAGNOSTICS_ONLY'; not_a_distribution = $true; commit = '${{ env.CUMULATIVE_COMMIT }}'; run_id = '${{ github.run_id }}'; run_attempt = '${{ github.run_attempt }}'; missing_binaries = $missing; files = $hashes } |
+            ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 (Join-Path $stage 'UNVERIFIED-MANIFEST.json')
+      - name: Retain unverified compiled binaries for failure diagnosis
+        if: failure() && steps.distribution_tools.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: UNVERIFIED-compiled-binaries-${{ env.CUMULATIVE_COMMIT }}
+          path: UNVERIFIED-ci-binaries/*
+          retention-days: 7
+          if-no-files-found: error
+      - name: Preserve unverified files for packaging failure recovery
+        if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
+        uses: actions/upload-artifact@v6
+        with:
+          name: UNVERIFIED-town-performance-package-recovery-${{ env.CUMULATIVE_COMMIT }}
+          path: install/*
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            install/verification/WINDOWS-DISTRIBUTION.json
+            native-adapter-installer-tests.json
+            distribution-startup/
+            gameplay-installer-tests.json
+            cumulative-source-manifest.json
+            cumulative-build-source-manifest.json
+            menu-qol-source-manifest.json
+            menu-qol-build-source-manifest.json
+            deleveler-source-manifest.json
+            deleveler-build-source-manifest.json
+            rc1-source-manifest.json
+            rc1-build-source-manifest.json
+            town-performance-source-manifest.json
+            town-performance-build-source-manifest.json
+            message-position-source-manifest.json
+            message-position-tests.txt
+            native-tooltip-tests.json
+            map-icons-classification.json
+            map-icons-package.json
+            map-icon-controls-early.xml
+            components-tests-early.xml
+            lua-lifetime-*.xml
+            lookup-*.xml
+            install/UPGRADE-PRESERVATION.json
+            install/verification/CI-PACKAGE-SHA256.json
+            package-startup/**
+            gameplay-responsiveness-source-manifest.json
+            shrine-tooltips-source-manifest.json
+            dialogue-colours-source-manifest.json
+            components-tests.xml
+            openmw-tests.xml
+            lua-ui-legacy-tests.xml
+            lua-ui-layout-parity.json
+            sanemagic-adapter-parity.json
+            combined-launcher-windows-powershell.json
+            combined-launcher-pwsh.json
+            combined-native-tests.json
+            combined-layout-parity.json
+            lua-ui-legacy-updates-tests.xml
+            combined-performance-off-tests.xml
+            native-job-adapter-parity.json
+            native-jobs-tests.json
+            town-frame-updates.json
+            town-previous-components.xml
+            town-previous-engine.xml
+            previous-hud-tests.xml
+            sparse-hud-tests.json
+            previous-spell-reads.xml
+            previous-position-reads.xml
+            transition-readiness-tests.json
+            navigation-geometry-tests.json
+            navigation-previous.xml
+            navigation-master-off.xml
+            activation-tests.json
+            streaming-batch-tests.json
+            batch-*-components.xml
+            batch-*-engine.xml
+            activation-*-components.xml
+            activation-*-engine.xml
+            cell-streaming-tests.json
+            actor-resource-preload-windows.log
+            streaming-paths-windows.log
+            cell-packages-legacy.xml
+            spatial-index-windows.json
+            spatial-query-tests.json
+            spatial-actor-off.xml
+            spatial-distance-off.xml
+            spatial-both-off.xml
+            previous-parallel-queries.xml
+            map-icon-skin-tests.json
+            active-spell-reads.json
+            location-rendering-profile-tests.xml
+            install/verification/location-rendering-profile.json
+            install/COMBINED-PACKAGE.json
+            install/PACKAGE-SHA256.json
+            loading-repair-source-manifest.json
+            loading-repair-applied.patch
+            build/CMakeCache.txt
+            build/**/*.log
+            build/compile_commands.json
 
-    uses: ./.github/workflows/windows.yml
-    with:
-      image: ${{ matrix.image }}
+  GLRegression:
+    if: github.head_ref != 'fix/windows-package-20261106'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Install headless GL test dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl-dev libegl1 libgl1-mesa-dri libopenscenegraph-dev libgtest-dev g++
+      - name: Exercise production scenery handover and detached static preparation
+        run: |
+          python3 custom/cell-streaming/test-scenery-handover.py
+          python3 custom/cell-streaming/test-static-preload.py
+          python3 custom/cell-streaming/test-batch-planning.py
+          python3 custom/performance-tests/test-transition-preload.py
+      - name: Verify complete scenery handover with actual graphics compilation
+        run: |
+          g++ -std=c++20 -O2 -pthread -I. custom/cell-streaming/scenery-graphics.cpp \
+            components/sceneutil/compilepriority.cpp components/sceneutil/gameplaycompile.cpp -losgUtil -losg -lOpenThreads \
+            -lGL -lEGL -lgtest_main -lgtest -o scenery-graphics-tests
+          LIBGL_ALWAYS_SOFTWARE=1 ./scenery-graphics-tests --gtest_output=xml:scenery-native-gl-tests.xml
+      - name: Reproduce and verify loading progress and framebuffer retention
+        run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
+      - name: Exercise location rendering shaders on Mesa
+        run: python3 scripts/test_location_rendering_shaders.py
+      - name: Compare production GPU skinning shaders with CPU deformation
+        run: python3 scripts/test_gpu_skinning.py
+      - name: Exercise native rig lifecycle and actual OSG draw fallbacks
+        run: |
+          g++ -std=c++20 -O2 -ffunction-sections -fdata-sections -pthread -I. \
+            custom/gpu-skinning/tests/render.cpp components/sceneutil/riggeometry.cpp \
+            components/sceneutil/skeleton.cpp components/sceneutil/shadowsbin.cpp components/debug/debuglog.cpp \
+            -Wl,--gc-sections -losgUtil -losg -lOpenThreads -lGL -lEGL -lgtest_main -lgtest -o gpu-skinning-render-tests
+          ./gpu-skinning-render-tests --gtest_output=xml:gpu-skinning-native-gl-tests.xml
+      - uses: actions/upload-artifact@v6
+        with:
+          name: location-rendering-shaders-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            location-rendering-shader-tests.json
+            gpu-skinning-gl-tests.json
+            gpu-skinning-native-gl-tests.xml
+            scenery-native-gl-tests.xml
+            scenery-handover-tests.json
+            static-resource-preload-tests.json
+            batch-planning-tests.json
+          if-no-files-found: error
+  FrameGeneration:
+    if: github.head_ref != 'fix/windows-package-20261106'
+    needs: GLRegression
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure and build modified Frame Generation
+        shell: pwsh
+        run: |
+          cmake -S custom/frame-generation -B fg-build -A x64 -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          if ($LASTEXITCODE) { throw "FG configure failed" }
+          cmake --build fg-build --config Release --parallel
+          if ($LASTEXITCODE) { throw "FG build failed" }
+      - name: Verify DLL and assemble install package with source
+        shell: pwsh
+        run: |
+          cl /nologo /EHsc custom/frame-generation/tests/proxy_smoke.cpp /Fe:fg-proxy-test.exe
+          if ($LASTEXITCODE) { throw "Smoke test compile failed" }
+          ./fg-proxy-test.exe "$PWD/fg-build/Release/version.dll"
+          if ($LASTEXITCODE) { throw "DLL load/export forwarding test failed" }
+          New-Item -ItemType Directory -Force fg-package/source | Out-Null
+          Copy-Item fg-build/Release/version.dll fg-package/
+          Copy-Item custom/frame-generation/openmw_fg.ini fg-package/openmw_fg.example.ini
+          Copy-Item custom/frame-generation/INSTALL-CUSTOM.txt fg-package/README.txt
+          Copy-Item custom/frame-generation/PATCH_NOTES.txt fg-package/
+          Copy-Item custom/frame-generation/LICENSE fg-package/
+          Copy-Item custom/frame-generation/LOADING-CONTINUITY-AUDIT.md fg-package/
+          Copy-Item custom/frame-generation/LOADING-PROGRESS-REPAIR.md fg-package/
+          Copy-Item custom/frame-generation/SHUTDOWN-REPAIR.md fg-package/
+          Copy-Item custom/frame-generation/* fg-package/source/ -Recurse
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nRun ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`n" | Set-Content fg-package/BUILD-ID.txt
+          Get-FileHash fg-package/version.dll -Algorithm SHA256 | Format-List | Out-File fg-package/SHA256.txt
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cumulative-frame-generation-validation-${{ env.CUMULATIVE_COMMIT }}
+          path: fg-package/
+          if-no-files-found: error
+
+  HistoricalInstallerTools:
+    if: github.head_ref != 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Test authored installer with dummy files on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/gameplay-fix-installer/Test-Installer.ps1 -InstallerScript ./custom/gameplay-fix-installer/Install-Fix.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW installer checks" -ReportPath "$env:GITHUB_WORKSPACE\installer-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-fix-installer-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            installer-test-report.json
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.json
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.stderr.txt
+            ${{ runner.temp }}/OpenMW installer checks/**/receipt.json
+          if-no-files-found: error
+
+  GameplaySourceCollector:
+    if: github.head_ref != 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Test read-only collector with authored dummy files on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/gameplay-source-collector/Test-Collector.ps1 -CollectorScript ./custom/gameplay-source-collector/Collect-Sources.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW collector checks" -ReportPath "$env:GITHUB_WORKSPACE\collector-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-source-collector-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            collector-test-report.json
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.json
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.stderr.txt
+          if-no-files-found: error
+
+  PerformanceCaptureFollowup:
+    if: github.head_ref != 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Check only changed collection functions and dummy installer orchestration
+        shell: powershell
+        run: |
+          & ./custom/performance-capture-followup/Test-CaptureFollowup.ps1 -CaptureScript ./custom/performance-capture-followup/Start-Capture.ps1 -InstallWrapper ./custom/performance-capture-followup/Install-All.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW followup checks" -ReportPath "$env:GITHUB_WORKSPACE\followup-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify paired comparison wrapper in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/town-performance/Test-Comparison.ps1 -ComparisonScript ./custom/town-performance/Start-Comparison.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW comparison checks" -ReportPath "$env:GITHUB_WORKSPACE\comparison-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-capture-followup-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            followup-test-report.json
+            comparison-test-report.json
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.json
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.stdout.txt
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.stderr.txt
+          if-no-files-found: error
+
+  PerformanceCapture:
+    if: github.head_ref != 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+      - name: Exercise collector on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/performance-capture/Test-Capture.ps1 -CaptureScript ./custom/performance-capture/Start-Capture.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW capture smoke" -ReportPath "$env:GITHUB_WORKSPACE\capture-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-capture-verification-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            capture-test-report.json
+            ${{ runner.temp }}/OpenMW capture smoke/captures/**/session.json
+            ${{ runner.temp }}/OpenMW capture smoke/captures/**/trace-validation.json
+            ${{ runner.temp }}/OpenMW capture smoke/captures/**/warnings.json
+          if-no-files-found: error
+
+  RepairPackage:
+    if: github.head_ref == 'fix/windows-package-20261106'
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ env.CUMULATIVE_COMMIT }}
+          fetch-depth: 100
+      - name: Download the two exact original CI archives
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $artifacts = @(
+            @{ Id = 13537633072; Run = 42279447874; Commit = '29022d6176d82b9281075cc2189d19b11ebce463';
+               Bytes = 63952619; Sha256 = 'b93a17c47066473232e07460c73eb4077f2df066e5e129f3d6515453a963eb2e'; File = 'current.zip' },
+            @{ Id = 13520058314; Run = 42240697023; Commit = '5b84be8c1b8fc283b58755127e1aa078d7f2b4a0';
+               Bytes = 64186799; Sha256 = '38298fddd7e5c9f0aa53171ac53b97298645055337122626936c0ffed719b917'; File = 'recovery.zip' }
+          )
+          New-Item -ItemType Directory -Path downloads | Out-Null
+          $verified = @()
+          foreach ($artifact in $artifacts) {
+            $uri = "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$($artifact.Id)"
+            $metadata = Invoke-RestMethod -Uri $uri -Headers $headers
+            if ($metadata.id -ne $artifact.Id -or $metadata.workflow_run.id -ne $artifact.Run -or
+                $metadata.workflow_run.head_sha -ne $artifact.Commit -or $metadata.expired -or
+                $metadata.size_in_bytes -ne $artifact.Bytes -or $metadata.digest -ne "sha256:$($artifact.Sha256)") {
+              throw "Unexpected artifact metadata: $($artifact.Id)"
+            }
+            $metadata | ConvertTo-Json -Depth 12 | Set-Content "downloads/$($artifact.Id).metadata.json" -Encoding utf8
+            $destination = "downloads/$($artifact.File)"
+            Invoke-WebRequest -Uri "$uri/zip" -Headers $headers -OutFile $destination
+            $hash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -ne $artifact.Sha256 -or (Get-Item -LiteralPath $destination).Length -ne $artifact.Bytes) {
+              throw "CI archive digest or size mismatch: $($artifact.Id)"
+            }
+            $verified += @{ artifact_id = $artifact.Id; run_id = $artifact.Run; engine_commit = $artifact.Commit;
+                            sha256 = $hash; bytes = $artifact.Bytes; verified = $true }
+          }
+          $verified | ConvertTo-Json -Depth 5 | Set-Content downloads/verification.json -Encoding utf8
+      - name: Restore complete package without rebuilding the engine
+        shell: pwsh
+        run: |
+          python custom/cumulative/restore-package.py --current downloads/current.zip --recovery downloads/recovery.zip --output install
+          if ($LASTEXITCODE) { throw 'Exact original CI file restoration failed' }
+      - name: Exercise real startup and the missing-bootstrap regression
+        shell: pwsh
+        run: |
+          ./custom/cumulative/check-startup.ps1 -PackageRoot install -EvidenceRoot package-startup -NegativeControl
+          Copy-Item -LiteralPath package-startup -Destination install/verification/startup -Recurse
+          python custom/dialogue-colours/package-manifest.py install
+          if ($LASTEXITCODE) { throw 'Complete package inventory validation failed' }
+      - uses: actions/upload-artifact@v6
+        with:
+          name: openmw-cumulative-windows-complete-29022d6176d82b9281075cc2189d19b11ebce463
+          path: install/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: package-startup-evidence-${{ env.CUMULATIVE_COMMIT }}
+          path: |
+            package-startup/**
+            downloads/*.metadata.json
+            downloads/verification.json
+            install/PACKAGE-REPAIR.json
+            install/PACKAGE-SHA256.json
+            install/CI-ID.txt
+            install/verification/CI-PACKAGE-SHA256.json
+            install/verification/original-upgrade/**
+          if-no-files-found: error

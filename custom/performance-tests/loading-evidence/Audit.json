@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "audit_id": "openmw-loading-detail-diagnostics-2026-10-25",
+  "plan_release": "OMW-MCP-2.0.0",
+  "requirements_sha256": "e48f1ed231380310700a5c2c9fa6a83d642c336f5dbc022c679acb4fe8893bd0",
+  "baseline_revision": "2026-10-24-r18",
+  "mod_identity": {
+    "name": "OpenMW player setup and terrain detail diagnostics",
+    "change_kind": "engine diagnostic source change",
+    "before_manifest_sha256": "167dd49d4cf6f0e627d6ba0c6b82ecf85ff45934620000455b6aa813703b6736",
+    "candidate_manifest_sha256": "220c1022c8ffcebedf21fe96d740efe56a6e89301855bea2aa92920ee6a003ee"
+  },
+  "scope": {
+    "actors": false,
+    "assets": false,
+    "dialogue": false,
+    "generated": false,
+    "geometry": false,
+    "groundcover": false,
+    "land": false,
+    "land_textures": false,
+    "leveled_lists": false,
+    "lua": true,
+    "modified": true,
+    "performance": true,
+    "placements": false,
+    "plugins": false,
+    "quests": false,
+    "relocation": false,
+    "runtime": true,
+    "scripts": false,
+    "spells": false,
+    "text": false,
+    "update": true
+  },
+  "scope_review": {
+    "reviewer": "/root/review_postload_findings",
+    "rationale": "Scoped source diagnostic reviewed independently. No full mod installation audit or faster loading claim; no mod records/assets modified. Full audit remains open.",
+    "evidence_refs": []
+  },
+  "search_log": [],
+  "patch_decisions": [],
+  "evidence": [],
+  "checks": [
+    {
+      "id": "GOV-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "GOV-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BASE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BASE-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "INTAKE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "INTAKE-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "UPDATE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "UPDATE-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "UPDATE-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "IMPACT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PATCH-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PATCH-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PATCH-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "NEXUS-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "NEXUS-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "NEXUS-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "CONFLICT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PLUGIN-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "DIALOGUE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "DIALOGUE-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "SCRIPT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "SCRIPT-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LUA-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "QUEST-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ACTOR-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "SPELL-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LIST-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BALANCE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "TEXT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ASSET-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LAND-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LAND-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LAND-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LAND-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LTEX-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LTEX-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LTEX-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "LTEX-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ROT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ROT-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ROT-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ROT-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "GEOM-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "GROUND-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "GENERATED-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "TEST-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "RUNTIME-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PERF-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BUILD-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PACKAGE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "INSTALL-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "REPORT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ACCEPT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "SCPT-COVERAGE-001",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "EXEC-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "EXEC-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ROT-05",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "TEST-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "FIX-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "EVID-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ACCEPT-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PLACEMENT-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PLACEMENT-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PLACEMENT-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PLACEMENT-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "PLACEMENT-05",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BASE-OVERRIDE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BASE-OVERRIDE-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BASE-OVERRIDE-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "BASE-OVERRIDE-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "DIALOGUE-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "DIALOGUE-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "DIALOGUE-05",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "EVID-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "CELL-CLEAN-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ENFORCE-01",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ENFORCE-02",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ENFORCE-03",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ENFORCE-04",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ENFORCE-05",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    },
+    {
+      "id": "ENFORCE-06",
+      "status": "NOT_RUN",
+      "result": "Full-plan obligation remains open. Scoped production recorder/Reporter tests and source review are recorded separately; see LOADING_DETAIL_DIAGNOSTICS.md.",
+      "evidence_refs": []
+    }
+  ],
+  "review": {
+    "reviewer": "",
+    "reviewed_at_utc": "",
+    "decision": "pending",
+    "current_release_confirmed": "",
+    "current_pointer_sha256": "",
+    "evidence_refs": []
+  },
+  "load_order_recommendation": {
+    "plugin_order": {
+      "status": "not_assessed",
+      "context": "No OpenMW content/load-order context has been assessed.",
+      "recommendations": [],
+      "limitations": "No placement has been inferred. Continue analysis with available evidence; this advisory does not establish a live installation order.",
+      "evidence_refs": []
+    },
+    "data_folder_order": {
+      "status": "not_assessed",
+      "context": "No OpenMW data-folder priority context has been assessed.",
+      "recommendations": [],
+      "limitations": "No placement has been inferred. Continue analysis with available evidence; this advisory does not establish a live installation order.",
+      "evidence_refs": []
+    }
+  },
+  "placement_audit": {
+    "path": "placement_audit.json",
+    "sha256": ""
+  },
+  "official_override_audit": {
+    "path": "official_override_audit.json",
+    "sha256": ""
+  },
+  "dialogue_discovery_audit": {
+    "path": "dialogue_discovery_audit.json",
+    "sha256": ""
+  }
+}

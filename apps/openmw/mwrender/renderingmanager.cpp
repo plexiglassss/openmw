@@ -1,5 +1,9 @@
 #include "renderingmanager.hpp"
 
+#include <components/diagnostics/timing.hpp>
+
+#include <algorithm>
+#include <components/sceneutil/glextensions.hpp>
 #include <cstdlib>
 #include <sstream>
 
@@ -7,12 +11,16 @@
 #include <osg/ComputeBoundsVisitor>
 #include <osg/Group>
 #include <osg/Image>
+#include <osg/GraphicsContext>
 #include <osg/Matrix>
 #include <osg/UserDataContainer>
 
 #include <osgDB/Registry>
 
 #include <osgUtil/LineSegmentIntersector>
+#include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/gameplaycompile.hpp>
+#include <components/sceneutil/visualraybatch.hpp>
 
 #include <osgViewer/Viewer>
 
@@ -47,6 +55,8 @@
 #include <components/sceneutil/writescene.hpp>
 
 #include <components/misc/constants.hpp>
+
+#include <components/vfs/manager.hpp>
 
 #include <components/terrain/quadtreeworld.hpp>
 #include <components/terrain/terraingrid.hpp>
@@ -256,6 +266,9 @@ namespace MWRender
             mResourceSystem->getSceneManager()->getShaderManager());
 
         Shader::ShaderManager::DefineMap globalDefines = Shader::getDefaultDefines();
+        const char* gpuSkinning = std::getenv("OPENMW_GPU_SKINNING");
+        globalDefines["gpuSkinning"]
+            = SceneUtil::supportsGpuSkinning() && (!gpuSkinning || std::string_view(gpuSkinning) != "0") ? "1" : "0";
         mAppliedShadowDefines = mShadowManager->getShadowDefines(Settings::shadows());
         Shader::ShaderManager::DefineMap lightDefines = sceneRoot->getLightDefines();
 
@@ -300,8 +313,8 @@ namespace MWRender
 
         if (getenv("OPENMW_DONT_PRECOMPILE") == nullptr)
         {
-            mViewer->setIncrementalCompileOperation(new osgUtil::IncrementalCompileOperation);
-            mViewer->getIncrementalCompileOperation()->setTargetFrameRate(Settings::cells().mTargetFramerate);
+            mViewer->setIncrementalCompileOperation(new SceneUtil::GameplayCompileOperation(mViewer->getViewerStats(),
+                std::max(Settings::cells().mTargetFramerate.get(), Settings::video().mFramerateLimit.get())));
         }
 
         mDebugDraw = new Debug::DebugDrawer(mResourceSystem->getSceneManager()->getShaderManager());
@@ -331,6 +344,17 @@ namespace MWRender
 
         mSharedUniformStateUpdater = new SceneUtil::SharedUniformStateUpdater(Settings::fog().mSkyBlendingStart);
         rootNode->addUpdateCallback(mSharedUniformStateUpdater);
+
+        // A default on the outer root resets this uniform outside the world
+        // subtree. UI/local-map cameras also explicitly override it to false.
+        osg::StateSet* rootStateSet = rootNode->getOrCreateStateSet();
+        rootStateSet->addUniform(new osg::Uniform("locationRenderingProfileActive", false));
+        rootStateSet->addUniform(
+            new osg::Uniform("ordinaryAutoUseObjectNormalMaps", Settings::shaders().mAutoUseObjectNormalMaps));
+        rootStateSet->addUniform(
+            new osg::Uniform("ordinaryAutoUseObjectSpecularMaps", Settings::shaders().mAutoUseObjectSpecularMaps));
+        mStateUpdater->setOrdinaryAutomaticObjectMaps(Settings::shaders().mAutoUseObjectNormalMaps,
+            Settings::shaders().mAutoUseObjectSpecularMaps);
 
         mPerViewUniformStateUpdater = new SceneUtil::PerViewUniformStateUpdater(mResourceSystem->getSceneManager(),
             mResourceSystem->getSceneManager()->getShaderManager().reserveGlobalTextureUnits(
@@ -478,6 +502,11 @@ namespace MWRender
         return mWorkQueue;
     }
 
+    Terrain::World* RenderingManager::getTerrainForPreload(ESM::RefId worldspace)
+    {
+        return getWorldspaceChunkMgr(worldspace).mTerrain.get();
+    }
+
     Terrain::World* RenderingManager::getTerrain()
     {
         return mTerrain;
@@ -622,6 +651,61 @@ namespace MWRender
 
         mPostProcessor->getStateUpdater()->setSunPos(osg::Vec4f(position, 0.f), mNight);
         mPostProcessor->getStateUpdater()->setSunVec(osg::Vec4f(-sunlightPos, 0.f));
+    }
+
+    void RenderingManager::loadLocationRenderingProfiles(const std::vector<std::string>& activeContent)
+    {
+        updateLocationRenderingProfile(nullptr);
+        mLocationRenderingProfiles.load(*mResourceSystem->getVFS(), activeContent);
+
+        const auto& profiles = mLocationRenderingProfiles.profiles();
+        const bool profileUsesNormalMaps = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+            return profile.mShaders.mAutoUseObjectNormalMaps;
+        });
+        const bool profileUsesSpecularMaps = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+            return profile.mShaders.mAutoUseObjectSpecularMaps;
+        });
+        mResourceSystem->getSceneManager()->setAutoUseNormalMaps(
+            Settings::shaders().mAutoUseObjectNormalMaps || profileUsesNormalMaps);
+        mResourceSystem->getSceneManager()->setAutoUseSpecularMaps(
+            Settings::shaders().mAutoUseObjectSpecularMaps || profileUsesSpecularMaps);
+    }
+
+    void RenderingManager::updateLocationRenderingProfile(const MWWorld::Cell* cell)
+    {
+        const bool ordinaryNormalMaps = Settings::shaders().mAutoUseObjectNormalMaps;
+        const bool ordinarySpecularMaps = Settings::shaders().mAutoUseObjectSpecularMaps;
+        mStateUpdater->setOrdinaryAutomaticObjectMaps(ordinaryNormalMaps, ordinarySpecularMaps);
+        if (osg::StateSet* rootStateSet = mRootNode->getStateSet())
+        {
+            if (osg::Uniform* normalMaps = rootStateSet->getUniform("ordinaryAutoUseObjectNormalMaps"))
+                normalMaps->set(ordinaryNormalMaps);
+            if (osg::Uniform* specularMaps = rootStateSet->getUniform("ordinaryAutoUseObjectSpecularMaps"))
+                specularMaps->set(ordinarySpecularMaps);
+        }
+        const LocationRenderingProfile* profile = cell && Settings::shaders().mLocationRenderingProfiles
+            ? mLocationRenderingProfiles.find(cell->getNameId(), cell->isExterior())
+            : nullptr;
+        if (profile)
+        {
+            const LocationRenderingShaderSettings& shaders = profile->mShaders;
+            mStateUpdater->setLocationRenderingProfile(true, shaders.mClampLighting,
+                shaders.mForcePerPixelLighting, shaders.mAutoUseObjectNormalMaps,
+                shaders.mAutoUseObjectSpecularMaps);
+        }
+        else
+            mStateUpdater->setLocationRenderingProfile(false, false, false, true, true);
+
+        const std::string_view profileId = profile ? std::string_view(profile->mId) : std::string_view{};
+        if (profileId != mActiveLocationRenderingProfile)
+        {
+            if (!profile)
+                Log(Debug::Info) << "Location rendering profile: ordinary rendering restored";
+            else
+                Log(Debug::Info) << "Location rendering profile: '" << profile->mName << "' active in "
+                                 << cell->getNameId();
+            mActiveLocationRenderingProfile = profileId;
+        }
     }
 
     void RenderingManager::addCell(const MWWorld::CellStore* store)
@@ -1022,7 +1106,7 @@ namespace MWRender
     public:
         bool skipTransform(osg::Transform& transform)
         {
-            if (mContainsPagedRefs)
+            if (mIgnoreList.empty() || mContainsPagedRefs)
                 return false;
 
             if (const MWWorld::Ptr* p = SceneUtil::findUserData<MWWorld::Ptr>(transform))
@@ -1055,6 +1139,7 @@ namespace MWRender
         if (!mIntersectionVisitor)
             mIntersectionVisitor = new IntersectionVisitorWithIgnoreList;
 
+        mIntersectionVisitor->setUseKdTreeWhenAvailable(true);
         mIntersectionVisitor->setIgnoreList(ignoreList);
         mIntersectionVisitor->setContainsPagedRefs(false);
 
@@ -1101,9 +1186,36 @@ namespace MWRender
             = getIntersectionVisitor(intersector, ignorePlayer, ignoreActors, ignoreTerrain, ignoreList);
         visitor->setReferenceEyePoint(origin);
         visitor->setReferenceEyePointCoordinateFrame(osgUtil::Intersector::MODEL);
-        mRootNode->accept(*visitor);
+        {
+            Diagnostics::Scope rayTiming("render", "ray", "traverse");
+            mRootNode->accept(*visitor);
+        }
 
         return getIntersectionResult(intersector, mIntersectionVisitor, ignoreList);
+    }
+
+    std::vector<RenderingManager::RayResult> RenderingManager::castRays(const osg::Vec3f& origin,
+        std::span<const osg::Vec3f> ends, std::span<const MWWorld::Ptr> ignore)
+    {
+        osg::ref_ptr<osgUtil::IntersectorGroup> group = new osgUtil::IntersectorGroup;
+        group->setIntersectionLimit(osgUtil::Intersector::LIMIT_NEAREST);
+        auto visitor = getIntersectionVisitor(group, false, false, false, ignore);
+        SceneUtil::VisualRayBatch batch;
+        {
+            Diagnostics::Scope timing("render", "ray", "traverse");
+            batch = SceneUtil::intersectVisualRays(*mRootNode, *visitor, *group, origin, ends);
+        }
+        std::vector<RayResult> hits;
+        hits.reserve(batch.segments.size());
+        for (const auto& ray : batch.segments)
+            hits.push_back(getIntersectionResult(ray, visitor, ignore));
+        if (hits.size() == ends.size())
+            return hits;
+        std::vector<RayResult> ordered;
+        ordered.reserve(ends.size());
+        for (std::size_t child : batch.order)
+            ordered.push_back(hits[child]);
+        return ordered;
     }
 
     RenderingManager::RayResult RenderingManager::castCameraToViewportRay(
@@ -1152,11 +1264,16 @@ namespace MWRender
 
     void RenderingManager::clear()
     {
+        updateLocationRenderingProfile(nullptr);
         mSky->setMoonColour(false);
 
         notifyWorldSpaceChanged();
-        if (mObjectPaging)
-            mObjectPaging->clear();
+        for (auto& [worldspace, chunks] : mWorldspaceChunks)
+        {
+            if (chunks.mObjectPaging)
+                chunks.mObjectPaging->clear();
+            chunks.mTerrain->rebuildViews();
+        }
     }
 
     MWRender::Animation* RenderingManager::getAnimation(const MWWorld::Ptr& ptr)
@@ -1360,7 +1477,8 @@ namespace MWRender
             {
                 newChunkMgr.mObjectPaging
                     = std::make_unique<ObjectPaging>(mResourceSystem->getSceneManager(), worldspace);
-                quadTreeWorld->addChunkManager(newChunkMgr.mObjectPaging.get());
+                newChunkMgr.mObjectPaging->setWorkQueue(mWorkQueue);
+                quadTreeWorld->addBatchChunkManager(newChunkMgr.mObjectPaging.get());
                 mResourceSystem->addResourceManager(newChunkMgr.mObjectPaging.get());
             }
             if (groundcover)
@@ -1394,6 +1512,7 @@ namespace MWRender
         if (stats->collectStats("resource"))
         {
             mTerrain->reportStats(frameNumber, stats);
+            mObjects->reportStats(frameNumber, *stats);
         }
     }
 
@@ -1425,6 +1544,31 @@ namespace MWRender
             else if (it->first == "Water")
             {
                 mWater->processChangedSettings(changed);
+            }
+            else if (it->first == "Shaders"
+                && (it->second == "auto use object normal maps"
+                    || it->second == "auto use object specular maps"))
+            {
+                const auto& profiles = mLocationRenderingProfiles.profiles();
+                const bool profileUsesNormalMaps
+                    = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+                          return profile.mShaders.mAutoUseObjectNormalMaps;
+                      });
+                const bool profileUsesSpecularMaps
+                    = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
+                          return profile.mShaders.mAutoUseObjectSpecularMaps;
+                      });
+                mResourceSystem->getSceneManager()->setAutoUseNormalMaps(
+                    Settings::shaders().mAutoUseObjectNormalMaps || profileUsesNormalMaps);
+                mResourceSystem->getSceneManager()->setAutoUseSpecularMaps(
+                    Settings::shaders().mAutoUseObjectSpecularMaps || profileUsesSpecularMaps);
+                const auto player = MWMechanics::getPlayer();
+                updateLocationRenderingProfile(player.isInCell() ? player.getCell()->getCell() : nullptr);
+            }
+            else if (it->first == "Shaders" && it->second == "location rendering profiles")
+            {
+                const auto player = MWMechanics::getPlayer();
+                updateLocationRenderingProfile(player.isInCell() ? player.getCell()->getCell() : nullptr);
             }
             else if (it->first == "Shaders" && it->second == "minimum interior brightness")
             {
@@ -1713,26 +1857,38 @@ namespace MWRender
     }
     bool RenderingManager::pagingEnableObject(int type, const MWWorld::ConstPtr& ptr, bool enabled)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
+        if (!ptr.isInCell())
             return false;
-        if (mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(),
-                osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY()), enabled))
+        const auto* source = ptr.getCell()->getOriginCell(ptr);
+        if (!source || !source->isExterior())
+            return false;
+        auto& chunks = getWorldspaceChunkMgr(source->getCell()->getWorldSpace());
+        if (!chunks.mObjectPaging)
+            return false;
+        if (chunks.mObjectPaging->enableObject(type, ptr.getCellRef().getRefNum(), ptr.getCellRef().getPosition().asVec3(),
+                osg::Vec2i(source->getCell()->getGridX(), source->getCell()->getGridY()), enabled))
         {
-            mTerrain->rebuildViews();
+            chunks.mTerrain->rebuildViews();
             return true;
         }
         return false;
     }
     void RenderingManager::pagingBlacklistObject(int type, const MWWorld::ConstPtr& ptr)
     {
-        if (!ptr.isInCell() || !ptr.getCell()->isExterior() || !mObjectPaging)
+        if (!ptr.isInCell())
+            return;
+        const auto* source = ptr.getCell()->getOriginCell(ptr);
+        if (!source || !source->isExterior())
             return;
         ESM::RefNum refnum = ptr.getCellRef().getRefNum();
         if (!refnum.hasContentFile())
             return;
-        if (mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(),
-                osg::Vec2i(ptr.getCell()->getCell()->getGridX(), ptr.getCell()->getCell()->getGridY())))
-            mTerrain->rebuildViews();
+        auto& chunks = getWorldspaceChunkMgr(source->getCell()->getWorldSpace());
+        if (!chunks.mObjectPaging)
+            return;
+        if (chunks.mObjectPaging->blacklistObject(type, refnum, ptr.getCellRef().getPosition().asVec3(),
+                osg::Vec2i(source->getCell()->getGridX(), source->getCell()->getGridY())))
+            chunks.mTerrain->rebuildViews();
     }
     bool RenderingManager::pagingUnlockCache()
     {

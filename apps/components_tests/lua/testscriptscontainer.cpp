@@ -1,12 +1,23 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <functional>
+#include <limits>
+#include <sstream>
+
+#include <array>
+
 #include <components/esm/luascripts.hpp>
 
 #include <components/lua/asyncpackage.hpp>
 #include <components/lua/luastate.hpp>
 #include <components/lua/scriptscontainer.hpp>
 #include <components/lua/scripttracker.hpp>
+#include <components/lua/util.hpp>
 
 #include <components/testing/util.hpp>
 
@@ -186,9 +197,91 @@ return {
 }
 )X");
 
+    constexpr VFS::Path::NormalizedView cacheActivityPath("cacheactivity.lua");
+
+    VFSTestFile cacheActivityScript(R"X(
+print('started')
+return {
+    engineHandlers = {
+        onActive = function() print('active') end,
+        onInactive = function() print('inactive') end,
+        onSave = function() print('saved') end,
+        onLoad = function() print('loaded') end,
+    }
+}
+)X");
+
+    constexpr VFS::Path::NormalizedView timerLifecyclePath("timerlifecycle.lua");
+
+    VFSTestFile timerLifecycleScript(R"X(
+local async = require('openmw.async')
+local simulation = async:registerTimerCallback('simulation', function(value) print('simulation', value) end)
+local game = async:registerTimerCallback('game', function(value) print('game', value) end)
+return {
+    engineHandlers = {
+        onInit = function()
+            print('init')
+            async:newSimulationTimer(0, simulation, 'init')
+        end,
+        onLoad = function()
+            print('load')
+            async:newGameTimer(0, game, 'load')
+        end,
+        onSave = function() return {} end,
+    },
+}
+)X");
+
+    thread_local std::uint64_t timerBenchmarkLuaCalls = 0;
+
+    void countTimerBenchmarkLuaCalls(lua_State*, lua_Debug* debug)
+    {
+        if (debug->event == LUA_HOOKCALL)
+            ++timerBenchmarkLuaCalls;
+    }
+
+    class ActivityScriptsContainer : public LuaUtil::ScriptsContainer
+    {
+        bool mActive = false;
+        EngineHandlerList mOnActive{ "onActive" };
+        EngineHandlerList mOnInactive{ "onInactive" };
+
+    public:
+        ActivityScriptsContainer(LuaUtil::LuaState* lua, LuaUtil::ScriptTracker* tracker)
+            : ScriptsContainer(lua, "Test", tracker, false)
+        {
+            registerEngineHandlers({ &mOnActive, &mOnInactive });
+        }
+
+        bool isActive() const override { return mActive; }
+
+        void setActive(bool active)
+        {
+            mActive = active;
+            if (active)
+                callEngineHandlers(mOnActive);
+            else
+                callEngineHandlers(mOnInactive);
+        }
+    };
+
+    constexpr VFS::Path::NormalizedView framePath("frame.lua");
+    constexpr VFS::Path::NormalizedView followerPath("follower.lua");
+    VFSTestFile frameScript(R"(
+        local count = 0
+        return { engineHandlers = { onUpdate = function(dt)
+            count = count + 1
+            if dt < 0 then error("frame handler failure") end
+            if dt == 2 then print("frame", count) end
+        end }}
+    )");
+    VFSTestFile followerScript("return {engineHandlers={onUpdate=function() print('following handler') end}}");
+
     struct LuaScriptsContainerTest : Test
     {
         std::unique_ptr<VFS::Manager> mVFS = createTestVFS({
+            { framePath, &frameScript },
+            { followerPath, &followerScript },
             { invalidPath, &invalidScript },
             { incorrectPath, &incorrectScript },
             { emptyPath, &emptyScript },
@@ -202,6 +295,8 @@ return {
             { useInterfacePath, &useInterfaceScript },
             { unloadPath, &unloadScript },
             { customDataPath, &customDataScript },
+            { cacheActivityPath, &cacheActivityScript },
+            { timerLifecyclePath, &timerLifecycleScript },
         });
 
         LuaUtil::ScriptsConfiguration mCfg;
@@ -224,6 +319,10 @@ CUSTOM, PLAYER: overrideInterface.lua
 CUSTOM, PLAYER: useInterface.lua
 CUSTOM: unload.lua
 CUSTOM: customdata.lua
+CUSTOM: cacheactivity.lua
+CUSTOM: timerlifecycle.lua
+CUSTOM: frame.lua
+CUSTOM: follower.lua
 )X");
             mCfg.init(std::move(cfg), false);
         }
@@ -234,6 +333,26 @@ CUSTOM: customdata.lua
             if (!id.has_value())
                 throw std::invalid_argument("Script id is not found: " + std::string(path.value()));
             return *id;
+        }
+
+        void advanceCache(LuaUtil::ScriptTracker& tracker, int frames, double duration)
+        {
+            mLua.protectedCall([&](LuaUtil::LuaView& lua) {
+                for (int i = 0; i < frames; ++i)
+                    tracker.unloadInactiveScripts(lua, duration);
+            });
+        }
+
+        void setUnloadState(LuaUtil::ScriptsContainer& scripts, int x, int y, int z)
+        {
+            mLua.protectedCall([&](LuaUtil::LuaView& lua) {
+                scripts.receiveEvent("Set", LuaUtil::serialize(lua.sol().create_table_with("x", x, "y", y, "z", z)));
+            });
+        }
+
+        sol::function timerCallback(std::function<void()> callback)
+        {
+            return sol::make_object(mLua.unsafeState(), std::move(callback));
         }
     };
 
@@ -274,6 +393,43 @@ CUSTOM: customdata.lua
         EXPECT_EQ(internal::GetCapturedStdout(),
             "Test[test1.lua]:\t update 1.5\n"
             "Test[test2.lua]:\t update 1.5\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, UpdateHandlersKeepTracebacksOrderAndStateAfterCollection)
+    {
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+        ASSERT_TRUE(scripts.addCustomScript(getId(followerPath)));
+        ASSERT_TRUE(scripts.addCustomScript(getId(framePath)));
+        lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
+        testing::internal::CaptureStdout();
+        scripts.update(-1.f);
+        const auto failed = testing::internal::GetCapturedStdout();
+        EXPECT_THAT(failed, HasSubstr("frame handler failure"));
+        EXPECT_THAT(failed, HasSubstr("stack traceback"));
+        EXPECT_THAT(failed, HasSubstr("following handler"));
+        EXPECT_LT(failed.find("frame handler failure"), failed.find("following handler"));
+        testing::internal::CaptureStdout();
+        scripts.update(2.f);
+        const auto recovered = testing::internal::GetCapturedStdout();
+        EXPECT_THAT(recovered, HasSubstr("frame\t2"));
+        EXPECT_THAT(recovered, HasSubstr("following handler"));
+    }
+
+    TEST_F(LuaScriptsContainerTest, RepeatedActorUpdateDispatchBenchmark)
+    {
+        LuaUtil::ScriptsContainer scripts(&mLua, "Bench");
+        ASSERT_TRUE(scripts.addCustomScript(getId(framePath)));
+        constexpr int iterations = 50000;
+        std::array<double, 7> samples;
+        for (auto& elapsed : samples)
+        {
+            const auto start = std::chrono::steady_clock::now();
+            for (int i = 0; i < iterations; ++i)
+                scripts.update(1.f);
+            elapsed = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start).count();
+        }
+        std::sort(samples.begin(), samples.end());
+        RecordProperty("median_ns_per_callback", std::to_string(samples[samples.size() / 2] / iterations));
     }
 
     TEST_F(LuaScriptsContainerTest, CallEvent)
@@ -570,6 +726,333 @@ CUSTOM: customdata.lua
         EXPECT_EQ(counter6, 1); // Real-time timer fires at 10 seconds
     }
 
+    TEST_F(LuaScriptsContainerTest, EmptyTimerQueuesAllowLaterSchedulingInBothClocks)
+    {
+        using TimerType = LuaUtil::ScriptsContainer::TimerType;
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+        const int scriptId = getId(emptyPath);
+        ASSERT_TRUE(scripts.addCustomScript(scriptId));
+        std::vector<int> called;
+        sol::function callback = sol::make_object(mLua.unsafeState(), [&](int value) { called.push_back(value); });
+        scripts.registerTimerCallback(scriptId, "record", callback);
+
+        for (int i = 0; i < 100; ++i)
+            scripts.processTimers(0, 0, 0);
+        EXPECT_TRUE(called.empty());
+        scripts.setupSerializableTimer(
+            TimerType::SIMULATION_TIME, 10, scriptId, "record", sol::make_object(mLua.unsafeState(), 1));
+        scripts.setupSerializableTimer(
+            TimerType::GAME_TIME, 20, scriptId, "record", sol::make_object(mLua.unsafeState(), 2));
+        scripts.processTimers(9, 19, 0);
+        EXPECT_TRUE(called.empty());
+        scripts.processTimers(10, 19, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1 }));
+        scripts.processTimers(10, 20, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1, 2 }));
+        scripts.processTimers(30, 30, 0);
+
+        sol::function unsavable = timerCallback([&] { called.push_back(3); });
+        scripts.setupUnsavableTimer(TimerType::GAME_TIME, 40, scriptId, unsavable);
+        scripts.processTimers(40, 39, 0);
+        EXPECT_EQ(called.size(), 2);
+        scripts.processTimers(40, 40, 0);
+        scripts.processTimers(40, 40, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1, 2, 3 }));
+    }
+
+    TEST_F(LuaScriptsContainerTest, EmptyTimerQueuesPreserveReentrantSchedulingAndProcessing)
+    {
+        using TimerType = LuaUtil::ScriptsContainer::TimerType;
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+        const int scriptId = getId(emptyPath);
+        ASSERT_TRUE(scripts.addCustomScript(scriptId));
+        scripts.processTimers(0, 0, 0);
+
+        std::vector<int> called;
+        sol::function simulation = timerCallback([&] { called.push_back(2); });
+        sol::function game = timerCallback([&] { called.push_back(3); });
+        sol::function outer = timerCallback([&] {
+            called.push_back(1);
+            // The outer timer has already been popped. A reentrant empty call
+            // must remain harmless before either callback is scheduled.
+            scripts.processTimers(10, 10, 0);
+            scripts.setupUnsavableTimer(TimerType::SIMULATION_TIME, 10, scriptId, simulation);
+            scripts.setupUnsavableTimer(TimerType::GAME_TIME, 10, scriptId, game);
+            scripts.processTimers(10, 10, 0);
+            called.push_back(4);
+        });
+        scripts.setupUnsavableTimer(TimerType::SIMULATION_TIME, 10, scriptId, outer);
+        scripts.processTimers(10, 10, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1, 2, 3, 4 }));
+        scripts.processTimers(10, 10, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1, 2, 3, 4 }));
+    }
+
+    TEST_F(LuaScriptsContainerTest, RealTimersRemainLiveDuringIdleAndPausedSimulation)
+    {
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", nullptr, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+        int realCalls = 0, simulationCalls = 0;
+        scripts.setupUnsavableTimer(LuaUtil::ScriptsContainer::TimerType::REAL_TIME, 2,
+            getId(unloadPath), timerCallback([&] { ++realCalls; }));
+        scripts.setupUnsavableTimer(LuaUtil::ScriptsContainer::TimerType::SIMULATION_TIME, 1,
+            getId(unloadPath), timerCallback([&] { ++simulationCalls; }));
+        scripts.processTimers(10, 10, 1, true);
+        EXPECT_EQ(realCalls, 0);
+        EXPECT_EQ(simulationCalls, 0);
+        scripts.processTimers(10, 10, 2, true);
+        EXPECT_EQ(realCalls, 1);
+        EXPECT_EQ(simulationCalls, 0);
+        scripts.processTimers(10, 10, 3, false);
+        EXPECT_EQ(realCalls, 1);
+        EXPECT_EQ(simulationCalls, 1);
+        scripts.setupUnsavableTimer(LuaUtil::ScriptsContainer::TimerType::REAL_TIME, 4,
+            getId(unloadPath), timerCallback([&] { ++realCalls; }));
+        scripts.processTimers(10, 10, 4, true);
+        EXPECT_EQ(realCalls, 2);
+    }
+
+    TEST_F(LuaScriptsContainerTest, RealTimersRestoreRelativeDeadlinesAndRunWhilePaused)
+    {
+        using TimerType = LuaUtil::ScriptsContainer::TimerType;
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+        const int scriptId = getId(emptyPath);
+        ASSERT_TRUE(scripts.addCustomScript(scriptId));
+        int realCalls = 0, simulationCalls = 0;
+        auto real = timerCallback([&] { ++realCalls; });
+        auto simulation = timerCallback([&] { ++simulationCalls; });
+        scripts.registerTimerCallback(scriptId, "real", real);
+        scripts.registerTimerCallback(scriptId, "simulation", simulation);
+        scripts.setupSerializableTimer(TimerType::REAL_TIME, LuaUtil::getRealTime() + 3600,
+            scriptId, "real", sol::make_object(mLua.unsafeState(), 1));
+        scripts.setupSerializableTimer(TimerType::SIMULATION_TIME, 5,
+            scriptId, "simulation", sol::make_object(mLua.unsafeState(), 1));
+        ESM::LuaScripts data;
+        scripts.save(data);
+        ASSERT_EQ(data.mScripts.size(), 1);
+        ASSERT_EQ(data.mScripts.front().mTimers.size(), 2);
+        for (const auto& timer : data.mScripts.front().mTimers)
+            if (timer.mType == TimerType::REAL_TIME)
+            {
+                EXPECT_GT(timer.mTime, 3500);
+                EXPECT_LE(timer.mTime, 3600);
+            }
+        scripts.load(data);
+        scripts.registerTimerCallback(scriptId, "real", real);
+        scripts.registerTimerCallback(scriptId, "simulation", simulation);
+        const double now = LuaUtil::getRealTime();
+        scripts.processTimers(100000, 100000, now, true);
+        EXPECT_EQ(realCalls, 0);
+        EXPECT_EQ(simulationCalls, 0);
+        scripts.processTimers(100000, 100000, now + 4000, true);
+        EXPECT_EQ(realCalls, 1);
+        EXPECT_EQ(simulationCalls, 0);
+        scripts.processTimers(100000, 100000, now + 4000, false);
+        EXPECT_EQ(realCalls, 1);
+        EXPECT_EQ(simulationCalls, 1);
+    }
+
+    TEST_F(LuaScriptsContainerTest, NoDueTimerProcessingRetainsTrackerActivityUntilProcessingStops)
+    {
+        LuaUtil::ScriptTracker tracker;
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+        setUnloadState(scripts, 3, 2, 1);
+        int futureCalls = 0;
+        sol::function future = timerCallback([&] { ++futureCalls; });
+        testing::internal::CaptureStdout();
+        for (int i = 0; i < 1500; ++i)
+        {
+            if (i == 500)
+                scripts.setupUnsavableTimer(
+                    LuaUtil::ScriptsContainer::TimerType::SIMULATION_TIME, 1e9, getId(unloadPath), future);
+            scripts.processTimers(i, i, 0);
+            advanceCache(tracker, 1, 1.0 / 60);
+        }
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(futureCalls, 0);
+        EXPECT_EQ(internal::GetCapturedStdout(), "");
+
+        testing::internal::CaptureStdout();
+        ESM::LuaScripts saved;
+        scripts.save(saved);
+        // z is deliberately absent from saved state; keeping its value proves
+        // repeated empty timer processing did not unload/reconstruct the script.
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tsaving\t3\t2\t1\n");
+
+        testing::internal::CaptureStdout();
+        advanceCache(tracker, 1000, 1.0 / 60);
+        EXPECT_EQ(tracker.size(), 0);
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tsaving\t3\t2\t1\n");
+
+        testing::internal::CaptureStdout();
+        scripts.processTimers(3000, 3000, 0);
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tloaded\t3\t2\t0\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, UnloadedTimerProcessingStillInitializesAndRunsTimersCreatedByLoadHandlers)
+    {
+        mLua.protectedCall([&](LuaUtil::LuaView& lua) {
+            mLua.addCommonPackage("openmw.async",
+                LuaUtil::getAsyncPackageInitializer(lua.sol(), [] { return 0.; }, [] { return 0.; }));
+        });
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", nullptr, false);
+        const int scriptId = getId(timerLifecyclePath);
+        scripts.setAutoStartConf({ { scriptId, {} } });
+
+        testing::internal::CaptureStdout();
+        scripts.processTimers(0, 0, 0);
+        EXPECT_EQ(internal::GetCapturedStdout(),
+            "Test[timerlifecycle.lua]:\tinit\nTest[timerlifecycle.lua]:\tsimulation\tinit\n");
+        ASSERT_TRUE(scripts.hasScript(scriptId));
+
+        ESM::LuaScripts saved;
+        scripts.save(saved);
+        scripts.load(saved);
+        testing::internal::CaptureStdout();
+        scripts.processTimers(0, 0, 0);
+        EXPECT_EQ(internal::GetCapturedStdout(),
+            "Test[timerlifecycle.lua]:\tload\nTest[timerlifecycle.lua]:\tgame\tload\n");
+        testing::internal::CaptureStdout();
+        scripts.processTimers(0, 0, 0);
+        EXPECT_EQ(internal::GetCapturedStdout(), "");
+    }
+
+    TEST_F(LuaScriptsContainerTest, NoDueTimersPreserveExactDeadlineAndNonfiniteComparisons)
+    {
+        using TimerType = LuaUtil::ScriptsContainer::TimerType;
+        const double nan = std::numeric_limits<double>::quiet_NaN();
+        const double inf = std::numeric_limits<double>::infinity();
+        struct Case
+        {
+            double mDeadline;
+            double mNow;
+            bool mDue;
+        };
+        const Case cases[] = { { 5, 4, false }, { 5, 5, true }, { 5, 6, true }, { 5, nan, false },
+            { nan, 5, false }, { nan, inf, false }, { inf, 5, false }, { inf, inf, true },
+            { -inf, -inf, true }, { -inf, 5, true }, { 5, -inf, false }, { 5, inf, true } };
+        for (TimerType clock : { TimerType::SIMULATION_TIME, TimerType::GAME_TIME })
+            for (const auto& test : cases)
+            {
+                SCOPED_TRACE(::testing::Message() << "clock=" << static_cast<int>(clock)
+                                                 << " deadline=" << test.mDeadline << " now=" << test.mNow);
+                LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+                const int scriptId = getId(emptyPath);
+                ASSERT_TRUE(scripts.addCustomScript(scriptId));
+                int called = 0;
+                sol::function callback = timerCallback([&] { ++called; });
+                scripts.setupUnsavableTimer(clock, test.mDeadline, scriptId, callback);
+                scripts.processTimers(clock == TimerType::SIMULATION_TIME ? test.mNow : 0,
+                    clock == TimerType::GAME_TIME ? test.mNow : 0, 0);
+                EXPECT_EQ(called, test.mDue ? 1 : 0);
+            }
+    }
+
+    TEST_F(LuaScriptsContainerTest, GameTimerSchedulingSimulationTimerPreservesNextPassOrdering)
+    {
+        using TimerType = LuaUtil::ScriptsContainer::TimerType;
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test");
+        const int scriptId = getId(emptyPath);
+        ASSERT_TRUE(scripts.addCustomScript(scriptId));
+        std::vector<int> called;
+        sol::function simulation = timerCallback([&] { called.push_back(3); });
+        sol::function nextGame = timerCallback([&] { called.push_back(2); });
+        sol::function firstGame = timerCallback([&] {
+            called.push_back(1);
+            scripts.setupUnsavableTimer(TimerType::SIMULATION_TIME, 10, scriptId, simulation);
+            scripts.setupUnsavableTimer(TimerType::GAME_TIME, 10, scriptId, nextGame);
+        });
+        scripts.setupUnsavableTimer(TimerType::GAME_TIME, 10, scriptId, firstGame);
+        scripts.processTimers(9, 9, 0);
+        EXPECT_TRUE(called.empty());
+        scripts.processTimers(10, 10, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1, 2 }));
+        scripts.processTimers(10, 10, 0);
+        EXPECT_EQ(called, (std::vector<int>{ 1, 2, 3 }));
+    }
+
+    TEST_F(LuaScriptsContainerTest, NoDueTimerDispatchNativeBenchmark)
+    {
+        // Measures the actual processTimers implementation on native loaded
+        // containers. Compare otherwise identical baseline/candidate executables.
+        // Empty/future-only queues are authored upper-coverage workloads, not a
+        // town replay; each call is one container, not one script callback.
+        constexpr int containers = 160;
+        constexpr int frames = 2048;
+        constexpr int rounds = 7;
+        std::vector<std::unique_ptr<LuaUtil::ScriptsContainer>> scripts;
+        for (int i = 0; i < containers; ++i)
+        {
+            auto container = std::make_unique<LuaUtil::ScriptsContainer>(&mLua, "TimerBenchmark");
+            ASSERT_TRUE(container->addCustomScript(getId(emptyPath)));
+            scripts.push_back(std::move(container));
+        }
+
+        lua_State* lua = mLua.unsafeState();
+        sol::function future = timerCallback([] {});
+        for (bool queued : { false, true })
+        {
+            const std::string prefix = queued ? "future" : "empty";
+            if (queued)
+                for (const auto& container : scripts)
+                {
+                    container->setupUnsavableTimer(LuaUtil::ScriptsContainer::TimerType::SIMULATION_TIME,
+                        1e9, getId(emptyPath), future);
+                    container->setupUnsavableTimer(
+                        LuaUtil::ScriptsContainer::TimerType::GAME_TIME, 1e9, getId(emptyPath), future);
+                }
+            for (const auto& container : scripts)
+                container->processTimers(0, 0, 0);
+            const lua_Hook previousHook = lua_gethook(lua);
+            const int previousMask = lua_gethookmask(lua);
+            const int previousCount = lua_gethookcount(lua);
+            timerBenchmarkLuaCalls = 0;
+            lua_sethook(lua, countTimerBenchmarkLuaCalls, LUA_MASKCALL, 0);
+            for (const auto& container : scripts)
+                container->processTimers(0, 0, 0);
+            lua_sethook(lua, previousHook, previousMask, previousCount);
+            RecordProperty(prefix + "_lua_call_events_per_160_containers", std::to_string(timerBenchmarkLuaCalls));
+
+            std::vector<double> samples;
+            for (int round = 0; round < rounds; ++round)
+            {
+                const auto start = std::chrono::steady_clock::now();
+                for (int frame = 0; frame < frames; ++frame)
+                {
+                    // Both executables use this compiler memory barrier once
+                    // per simulated frame to prevent cross-frame hoisting of
+                    // queue reads and activity writes under LTO.
+                    std::atomic_signal_fence(std::memory_order_seq_cst);
+                    for (const auto& container : scripts)
+                        container->processTimers(frame, frame, 0);
+                }
+                const auto elapsed = std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start);
+                samples.push_back(elapsed.count() / (frames * containers));
+            }
+            std::ostringstream sampleText;
+            for (std::size_t i = 0; i < samples.size(); ++i)
+                sampleText << (i == 0 ? "" : ",") << samples[i];
+            std::sort(samples.begin(), samples.end());
+            RecordProperty(prefix + "_samples_ns_per_container", sampleText.str());
+            RecordProperty(prefix + "_median_ns_per_container", std::to_string(samples[samples.size() / 2]));
+        }
+        RecordProperty("lua_profiler_enabled", LuaUtil::LuaState::isProfilerEnabled() ? "true" : "false");
+        RecordProperty("lua_runtime", LuaUtil::getLuaVersion());
+        RecordProperty("scope", "actual native processTimers; 160 loaded containers; empty/future queues; no game FPS claim");
+
+        int called = 0;
+        sol::function sentinel = timerCallback([&] { ++called; });
+        for (const auto& container : scripts)
+        {
+            container->setupUnsavableTimer(
+                LuaUtil::ScriptsContainer::TimerType::SIMULATION_TIME, 1, getId(emptyPath), sentinel);
+            container->processTimers(1, 0, 0);
+        }
+        EXPECT_EQ(called, containers);
+    }
+
     TEST_F(LuaScriptsContainerTest, CallbackWrapper)
     {
         sol::state_view view = mLua.unsafeState();
@@ -624,6 +1107,223 @@ CUSTOM: customdata.lua
         });
         EXPECT_EQ(tracker.size(), 0);
         scripts1.load(data);
+        EXPECT_EQ(tracker.size(), 0);
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheRetainsUnsavedStateAndAllowsExplicitSave)
+    {
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+        setUnloadState(scripts, 3, 2, 1);
+
+        testing::internal::CaptureStdout();
+        advanceCache(tracker, 600, 1.0 / 60); // Past the ordinary frame TTL, but only ten elapsed seconds.
+        EXPECT_EQ(tracker.size(), 1);
+
+        ESM::LuaScripts data;
+        scripts.save(data);
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(data.mScripts.size(), 1);
+        // z is deliberately not serialized by unload.lua. It survives because the sandbox was retained.
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tsaving\t3\t2\t1\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheExpiresAndReloadsSavedStateRepeatedly)
+    {
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+        setUnloadState(scripts, 3, 2, 1);
+
+        testing::internal::CaptureStdout();
+        advanceCache(tracker, 800, 0.05);
+        EXPECT_EQ(tracker.size(), 0);
+        setUnloadState(scripts, 10, 20, 30);
+        EXPECT_EQ(tracker.size(), 1);
+        advanceCache(tracker, 800, 0.05);
+        EXPECT_EQ(tracker.size(), 0);
+        setUnloadState(scripts, 100, 200, 300);
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(internal::GetCapturedStdout(),
+            "Test[unload.lua]:\tsaving\t3\t2\t1\n"
+            "Test[unload.lua]:\tloaded\t3\t2\t0\n"
+            "Test[unload.lua]:\tsaving\t10\t20\t30\n"
+            "Test[unload.lua]:\tloaded\t10\t20\t0\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCachePressureRestoresOrdinaryUnloading)
+    {
+        LuaUtil::ScriptTracker tracker(30, 1); // A live Lua state is larger than one byte.
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+        setUnloadState(scripts, 3, 2, 1);
+
+        testing::internal::CaptureStdout();
+        advanceCache(tracker, 600, 1.0 / 60);
+        EXPECT_EQ(tracker.size(), 0); // Pressure permits unloading before the thirty-second extension expires.
+        setUnloadState(scripts, 10, 20, 30);
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(internal::GetCapturedStdout(),
+            "Test[unload.lua]:\tsaving\t3\t2\t1\n"
+            "Test[unload.lua]:\tloaded\t3\t2\t0\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheZeroThresholdDisablesRetention)
+    {
+        LuaUtil::ScriptTracker tracker(30, 0);
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+
+        testing::internal::CaptureStdout();
+        advanceCache(tracker, 600, 0);
+        EXPECT_EQ(tracker.size(), 0);
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tsaving\t0\t0\t0\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheDeliversEveryActivityHandlerWithoutReloading)
+    {
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        ActivityScriptsContainer scripts(&mLua, &tracker);
+
+        testing::internal::CaptureStdout();
+        EXPECT_TRUE(scripts.addCustomScript(getId(cacheActivityPath)));
+        scripts.setActive(true);
+        advanceCache(tracker, 20, 0.05);
+        scripts.setActive(false);
+        advanceCache(tracker, 400, 0.05);
+        EXPECT_EQ(tracker.size(), 1);
+        scripts.setActive(true);
+        advanceCache(tracker, 20, 0.05);
+        scripts.setActive(false);
+        EXPECT_EQ(internal::GetCapturedStdout(),
+            "Test[cacheactivity.lua]:\tstarted\n"
+            "Test[cacheactivity.lua]:\tactive\n"
+            "Test[cacheactivity.lua]:\tinactive\n"
+            "Test[cacheactivity.lua]:\tactive\n"
+            "Test[cacheactivity.lua]:\tinactive\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCachePressureNeverEvictsActiveScripts)
+    {
+        LuaUtil::ScriptTracker tracker(30, 1);
+        ActivityScriptsContainer scripts(&mLua, &tracker);
+
+        testing::internal::CaptureStdout();
+        EXPECT_TRUE(scripts.addCustomScript(getId(cacheActivityPath)));
+        scripts.setActive(true);
+        advanceCache(tracker, 600, 0.1);
+        EXPECT_EQ(tracker.size(), 1);
+        scripts.setActive(false);
+        advanceCache(tracker, 600, 0.1);
+        EXPECT_EQ(tracker.size(), 0);
+        scripts.setActive(true);
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(internal::GetCapturedStdout(),
+            "Test[cacheactivity.lua]:\tstarted\n"
+            "Test[cacheactivity.lua]:\tactive\n"
+            "Test[cacheactivity.lua]:\tinactive\n"
+            "Test[cacheactivity.lua]:\tsaved\n"
+            "Test[cacheactivity.lua]:\tstarted\n"
+            "Test[cacheactivity.lua]:\tloaded\n"
+            "Test[cacheactivity.lua]:\tactive\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheRefreshesAfterAnInactiveScriptEvent)
+    {
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+        setUnloadState(scripts, 3, 2, 1);
+
+        testing::internal::CaptureStdout();
+        advanceCache(tracker, 550, 0.05);
+        EXPECT_EQ(tracker.size(), 1);
+        setUnloadState(scripts, 10, 20, 30);
+        advanceCache(tracker, 100, 0.05); // Beyond the first deadline, within thirty seconds of the event.
+        EXPECT_EQ(tracker.size(), 1);
+        advanceCache(tracker, 600, 0.05);
+        EXPECT_EQ(tracker.size(), 0);
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tsaving\t10\t20\t30\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCachePreservesTimerLifetimeAndSerializationRules)
+    {
+        using TimerType = LuaUtil::ScriptsContainer::TimerType;
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        ActivityScriptsContainer scripts(&mLua, &tracker);
+        const int scriptId = getId(emptyPath);
+        ASSERT_TRUE(scripts.addCustomScript(scriptId));
+        int savedCount = 0, unsavableCount = 0;
+        sol::function savedCallback = sol::make_object(mLua.unsafeState(), [&](int increment) { savedCount += increment; });
+        sol::function unsavableCallback = sol::make_object(mLua.unsafeState(), [&]() { ++unsavableCount; });
+        auto schedule = [&](double when) {
+            scripts.setupSerializableTimer(
+                TimerType::SIMULATION_TIME, when, scriptId, "saved", sol::make_object(mLua.unsafeState(), 1));
+            scripts.setupUnsavableTimer(TimerType::SIMULATION_TIME, when, scriptId, unsavableCallback);
+        };
+        scripts.registerTimerCallback(scriptId, "saved", savedCallback);
+        scripts.setActive(true);
+        schedule(5);
+        scripts.setActive(false);
+        advanceCache(tracker, 600, 1.0 / 60);
+        EXPECT_EQ(tracker.size(), 1);
+        EXPECT_EQ(savedCount, 0); // Cache maintenance does not run inactive scripts or their timers.
+        EXPECT_EQ(unsavableCount, 0);
+        scripts.setActive(true);
+        scripts.processTimers(10, 10, 0);
+        EXPECT_EQ(savedCount, 1);
+        EXPECT_EQ(unsavableCount, 1);
+
+        schedule(20);
+        ESM::LuaScripts data;
+        scripts.save(data);
+        ASSERT_EQ(data.mScripts.size(), 1);
+        EXPECT_EQ(data.mScripts.front().mTimers.size(), 1);
+        scripts.load(data);
+        scripts.registerTimerCallback(scriptId, "saved", savedCallback);
+        scripts.processTimers(30, 30, 0);
+        EXPECT_EQ(savedCount, 2);
+        EXPECT_EQ(unsavableCount, 1); // Unsavable timers are still discarded by an explicit save/load.
+
+        schedule(40);
+        scripts.setActive(false);
+        advanceCache(tracker, 800, 0.05);
+        EXPECT_EQ(tracker.size(), 0);
+        scripts.setActive(true);
+        scripts.registerTimerCallback(scriptId, "saved", savedCallback);
+        scripts.processTimers(50, 50, 0);
+        EXPECT_EQ(savedCount, 3);
+        EXPECT_EQ(unsavableCount, 1); // Expiry uses the same serializer and discard rule.
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheIgnoresInvalidElapsedDurations)
+    {
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+        ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+
+        testing::internal::CaptureStdout();
+        for (double duration : { 0.0, -1.0, std::numeric_limits<double>::infinity(),
+                 std::numeric_limits<double>::quiet_NaN() })
+        {
+            advanceCache(tracker, 600, duration);
+            EXPECT_EQ(tracker.size(), 1);
+        }
+        advanceCache(tracker, 1, 31);
+        EXPECT_EQ(tracker.size(), 0);
+        EXPECT_EQ(internal::GetCapturedStdout(), "Test[unload.lua]:\tsaving\t0\t0\t0\n");
+    }
+
+    TEST_F(LuaScriptsContainerTest, InactiveCacheDoesNotRetainDestroyedContainers)
+    {
+        LuaUtil::ScriptTracker tracker(30, std::numeric_limits<std::uint64_t>::max());
+        {
+            LuaUtil::ScriptsContainer scripts(&mLua, "Test", &tracker, false);
+            ASSERT_TRUE(scripts.addCustomScript(getId(unloadPath)));
+            EXPECT_EQ(tracker.size(), 1);
+        }
+        advanceCache(tracker, 1, 0);
         EXPECT_EQ(tracker.size(), 0);
     }
 

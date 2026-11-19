@@ -1,11 +1,15 @@
 #include "worldmodel.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cassert>
+#include <cstdlib>
+#include <iterator>
 #include <optional>
 #include <stdexcept>
 
 #include <components/debug/debuglog.hpp>
+#include <components/diagnostics/mwscript.hpp>
 #include <components/esm/defs.hpp>
 #include <components/esm3/cellid.hpp>
 #include <components/esm3/cellref.hpp>
@@ -28,6 +32,27 @@ namespace MWWorld
     namespace
     {
         const ESM::RefId draftCellId = ESM::RefId::index(ESM::REC_CSTA, 0);
+
+        bool useWorldCellIndex()
+        {
+            static const bool enabled = [] {
+                const char* value = std::getenv("OPENMW_WORLD_CELL_INDEX");
+                return value == nullptr || std::string_view(value) != "0";
+            }();
+            return enabled;
+        }
+
+        // Retain an independent A/B switch for the inactive-cell candidate filter.
+        // Unlike OPENMW_WORLD_CELL_INDEX=0, disabling this switch keeps the
+        // existing live-cell index enabled so only this optimization is compared.
+        bool useIndexedInactiveCellCandidates()
+        {
+            static const bool enabled = [] {
+                const char* value = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+                return value == nullptr || std::string_view(value) != "0";
+            }();
+            return enabled;
+        }
 
         template <class T>
         CellStore& emplaceCellStore(ESM::RefId id, const T& cell, ESMStore& store, ESM::ReadersCache& readers,
@@ -105,7 +130,8 @@ namespace MWWorld
 
         CellStore* getOrCreateExterior(const ESM::ExteriorCellLocation& location,
             std::map<ESM::ExteriorCellLocation, MWWorld::CellStore*>& exteriors, ESMStore& store,
-            ESM::ReadersCache& readers, std::unordered_map<ESM::RefId, CellStore>& cells, bool triggerEvent)
+            ESM::ReadersCache& readers, std::unordered_map<ESM::RefId, CellStore>& cells, const WorldModel& world,
+            bool triggerEvent)
         {
             if (const auto it = exteriors.find(location); it != exteriors.end())
             {
@@ -116,6 +142,7 @@ namespace MWWorld
             const ESM::RefId id = cell.getId();
             CellStore* const cellStore = &emplaceCellStore(id, std::move(cell), store, readers, cells);
             exteriors.emplace(location, cellStore);
+            world.trackCellLookup(*cellStore);
             if (created && triggerEvent)
                 MWBase::Environment::get().getLuaManager()->exteriorCreated(*cellStore);
             return cellStore;
@@ -142,10 +169,18 @@ MWWorld::CellStore& MWWorld::WorldModel::insertCellStore(const ESM::Cell& cell)
 {
     CellStore& cellStore = emplaceCellStore(cell.mId, cell, mStore, mReaders, mCells);
     if (cell.mData.mFlags & ESM::Cell::Interior)
-        mInteriors.emplace(cell.mName, &cellStore);
+    {
+        if (mInteriors.emplace(cell.mName, &cellStore).second)
+            trackCellLookup(cellStore);
+    }
     else
-        mExteriors.emplace(
-            ESM::ExteriorCellLocation(cell.getGridX(), cell.getGridY(), ESM::Cell::sDefaultWorldspaceId), &cellStore);
+    {
+        if (mExteriors
+                .emplace(ESM::ExteriorCellLocation(cell.getGridX(), cell.getGridY(), ESM::Cell::sDefaultWorldspaceId),
+                    &cellStore)
+                .second)
+            trackCellLookup(cellStore);
+    }
     return cellStore;
 }
 
@@ -153,14 +188,26 @@ MWWorld::CellStore& MWWorld::WorldModel::insertCellStore(const ESM4::Cell& cell)
 {
     CellStore& cellStore = emplaceCellStore(cell.mId, cell, mStore, mReaders, mCells);
     if (cellStore.isExterior())
-        mExteriors.emplace(cellStore.getCell()->getExteriorCellLocation(), &cellStore);
+    {
+        if (mExteriors.emplace(cellStore.getCell()->getExteriorCellLocation(), &cellStore).second)
+            trackCellLookup(cellStore);
+    }
     else
-        mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore);
+    {
+        if (mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore).second)
+            trackCellLookup(cellStore);
+    }
     return cellStore;
 }
 
 void MWWorld::WorldModel::clear()
 {
+    mSaveLoadTimings = {};
+    mDirtyLookupCells.clear();
+    mUnindexedLookupCells.clear();
+    mUnindexedFallbackCells.clear();
+    mRefIdLookupCells.clear();
+    mIndexedCellIds.clear();
     mPtrRegistry.clear();
     mInteriors.clear();
     mExteriors.clear();
@@ -186,9 +233,9 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrAndCache(const ESM::RefId& name, CellSto
 
 void MWWorld::WorldModel::writeCell(ESM::ESMWriter& writer, CellStore& cell) const
 {
-    if (cell.getState() != CellStore::State_Loaded)
-        cell.load();
-
+    // Metadata can change without instantiating any references (for example water
+    // levels or restored fog). Unloaded/preloaded cells have no live reference
+    // changes to serialize. Loading them here would undo lazy save restoration.
     ESM::CellState cellState;
 
     cell.saveState(cellState);
@@ -214,7 +261,7 @@ namespace MWWorld
 {
     CellStore& WorldModel::getExterior(ESM::ExteriorCellLocation location, bool forceLoad) const
     {
-        CellStore* cellStore = getOrCreateExterior(location, mExteriors, mStore, mReaders, mCells, true);
+        CellStore* cellStore = getOrCreateExterior(location, mExteriors, mStore, mReaders, mCells, *this, true);
 
         if (forceLoad && cellStore->getState() != CellStore::State_Loaded)
             cellStore->load();
@@ -232,7 +279,8 @@ namespace MWWorld
             cellStore = emplaceInteriorCellStore(name, mStore, mReaders, mCells);
             if (cellStore == nullptr)
                 return cellStore;
-            mInteriors.emplace(name, cellStore);
+            if (mInteriors.emplace(name, cellStore).second)
+                trackCellLookup(*cellStore);
         }
         else
         {
@@ -284,11 +332,19 @@ namespace MWWorld
         CellStore& cellStore = emplaceCellStore(id, std::move(*cell), mStore, mReaders, mCells);
 
         if (cellStore.isExterior())
-            mExteriors.emplace(ESM::ExteriorCellLocation(cellStore.getCell()->getGridX(),
-                                   cellStore.getCell()->getGridY(), cellStore.getCell()->getWorldSpace()),
-                &cellStore);
+        {
+            if (mExteriors
+                    .emplace(ESM::ExteriorCellLocation(cellStore.getCell()->getGridX(), cellStore.getCell()->getGridY(),
+                                 cellStore.getCell()->getWorldSpace()),
+                        &cellStore)
+                    .second)
+                trackCellLookup(cellStore);
+        }
         else
-            mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore);
+        {
+            if (mInteriors.emplace(cellStore.getCell()->getNameId(), &cellStore).second)
+                trackCellLookup(cellStore);
+        }
 
         if (forceLoad && cellStore.getState() != CellStore::State_Loaded)
             cellStore.load();
@@ -377,8 +433,96 @@ namespace MWWorld
     }
 }
 
+bool MWWorld::WorldModel::CellLookupOrder::operator()(const CellStore* left, const CellStore* right) const
+{
+    if (left->isExterior() != right->isExterior())
+        return left->isExterior();
+    if (left->isExterior())
+        return right->getCell()->getExteriorCellLocation() < left->getCell()->getExteriorCellLocation();
+    return Misc::StringUtils::CiComp{}(left->getCell()->getNameId(), right->getCell()->getNameId());
+}
+
+void MWWorld::WorldModel::trackCellLookup(CellStore& cell) const
+{
+    if (!useWorldCellIndex())
+        return;
+    cell.mLookupWorld = this;
+    mUnindexedLookupCells.insert(&cell);
+    mDirtyLookupCells.insert(&cell);
+}
+
+void MWWorld::WorldModel::invalidateCellLookup(CellStore& cell) const
+{
+    mDirtyLookupCells.insert(&cell);
+}
+
+void MWWorld::WorldModel::updateCellLookupIndex()
+{
+    if (mDirtyLookupCells.empty())
+        return;
+    Diagnostics::MWScriptNativeScope timing("world.cellCandidates.update");
+    // Process in lookup order: initial candidate vectors can grow at the end
+    // instead of shifting their existing entries for every shared ID.
+    std::vector<CellStore*> dirty(mDirtyLookupCells.begin(), mDirtyLookupCells.end());
+    std::sort(dirty.begin(), dirty.end(), CellLookupOrder{});
+    for (CellStore* cell : dirty)
+    {
+        // An unloaded cell must still be searched at its original position.
+        // Do not preload it merely to maintain the index.
+        if (cell->getState() == CellStore::State_Unloaded)
+        {
+            if (cell->getCell()->isEsm4() || cell->hasUnloadedLiveReferences())
+                mUnindexedFallbackCells.insert(cell);
+            else
+                mUnindexedFallbackCells.erase(cell);
+            continue;
+        }
+        std::vector<ESM::RefId> ids = cell->listLookupIds();
+        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+        auto& oldIds = mIndexedCellIds[cell];
+        // Both lists are sorted and unique. Merge once instead of performing
+        // a binary search for every ID in both lists.
+        auto old = oldIds.begin();
+        auto current = ids.begin();
+        while (old != oldIds.end() || current != ids.end())
+        {
+            if (current == ids.end() || (old != oldIds.end() && *old < *current))
+            {
+                auto found = mRefIdLookupCells.find(*old++);
+                if (found != mRefIdLookupCells.end())
+                {
+                    auto& cells = found->second;
+                    const auto position = std::lower_bound(cells.begin(), cells.end(), cell, CellLookupOrder{});
+                    if (position != cells.end() && *position == cell)
+                        cells.erase(position);
+                    if (cells.empty())
+                        mRefIdLookupCells.erase(found);
+                }
+            }
+            else if (old == oldIds.end() || *current < *old)
+            {
+                auto& cells = mRefIdLookupCells[*current++];
+                if (cells.empty() || CellLookupOrder{}(cells.back(), cell))
+                    cells.push_back(cell);
+                else
+                    cells.insert(std::lower_bound(cells.begin(), cells.end(), cell, CellLookupOrder{}), cell);
+            }
+            else
+            {
+                ++old;
+                ++current;
+            }
+        }
+        oldIds = std::move(ids);
+        mUnindexedLookupCells.erase(cell);
+        mUnindexedFallbackCells.erase(cell);
+    }
+    mDirtyLookupCells.clear();
+}
+
 MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
 {
+    Diagnostics::MWScriptNativeScope timing("world.findInactive");
     for (const auto& [cachedId, cellStore] : mIdCache)
     {
         if (cachedId != name || cellStore == nullptr)
@@ -388,21 +532,92 @@ MWWorld::Ptr MWWorld::WorldModel::getPtrByRefId(const ESM::RefId& name)
             return ptr;
     }
 
-    // Then check cells that are already listed
-    // Search in reverse, this is a workaround for an ambiguous chargen_plank reference in the vanilla game.
-    // there is one at -22,16 and one at -2,-9, the latter should be used.
-    for (auto iter = mExteriors.rbegin(); iter != mExteriors.rend(); ++iter)
+    if (useWorldCellIndex())
     {
-        Ptr ptr = getPtrAndCache(name, *iter->second);
-        if (!ptr.isEmpty())
-            return ptr;
-    }
+        updateCellLookupIndex();
+        const auto found = mRefIdLookupCells.find(name);
+        if (mUnindexedLookupCells.empty())
+        {
+            // getPtrAndCache may mark cells dirty, but candidate membership
+            // changes only in updateCellLookupIndex, so this view stays valid.
+            if (found != mRefIdLookupCells.end())
+                for (CellStore* cell : found->second)
+                {
+                    Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");
+                    Ptr ptr = getPtrAndCache(name, *cell);
+                    if (!ptr.isEmpty())
+                        return ptr;
+                }
+        }
+        else
+        {
+            // Preserve the original search order: exterior cells before interiors,
+            // then the existing loaded/preloaded cell ordering within each group.
+            // Unlike the old union of *all* unindexed cells, only consider an
+            // unloaded ESM3 cell when the content's already-built RefId->cell
+            // index says it contains the requested ID. This prevents global
+            // script lookups from preloading tens of thousands of unrelated cells.
+            std::vector<CellStore*> candidates;
+            if (found != mRefIdLookupCells.end())
+                candidates.insert(candidates.end(), found->second.begin(), found->second.end());
 
-    for (auto iter = mInteriors.begin(); iter != mInteriors.end(); ++iter)
+            if (useIndexedInactiveCellCandidates())
+            {
+                Diagnostics::MWScriptNativeScope selectionTiming("world.cellCandidates.select");
+
+                // The static index includes ESM3 content-file placements, including
+                // leased references. Do not insert new CellStores here: cells that
+                // were never visited retain the existing getRefCells fallback below.
+                for (const ESM::Cell* contentCell : mStore.getRefCells(name))
+                {
+                    auto it = mCells.find(contentCell->mId);
+                    if (it != mCells.end() && mUnindexedLookupCells.contains(&it->second))
+                        candidates.push_back(&it->second);
+                }
+
+                // Do not walk tens of thousands of metadata-only cells for
+                // every script query. Dirty notifications maintain this small
+                // exceptional set; live/preloaded IDs are in the index above.
+                candidates.insert(candidates.end(), mUnindexedFallbackCells.begin(),
+                    mUnindexedFallbackCells.end());
+            }
+            else
+            {
+                // A/B comparison: original exhaustive unindexed-cell search.
+                candidates.insert(candidates.end(), mUnindexedLookupCells.begin(), mUnindexedLookupCells.end());
+            }
+
+            // Sorting and uniquing recreates the original set-union order while
+            // allowing the filtered candidates to be collected from three sources.
+            std::sort(candidates.begin(), candidates.end(), CellLookupOrder{});
+            candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
+            for (CellStore* cell : candidates)
+            {
+                Diagnostics::MWScriptNativeScope candidateTiming("world.cellCandidate");
+                Ptr ptr = getPtrAndCache(name, *cell);
+                if (!ptr.isEmpty())
+                    return ptr;
+            }
+        }
+    }
+    else
     {
-        Ptr ptr = getPtrAndCache(name, *iter->second);
-        if (!ptr.isEmpty())
-            return ptr;
+        // Then check cells that are already listed
+        // Search in reverse, this is a workaround for an ambiguous chargen_plank reference in the vanilla game.
+        // there is one at -22,16 and one at -2,-9, the latter should be used.
+        for (auto iter = mExteriors.rbegin(); iter != mExteriors.rend(); ++iter)
+        {
+            Ptr ptr = getPtrAndCache(name, *iter->second);
+            if (!ptr.isEmpty())
+                return ptr;
+        }
+
+        for (auto iter = mInteriors.begin(); iter != mInteriors.end(); ++iter)
+        {
+            Ptr ptr = getPtrAndCache(name, *iter->second);
+            if (!ptr.isEmpty())
+                return ptr;
+        }
     }
 
     // Now try the other cells
@@ -442,7 +657,15 @@ std::vector<MWWorld::Ptr> MWWorld::WorldModel::getAll(ESM::RefId id, ESM::RefId 
         if (!worldSpace.empty() && cellStore.getCell()->getWorldSpace() != worldSpace)
             return;
         if (cellStore.getState() == CellStore::State_Unloaded)
+        {
+            const Cell& cell = *cellStore.getCell();
+            // Preserve the store's enumeration order and loadedOnly semantics. Only skip
+            // opening CELL records when neither live state nor the complete input can match.
+            if (useIndexedInactiveCellCandidates() && !cell.isEsm4() && !cellStore.hasUnloadedLiveReferences()
+                && !mStore.cellMayContainRecord(cell.getEsm3(), id))
+                return;
             cellStore.preload();
+        }
         if (cellStore.getState() == CellStore::State_Preloaded)
         {
             if (!cellStore.hasId(id))
@@ -528,8 +751,8 @@ public:
         if (const auto* exteriorId = cellId.getIf<ESM::ESM3ExteriorCellRefId>())
         {
             ESM::ExteriorCellLocation location(exteriorId->getX(), exteriorId->getY(), ESM::Cell::sDefaultWorldspaceId);
-            return getOrCreateExterior(
-                location, mWorldModel.mExteriors, mWorldModel.mStore, mWorldModel.mReaders, mWorldModel.mCells, false);
+            return getOrCreateExterior(location, mWorldModel.mExteriors, mWorldModel.mStore, mWorldModel.mReaders,
+                mWorldModel.mCells, mWorldModel, false);
         }
         return mWorldModel.findCell(cellId);
     }
@@ -539,12 +762,16 @@ bool MWWorld::WorldModel::readRecord(ESM::ESMReader& reader, uint32_t type)
 {
     if (type == ESM::REC_CSTA)
     {
+        using Clock = std::chrono::steady_clock;
+        const auto started = Clock::now();
         ESM::CellState state;
         state.mId = reader.getCellId();
 
         GetCellStoreCallback callback(*this);
 
-        CellStore* const cellStore = callback.getCellStore(state.mId);
+        // Resolve the record without loading plugin references. The callback used
+        // below for moved references retains its original loading semantics.
+        CellStore* const cellStore = findCell(state.mId, false);
 
         if (cellStore == nullptr)
         {
@@ -553,19 +780,40 @@ bool MWWorld::WorldModel::readRecord(ESM::ESMReader& reader, uint32_t type)
             return true;
         }
 
+        const auto resolved = Clock::now();
         state.load(reader);
         cellStore->loadState(state);
 
         if (state.mHasFogOfWar)
             cellStore->readFog(reader);
 
-        if (cellStore->getState() != CellStore::State_Loaded)
+        const auto stateRead = Clock::now();
+        const bool hasReferences = reader.hasMoreSubs();
+        if (!hasReferences)
+            ++mSaveLoadTimings.metadataOnly;
+        if (hasReferences && cellStore->getState() != CellStore::State_Loaded)
             cellStore->load();
 
-        cellStore->readReferences(reader, &callback);
+        const auto baseLoaded = Clock::now();
+        if (hasReferences)
+            cellStore->readReferences(reader, &callback);
+        const auto referencesRead = Clock::now();
+        ++mSaveLoadTimings.cells;
+        mSaveLoadTimings.resolveMs += std::chrono::duration<double, std::milli>(resolved - started).count();
+        mSaveLoadTimings.stateMs += std::chrono::duration<double, std::milli>(stateRead - resolved).count();
+        mSaveLoadTimings.baseMs += std::chrono::duration<double, std::milli>(baseLoaded - stateRead).count();
+        mSaveLoadTimings.referencesMs += std::chrono::duration<double, std::milli>(referencesRead - baseLoaded).count();
 
         return true;
     }
 
     return false;
+}
+
+void MWWorld::WorldModel::reportSaveLoadTimings() const
+{
+    const auto& t = mSaveLoadTimings;
+    Log(Debug::Info) << "Save load CSTA detail: cells=" << t.cells << " metadataOnly=" << t.metadataOnly
+                     << " resolveIncludingInteriorBaseMs=" << t.resolveMs << " stateAndFogMs=" << t.stateMs
+                     << " exteriorBaseMs=" << t.baseMs << " savedReferencesMs=" << t.referencesMs;
 }

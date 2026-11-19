@@ -216,10 +216,15 @@ ContentSelectorModel::ContentFileList ContentSelectorView::ContentSelector::sele
     return mContentModel->checkedItems();
 }
 
-void ContentSelectorView::ContentSelector::addFiles(const QString& path, bool newfiles)
+void ContentSelectorView::ContentSelector::addFiles(const QString& path, bool newfiles, bool refresh)
 {
     mContentModel->addFiles(path, newfiles);
+    if (refresh)
+        refreshGameFiles();
+}
 
+void ContentSelectorView::ContentSelector::refreshGameFiles()
+{
     // add any game files to the combo box
     for (const QString& gameFileName : mContentModel->gameFiles())
     {

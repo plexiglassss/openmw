@@ -4,6 +4,12 @@
 #include <components/files/configurationmanager.hpp>
 #include <components/lua_ui/adapter.hpp>
 
+#include <array>
+
+#include "dialoguecolourcontrols.hpp"
+#include "messagepositioncontrols.hpp"
+#include "mapiconcontrols.hpp"
+#include "tooltipcontrols.hpp"
 #include "windowbase.hpp"
 
 namespace MWGui
@@ -67,13 +73,43 @@ namespace MWGui
         MyGUI::ComboBox* mSecondaryLanguage;
         MyGUI::Button* mGmstOverridesL10n;
 
+        MyGUI::ComboBox* mJournalFontSize = nullptr;
+        MyGUI::ComboBox* mJournalTextAlignment = nullptr;
+        MyGUI::ComboBox* mJournalPageNumberFontSize = nullptr;
+        MyGUI::ComboBox* mJournalButtonScale = nullptr;
+
+        MyGUI::TabItem* mDialogueColourTab = nullptr;
+        DialogueColourControls mDialogueColourControls;
+        bool mUpdatingDialogueColours = false;
+
+        MyGUI::TabItem* mMessagePositionTab = nullptr;
+        MessagePositionControls mMessagePositionControls;
+        bool mUpdatingMessagePosition = false;
+
+        MyGUI::TabItem* mMapIconTab = nullptr;
+        MapIconControls mMapIconControls;
+        bool mUpdatingMapIcons = false;
+
+        MyGUI::TabItem* mTooltipTab = nullptr;
+        TooltipControls mTooltipControls;
+        bool mUpdatingTooltips = false;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
         MyGUI::ScrollView* mControlsBox;
+        MyGUI::Widget* mControlsFrame;
+        MyGUI::Widget* mNativeControlsOptions;
+        MyGUI::Widget* mModControlsPanel;
         MyGUI::Button* mResetControlsButton;
         MyGUI::Button* mKeyboardSwitch;
         MyGUI::Button* mControllerSwitch;
+        MyGUI::Button* mModControlsSwitch;
+        MyGUI::ScrollView* mModControlsView;
+        LuaUi::LuaAdapter* mModControlsAdapter;
+        MyGUI::ScrollView* mModControlsNavigation;
+        LuaUi::LuaAdapter* mModControlsNavigationAdapter;
+        bool mModControlsMode = false;
         bool mKeyboardMode; // if true, setting up the keyboard. Otherwise, it's controller
 
         MyGUI::EditBox* mScriptFilter;
@@ -110,6 +146,45 @@ namespace MWGui
         void onLanguageChanged(size_t langPriority, MyGUI::ComboBox* sender, size_t pos);
         void onGmstOverridesL10nChanged(MyGUI::Widget* sender);
 
+        void onJournalFontSizeChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onJournalTextAlignmentChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onJournalPageNumberFontSizeChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onJournalButtonScaleChanged(MyGUI::ComboBox* sender, size_t pos);
+        void initialiseJournalControls();
+        void updateJournalSettings();
+
+        void initialiseDialogueColourControls();
+        void layoutDialogueColourControls();
+        void updateDialogueColourSettings();
+        void onDialogueColourToggled(MyGUI::Widget* sender);
+        void onDialogueColourRoleChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onDialogueColourChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onDialogueColourReset(MyGUI::Widget* sender);
+
+        void initialiseMessagePositionControls();
+        void layoutMessagePositionControls();
+        void updateMessagePositionSettings();
+        void onMessagePositionChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onMessagePositionOffsetChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onMessagePositionReset(MyGUI::Widget* sender);
+        void onMessagePositionTest(MyGUI::Widget* sender);
+
+        void initialiseMapIconControls();
+        void updateMapIconSettings();
+        void onMapIconToggled(MyGUI::Widget* sender);
+        void onMapIconSizeChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onMapIconColoursChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onMapIconCategoryChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onMapIconCategoryToggled(MyGUI::Widget* sender);
+        void onMapIconReset(MyGUI::Widget* sender);
+
+        void initialiseTooltipControls();
+        void updateTooltipSettings();
+        void onTooltipToggled(MyGUI::Widget* sender);
+        void onTooltipChoiceChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onTooltipScaleChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onTooltipReset(MyGUI::Widget* sender);
+
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);
 
@@ -118,6 +193,9 @@ namespace MWGui
         void onResetDefaultBindings(MyGUI::Widget* sender);
         void onResetDefaultBindingsAccept();
         void onKeyboardSwitchClicked(MyGUI::Widget* sender);
+        void onModControlsSwitchClicked(MyGUI::Widget* sender);
+        void updateControlsVisibility();
+        void layoutModControls();
         void onControllerSwitchClicked(MyGUI::Widget* sender);
 
         void onWindowResize(MyGUI::Window* sender);

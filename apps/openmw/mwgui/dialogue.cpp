@@ -8,6 +8,7 @@
 #include <MyGUI_Window.h>
 
 #include <components/debug/debuglog.hpp>
+#include <components/diagnostics/timing.hpp>
 #include <components/esm3/loadcrea.hpp>
 #include <components/settings/values.hpp>
 #include <components/translation/translation.hpp>
@@ -32,6 +33,7 @@
 #include "../mwmechanics/npcstats.hpp"
 
 #include "bookpage.hpp"
+#include "dialogueformatting.hpp"
 #include "textcolours.hpp"
 
 namespace MWGui
@@ -219,22 +221,10 @@ namespace MWGui
 
         typesetter->sectionBreak(mNeedMargin ? 9 : 0);
 
-        if (!mTitle.empty())
-        {
-            BookTypesetter::Style* title = typesetter->createStyle({}, colors.header, false);
-            typesetter->write(title, mTitle);
-            typesetter->sectionBreak();
-        }
-
-        struct Token
-        {
-            size_t mStart;
-            size_t mEnd;
-            Link* mTopic;
-        };
+        writeDialogueTopic(*typesetter, mTitle, colors);
 
         std::vector<KeywordSearch::Match> matches = keywordSearch.parseHyperText(mText, translationStorage);
-        std::vector<Token> tokens;
+        std::vector<DialogueTextLink> tokens;
         tokens.reserve(matches.size());
         std::string text;
         text.reserve(mText.size());
@@ -251,32 +241,21 @@ namespace MWGui
 
             auto value = topicLinks.find(token.mTopicId);
             if (value != topicLinks.end())
-                tokens.emplace_back(text.size() - displayName.size(), text.size(), value->second.get());
+                tokens.push_back({ text.size() - displayName.size(), text.size(),
+                    reinterpret_cast<TypesetBook::InteractiveId>(value->second.get()) });
         }
         text.append(pos, mText.end());
 
-        typesetter->addContent(text);
-
-        BookTypesetter::Style* textStyle = typesetter->createStyle({}, colors.normal, false);
-
-        size_t i = 0;
-        for (const Token& token : tokens)
-        {
-            if (i < token.mStart)
-                typesetter->write(textStyle, i, token.mStart);
-
-            auto id = reinterpret_cast<TypesetBook::InteractiveId>(token.mTopic);
-            BookTypesetter::Style* linkStyle
-                = typesetter->createHotStyle(textStyle, colors.link, colors.linkOver, colors.linkPressed, id);
-            typesetter->write(linkStyle, token.mStart, token.mEnd);
-            i = token.mEnd;
-        }
-
-        if (i < text.size())
-            typesetter->write(textStyle, i, text.size());
+        const auto& settings = Settings::gui();
+        const auto spans = settings.mDialogueColouring
+            ? Misc::DialogueText::classify(text, Misc::DialogueText::Context::Dialogue,
+                settings.mDialogueClassifyNarration)
+            : std::vector<Misc::DialogueText::Span>{};
+        writeDialogueText(*typesetter, text, spans, tokens, getDialoguePalette(colors));
     }
 
-    Message::Message(std::string_view text)
+    Message::Message(std::string_view text, Misc::DialogueText::Category category)
+        : mCategory(category)
     {
         mText = text;
     }
@@ -284,10 +263,19 @@ namespace MWGui
     void Message::write(std::shared_ptr<BookTypesetter> typesetter, const MWDialogue::KeywordSearch&,
         std::unordered_map<std::string, std::unique_ptr<Link>>&) const
     {
-        const MyGUI::Colour& textColour = MWBase::Environment::get().getWindowManager()->getTextColours().notify;
-        BookTypesetter::Style* title = typesetter->createStyle({}, textColour, false);
+        const auto& settings = Settings::gui();
+        std::vector<Misc::DialogueText::Span> spans;
+        if (settings.mDialogueColouring)
+        {
+            if (mCategory != Misc::DialogueText::Category::Default)
+                spans.push_back({ 0, mText.size(), mCategory });
+            else
+                spans = Misc::DialogueText::classify(mText, Misc::DialogueText::Context::Dialogue,
+                    settings.mDialogueClassifyNarration);
+        }
         typesetter->sectionBreak(9);
-        typesetter->write(title, mText);
+        writeDialogueText(*typesetter, mText, spans, {},
+            getDialoguePalette(MWBase::Environment::get().getWindowManager()->getTextColours(), true));
     }
 
     // --------------------------------------------------------------------------------------------------
@@ -569,6 +557,27 @@ namespace MWGui
 
         // The topics list has been regenerated so topic formatting needs to be updated
         updateTopicFormat();
+
+        // Attach to the actual service widget after MWList recreates its children. This
+        // also survives dialogue resizing and avoids interpreting translated captions.
+        const bool hasTravelService = !mPtr.isEmpty()
+            && ((mPtr.getType() == ESM::NPC::sRecordId && !mPtr.get<ESM::NPC>()->mBase->getTransport().empty())
+                || (mPtr.getType() == ESM::Creature::sRecordId
+                    && !mPtr.get<ESM::Creature>()->mBase->getTransport().empty()));
+        if (hasTravelService)
+        {
+            const auto& gmst = MWBase::Environment::get().getESMStore()->get<ESM::GameSetting>();
+            const auto& travelName = gmst.find("sTravel")->mValue.getString();
+            for (std::size_t index = 0; index < mTopicsList->getItemCount(); ++index)
+            {
+                if (mTopicsList->getItemNameAt(index) != travelName)
+                    continue;
+                MyGUI::Button* travel = mTopicsList->getItemWidget(travelName);
+                travel->setUserString("ToolTipType", "TravelOverview");
+                travel->setUserString("TravelProvider", mPtr.getCellRef().getRefId().serializeText());
+                break;
+            }
+        }
     }
 
     void DialogueWindow::updateTopicsPane()
@@ -648,6 +657,8 @@ namespace MWGui
 
     void DialogueWindow::updateHistory(bool scrollbar)
     {
+        Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "updateHistory");
+        mTextColoursDirty = false;
         if (!scrollbar && mScrollBar->getVisible())
         {
             mHistory->setSize(mHistory->getSize() + MyGUI::IntSize(mScrollBar->getWidth(), 0));
@@ -673,7 +684,8 @@ namespace MWGui
         mChoices = MWBase::Environment::get().getDialogueManager()->getChoices();
         mChoiceStyles.clear();
         mControllerChoice = -1; // -1 so you must make a choice (and can't accidentally pick the first answer)
-        for (std::pair<std::string, int>& choice : mChoices)
+        size_t choiceIndex = 0;
+        for (const std::pair<std::string, int>& choice : mChoices)
         {
             auto link = std::make_unique<Choice>(choice.second);
             link->eventChoiceActivated += MyGUI::newDelegate(this, &DialogueWindow::onChoiceActivated);
@@ -683,7 +695,12 @@ namespace MWGui
             typesetter->lineBreak();
             BookTypesetter::Style* questionStyle = typesetter->createHotStyle(
                 body, textColours.answer, textColours.answerOver, textColours.answerPressed, interactiveId);
-            typesetter->write(questionStyle, choice.first);
+            // 1-9 select the first nine responses; 0 selects the tenth.
+            // Keep the original text/IDs intact for scripts and history comparisons.
+            const std::string prefix = choiceIndex < 10
+                ? std::to_string((choiceIndex + 1) % 10) + ". " : std::string{};
+            typesetter->write(questionStyle, prefix + choice.first);
+            ++choiceIndex;
             mChoiceStyles.push_back(questionStyle);
         }
 
@@ -702,7 +719,9 @@ namespace MWGui
             BookTypesetter::Style* questionStyle = typesetter->createHotStyle(
                 body, textColours.answer, textColours.answerOver, textColours.answerPressed, interactiveId);
             typesetter->lineBreak();
-            typesetter->write(questionStyle, goodbye);
+            const std::string prefix = mChoices.size() < 10
+                ? std::to_string((mChoices.size() + 1) % 10) + ". " : std::string{};
+            typesetter->write(questionStyle, prefix + goodbye);
         }
 
         std::shared_ptr<TypesetBook> book = typesetter->complete();
@@ -751,8 +770,63 @@ namespace MWGui
         updateTopics();
     }
 
+    bool DialogueWindow::onChoiceKeyPress(MyGUI::KeyCode key, bool repeat)
+    {
+        size_t index;
+        switch (key.getValue())
+        {
+            case MyGUI::KeyCode::One: case MyGUI::KeyCode::Numpad1: index = 0; break;
+            case MyGUI::KeyCode::Two: case MyGUI::KeyCode::Numpad2: index = 1; break;
+            case MyGUI::KeyCode::Three: case MyGUI::KeyCode::Numpad3: index = 2; break;
+            case MyGUI::KeyCode::Four: case MyGUI::KeyCode::Numpad4: index = 3; break;
+            case MyGUI::KeyCode::Five: case MyGUI::KeyCode::Numpad5: index = 4; break;
+            case MyGUI::KeyCode::Six: case MyGUI::KeyCode::Numpad6: index = 5; break;
+            case MyGUI::KeyCode::Seven: case MyGUI::KeyCode::Numpad7: index = 6; break;
+            case MyGUI::KeyCode::Eight: case MyGUI::KeyCode::Numpad8: index = 7; break;
+            case MyGUI::KeyCode::Nine: case MyGUI::KeyCode::Numpad9: index = 8; break;
+            case MyGUI::KeyCode::Zero: case MyGUI::KeyCode::Numpad0: index = 9; break;
+            default: return false;
+        }
+
+        if (!isVisible() || mPtr.isEmpty() || (!mGoodbye && mChoices.empty()))
+            return false;
+
+        // Swallow repeats and unavailable indices without triggering bindings or
+        // selecting another response when the previous answer opened a new choice.
+        if (repeat)
+            return true;
+
+        auto manager = MWBase::Environment::get().getDialogueManager();
+        // Scripts may have changed the choices since the last frame was drawn.
+        // Never select a response the player has not yet seen.
+        if (mGoodbye != manager->isGoodbye() || mChoices != manager->getChoices())
+            return true;
+
+        if (mGoodbye)
+        {
+            // The explicit Goodbye line follows any displayed responses.
+            // Do not turn stale response shortcuts into an accidental dismissal.
+            if (index == mChoices.size())
+            {
+                MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Menu Click"));
+                onGoodbyeActivated();
+            }
+            return true;
+        }
+        if (index >= mChoices.size())
+            return true;
+
+        const int id = mChoices[index].second;
+        MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Menu Click"));
+        onChoiceActivated(id);
+        return true;
+    }
+
     void DialogueWindow::onChoiceActivated(int id)
     {
+        Diagnostics::Scope timing("dialogue-ui",
+            Diagnostics::enabled() && !mPtr.isEmpty() ? mPtr.getCellRef().getRefId().serializeText() : std::string{},
+            "onChoiceActivated");
         if (mGoodbye)
         {
             onGoodbyeActivated();
@@ -776,14 +850,23 @@ namespace MWGui
 
     void DialogueWindow::addResponse(std::string_view title, std::string_view text, bool needMargin)
     {
+        Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "addResponse");
         mHistoryContents.push_back(std::make_unique<Response>(text, title, needMargin));
         updateHistory();
     }
 
-    void DialogueWindow::addMessageBox(std::string_view text)
+    void DialogueWindow::addMessageBox(std::string_view text, Misc::DialogueText::Category category)
     {
-        mHistoryContents.push_back(std::make_unique<Message>(text));
+        mHistoryContents.push_back(std::make_unique<Message>(text, category));
         updateHistory();
+    }
+
+    void DialogueWindow::refreshTextColours()
+    {
+        // Coalesce changes from RGB sliders and repaint only when this window is
+        // next active. Stored response text and semantic message categories stay
+        // intact, so changing the palette also updates existing history.
+        mTextColoursDirty = true;
     }
 
     void DialogueWindow::updateDisposition()
@@ -835,10 +918,29 @@ namespace MWGui
         if (mChoices != MWBase::Environment::get().getDialogueManager()->getChoices()
             || mGoodbye != MWBase::Environment::get().getDialogueManager()->isGoodbye())
             updateHistory();
+        else if (mTextColoursDirty)
+        {
+            const size_t oldPosition = mScrollBar->getScrollPosition();
+            const bool atBottom = oldPosition + 1 >= mScrollBar->getScrollRange();
+            const int oldChoice = mControllerChoice;
+            updateHistory();
+            if (!atBottom && mScrollBar->getVisible())
+            {
+                const size_t position = std::min(oldPosition, mScrollBar->getScrollRange() - 1);
+                mScrollBar->setScrollPosition(position);
+                onScrollbarMoved(mScrollBar, position);
+            }
+            if (oldChoice >= 0 && static_cast<size_t>(oldChoice) < mChoiceStyles.size())
+            {
+                mControllerChoice = oldChoice;
+                mHistory->setFocusItem(mChoiceStyles[oldChoice]);
+            }
+        }
     }
 
     void DialogueWindow::updateTopicFormat()
     {
+        Diagnostics::Scope timing("dialogue-ui", "DialogueWindow", "updateTopicFormat");
         if (!Settings::gui().mColorTopicEnable)
             return;
 
@@ -875,6 +977,9 @@ namespace MWGui
 
     void DialogueWindow::updateTopics()
     {
+        Diagnostics::Scope timing("dialogue-ui",
+            Diagnostics::enabled() && !mPtr.isEmpty() ? mPtr.getCellRef().getRefId().serializeText() : std::string{},
+            "updateTopics");
         // Topic formatting needs to be updated regardless of whether the topic list has changed
         if (!setKeywords(MWBase::Environment::get().getDialogueManager()->getAvailableTopics()))
             updateTopicFormat();
@@ -1011,3 +1116,4 @@ namespace MWGui
         return true;
     }
 }
+

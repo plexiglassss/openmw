@@ -1,4 +1,8 @@
+#include <tuple>
+#include <components/widgets/windowsnap.hpp>
 #include "uibindings.hpp"
+#include <components/lua_ui/input.hpp>
+#include <SDL_keyboard.h>
 
 #include <unordered_map>
 #include <utility>
@@ -10,12 +14,14 @@
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/layers.hpp>
 #include <components/lua_ui/registerscriptsettings.hpp>
+#include <components/lua_ui/scriptsettings.hpp>
 #include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 
 #include <components/misc/finitevalues.hpp>
 #include <components/misc/strings/format.hpp>
 #include <components/resource/resourcesystem.hpp>
+#include <components/esm3/loadspel.hpp>
 #include <components/settings/values.hpp>
 #include <components/vfs/manager.hpp>
 
@@ -28,6 +34,7 @@
 #include "../mwbase/environment.hpp"
 #include "../mwbase/inputmanager.hpp"
 #include "../mwbase/windowmanager.hpp"
+#include "../mwworld/esmstore.hpp"
 
 #include <format>
 
@@ -164,12 +171,90 @@ namespace MWLua
                     [windowManager, obj = obj.as<LObject>()] { windowManager->setConsoleSelectedObject(obj.ptr()); });
             }
         };
+        if (!menu)
+        {
+            api["getInteractiveMessageBox"] = [windowManager](
+                sol::this_state state, sol::optional<double> previousId) -> sol::object {
+                std::optional<MWGui::MessageBoxId> lastId;
+                if (previousId)
+                    lastId = MWGui::checkedMessageBoxId(*previousId);
+                const auto info = windowManager->getInteractiveMessageBoxInfo(lastId);
+                if (!info)
+                    return sol::nil;
+                sol::table result(state, sol::create);
+                result["id"] = info->mId;
+                result["message"] = info->mMessage;
+                sol::table buttons(state, sol::create);
+                for (std::size_t i = 0; i < info->mButtons.size(); ++i)
+                    buttons[LuaUtil::toLuaIndex(i)] = info->mButtons[i];
+                result["buttons"] = buttons;
+                if (!info->mSourceScriptId.empty())
+                    result["sourceScriptId"] = info->mSourceScriptId;
+                return result;
+            };
+            api["setMessageBoxButtonSpellTooltips"] = [luaManager = context.mLuaManager, windowManager](
+                double generation, const sol::table& requested) {
+                const auto id = MWGui::checkedMessageBoxId(generation);
+                const auto info = windowManager->getInteractiveMessageBoxInfo();
+                if (!info || info->mId != id)
+                    return;
+                MWGui::MessageBoxSpellTooltips tooltips;
+                const auto& spells = MWBase::Environment::get().getESMStore()->get<ESM::Spell>();
+                for (const auto& [key, value] : requested)
+                {
+                    if (key.get_type() != sol::type::number || value.get_type() != sol::type::string)
+                        throw std::invalid_argument("Message box tooltips must map 1-based button indices to spell IDs");
+                    const auto index = MWGui::checkedMessageBoxButtonIndex(key.as<double>(), info->mButtons.size());
+                    const auto spellId = ESM::RefId::deserializeText(value.as<std::string>());
+                    if (spellId.empty() || !spells.search(spellId))
+                        throw std::invalid_argument("Message box tooltip spell does not exist: " + spellId.serializeText());
+                    tooltips.emplace(index, spellId.serialize());
+                }
+                luaManager->addAction(
+                    [windowManager, id, tooltips = std::move(tooltips)] {
+                        windowManager->setMessageBoxButtonSpellTooltips(id, tooltips);
+                    },
+                    "Set message box button spell tooltips");
+            };
+            api["getWorldTooltipObject"] = [windowManager](sol::this_state state) -> sol::object {
+                const auto object = windowManager->getWorldTooltipObject();
+                if (object.isEmpty())
+                    return sol::nil;
+                return sol::make_object(state, LObject(object));
+            };
+            api["worldTooltipSuppressionSupported"] = true;
+            api["setWorldTooltip"] = [luaManager = context.mLuaManager, windowManager](sol::optional<LObject> object,
+                                         sol::optional<std::shared_ptr<LuaUi::Element>> element) {
+                luaManager->addAction(
+                    [windowManager, object, element] {
+                        windowManager->setWorldTooltip(
+                            object ? object->ptrOrEmpty() : MWWorld::Ptr(), element.value_or(nullptr));
+                    },
+                    "Set world tooltip");
+            };
+        }
+        api["snapWindow"] = [](const std::shared_ptr<LuaUi::Element>& element,
+                                  const osg::Vec2f& position, const osg::Vec2f& size) {
+            if (!element || !element->mRoot)
+                return position;
+            const auto point = Gui::snapWindow(element->mRoot->widget(),
+                MyGUI::IntCoord(int(position.x()), int(position.y()), int(size.x()), int(size.y())));
+            return osg::Vec2f(float(point.left), float(point.top));
+        };
+        api["snapWindowResize"] = [](const std::shared_ptr<LuaUi::Element>& element,
+            const osg::Vec2f& position, const osg::Vec2f& size, int edges, const osg::Vec2f& minimum) {
+            auto r = MyGUI::IntCoord(int(position.x()), int(position.y()), int(size.x()), int(size.y()));
+            if (element && element->mRoot)
+                r = Gui::snapResizeWindow(element->mRoot->widget(), r, edges, int(minimum.x()), int(minimum.y()));
+            return std::make_tuple(osg::Vec2f(float(r.left), float(r.top)), osg::Vec2f(float(r.width), float(r.height)));
+        };
         api["content"] = LuaUi::loadContentConstructor(context.mLua);
 
         api["create"]
             = [luaManager = context.mLuaManager, menu](const sol::table& layout, sol::optional<sol::table> options) {
                   auto element = LuaUi::Element::make(layout, menu, options);
-                  luaManager->addAction([element] { element->create(); }, "Create UI");
+                  if (!options || !options->raw_get<sol::optional<bool>>("deferUntilAttached").value_or(false))
+                      luaManager->addAction([element] { element->create(); }, "Create UI");
                   return element;
               };
 
@@ -229,12 +314,9 @@ namespace MWLua
         };
 
         api["updateAll"] = [luaManager = context.mLuaManager, menu]() {
-            LuaUi::Element::forEach(menu, [](LuaUi::Element* e) {
-                if (e->mState == LuaUi::Element::Created)
-                    e->mState = LuaUi::Element::Update;
-            });
             luaManager->addAction([menu]() { LuaUi::Element::forEach(menu, [](LuaUi::Element* e) { e->update(); }); },
                 "Update all menu UI elements");
+            LuaUi::Element::forEach(menu, [](LuaUi::Element* e) { e->requestUpdate(nullptr, [] {}); });
         };
         api["_getMenuTransparency"] = []() -> float { return Settings::gui().mMenuTransparency; };
 
@@ -304,7 +386,15 @@ namespace MWLua
             { { "Start", LuaUi::Alignment::Start }, { "Center", LuaUi::Alignment::Center },
                 { "End", LuaUi::Alignment::End } }));
 
+        if (!menu)
+            api["registerUiActionHandler"] = [](std::string id, const sol::table& callback) {
+                LuaUi::registerUiActionHandler(std::move(id), LuaUtil::Callback::fromLua(callback));
+            };
+        api["isTextInputActive"] = []() { return SDL_IsTextInputActive() == SDL_TRUE; };
         api["registerSettingsPage"] = &LuaUi::registerSettingsPage;
+        api["_controlsPageVisible"] = &LuaUi::controlsPageVisible;
+        api["_controlsPageWidth"] = &LuaUi::controlsPageWidth;
+        api["_resetControlsPageScroll"] = &LuaUi::resetControlsPageScroll;
         api["removeSettingsPage"] = &LuaUi::removeSettingsPage;
 
         api["texture"] = [luaManager = context.mLuaManager](const sol::table& options) {
@@ -485,11 +575,18 @@ namespace MWLua
             };
             uiElement["layout"] = sol::property([](const LuaUi::Element& element) { return element.mLayout; },
                 [](LuaUi::Element& element, const sol::main_table& layout) { element.mLayout = layout; });
-            uiElement["update"] = [luaManager = context.mLuaManager](const std::shared_ptr<LuaUi::Element>& element) {
-                if (element->mState != LuaUi::Element::Created)
-                    return;
-                luaManager->addAction([element] { element->update(); }, "Update UI");
-                element->mState = LuaUi::Element::Update;
+            const auto scheduleUpdate = [luaManager = context.mLuaManager](
+                const std::shared_ptr<LuaUi::Element>& element, const sol::table* changed) {
+                element->requestUpdate(changed, [&] {
+                    luaManager->addAction([element] { element->update(); }, "Update UI");
+                });
+            };
+            uiElement["update"] = [scheduleUpdate](const std::shared_ptr<LuaUi::Element>& element) {
+                scheduleUpdate(element, nullptr);
+            };
+            uiElement["updateProperties"] = [scheduleUpdate](
+                const std::shared_ptr<LuaUi::Element>& element, const sol::table& changed) {
+                scheduleUpdate(element, &changed);
             };
             uiElement["destroy"] = [luaManager = context.mLuaManager](const std::shared_ptr<LuaUi::Element>& element) {
                 if (element->mState == LuaUi::Element::Destroyed)

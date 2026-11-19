@@ -127,6 +127,8 @@ namespace MWInput
 
     void ControllerManager::buttonPressed(int deviceID, const SDL_ControllerButtonEvent& arg)
     {
+        if (MWBase::Environment::get().getInputManager()->captureBinding(2, arg.button, true))
+            return;
         if (!Settings::input().mEnableController || mBindingsManager->isDetectingBindingState())
             return;
 
@@ -172,6 +174,11 @@ namespace MWInput
 
     void ControllerManager::buttonReleased(int deviceID, const SDL_ControllerButtonEvent& arg)
     {
+        if (MWBase::Environment::get().getInputManager()->captureBinding(2, arg.button, false))
+        {
+            mBindingsManager->controllerButtonReleased(deviceID, arg);
+            return;
+        }
         if (mBindingsManager->isDetectingBindingState())
         {
             mBindingsManager->controllerButtonReleased(deviceID, arg);

@@ -1,0 +1,7 @@
+{
+  "repository": "plexiglassss/openmw",
+  "branch": "diagnostic-timing-2829ae6d",
+  "parent_commit": "9d7aca37f84edc556646544f23ef5efd29e62fb6",
+  "source_scope": "Generic engine player setup and terrain preload diagnostics",
+  "live_runtime": "NOT_RUN"
+}

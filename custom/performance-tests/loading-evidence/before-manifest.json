@@ -1,0 +1,24 @@
+{
+  "repository": "plexiglassss/openmw",
+  "commit": "9d7aca37f84edc556646544f23ef5efd29e62fb6",
+  "binding": "Existing source bytes are bound by immutable Git commit and exact path. New paths have no predecessor in this scope.",
+  "existing_paths": [
+    ".github/workflows/diagnostic-timing.yml",
+    "apps/openmw/mwrender/groundcover.cpp",
+    "apps/openmw/mwrender/objectpaging.cpp",
+    "apps/openmw/mwstate/statemanagerimp.cpp",
+    "apps/openmw/mwworld/cellpreloader.cpp",
+    "apps/openmw/mwworld/worldimp.cpp",
+    "components/loadinglistener/loadinglistener.hpp",
+    "components/loadinglistener/reporter.cpp",
+    "components/loadinglistener/reporter.hpp",
+    "components/terrain/chunkmanager.cpp",
+    "components/terrain/quadtreeworld.cpp"
+  ],
+  "new_paths": [
+    "components/diagnostics/loading.hpp",
+    "custom/performance-tests/LOADING_DETAIL_DIAGNOSTICS.md",
+    "custom/performance-tests/loading-reporter.cpp",
+    "custom/performance-tests/loading.cpp"
+  ]
+}

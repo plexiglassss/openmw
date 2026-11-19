@@ -1,0 +1,78 @@
+format: 2
+id: horror-mod-classic-interiors
+name: Horror Mod - Classic Interior Rendering
+enabled: true
+priority: 100
+required-content:
+  - "Horror Mod.esp"
+match:
+  type: interior
+  cells:
+    - "Horror, Old Cave"
+    - "Lower Depths"
+    - "Halls of the sinner"
+    - "Crypt of Memories"
+    - "Cavern of the Dead"
+    - "Butchery"
+    - "Troll's Lair"
+    - "Pit of Agony"
+    - "Nightmare's Lair"
+    - "Insanity Cradle"
+    - "Outer Hell"
+    - "The Brothers Arena"
+    - "Horror, Oblivion"
+    - "Nest of Terror"
+    - "Darkened path"
+    - "Blood Dwelling"
+    - "Prison Depths"
+    - "Heaven's Courtyard"
+    - "Chapel of the Innocent"
+    - "Chapel of madness"
+    - "City of the Lost"
+    - "City of the Lost, Temple"
+    - "City of the Lost, Black Hill Tavern"
+    - "City of the Lost, Mortuary"
+    - "City of the Lost, Port"
+    - "City of the Lost, Black Hill Haunted Manor"
+    - "City of the Lost, Dark Bowels"
+    - "City of the Lost, Pawn Shop"
+    - "City of the Lost, Manor Garden"
+    - "Dark Hill Manor, Lonely Room"
+    - "City of the Lost, Forbidden Sewers"
+    - "Horror, Oblivion, Shrine of Adramelech"
+    - "Dark Hill Prison, Entrance"
+    - "Horror, Oblivion, Adramelech's Tomb"
+    - "Bhaal Moloch"
+    - "City of the Lost, empty house"
+    - "Horror, Pandemonium"
+    - "City of the Lost, House"
+    - "Unknown location"
+    - "City of the Lost, The Locked House"
+    - "The Forgotten Temple"
+    - "Lost Sanctuary, Tower of Nightmares"
+    - "Bhaal Moloch, Temple"
+    - "Cave of Filth"
+    - "Lost Sanctuary, Citadel Peak"
+    - "Dark Hill Prison, Catacombs"
+    - "Dark Hill Prison, Raging Death"
+    - "Dark Hill Prison, Inferno room"
+    - "Dark Hill Prison, Torture Chamber"
+    - "Dark Hill Prison, Warden Lair"
+    - "Dark Hill Manor, Basement"
+    - "Dark Hill Manor, Dining Hall"
+    - "Dark Hill Manor, Sunken Rectory"
+    - "Cave of Temptation"
+    - "Lair of Snakes"
+    - "Gubrez"
+    - "Buried Tomb"
+    - "Beyond the edge of Reality"
+    - "Amon-Re"
+    - "Gubrez, Undersea Caverns"
+    - "Dark Hill Manor, Ballroom"
+    - "Gubrez, Sector C"
+    - "HorrorVoid"
+shaders:
+  clamp-lighting: true
+  force-per-pixel-lighting: false
+  auto-use-object-normal-maps: false
+  auto-use-object-specular-maps: false

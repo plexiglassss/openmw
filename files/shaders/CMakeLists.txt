@@ -26,12 +26,15 @@ set(SHADER_FILES
     lib/core/lighting_vertex_legacy.glsl
     lib/core/lighting_fragment_impl.glsl
     lib/core/lighting_vertex_impl.glsl
+    lib/core/skinning.glsl
     lib/core/vertex.glsl
     lib/core/vertex.h.glsl
     lib/core/vertex_multiview.glsl
     lib/light/bindings.glsl
     lib/light/bindings-legacy.glsl
     lib/light/clamp.glsl
+    lib/light/locationrenderingprofile.glsl
+    lib/light/objectlighting.glsl
     lib/light/util.glsl
     lib/light/struct.glsl
     lib/sky/passes.glsl

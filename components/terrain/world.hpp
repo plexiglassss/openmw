@@ -1,6 +1,7 @@
 #ifndef COMPONENTS_TERRAIN_WORLD_H
 #define COMPONENTS_TERRAIN_WORLD_H
 
+#include <atomic>
 #include <osg/Referenced>
 #include <osg/Vec3f>
 #include <osg/ref_ptr>
@@ -12,6 +13,7 @@
 
 #include "cellborder.hpp"
 #include "view.hpp"
+#include "arrivalview.hpp"
 
 namespace osg
 {
@@ -97,6 +99,17 @@ namespace Terrain
         {
         }
 
+        virtual std::shared_ptr<ArrivalView> createArrival(const osg::Vec3f&, const osg::Vec4i&) { return {}; }
+        virtual std::shared_ptr<ArrivalView> captureArrival(const osg::Vec3f&, const osg::Vec4i&, std::size_t) { return {}; }
+        virtual bool validArrival(const ArrivalView&) const { return false; }
+        virtual void showArrival(std::shared_ptr<ArrivalView>) {}
+        virtual void preloadArrival(View* view, const std::shared_ptr<ArrivalView>& arrival,
+            std::atomic_bool& abort, Loading::Reporter& reporter, const ArrivalView::Progress& nearReady)
+        {
+            preload(view, arrival->mPoint, arrival->mGrid, abort, reporter);
+            if (!abort)
+                nearReady(0, 0);
+        }
         virtual void rebuildViews() {}
 
         virtual void reportStats(unsigned int frameNumber, osg::Stats* stats) {}

@@ -1,6 +1,10 @@
 #include "registerarchives.hpp"
 
 #include <filesystem>
+#include <thread>
+
+#include <components/diagnostics/timing.hpp>
+#include <components/misc/parallelfor.hpp>
 #include <set>
 #include <stdexcept>
 
@@ -16,6 +20,7 @@ namespace VFS
     void registerArchives(VFS::Manager* vfs, const Files::Collections& collections,
         const std::vector<std::string>& archives, bool useLooseFiles, const ToUTF8::StatelessUtf8Encoder* encoder)
     {
+        Diagnostics::Scope timing("startup", "vfs", "registerArchives");
         const Files::PathContainer& dataDirs = collections.getPaths();
 
         for (std::vector<std::string>::const_iterator archive = archives.begin(); archive != archives.end(); ++archive)
@@ -35,20 +40,30 @@ namespace VFS
 
         if (useLooseFiles)
         {
+            Diagnostics::Scope scanTiming("startup", "vfs", "scanDataDirectories");
+            std::vector<std::filesystem::path> uniqueDirs;
             std::set<std::filesystem::path> seen;
             for (const auto& dataDir : dataDirs)
             {
                 if (seen.insert(dataDir).second)
                 {
                     Log(Debug::Info) << "Adding data directory " << dataDir;
-                    // Last data dir has the highest priority
-                    vfs->addArchive(std::make_unique<FileSystemArchive>(dataDir));
+                    uniqueDirs.push_back(dataDir);
                 }
                 else
                     Log(Debug::Info) << "Ignoring duplicate data directory " << dataDir;
             }
+            std::vector<std::unique_ptr<FileSystemArchive>> scanned(uniqueDirs.size());
+            // Bound disk pressure and memory use; never mutate the VFS from workers.
+            const auto workers = std::min(4u, std::max(1u, std::thread::hardware_concurrency()));
+            Misc::parallelFor(uniqueDirs.size(), workers,
+                [&](std::size_t i) { scanned[i] = std::make_unique<FileSystemArchive>(uniqueDirs[i]); });
+            // Completion order must not change which mod wins an asset conflict.
+            for (auto& archive : scanned)
+                vfs->addArchive(std::move(archive));
         }
 
+        Diagnostics::Scope indexTiming("startup", "vfs", "buildIndex");
         vfs->buildIndex();
     }
 

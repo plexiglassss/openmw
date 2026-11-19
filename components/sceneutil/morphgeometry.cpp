@@ -1,5 +1,7 @@
+#include "templateref.hpp"
 #include "morphgeometry.hpp"
 
+#include <osg/UserDataContainer>
 #include <osgUtil/CullVisitor>
 
 #include <cassert>
@@ -40,7 +42,11 @@ namespace SceneUtil
             // - Arrays that we add or replace in the cloned geometry must be explicitely forbidden from reusing
             // BufferObjects of the original geometry. (ensured by vbo below)
             mGeometry[i] = new osg::Geometry(*mSourceGeometry, osg::CopyOp::SHALLOW_COPY);
-            mGeometry[i]->getOrCreateUserDataContainer()->addUserObject(mSourceGeometry.get());
+            // A shallow Geometry copy can share the source container. Each clone
+            // needs its own container before adding a lifetime reference on a worker.
+            if (const auto* data = mSourceGeometry->getUserDataContainer())
+                mGeometry[i]->setUserDataContainer(osg::clone(data, osg::CopyOp::SHALLOW_COPY));
+            SceneUtil::addTemplateRef(*mGeometry[i], mSourceGeometry.get());
 
             const osg::Geometry& from = *mSourceGeometry;
             osg::Geometry& to = *mGeometry[i];

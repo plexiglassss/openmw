@@ -1,6 +1,7 @@
 #ifndef GAME_MWMECHANICS_MECHANICSMANAGERIMP_H
 #define GAME_MWMECHANICS_MECHANICSMANAGERIMP_H
 
+#include <components/esm3/dungeonstates.hpp>
 #include <components/settings/settings.hpp>
 
 #include "../mwbase/mechanicsmanager.hpp"
@@ -38,6 +39,10 @@ namespace MWMechanics
         typedef std::map<ESM::RefId, OwnerMap> StolenItemsMap;
         StolenItemsMap mStolenItems;
 
+        ESM::DungeonStates mDungeonStates;
+        bool mDungeonStatusDirty = false;
+        std::uint64_t mDungeonStatusRevision = 0;
+
     public:
         void buildPlayer();
         ///< build player according to stored class/race/birthsign information. Will
@@ -56,6 +61,11 @@ namespace MWMechanics
 
         void drop(const MWWorld::CellStore* cellStore) override;
         ///< Deregister all objects in the given cell.
+
+        void updateDungeonStatus(const MWWorld::CellStore* cell) override;
+        void queueDungeonStatusUpdate(const MWWorld::CellStore* cell) override;
+        bool isDungeonCleared(const ESM::RefId& cellId) const override;
+        std::uint64_t getDungeonStatusRevision() const override { return mDungeonStatusRevision; }
 
         void update(float duration, bool paused);
         ///< Update objects

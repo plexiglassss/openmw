@@ -18,6 +18,7 @@
 #include <components/esm3/loadnpc.hpp>
 #include <components/esm3/loadscpt.hpp>
 #include <components/lua/luastate.hpp>
+#include <components/misc/nativejobpool.hpp>
 #include <components/translation/translation.hpp>
 
 #include <gtest/gtest.h>
@@ -35,6 +36,11 @@ namespace MWLua
         {
         protected:
             MWBase::Environment mEnvironment;
+            struct NativeJobs
+            {
+                Misc::NativeJobPool mPool{ 0, 1 };
+                explicit NativeJobs(MWBase::Environment& environment) { environment.setNativeJobPool(mPool); }
+            } mNativeJobs{ mEnvironment };
             MWWorld::World mWorld{ nullptr, -1, {}, {} };
             MWWorld::ESMStore& mStore = mWorld.getStore();
             MWWorld::WorldModel& mWorldModel = mWorld.getWorldModel();

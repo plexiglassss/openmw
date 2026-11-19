@@ -83,6 +83,7 @@ namespace Resource
 
             constexpr std::string_view caches[] = {
                 "Node",
+                "NodeInstance",
                 "Shape",
                 "Shape Instance",
                 "Image",

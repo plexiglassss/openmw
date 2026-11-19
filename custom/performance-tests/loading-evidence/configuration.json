@@ -1,0 +1,9 @@
+{
+  "scope": "Diagnostic source only; no gameplay/configuration/load-order mutation",
+  "request": "Yes do that",
+  "context": "Approved finer timings following the October 25 cold-start analysis; retain cumulative optimizations and post-load capture",
+  "source_log_sha256": "74136c352eb81dcc1d077ddfe0eb9190041d1b9c8d0b1b71d56a5af136edd664",
+  "logged_build": "9b5235c11f13f2c99495b08c1aa64bb27804eb8d",
+  "installed_asset_hashes": "NOT_VERIFIED",
+  "full_mod_audit": "OPEN"
+}

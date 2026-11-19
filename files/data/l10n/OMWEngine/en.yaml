@@ -75,6 +75,23 @@ AudioMusic: "Music"
 AudioVoice: "Voice"
 AutoSaveOnResting: "Auto-Save on Resting"
 BestAttack: "Always Use Best Attack"
+Deleveling: "Deleveling"
+DelevelCreatures: "Delevel Creature Lists"
+DelevelCreaturesTooltip: |-
+    Allow every existing creature-list entry from player level 1. Creatures keep their normal strength.
+
+    Affects future selections, including respawns. Existing actors are not replaced.
+DelevelItems: "Delevel Item Lists"
+DelevelItemsTooltip: |-
+    Allow every existing item-list entry from player level 1, including higher-level loot.
+
+    Affects newly generated inventory. Existing items are not rerolled.
+DelevelingHint: |-
+    These options affect future spawns and newly generated inventory. Existing creatures and items stay as they are.
+
+    Changes take effect immediately. No restart is needed.
+
+    Your merged leveled lists are still required.
 CameraSensitivity: "Camera Sensitivity"
 CameraZoomIn: "Zoom Camera In"
 CameraZoomOut: "Zoom Camera Out"
@@ -83,6 +100,11 @@ ClampLighting: "Clamp Lighting"
 ClampLightingTooltip: |-
     Cap lighting brightness at (1, 1, 1) to replicate Morrowind's rendering.
     Prevents overly bright or shifted colors but can dull lighting.
+LocationRenderingProfiles: "Location Rendering Profiles"
+LocationRenderingProfilesTooltip: |-
+    Apply installed shader_profiles configuration files in their matched interior cells.
+
+    Profiles can temporarily override clamp lighting, forced per-pixel lighting, and automatic object normal/specular maps without changing your saved global settings. Disable this to use the global shader settings everywhere.
 ClassicFalloff: "Classic Falloff"
 ClassicFalloffTooltip: |-
     Default: off
@@ -125,6 +147,7 @@ GammaCorrection: "Gamma Correction"
 GammaCorrectionValue: "Gamma Correction ({value, number, ::.00})"
 GammaDark: "Dark"
 GammaLight: "Light"
+Gameplay: "Gameplay"
 GmstOverridesL10n: "Strings From ESM Files Have Priority"
 InvertXAxis: "Invert X Axis"
 InvertYAxis: "Invert Y Axis"
@@ -265,3 +288,128 @@ JournalShowAll: "Show All"
 LoadingSelectCharacter: "Change Character"
 RechargeSelect: "Recharge"
 RepairTool: "Tool"
+
+# Journal typography
+
+JournalTypography: "Journal text"
+JournalFontSize: "Font size"
+JournalFontSizeAutomatic: "Use interface size"
+JournalTextAlignment: "Alignment"
+JournalPageNumberFontSize: "Page number size"
+JournalPageNumberFontSizeAutomatic: "Use current layout"
+JournalButtonScale: "Button label scale"
+JournalAlignLeft: "Left"
+JournalAlignCentre: "Centred"
+JournalAlignRight: "Right"
+JournalAlignJustified: "Justified"
+JournalTypographyHint: "Reopen the journal after changing these settings. Text size includes quest/topic lists and the alphabet. Page numbers and button images have separate sizes."
+
+# Dialogue and journal colours
+
+DialogueColours: "Dialogue colours"
+DialogueColouring: "Use dialogue colours"
+DialogueUseSystemColour: "Use theme colour for normal dialogue"
+DialogueClassifyNarration: "Recognise dialogue narration"
+JournalColourNarration: "Colour narration in the journal"
+DialogueUseSystemColourHint: "Keep the normal dialogue colour from your current interface theme. Switch this off to choose a custom colour for normal dialogue."
+DialogueNarrationHint: "Recognise stage directions, sounds and actions in the text. Unusual wording from mods may not be recognised."
+DialogueColourRole: "Text type"
+DialogueColourNormal: "Normal dialogue"
+DialogueColourTopic: "Your topics/questions"
+DialogueColourInventory: "Inventory notices"
+DialogueColourStat: "Stat changes"
+DialogueColourNarration: "Dialogue narration"
+DialogueColourJournal: "Journal update notices"
+DialogueColourJournalNarration: "Journal narration"
+DialogueColourRed: "Red"
+DialogueColourGreen: "Green"
+DialogueColourBlue: "Blue"
+DialogueColourReset: "Reset this colour"
+DialogueColourHint: "Dialogue colours update immediately. Reopen the journal to refresh its text. Topic links keep their colours."
+DialogueColourSampleNormal: "Thank you. May your travels be safe."
+DialogueColourSampleTopic: "Haldenshore — latest rumors"
+DialogueColourSampleInventory: "A note has been added to your inventory."
+DialogueColourSampleStat: "Your Strength has increased by 1."
+DialogueColourSampleNarration: "[You hear footsteps behind you.]"
+DialogueColourSampleJournal: "Your journal has been updated."
+DialogueColourSampleJournalNarration: "I heard footsteps behind me."
+
+# Brief on-screen messages
+
+MessagePositionTab: "Messages"
+MessagePositionDescription: "Choose where brief game messages appear, including item pickups and lockpicking notices."
+MessagePositionAnchor: "Screen position"
+MessagePositionAnchorHint: "Select an area of the screen, then adjust the offsets below. Messages are kept within the screen where space allows."
+MessagePositionTopLeft: "Top left"
+MessagePositionTopCentre: "Top centre"
+MessagePositionTopRight: "Top right"
+MessagePositionMiddleLeft: "Middle left"
+MessagePositionCentre: "Centre"
+MessagePositionMiddleRight: "Middle right"
+MessagePositionBottomLeft: "Bottom left"
+MessagePositionBottomCentre: "Bottom centre"
+MessagePositionBottomRight: "Bottom right"
+MessagePositionHorizontalOffset: "Horizontal offset"
+MessagePositionVerticalOffset: "Vertical offset"
+MessagePositionHorizontalHint: "Negative moves left; positive moves right."
+MessagePositionVerticalHint: "Negative moves up; positive moves down."
+MessagePositionReset: "Reset position"
+MessagePositionShowTest: "Show test message"
+MessagePositionTest: "This is where brief game messages will appear."
+MessagePositionHint: "Offsets use interface pixels and follow your interface scaling. Changes apply immediately and are saved when you close Options. Dialogue choices, subtitles and separate mod interfaces use their own layouts."
+
+# Native world-map location icons
+MapIconsTab: "Map icons"
+MapIconsDescription: "Choose symbols for the built-in world map, local map and minimap."
+MapIconsEnabled: "Show location icons on the world map"
+MapIconsEntrances: "Show discovered entrance icons"
+MapIconsTooltips: "Show location type in tooltips"
+MapIconsLocalDoors: "Show door icons on the local map and minimap"
+MapIconsLocalSize: "Local door size at normal zoom"
+MapIconsMaximum: "Maximum icon size on both maps"
+MapIconsVanillaColours: "Original vanilla colours"
+MapIconsSize: "World icon size at normal zoom"
+MapIconsColours: "Icon colours on both maps"
+MapIconsMapColours: "Map colours"
+MapIconsWhite: "White"
+MapIconsCategoryColours: "Different colours by type"
+MapIconsCategory: "Location type"
+MapIconsCategoryEnabled: "Use an icon for this type"
+MapIconsReset: "Reset icon options"
+MapIconsHint: "The maximum size applies after zoom and grouping, in logical interface pixels. A disabled world location type uses a square marker."
+
+# Native Travel Tooltips, If The Key Fits and Been There, Done That
+TooltipOptionsTab: "Tooltips"
+TooltipOptionsDescription: "Choose travel previews, matching-key hints and cleared-location labels. Changes apply immediately and are saved when you close Options."
+TravelTooltipSection: "Travel Tooltips"
+TravelTooltipEnabled: "Show illustrated destination previews"
+TravelTooltipOverview: "Show the travel overview map"
+TravelTooltipGondoliers: "Show gondolier destination previews"
+TravelTooltipFallback: "Use Stuporstar art when an image is missing"
+TravelTooltipWide: "Use a wide preview layout"
+TravelTooltipPack: "Destination art pack"
+TravelTooltipOverviewMap: "Overview map"
+TravelTooltipColour: "Artwork tint"
+TravelTooltipTitleFont: "Destination title font"
+TravelTooltipTextFont: "Description font"
+TravelTooltipRoutes: "Travel routes"
+TravelTooltipVvardenfell: "Vvardenfell map"
+TravelTooltipBookMap: "Book map"
+TravelTooltipDefaultFont: "Interface font"
+TravelTooltipMonoFont: "Monospace"
+TravelTooltipDaedricFont: "Daedric"
+TravelTooltipScale: "Preview size"
+KeyTooltipSection: "If The Key Fits"
+KeyTooltipEnabled: "Show when you carry the matching key"
+KeyTooltipUseKey: "(Use Key)"
+ClearedDungeonSection: "Been There, Done That"
+ClearedDungeonTooltips: "Show cleared status on entrance tooltips"
+ClearedDungeonMapTitle: "Show cleared status in the map title"
+ClearedDungeonSuffix: "(Cleared)"
+TooltipOptionsReset: "Reset tooltip options"
+TooltipOptionsHint: "Travel previews require the Travel Tooltips data folder. Cleared status tracks hostiles in each visited interior, rather than quests or loot. Tracking starts with visits in this build; hiding the labels keeps your history. Reset changes only the options on this page."
+
+DialogueColourRemoval: "Items removed"
+DialogueColourSampleRemoval: "A note has been removed from your inventory."
+
+ModKeybindings: "Mod Keybindings"

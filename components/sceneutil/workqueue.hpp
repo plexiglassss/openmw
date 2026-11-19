@@ -20,6 +20,15 @@ namespace SceneUtil
         /// Override in a derived WorkItem to perform actual work.
         virtual void doWork() {}
 
+        /// Return false to yield an unfinished item. Completion is published
+        /// only after its final slice, or cancellation of queued work.
+        virtual bool doWorkSlice()
+        {
+            doWork();
+            return true;
+        }
+        virtual bool isMaintenance() const { return false; }
+
         bool isDone() const;
 
         /// Wait until the work is completed. Usually called from the main thread.
@@ -57,6 +66,17 @@ namespace SceneUtil
         /// @param front If true, add item to the front of the queue. If false (default), add to the back.
         void addWorkItem(std::shared_ptr<WorkItem> item, bool front = false);
 
+        /// Abort an item and remove it if it has not started. Running work keeps its
+        /// owner and completion signal until doWork returns; it is never joined here.
+        bool cancelWorkItem(WorkItem* item);
+        bool cancelWorkItem(const std::shared_ptr<WorkItem>& item) { return cancelWorkItem(item.get()); }
+        /// Promote queued prediction to required work without enqueuing it twice.
+        bool promoteWorkItem(WorkItem* item);
+        bool promoteWorkItem(const std::shared_ptr<WorkItem>& item) { return promoteWorkItem(item.get()); }
+
+        /// Internal continuation; rejects shutdown races and signals completion.
+        void continueWorkItem(std::shared_ptr<WorkItem> item);
+
         /// Get the next work item from the front of the queue. If the queue is empty, waits until a new item is added.
         /// If the workqueue is in the process of being destroyed, may return nullptr.
         /// @par Used internally by the WorkThread.
@@ -69,6 +89,8 @@ namespace SceneUtil
     private:
         bool mIsReleased;
         std::deque<std::shared_ptr<WorkItem>> mQueue;
+        std::deque<std::shared_ptr<WorkItem>> mMaintenance;
+        std::size_t mNormalSinceMaintenance = 0;
 
         mutable std::mutex mMutex;
         std::condition_variable mCondition;

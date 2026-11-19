@@ -1,8 +1,14 @@
+#include <components/diagnostics/loading.hpp>
 #include "chunkmanager.hpp"
+
+#include <components/diagnostics/timing.hpp>
+
+#include <osg/KdTree>
 
 #include <osg/Texture2D>
 
 #include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/compilepriority.hpp>
 
 #include <components/esm/util.hpp>
 #include <components/resource/objectcache.hpp>
@@ -59,8 +65,10 @@ namespace Terrain
     }
 
     osg::ref_ptr<osg::Node> ChunkManager::getChunk(float size, const osg::Vec2f& center, unsigned char lod,
-        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool*)
     {
+        Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::TerrainChunks);
+        Diagnostics::Scope chunkTiming("terrain", "ground", "getChunk");
         // Override lod with the vertexLodMod adjusted value.
         // TODO: maybe we can refactor this code by moving all vertexLodMod code into this class.
         lod = static_cast<unsigned char>(lodFlags >> (4 * 4));
@@ -120,6 +128,7 @@ namespace Terrain
     void ChunkManager::createCompositeMapGeometry(
         float chunkSize, const osg::Vec2f& chunkCenter, const osg::Vec4f& texCoords, CompositeMap& compositeMap)
     {
+        Diagnostics::Scope compositeTiming("terrain", "ground", "createCompositeMapGeometry");
         if (chunkSize > mMaxCompGeometrySize)
         {
             createCompositeMapGeometry(chunkSize / 2.f, chunkCenter + osg::Vec2f(chunkSize / 4.f, chunkSize / 4.f),
@@ -205,6 +214,7 @@ namespace Terrain
     osg::ref_ptr<osg::Node> ChunkManager::createChunk(float chunkSize, const osg::Vec2f& chunkCenter, unsigned char lod,
         unsigned int lodFlags, bool compile, const TerrainDrawable* templateGeometry)
     {
+        Diagnostics::Scope createTiming("terrain", "ground", "createChunk");
         osg::ref_ptr<TerrainDrawable> geometry(new TerrainDrawable);
 
         if (!templateGeometry)
@@ -256,6 +266,16 @@ namespace Terrain
 
         geometry->addPrimitiveSet(mBufferCache.getIndexBuffer(numVerts, lodFlags));
 
+        // Each LOD/stitching variant has its own topology. Build before publication;
+        // never reuse a tree from templateGeometry with a different index buffer.
+        {
+            Diagnostics::Scope treeTiming("terrain", "ground", "buildRayIndex");
+            osg::ref_ptr<osg::KdTree> rayTree = new osg::KdTree;
+            osg::KdTree::BuildOptions rayOptions;
+            if (rayTree->build(rayOptions, geometry))
+                geometry->setShape(rayTree);
+        }
+
         bool useCompositeMap = chunkSize >= mCompositeMapLevel;
         unsigned int numUvSets = useCompositeMap ? 1 : 2;
 
@@ -305,7 +325,7 @@ namespace Terrain
 
         if (!templateGeometry && compile && mSceneManager->getIncrementalCompileOperation())
         {
-            mSceneManager->getIncrementalCompileOperation()->add(geometry);
+            SceneUtil::enqueueCompile(*mSceneManager->getIncrementalCompileOperation(), geometry);
         }
         geometry->setNodeMask(mNodeMask);
 

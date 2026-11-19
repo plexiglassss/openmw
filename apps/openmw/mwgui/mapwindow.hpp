@@ -1,6 +1,7 @@
 #ifndef MWGUI_MAPWINDOW_H
 #define MWGUI_MAPWINDOW_H
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -12,6 +13,9 @@
 #include "windowpinnablebase.hpp"
 
 #include <components/esm3/custommarkerstate.hpp>
+#include <components/esm3/globalmap.hpp>
+#include <components/mapmarkers/icons.hpp>
+#include <components/mapmarkers/spatialindex.hpp>
 #include <components/misc/constants.hpp>
 
 namespace MWRender
@@ -44,7 +48,7 @@ namespace SceneUtil
 
 namespace MWGui
 {
-    class MarkerWidget;
+    class MapImageMarker;
 
     class CustomMarkerCollection
     {
@@ -88,6 +92,7 @@ namespace MWGui
         void onFrame(float dt);
 
         bool toggleFogOfWar();
+        void refreshDoorIcons();
 
         struct MarkerUserData
         {
@@ -109,6 +114,7 @@ namespace MWGui
             float nY;
             std::vector<std::string> notes;
             std::string caption;
+            std::size_t doorIcon = 0;
         };
 
     protected:
@@ -121,6 +127,7 @@ namespace MWGui
         MyGUI::ScrollView* mLocalMap = nullptr;
         MyGUI::ImageBox* mCompass = nullptr;
         float mLocalMapZoom = 1.f;
+        MapMarkers::IconSet mIconSet;
         bool mFogOfWarToggled = true;
         bool mFogOfWarEnabled;
         bool mNeedDoorMarkersUpdate = false;
@@ -149,14 +156,14 @@ namespace MWGui
         std::vector<MapEntry> mMaps;
 
         // Keep track of created marker widgets, just to easily remove them later.
-        std::vector<MarkerWidget*> mExteriorDoorMarkerWidgets;
-        std::map<std::pair<int, int>, std::vector<MarkerWidget*>> mExteriorDoorsByCell;
-        std::vector<MarkerWidget*> mInteriorDoorMarkerWidgets;
+        std::vector<MapImageMarker*> mExteriorDoorMarkerWidgets;
+        std::map<std::pair<int, int>, std::vector<MapImageMarker*>> mExteriorDoorsByCell;
+        std::vector<MapImageMarker*> mInteriorDoorMarkerWidgets;
         std::vector<MyGUI::Widget*> mMagicMarkerWidgets;
         std::vector<MyGUI::Widget*> mCustomMarkerWidgets;
-        std::vector<MarkerWidget*> mDoorMarkersToRecycle;
+        std::vector<MapImageMarker*> mDoorMarkersToRecycle;
 
-        std::vector<MarkerWidget*>& currentDoorMarkersWidgets();
+        std::vector<MapImageMarker*>& currentDoorMarkersWidgets();
 
         virtual void updateCustomMarkers();
 
@@ -166,7 +173,9 @@ namespace MWGui
         MyGUI::IntPoint getMarkerPosition(float worldX, float worldY, MarkerUserData& markerPos) const;
         MyGUI::IntCoord getMarkerCoordinates(
             float worldX, float worldY, MarkerUserData& markerPos, unsigned short markerSize) const;
-        MarkerWidget* createDoorMarker(const std::string& name, float x, float y) const;
+        MapImageMarker* createDoorMarker() const;
+        void styleDoorMarker(MapImageMarker* widget) const;
+        int doorMarkerSize(const MarkerUserData& data) const;
         void updateMarkerCoordinates(MyGUI::Widget* widget, unsigned short markerSize) const;
 
         virtual void notifyPlayerUpdate() {}
@@ -235,7 +244,7 @@ namespace MWGui
             const std::shared_ptr<SceneUtil::WorkQueue>& workQueue);
         virtual ~MapWindow();
 
-        void setCellName(const std::string& cellName);
+        void setCellName(const std::string& cellName, const ESM::RefId& interiorCellId);
 
         void setAlpha(float alpha) override;
         void setVisible(bool visible) override;
@@ -245,6 +254,12 @@ namespace MWGui
         /// adds the marker to the global map
         /// @param name The ESM::Cell::mName
         void addVisitedLocation(const std::string& name, int x, int y);
+
+        /// Discover entrances only from the exterior cell just entered, whose
+        /// references are already loaded. No destination references are loaded.
+        void discoverLocationEntrances(const MWWorld::CellStore& cell);
+        void refreshLocationIcons();
+        size_t countSavedGameRecords() const;
 
         // reveals this cell's map on the global map
         void cellExplored(int x, int y);
@@ -267,6 +282,7 @@ namespace MWGui
         void readRecord(ESM::ESMReader& reader, uint32_t type);
 
         void asyncPrepareSaveMap();
+        void advanceSaveMapRestore(bool finish);
 
         std::string_view getWindowIdForLua() const override { return "Map"; }
 
@@ -275,6 +291,41 @@ namespace MWGui
         void setActiveControllerWindow(bool active) override;
 
     private:
+        typedef std::pair<int, int> CellId;
+
+        struct MapMarkerType
+        {
+            // Native places use cell centres; entrances retain exact world XY.
+            mutable osg::Vec2f position;
+            MyGUI::Widget* widget = nullptr;
+            std::string name;
+            MapMarkers::Category category = MapMarkers::Category::Misc;
+            mutable CellId sourceCell;
+            bool entrance = false;
+
+            bool operator<(const MapMarkerType& right) const { return widget < right.widget; }
+        };
+
+        struct VisitedGroup
+        {
+            MapMarkerType marker;
+            osg::Vec2f sum{ 0.f, 0.f };
+        };
+        struct VisitedLocation
+        {
+            CellId cell;
+            std::string name;
+            MapMarkers::Category category;
+        };
+        void createVisitedWidgets(const VisitedLocation& location);
+
+        struct LocationEntrance
+        {
+            ESM::LocationMarker saved;
+            std::string name;
+            MapMarkers::Category category = MapMarkers::Category::Misc;
+        };
+
         void onDragStart(MyGUI::Widget* sender, int left, int top, MyGUI::MouseButton id);
         void onMouseDrag(MyGUI::Widget* sender, int left, int top, MyGUI::MouseButton id);
         void onWorldButtonClicked(MyGUI::Widget* sender);
@@ -290,12 +341,26 @@ namespace MWGui
         void onChangeScrollWindowCoord(MyGUI::Widget* sender);
         void globalMapUpdatePlayer();
         void setGlobalMapMarkerTooltip(MyGUI::Widget* widget, int x, int y);
-        float getMarkerSize(size_t agregatedWeight) const;
+        float getMarkerSize(const MapMarkerType& marker, size_t aggregatedWeight) const;
         void resizeGlobalMap();
         void shiftMap(int dx, int dy);
         void worldPosToGlobalMapImageSpace(float x, float z, float& imageX, float& imageY) const;
-        MyGUI::IntCoord createMarkerCoords(float x, float y, float agregatedWeight) const;
-        MyGUI::Widget* createMarker(const std::string& name, float x, float y, float agregatedWeight);
+        MyGUI::IntCoord createMarkerCoords(const MapMarkerType& marker, size_t aggregatedWeight) const;
+        MapMarkerType createMarker(const std::string& name, const osg::Vec2f& position, size_t aggregatedWeight,
+            MapMarkers::Category category, CellId sourceCell, bool entrance = false);
+        bool usesLocationIcon(const MapMarkerType& marker) const;
+        void styleMarker(const MapMarkerType& marker, size_t aggregatedWeight);
+        void updateLocationIconStyles();
+        void refreshEntranceWidgets();
+        void clearEntranceWidgets();
+        void insertEntrance(LocationEntrance entrance);
+        void eraseEntrance(const ESM::RefId& destination);
+
+        void refreshDungeonTitle(bool force = false);
+        std::string mCellName;
+        ESM::RefId mCellNameId;
+        std::uint64_t mDungeonStatusRevision = 0;
+        bool mDungeonTitleEnabled = false;
 
         MyGUI::ScrollView* mGlobalMap;
         std::unique_ptr<MyGUI::ITexture> mGlobalMapTexture;
@@ -310,7 +375,6 @@ namespace MWGui
         MyGUI::IntCoord mLastScrollWindowCoordinates;
 
         // Markers on global map
-        typedef std::pair<int, int> CellId;
         std::set<CellId> mMarkers;
 
         MyGUI::Button* mEventBoxGlobal;
@@ -319,16 +383,24 @@ namespace MWGui
         float mGlobalMapZoom = 1.0f;
         std::unique_ptr<MWRender::GlobalMap> mGlobalMapRender;
 
-        struct MapMarkerType
-        {
-            osg::Vec2f position;
-            MyGUI::Widget* widget = nullptr;
-
-            bool operator<(const MapMarkerType& right) const { return widget < right.widget; }
-        };
-
-        std::map<std::string, MapMarkerType> mGlobalMapMarkersByName;
+        std::map<std::string, VisitedGroup> mGlobalMapMarkersByName;
+        std::vector<VisitedLocation> mRestoringLocations;
+        std::size_t mNextRestoringLocation = 0;
+        std::size_t mRestoreMarkerBatches = 0;
+        double mRestoreMarkerMs = 0;
+        bool mRestoringWorldMap = false;
         std::map<MapMarkerType, std::vector<MapMarkerType>> mGlobalMapMarkers;
+
+        // Saved discoveries are compact data, not permanently allocated UI.
+        std::map<ESM::RefId, LocationEntrance> mDiscoveredEntrances;
+        std::map<CellId, std::set<ESM::RefId>> mEntrancesBySource;
+        MapMarkers::SpatialIndex<ESM::RefId> mEntranceSpatialIndex;
+        std::map<ESM::RefId, MapMarkerType> mEntranceWidgets;
+        std::array<bool, MapMarkers::categoryCount> mLocationIconTextures{};
+        bool mLocationIconsDirty = true;
+        bool mEntranceWidgetsDirty = true;
+        MyGUI::IntCoord mEntranceViewport;
+        float mEntranceZoom = 0;
 
         EditNoteDialog mEditNoteDialog;
         ESM::CustomMarker mEditingMarker;

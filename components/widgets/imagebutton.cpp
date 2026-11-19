@@ -1,5 +1,6 @@
 #include "imagebutton.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 #include <MyGUI_RenderManager.h>
@@ -32,6 +33,13 @@ namespace Gui
         mTextureRect = coord;
         mUseWholeTexture = (coord == MyGUI::IntCoord(0, 0, 0, 0));
         updateImage();
+    }
+
+    void ImageButton::setTextureReferenceHeight(int height)
+    {
+        mTextureReferenceHeight = std::max(0, height);
+        if (!mImageNormal.empty())
+            updateImage();
     }
 
     void ImageButton::setPropertyOverride(std::string_view key, std::string_view value)
@@ -93,8 +101,9 @@ namespace Gui
         {
             float scale = 1.f;
             MyGUI::ITexture* texture = MyGUI::RenderManager::getInstance().getTexture(textureName);
-            if (texture && getHeight() != 0)
-                scale = static_cast<float>(texture->getHeight()) / getHeight();
+            const int referenceHeight = mTextureReferenceHeight > 0 ? mTextureReferenceHeight : getHeight();
+            if (texture && referenceHeight != 0)
+                scale = static_cast<float>(texture->getHeight()) / referenceHeight;
 
             const int width = static_cast<int>(std::round(mTextureRect.width * scale));
             const int height = static_cast<int>(std::round(mTextureRect.height * scale));

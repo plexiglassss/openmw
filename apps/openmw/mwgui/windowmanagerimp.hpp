@@ -184,6 +184,8 @@ namespace MWGui
 
         /// \todo investigate, if we really need to expose every single lousy UI element to the outside world
         MWGui::InventoryWindow* getInventoryWindow() override;
+        MWWorld::Ptr getWorldTooltipObject() const override;
+        void setWorldTooltip(const MWWorld::Ptr&, const std::shared_ptr<LuaUi::Element>&) override;
         MWGui::CountDialog* getCountDialog() override;
         MWGui::ConfirmationDialog* getConfirmationDialog() override;
         MWGui::TradeWindow* getTradeWindow() override;
@@ -269,13 +271,17 @@ namespace MWGui
         void exitCurrentGuiMode() override;
 
         void messageBox(std::string_view message,
-            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) override;
+            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible,
+            Misc::DialogueText::Category category = Misc::DialogueText::Category::Default) override;
         void scheduleMessageBox(std::string message,
             enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) override;
         void staticMessageBox(std::string_view message) override;
         void removeStaticMessageBox() override;
         void interactiveMessageBox(std::string_view message, const std::vector<std::string>& buttons = {},
-            bool block = false, int defaultFocus = -1) override;
+            bool block = false, int defaultFocus = -1, std::string_view sourceScriptId = {}) override;
+        std::optional<InteractiveMessageBoxInfo> getInteractiveMessageBoxInfo(
+            std::optional<MessageBoxId> lastId = {}) const override;
+        void setMessageBoxButtonSpellTooltips(MessageBoxId id, const MessageBoxSpellTooltips& tooltips) override;
 
         int readPressedButton() override; ///< returns the index of the pressed button or -1 if no button was pressed
                                           ///< (->MessageBoxmanager->InteractiveMessageBox)
@@ -391,6 +397,7 @@ namespace MWGui
 
         const MWGui::TextColours& getTextColours() override;
 
+        bool onActivateKey() override;
         bool injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat = false) override;
         bool injectKeyRelease(MyGUI::KeyCode key) override;
 
@@ -400,6 +407,7 @@ namespace MWGui
         void forceLootMode(const MWWorld::Ptr& ptr) override;
 
         void asyncPrepareSaveMap() override;
+        void advanceSaveMapRestore(bool finish) override;
 
         WindowBase* getActiveControllerWindow() override;
         int getControllerMenuHeight() override;

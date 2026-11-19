@@ -3,9 +3,11 @@
 
 #include <list>
 #include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <components/esm/exteriorcelllocation.hpp>
 #include <components/misc/algorithm.hpp>
@@ -79,7 +81,17 @@ namespace MWWorld
 
         void registerPtr(const Ptr& ptr);
 
+        template <class Visitor>
+        void forEachPostponedPhysics(Visitor&& visitor)
+        {
+            mPtrRegistry.forEachPostponedPhysics(std::forward<Visitor>(visitor));
+        }
+
         void deregisterLiveCellRef(LiveCellRefBase& ref) noexcept;
+
+        // Internal notifications for cells participating in global ID lookup.
+        void trackCellLookup(CellStore& cell) const;
+        void invalidateCellLookup(CellStore& cell) const;
 
         void assignSaveFileRefNum(ESM::CellRef& ref) { mPtrRegistry.assign(ref); }
 
@@ -102,6 +114,7 @@ namespace MWWorld
         void write(ESM::ESMWriter& writer, Loading::Listener& progress) const;
 
         bool readRecord(ESM::ESMReader& reader, uint32_t type);
+        void reportSaveLoadTimings() const;
 
     private:
         struct GetCellStoreCallback;
@@ -116,6 +129,31 @@ namespace MWWorld
         ESM::Cell mDraftCell;
         std::vector<std::pair<ESM::RefId, CellStore*>> mIdCache;
         std::size_t mIdCacheIndex = 0;
+
+        struct CellLookupOrder
+        {
+            bool operator()(const CellStore* left, const CellStore* right) const;
+        };
+        using LookupCells = std::set<CellStore*, CellLookupOrder>;
+        mutable LookupCells mUnindexedLookupCells;
+        // Only exceptional unloaded cells require exhaustive runtime lookup.
+        // Membership is refreshed on dirty notifications, not on each query.
+        mutable LookupCells mUnindexedFallbackCells;
+        mutable std::unordered_set<CellStore*> mDirtyLookupCells;
+        std::unordered_map<ESM::RefId, std::vector<CellStore*>> mRefIdLookupCells;
+        std::unordered_map<CellStore*, std::vector<ESM::RefId>> mIndexedCellIds;
+
+        struct SaveLoadTimings
+        {
+            std::size_t cells = 0;
+            std::size_t metadataOnly = 0;
+            double resolveMs = 0;
+            double stateMs = 0;
+            double baseMs = 0;
+            double referencesMs = 0;
+        } mSaveLoadTimings;
+
+        void updateCellLookupIndex();
 
         CellStore& getOrInsertCellStore(const ESM::Cell& cell);
 

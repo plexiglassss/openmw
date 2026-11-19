@@ -3,16 +3,30 @@ include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 
 file(GLOB UNITTEST_SRC_FILES
     main.cpp
+    sceneutil/testworkqueue.cpp
+    sceneutil/teststreamingbatch.cpp
+    sceneutil/testselectionrevision.cpp
+    sceneutil/testasyncpreparation.cpp
+    sceneutil/testcompilepriority.cpp
+    sceneutil/testgpuskinning.cpp
+    sceneutil/testinstancepreparation.cpp
+    terrain/testpagingray.cpp
+    terrain/testrayacceleration.cpp
+    terrain/testscenerycoverage.cpp
+    terrain/testpreloadprediction.cpp
 
     esm/testfixedstring.cpp
     esm/testrefid.cpp
     esm/variant.cpp
 
     lua/testasync.cpp
+    lua/testarrivalconfiguration.cpp
+    lua/testcellpackages.cpp
     lua/testconfiguration.cpp
     lua/testinputactions.cpp
     lua/testl10n.cpp
     lua/testlua.cpp
+    lua/testscriptcache.cpp
     lua/testscriptscontainer.cpp
     lua/testserialization.cpp
     lua/teststorage.cpp
@@ -20,10 +34,18 @@ file(GLOB UNITTEST_SRC_FILES
     lua/testutilpackage.cpp
     lua/testyaml.cpp
 
+    mapmarkers/testclassification.cpp
+    mapmarkers/testicons.cpp
+    mapmarkers/testspatialindex.cpp
+
     misc/compression.cpp
     misc/progressreporter.cpp
+    misc/testbindingcapture.cpp
+    misc/testdialoguetext.cpp
     misc/testendianness.cpp
     misc/testmathutil.cpp
+    misc/testnativejobpool.cpp
+    lua/testpureworker.cpp
     misc/testresourcehelpers.cpp
     misc/teststringops.cpp
 
@@ -78,6 +100,8 @@ file(GLOB UNITTEST_SRC_FILES
     esm3/testesmwriter.cpp
     esm3/testinfoorder.cpp
     esm3/testcstringids.cpp
+    esm3/testlocationmarkers.cpp
+    esm3/testdungeonstates.cpp
 
     nifosg/testcontroller.cpp
     nifosg/testnifloader.cpp
@@ -86,12 +110,19 @@ file(GLOB UNITTEST_SRC_FILES
 
     resource/testmultiobjectcache.cpp
     resource/testobjectcache.cpp
+    resource/testcollisioninstancecache.cpp
+    resource/testcollisionpreparation.cpp
+    resource/testsceneinstancecache.cpp
     resource/testresourcesystem.cpp
+    resource/testpagedmodelpreparation.cpp
+    resource/testtownpreparation.cpp
 
+    vfs/testdirectorycomponent.cpp
     vfs/testpathutil.cpp
 
     sceneutil/osgacontroller.cpp
     sceneutil/userdata.cpp
+    sceneutil/testvisualraybatch.cpp
 
     bsa/testbsafile.cpp
     bsa/testcompressedbsafile.cpp
@@ -111,7 +142,7 @@ target_link_libraries(components-tests
 )
 
 if (USE_QT)
-    target_sources(components-tests PRIVATE config/testlaunchersettings.cpp)
+    target_sources(components-tests PRIVATE config/testlaunchersettings.cpp contentselector/testcontentmodel.cpp)
     target_link_libraries(components-tests components_qt)
 endif()
 

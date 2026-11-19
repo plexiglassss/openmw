@@ -3,6 +3,8 @@ if (NOT DEFINED OPENMW_RESOURCES_ROOT)
 endif()
 
 set(BUILTIN_DATA_FILES
+    shader_profiles/horror_mod.yaml
+
     textures/omw_map_color_palette.dds
     textures/omw_menu_scroll_down.dds
     textures/omw_menu_scroll_up.dds
@@ -41,6 +43,27 @@ set(BUILTIN_DATA_FILES
     textures/omw_xbox_button_rb.dds
     textures/omw_xbox_button_rt.dds
     textures/omw/water_nm.png
+
+    # Original native world-map location glyphs.
+    textures/mapmarkers/city.png
+    textures/mapmarkers/town.png
+    textures/mapmarkers/settlement.png
+    textures/mapmarkers/house.png
+    textures/mapmarkers/cave.png
+    textures/mapmarkers/mine.png
+    textures/mapmarkers/tomb.png
+    textures/mapmarkers/barrow.png
+    textures/mapmarkers/dwemer.png
+    textures/mapmarkers/daedric.png
+    textures/mapmarkers/stronghold.png
+    textures/mapmarkers/fort.png
+    textures/mapmarkers/tower.png
+    textures/mapmarkers/ruin.png
+    textures/mapmarkers/camp.png
+    textures/mapmarkers/ship.png
+    textures/mapmarkers/shipwreck.png
+    textures/mapmarkers/landmark.png
+    textures/mapmarkers/misc.png
 
     fonts/DejaVuFontLicense.txt
     fonts/DejaVuLGCSansMono.ttf
@@ -165,6 +188,8 @@ set(BUILTIN_DATA_FILES
     scripts/omw/worldeventhandlers.lua
     scripts/omw/input/button.lua
     scripts/omw/input/settings.lua
+    scripts/omw/input/modbindings.lua
+    scripts/omw/input/modbindingmodel.lua
     scripts/omw/input/playercontrols.lua
     scripts/omw/input/actionbindings.lua
     scripts/omw/input/smoothmovement.lua

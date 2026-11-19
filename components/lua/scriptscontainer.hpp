@@ -107,8 +107,16 @@ namespace LuaUtil
 
         // `conf` specifies the list of scripts that should be autostarted in this container; the script
         // names themselves are stored in ScriptsConfiguration.
-        void setAutoStartConf(ScriptIdsWithInitializationData conf) { mAutoStartScripts = std::move(conf); }
-        const ScriptIdsWithInitializationData& getAutoStartConf() const { return mAutoStartScripts; }
+        void setAutoStartConf(ScriptIdsWithInitializationData conf)
+        {
+            mAutoStartScripts = std::make_shared<const ScriptIdsWithInitializationData>(std::move(conf));
+        }
+        void setSharedAutoStartConf(SharedScriptIds conf) { mAutoStartScripts = std::move(conf); }
+        const ScriptIdsWithInitializationData& getAutoStartConf() const
+        {
+            static const ScriptIdsWithInitializationData empty;
+            return mAutoStartScripts ? *mAutoStartScripts : empty;
+        }
 
         // Adds package that will be available (via `require`) for all scripts in the container.
         // Automatically applies LuaUtil::makeReadOnly to the package.
@@ -187,6 +195,8 @@ namespace LuaUtil
         void collectStats(std::vector<ScriptStats>& stats) const;
         static int64_t getInstanceCount() { return sInstanceCount; }
 
+        std::string_view timingName(int scriptId) const { return scriptPath(scriptId).value(); }
+
         virtual bool isActive() const { return false; }
 
         ScriptsContainerWeakPtr getWeakPointer() const;
@@ -218,7 +228,13 @@ namespace LuaUtil
         struct Handler
         {
             int mScriptId;
-            sol::main_function mFn;
+            std::variant<sol::main_function, sol::protected_function> mFn;
+
+            template <class... Args>
+            sol::protected_function_result call(ScriptsContainer* container, const Args&... args) const
+            {
+                return std::visit([&](const auto& fn) { return LuaUtil::call({ container, mScriptId }, fn, args...); }, mFn);
+            }
         };
 
         struct EngineHandlerList
@@ -242,7 +258,8 @@ namespace LuaUtil
             {
                 try
                 {
-                    LuaUtil::call({ this, handler.mScriptId }, handler.mFn, args...);
+                    Diagnostics::Callback timingCallback(handlers.mName);
+                    handler.call(this, args...);
                 }
                 catch (std::exception& e)
                 {
@@ -310,17 +327,19 @@ namespace LuaUtil
         void callTimer(const Timer& t);
         void updateTimerQueue(std::vector<Timer>& timerQueue, double time);
         static void insertTimer(std::vector<Timer>& timerQueue, Timer&& t);
-        static void insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn);
+        static void insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn,
+            lua_State* prepareOnState = nullptr);
         static void removeHandler(std::vector<Handler>& list, int scriptId);
         void insertInterface(int scriptId, const Script& script);
         void removeInterface(int scriptId, const Script& script);
         void save(LuaView&, ESM::LuaScripts&);
 
-        ScriptIdsWithInitializationData mAutoStartScripts;
+        SharedScriptIds mAutoStartScripts;
         const UserdataSerializer* mSerializer = nullptr;
         const UserdataSerializer* mSavedDataDeserializer = nullptr;
 
         std::map<std::string, sol::main_object> mAPI;
+        LuaState::PreparedPackages mPreparedPackages;
         struct LoadedData
         {
             std::map<int, Script> mScripts;

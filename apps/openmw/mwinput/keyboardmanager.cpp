@@ -23,6 +23,9 @@ namespace MWInput
 
     void KeyboardManager::textInput(const SDL_TextInputEvent& arg)
     {
+        if (mConsumedActivate != SDL_SCANCODE_UNKNOWN
+            || MWBase::Environment::get().getInputManager()->isCapturingBinding())
+            return;
         MyGUI::UString ustring(&arg.text[0]);
         MyGUI::UString::utf32string utf32string = ustring.asUTF32();
         for (MyGUI::UString::utf32string::const_iterator it = utf32string.begin(); it != utf32string.end(); ++it)
@@ -31,6 +34,17 @@ namespace MWInput
 
     void KeyboardManager::keyPressed(const SDL_KeyboardEvent& arg)
     {
+        if (MWBase::Environment::get().getInputManager()->captureBinding(0, arg.keysym.scancode, true))
+            return;
+        if (mConsumedActivate == arg.keysym.scancode)
+            return;
+        if (!arg.repeat && mBindingsManager->getKeyBinding(A_Activate) == arg.keysym.scancode
+            && !(arg.keysym.mod & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT | KMOD_GUI))
+            && MWBase::Environment::get().getWindowManager()->onActivateKey())
+        {
+            mConsumedActivate = arg.keysym.scancode;
+            return;
+        }
         // HACK: to make default keybinding for the console work without printing an extra "^" upon closing
         // This assumes that SDL_TextInput events always come *after* the key event
         // (which is somewhat reasonable, and hopefully true for all SDL platforms)
@@ -70,6 +84,18 @@ namespace MWInput
 
     void KeyboardManager::keyReleased(const SDL_KeyboardEvent& arg)
     {
+        if (mConsumedActivate == arg.keysym.scancode)
+        {
+            mConsumedActivate = SDL_SCANCODE_UNKNOWN;
+            return;
+        }
+        if (MWBase::Environment::get().getInputManager()->captureBinding(0, arg.keysym.scancode, false))
+        {
+            // The corresponding down may predate capture. Always clear native held state.
+            mBindingsManager->keyReleased(arg);
+            MyGUI::InputManager::getInstance().injectKeyRelease(SDLUtil::sdlKeyToMyGUI(arg.keysym.sym));
+            return;
+        }
         MWBase::Environment::get().getInputManager()->setJoystickLastUsed(false);
         auto kc = SDLUtil::sdlKeyToMyGUI(arg.keysym.sym);
 

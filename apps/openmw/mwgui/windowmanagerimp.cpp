@@ -1,4 +1,5 @@
 #include "windowmanagerimp.hpp"
+#include <components/lua_ui/input.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -109,6 +110,7 @@
 #include "keyboardnavigation.hpp"
 #include "levelupdialog.hpp"
 #include "loadingscreen.hpp"
+#include "luapaperdoll.hpp"
 #include "mainmenu.hpp"
 #include "merchantrepair.hpp"
 #include "postprocessorhud.hpp"
@@ -124,6 +126,7 @@
 #include "spellwindow.hpp"
 #include "statswindow.hpp"
 #include "tradewindow.hpp"
+#include "tooltipvisibility.hpp"
 #include "trainingwindow.hpp"
 #include "travelwindow.hpp"
 #include "videowidget.hpp"
@@ -251,6 +254,7 @@ namespace MWGui
         SpellView::registerComponents();
         Gui::registerAllWidgets();
         LuaUi::registerAllWidgets();
+        MyGUI::FactoryManager::getInstance().registerFactory<LuaPaperDoll>("Widget");
 
         MyGUI::FactoryManager::getInstance().registerFactory<MWGui::Controllers::ControllerFollowMouse>("Controller");
 
@@ -650,10 +654,10 @@ namespace MWGui
         if (!mMap)
             return; // UI not created yet
 
-        mHud->setVisible(mHudEnabled && !loading);
-        mToolTips->setVisible(mHudEnabled && !loading);
-
         bool gameMode = !isGuiMode();
+
+        mHud->setVisible(mHudEnabled && !loading);
+        mToolTips->setVisible(isTooltipRootVisible(mHudEnabled, !gameMode, loading));
 
         MWBase::Environment::get().getInputManager()->changeInputMode(!gameMode);
 
@@ -786,9 +790,10 @@ namespace MWGui
     }
 
     void WindowManager::interactiveMessageBox(
-        std::string_view message, const std::vector<std::string>& buttons, bool block, int defaultFocus)
+        std::string_view message, const std::vector<std::string>& buttons, bool block, int defaultFocus,
+        std::string_view sourceScriptId)
     {
-        mMessageBoxManager->createInteractiveMessageBox(message, buttons, block, defaultFocus);
+        mMessageBoxManager->createInteractiveMessageBox(message, buttons, block, defaultFocus, sourceScriptId);
         updateVisible();
 
         if (block)
@@ -826,12 +831,52 @@ namespace MWGui
         }
     }
 
-    void WindowManager::messageBox(std::string_view message, enum MWGui::ShowInDialogueMode showInDialogueMode)
+    std::optional<InteractiveMessageBoxInfo> WindowManager::getInteractiveMessageBoxInfo(
+        std::optional<MessageBoxId> lastId) const
+    {
+        if (mMessageBoxManager)
+            if (const auto* info = mMessageBoxManager->getInteractiveMessageBoxInfo(lastId))
+                return *info;
+        return {};
+    }
+
+    void WindowManager::setMessageBoxButtonSpellTooltips(MessageBoxId id, const MessageBoxSpellTooltips& tooltips)
+    {
+        if (mMessageBoxManager)
+            mMessageBoxManager->setMessageBoxButtonSpellTooltips(id, tooltips);
+    }
+
+    void WindowManager::messageBox(std::string_view message, enum MWGui::ShowInDialogueMode showInDialogueMode,
+        Misc::DialogueText::Category category)
     {
         if (getMode() == GM_Dialogue && showInDialogueMode != MWGui::ShowInDialogueMode_Never)
         {
             MyGUI::UString text = MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(message));
-            mDialogueWindow->addMessageBox(text);
+            // Native callers supply their meaning directly. Also recognise the
+            // current localized GMST formats used by Lua/mod-authored notices.
+            // HUD routing and the displayed text remain unchanged.
+            if (category == Misc::DialogueText::Category::Default)
+            {
+                using Misc::DialogueText::Category;
+                for (const auto& [setting, candidate] : {
+                         std::pair{ "sJournalEntry", Category::Journal },
+                         std::pair{ "sNotifyMessage60", Category::Inventory },
+                         std::pair{ "sNotifyMessage61", Category::Inventory },
+                         std::pair{ "sNotifyMessage62", Category::InventoryRemoval },
+                         std::pair{ "sNotifyMessage63", Category::InventoryRemoval },
+                         std::pair{ "sNotifyMessage39", Category::Stat },
+                         std::pair{ "sNotifyMessage44", Category::Stat } })
+                {
+                    const auto* gmst = mStore->get<ESM::GameSetting>().search(setting);
+                    if (gmst && gmst->mValue.getType() == ESM::VT_String
+                        && Misc::DialogueText::matchesFormat(text.asUTF8(), gmst->mValue.getString()))
+                    {
+                        category = candidate;
+                        break;
+                    }
+                }
+            }
+            mDialogueWindow->addMessageBox(text, category);
         }
         else if (showInDialogueMode != MWGui::ShowInDialogueMode_Only)
         {
@@ -873,6 +918,7 @@ namespace MWGui
     {
         if (!mLocalMapRender)
             return;
+        mMap->advanceSaveMapRestore(false);
 
         MWWorld::ConstPtr player = MWMechanics::getPlayer();
 
@@ -1128,7 +1174,7 @@ namespace MWGui
 
         std::string name{ MWBase::Environment::get().getWorld()->getCellName(cell) };
 
-        mMap->setCellName(name);
+        mMap->setCellName(name, cell->isExterior() ? ESM::RefId() : cell->getCell()->getId());
         mHud->setCellName(name);
         auto cellCommon = cell->getCell();
 
@@ -1138,6 +1184,7 @@ namespace MWGui
                 mMap->addVisitedLocation(name, cellCommon->getGridX(), cellCommon->getGridY());
 
             mMap->cellExplored(cellCommon->getGridX(), cellCommon->getGridY());
+            mMap->discoverLocationEntrances(*cell);
         }
         else
         {
@@ -1176,6 +1223,18 @@ namespace MWGui
     {
         mMap->toggleFogOfWar();
         return mHud->toggleFogOfWar();
+    }
+
+    MWWorld::Ptr WindowManager::getWorldTooltipObject() const
+    {
+        return Settings::gui().mEnhancedWorldTooltips && mToolTips && !isGuiMode()
+            ? mToolTips->getFocusObject() : MWWorld::Ptr();
+    }
+
+    void WindowManager::setWorldTooltip(const MWWorld::Ptr& object, const std::shared_ptr<LuaUi::Element>& element)
+    {
+        if (mToolTips)
+            mToolTips->setLuaTooltip(object, element);
     }
 
     void WindowManager::setFocusObject(const MWWorld::Ptr& focus)
@@ -1308,10 +1367,17 @@ namespace MWGui
     void WindowManager::processChangedSettings(const Settings::CategorySettingVector& changed)
     {
         bool changeRes = false;
+        bool changeDialogueColours = false;
+        bool changeLocationIcons = false;
         for (const auto& setting : changed)
         {
             if (setting.first == "GUI" && setting.second == "menu transparency")
                 setMenuTransparency(Settings::gui().mMenuTransparency);
+            else if (setting.first == "GUI"
+                && (setting.second.starts_with("dialogue ") || setting.second.starts_with("color dialogue ")))
+                changeDialogueColours = true;
+            else if (setting.first == "Map" && setting.second.starts_with("location "))
+                changeLocationIcons = true;
             else if (setting.first == "Video"
                 && (setting.second == "resolution x" || setting.second == "resolution y"
                     || setting.second == "window mode" || setting.second == "window border"))
@@ -1327,6 +1393,13 @@ namespace MWGui
         {
             mVideoWrapper->setVideoMode(Settings::video().mResolutionX, Settings::video().mResolutionY,
                 Settings::video().mWindowMode, Settings::video().mWindowBorder);
+        }
+        if (changeDialogueColours && mDialogueWindow)
+            mDialogueWindow->refreshTextColours();
+        if (changeLocationIcons)
+        {
+            if (mMap) mMap->refreshLocationIcons();
+            if (mHud) mHud->refreshDoorIcons();
         }
     }
 
@@ -2107,7 +2180,7 @@ namespace MWGui
 
     void WindowManager::readRecord(ESM::ESMReader& reader, uint32_t type)
     {
-        if (type == ESM::REC_GMAP)
+        if (type == ESM::REC_GMAP || type == ESM::REC_LMRK)
             mMap->readRecord(reader, type);
         else if (type == ESM::REC_KEYS)
             mQuickKeysMenu->readRecord(reader, type);
@@ -2128,7 +2201,7 @@ namespace MWGui
 
     size_t WindowManager::countSavedGameRecords() const
     {
-        return 1 // Global map
+        return mMap->countSavedGameRecords() // Global map and optional discovered entrances
             + 1 // QuickKeysMenu
             + mCustomMarkers.size() + (!mSelectedSpell.empty() ? 1 : 0);
     }
@@ -2619,8 +2692,36 @@ namespace MWGui
         return mTextColours;
     }
 
+    bool WindowManager::onActivateKey()
+    {
+        if (getMode() != GM_Barter)
+            return false;
+        if (!mCurrentModals.empty())
+        {
+            if (mCurrentModals.back() != mCountDialog)
+                return false;
+            mCountDialog->confirm();
+            return true;
+        }
+        if (LuaUi::dispatchUiAction("Activate"))
+            return true;
+        if (!mTradeWindow->isVisible() || SDL_IsTextInputActive())
+            return false;
+        mTradeWindow->confirmOffer();
+        return true;
+    }
+
     bool WindowManager::injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat)
     {
+        // Only the visible, top-level native dialogue owns these shortcuts.
+        // Text inputs (including Lua edits), modal prompts, and modified keys
+        // retain their ordinary input handling.
+        if (getMode() == GM_Dialogue && mCurrentModals.empty()
+            && !SDL_IsTextInputActive()
+            && !(SDL_GetModState() & (KMOD_CTRL | KMOD_ALT | KMOD_SHIFT | KMOD_GUI))
+            && mDialogueWindow->onChoiceKeyPress(key, repeat))
+            return true;
+
         if (!mKeyboardNavigation->injectKeyPress(key, text, repeat))
         {
             MyGUI::Widget* focus = MyGUI::InputManager::getInstance().getKeyFocusWidget();
@@ -2688,6 +2789,11 @@ namespace MWGui
     {
         for (const auto& window : mWindows)
             window->onDeleteCustomData(ptr);
+    }
+
+    void WindowManager::advanceSaveMapRestore(bool finish)
+    {
+        mMap->advanceSaveMapRestore(finish);
     }
 
     void WindowManager::asyncPrepareSaveMap()

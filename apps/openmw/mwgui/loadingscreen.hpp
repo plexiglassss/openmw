@@ -40,6 +40,7 @@ namespace MWGui
         void setLabel(const std::string& label, bool important) override;
         void loadingOn() override;
         void loadingOff() override;
+        void refresh(bool force = false) override;
         void setProgressRange(size_t range) override;
         void setProgress(size_t value) override;
         void increaseProgress(size_t increase = 1) override;
@@ -89,7 +90,7 @@ namespace MWGui
 
         void changeWallpaper();
 
-        void draw();
+        void draw(bool force = false);
     };
 
 }

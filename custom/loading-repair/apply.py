@@ -1,0 +1,98 @@
+"""Author-side, exact-baseline source edits. Never run on a user's installation.
+CI applies only the independent lookup optimization. The rejected post-load
+waiting stage and extra preparation at the end of loading are not applied.
+CI archives the complete resulting diff.
+All source blobs and replacement counts are checked before any file is written.
+"""
+from pathlib import Path
+import hashlib
+import json
+
+from reviewed_state import before_map_restore
+
+ROOT = Path(__file__).resolve().parents[2]
+# The native-map dispatcher is preserved. Native cleared history adds only
+# REC_DCLR beside REC_DCOU; removing that one case must reproduce the complete
+# prior state-manager blob, after subtracting the separately verified saved-map handoff.
+EXPECTED = {
+    # Exact reviewed engine: worker lifecycle retained; F3 timing history uses seconds.
+    'apps/openmw/engine.cpp': '7548feab251d80fcc96c044d25dae086ff3fc8d0',
+    # Reviewed cooperative compile budget, loading-mode handoff and UTF-8 label conversion.
+    'apps/openmw/mwgui/loadingscreen.cpp': 'b6300c34ef08ced463e411b5865df07ac1c1a55e',
+    'apps/openmw/mwgui/loadingscreen.hpp': 'bb5884ba617b541a814243fe141bd04361e93118',
+    'apps/openmw/mwstate/statemanagerimp.cpp': 'c94ee39f447b51782b1780e2e81ef86436710ac5',
+    'apps/openmw/mwworld/worldmodel.cpp': '59c7fa345da96f10e73e220b69975bb1fd4f50d7',
+    'apps/openmw/mwworld/worldmodel.hpp': 'b210399cb318814a3abf69cd677c2079c8e2a51b',
+}
+
+def blob(text):
+    data = text.encode('utf-8')
+    return hashlib.sha1(b'blob ' + str(len(data)).encode('ascii') + b'\0' + data).hexdigest()
+
+sources = {}
+for name, sha in EXPECTED.items():
+    text = (ROOT / name).read_text(encoding='utf-8')
+    if blob(text) != sha:
+        raise SystemExit(f'Refusing unknown baseline for {name}: {blob(text)} != {sha}')
+    sources[name] = text
+
+state = before_map_restore(sources['apps/openmw/mwstate/statemanagerimp.cpp'])
+added_case = '                case ESM::REC_DCLR:\n'
+if state.count(added_case) != 1 or blob(state.replace(added_case, '', 1)) != '026eaf0b580c46f2559b3b6d24a298a3322d5f55':
+    raise SystemExit('Cleared-history dispatcher differs beyond its one reviewed save-record case')
+
+edits = []
+def replace(name, old, new):
+    text = sources[name]
+    if text.count(old) != 1:
+        raise SystemExit(f'Expected exactly one anchor in {name}: {old[:100]!r}; got {text.count(old)}')
+    sources[name] = text.replace(old, new, 1)
+    edits.append({'file': name, 'anchor': old[:90]})
+
+header = 'apps/openmw/mwworld/worldmodel.hpp'
+replace(header, '        mutable LookupCells mUnindexedLookupCells;',
+        '''        mutable LookupCells mUnindexedLookupCells;
+        // Only exceptional unloaded cells require exhaustive runtime lookup.
+        // Membership is refreshed on dirty notifications, not on each query.
+        mutable LookupCells mUnindexedFallbackCells;''')
+world = 'apps/openmw/mwworld/worldmodel.cpp'
+replace(world, '    mUnindexedLookupCells.clear();',
+        '    mUnindexedLookupCells.clear();\n    mUnindexedFallbackCells.clear();')
+replace(world, '''        if (cell->getState() == CellStore::State_Unloaded)
+            continue;
+        std::vector<ESM::RefId> ids''', '''        if (cell->getState() == CellStore::State_Unloaded)
+        {
+            if (cell->getCell()->isEsm4() || cell->hasUnloadedLiveReferences())
+                mUnindexedFallbackCells.insert(cell);
+            else
+                mUnindexedFallbackCells.erase(cell);
+            continue;
+        }
+        std::vector<ESM::RefId> ids''')
+replace(world, '        mUnindexedLookupCells.erase(cell);',
+        '        mUnindexedLookupCells.erase(cell);\n        mUnindexedFallbackCells.erase(cell);')
+replace(world, '''                // A metadata-only CSTA sets hasState() even though it cannot
+                // introduce a reference; using hasState() here admitted over
+                // 25,000 unrelated saved cells in the user's large modlist.
+                // Keep unloaded cells that actually own live runtime refs.
+                // ESM4 lacks the ESM3 content index and remains conservative.
+                // Loaded/preloaded cells awaiting indexing remain searchable.
+                for (CellStore* cell : mUnindexedLookupCells)
+                    if (cell->getState() != CellStore::State_Unloaded
+                        || cell->getCell()->isEsm4() || cell->hasUnloadedLiveReferences())
+                        candidates.push_back(cell);''', '''                // Do not walk tens of thousands of metadata-only cells for
+                // every script query. Dirty notifications maintain this small
+                // exceptional set; live/preloaded IDs are in the index above.
+                candidates.insert(candidates.end(), mUnindexedFallbackCells.begin(),
+                    mUnindexedFallbackCells.end());''')
+
+# All validations succeeded. Commit the entire in-memory transaction to disk.
+for name, text in sources.items():
+    if blob(text) != EXPECTED[name]:
+        (ROOT / name).write_text(text, encoding='utf-8', newline='\n')
+manifest = {'baseline': 'e9476be66251d181d0016a5fd112e1d90e3875f6',
+            'files': {n: {'before_blob': EXPECTED[n], 'after_blob': blob(t)} for n, t in sources.items()},
+            'edits': edits, 'postload_waiting_stage': 'removed',
+            'extra_pre_game_index_preparation': 'removed'}
+(ROOT / 'loading-repair-source-manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
+print(f'Applied {len(edits)} lookup-only edits; verified {len(sources)} baseline files. No added loading stage.')

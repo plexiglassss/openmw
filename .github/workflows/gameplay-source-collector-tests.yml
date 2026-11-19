@@ -1,0 +1,35 @@
+name: Gameplay source collector checks
+on:
+  push:
+    branches: [tools/gameplay-source-collector-20261105]
+    paths:
+      - custom/gameplay-source-collector/**
+      - .github/workflows/gameplay-source-collector-tests.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-powershell:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test read-only collector with authored dummy files on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/gameplay-source-collector/Test-Collector.ps1 -CollectorScript ./custom/gameplay-source-collector/Collect-Sources.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW collector checks" -ReportPath "$env:GITHUB_WORKSPACE\collector-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-source-collector-verification
+          path: |
+            collector-test-report.json
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.json
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/OpenMW collector checks/**/invoke-*.stderr.txt
+          if-no-files-found: error

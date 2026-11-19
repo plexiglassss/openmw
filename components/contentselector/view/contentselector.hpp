@@ -36,7 +36,8 @@ namespace ContentSelectorView
 
         QString currentFile() const;
 
-        void addFiles(const QString& path, bool newfiles = false);
+        void addFiles(const QString& path, bool newfiles = false, bool refresh = true);
+        void refreshGameFiles();
         void sortFiles();
         bool containsDataFiles(const QString& path);
         void clearFiles();

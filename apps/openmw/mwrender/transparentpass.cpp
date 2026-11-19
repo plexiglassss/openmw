@@ -42,6 +42,7 @@ namespace MWRender
         mStateSet->setAttributeAndModes(new osg::BlendFunc, modeOff);
         mStateSet->setAttributeAndModes(shaderManager.getProgram("depthclipped", defines), modeOn);
         mStateSet->setAttributeAndModes(new SceneUtil::AutoDepth, modeOn);
+        mStateSet->addUniform(new osg::Uniform("openmwRigEnabled", false));
     }
 
     void TransparentDepthBinCallback::drawImplementation(

@@ -126,15 +126,23 @@ namespace L10n
 
 struct SDL_Window;
 
+namespace Misc
+{
+    class NativeJobPool;
+}
+
 namespace OMW
 {
+    class StartupScreen;
     /// \brief Main engine class, that brings together all the components of OpenMW
     class Engine
     {
+        StartupScreen* mStartupScreen = nullptr;
         SDL_Window* mWindow;
         std::unique_ptr<VFS::Manager> mVFS;
         std::unique_ptr<Resource::ResourceSystem> mResourceSystem;
         std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue;
+        std::unique_ptr<Misc::NativeJobPool> mNativeJobPool;
         std::unique_ptr<SceneUtil::UnrefQueue> mUnrefQueue;
         std::unique_ptr<MWWorld::World> mWorld;
         std::unique_ptr<MWSound::SoundManager> mSoundManager;
@@ -211,6 +219,7 @@ namespace OMW
     public:
         Engine(Files::ConfigurationManager& configurationManager);
         virtual ~Engine();
+        void setStartupScreen(StartupScreen* screen) { mStartupScreen = screen; }
 
         /// Set data dirs
         void setDataDirs(const Files::PathContainer& dataDirs);

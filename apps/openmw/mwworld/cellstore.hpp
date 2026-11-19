@@ -86,7 +86,9 @@ namespace ESM4
 namespace MWWorld
 {
     class ESMStore;
+    class WorldModel;
     struct CellStoreImp;
+    struct CellRefLoadContext;
 
     using CellStoreTuple = std::tuple<CellRefList<ESM::Activator>, CellRefList<ESM::Potion>,
         CellRefList<ESM::Apparatus>, CellRefList<ESM::Armor>, CellRefList<ESM::Book>, CellRefList<ESM::Clothing>,
@@ -167,6 +169,11 @@ namespace MWWorld
         bool hasState() const;
         ///< Does this cell have state that needs to be stored in a saved game file?
 
+        // A metadata-only save can set hasState() on an unloaded cell without
+        // introducing any references. This checks only runtime-owned references;
+        // content-file placements are covered by ESMStore::getRefCells.
+        bool hasUnloadedLiveReferences() const;
+
         bool hasId(const ESM::RefId& id) const;
         ///< May return true for deleted IDs when in preload state. Will return false, if cell is
         /// unloaded.
@@ -199,6 +206,15 @@ namespace MWWorld
 
         void load();
         ///< Load references from content file.
+
+        bool mayHaveReferenceOfType(uint32_t type) const;
+        ///< Conservative negative-only query; does not create live references.
+
+        using ObjectIdSnapshot = std::shared_ptr<std::vector<ESM::RefNum>>;
+        ObjectIdSnapshot getObjectIdSnapshot(uint32_t type, std::size_t registryRevision) const;
+        void setObjectIdSnapshot(uint32_t type, std::size_t registryRevision, ObjectIdSnapshot ids);
+
+        std::uint64_t getReferenceListRevision() const { return mReferenceListRevision; }
 
         void preload();
         ///< Build ID list from content file.
@@ -296,6 +312,55 @@ namespace MWWorld
             return true;
         }
 
+        /// Visit only already-loaded references of a type without marking the
+        /// cell modified, loading references, or rebuilding the merged list.
+        /// Includes references moved here and excludes references moved away.
+        template <class T, class Visitor>
+        bool forEachTypeConst(Visitor&& visitor, bool includeDeleted = false) const
+        {
+            if (mState != State_Loaded)
+                return false;
+
+            for (const LiveCellRefBase& base : get<T>().mList)
+            {
+                // The tracker has mutable pointer keys; the lookup is read-only.
+                if (mMovedToAnotherCell.contains(const_cast<LiveCellRefBase*>(&base)))
+                    continue;
+                if (!includeDeleted && !isAccessible(base.mData, base.mRef))
+                    continue;
+                if (!visitor(MWWorld::ConstPtr(&base, this)))
+                    return false;
+            }
+            for (const auto& [base, source] : mMovedHere)
+            {
+                if (!dynamic_cast<const LiveCellRef<T>*>(base))
+                    continue;
+                if (!includeDeleted && !isAccessible(base->mData, base->mRef))
+                    continue;
+                if (!visitor(MWWorld::ConstPtr(base, this)))
+                    return false;
+            }
+            return true;
+        }
+
+        // Query the live typed lists rather than an older merged view. In
+        // particular, an undeleted reference must be visible after a prior
+        // empty query. Preserve the mutable query's save-state marking.
+        template <class T, class Visitor>
+        bool forEachTypeForQuery(Visitor&& visitor)
+        {
+            if (mState != State_Loaded)
+                return false;
+            if (mMergedRefsNeedsUpdate)
+                updateMergedRefs(false);
+            if (!mMergedRefs.empty())
+                mHasState = true;
+            return forEachTypeConst<T>([&](const ConstPtr& ptr) {
+                mHasState = true;
+                return visitor(Ptr(const_cast<LiveCellRefBase*>(ptr.mRef), this));
+            });
+        }
+
         // NOTE: does not account for moved references
         // Should be phased out when we have const version of forEach
         inline const CellRefList<ESM::Door>& getReadOnlyDoors() const { return get<ESM::Door>(); }
@@ -334,11 +399,17 @@ namespace MWWorld
         ///< Check mLastRespawn and respawn references if necessary. This is a no-op if the cell is not loaded.
 
         CellStore* getOriginCell(const Ptr& object) const;
+        const CellStore* getOriginCell(const ConstPtr& object) const;
 
         Ptr getPtr(ESM::RefId id);
 
     private:
         friend struct CellStoreImp;
+        friend class WorldModel;
+
+        // Only cells in WorldModel's normal search order have an observer.
+        const WorldModel* mLookupWorld = nullptr;
+        std::vector<ESM::RefId> listLookupIds() const;
 
         const MWWorld::ESMStore& mStore;
         ESM::ReadersCache& mReaders;
@@ -353,6 +424,16 @@ namespace MWWorld
         bool mHasState;
         std::vector<ESM::RefId> mIds;
         float mWaterLevel;
+
+        struct CachedObjectIds
+        {
+            std::uint64_t mReferenceRevision;
+            std::size_t mRegistryRevision;
+            ObjectIdSnapshot mIds;
+        };
+        // One current snapshot per queried type. Previously returned Lua lists
+        // keep their own shared snapshot and are never changed in place.
+        std::map<uint32_t, CachedObjectIds> mObjectIdSnapshots;
 
         MWWorld::TimeStamp mLastRespawn;
 
@@ -391,6 +472,15 @@ namespace MWWorld
         // mMovedToAnotherCell
         mutable std::vector<LiveCellRefBase*> mMergedRefs;
         mutable bool mMergedRefsNeedsUpdate = false;
+        std::uint64_t mReferenceListRevision = 0;
+
+        // A separate view keeps forEach order (and duplicate-ID precedence) intact.
+        // Build only for repeated searches, and invalidate with the merged view.
+        mutable std::vector<LiveCellRefBase*> mRefsById;
+        mutable bool mRefsByIdNeedsUpdate = true;
+        mutable bool mRefIdSearched = false;
+
+        LiveCellRefBase* searchById(const ESM::RefId& id) const;
 
         // Get the Ptr for the given ref which originated from this cell (possibly moved to another cell at this point).
         Ptr getCurrentPtr(MWWorld::LiveCellRefBase* ref);
@@ -417,14 +507,14 @@ namespace MWWorld
         void listRefs(const ESM4::Cell& cell);
         void listRefs();
 
-        void loadRefs(const ESM::Cell& cell, std::map<ESM::RefNum, ESM::RefId>& refNumToID);
-        void loadRefs(const ESM4::Cell& cell, std::map<ESM::RefNum, ESM::RefId>& refNumToID);
+        void loadRefs(const ESM::Cell& cell, CellRefLoadContext& context);
+        void loadRefs(const ESM4::Cell& cell, CellRefLoadContext& context);
 
         void loadRefs();
 
         void loadRef(const ESM4::Reference& ref);
         void loadRef(const ESM4::ActorCharacter& ref);
-        void loadRef(ESM::CellRef& ref, bool deleted, std::map<ESM::RefNum, ESM::RefId>& refNumToID);
+        void loadRef(ESM::CellRef& ref, bool deleted, CellRefLoadContext& context);
         ///< Make case-adjustments to \a ref and insert it into the respective container.
         ///
         /// Invalid \a ref objects are silently dropped.

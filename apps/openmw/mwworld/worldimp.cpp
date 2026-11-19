@@ -1,4 +1,7 @@
+#include <components/diagnostics/loading.hpp>
 #include "worldimp.hpp"
+
+#include <components/diagnostics/mwscript.hpp>
 
 #include <charconv>
 #include <vector>
@@ -262,6 +265,7 @@ namespace MWWorld
 
         mRendering = std::make_unique<MWRender::RenderingManager>(
             viewer, rootNode, mResourceSystem, workQueue, *mNavigator, mGroundcoverStore, unrefQueue);
+        mRendering->loadLocationRenderingProfiles(mContentFiles);
         mProjectileManager = std::make_unique<ProjectileManager>(
             mRendering->getLightRoot()->asGroup(), mResourceSystem, mRendering.get(), mPhysics.get());
 
@@ -614,6 +618,7 @@ namespace MWWorld
 
     Ptr World::searchPtr(const ESM::RefId& name, bool activeOnly, bool searchInContainers)
     {
+        Diagnostics::MWScriptNativeScope timing("world.searchPtr");
         Ptr ret;
         // the player is always in an active cell.
         if (name == "Player")
@@ -732,6 +737,7 @@ namespace MWWorld
 
     void World::enable(const Ptr& reference)
     {
+        Diagnostics::MWScriptNativeScope timing("world.enable");
         if (!reference.isInCell())
             return;
 
@@ -745,9 +751,13 @@ namespace MWWorld
 
             if (reference.getCellRef().getRefNum().hasContentFile())
             {
+                Diagnostics::MWScriptNativeScope paging("world.pagingEnableObject");
                 int type = mStore.find(reference.getCellRef().getRefId());
                 if (mRendering->pagingEnableObject(type, reference, true))
+                {
+                    Diagnostics::MWScriptNativeScope terrain("world.reloadTerrain");
                     mWorldScene->reloadTerrain();
+                }
             }
         }
     }
@@ -772,6 +782,7 @@ namespace MWWorld
 
     void World::disable(const Ptr& reference)
     {
+        Diagnostics::MWScriptNativeScope timing("world.disable");
         if (!reference.getRefData().isEnabled())
             return;
 
@@ -786,14 +797,19 @@ namespace MWWorld
 
         if (reference.getCellRef().getRefNum().hasContentFile())
         {
+            Diagnostics::MWScriptNativeScope paging("world.pagingEnableObject");
             int type = mStore.find(reference.getCellRef().getRefId());
             if (mRendering->pagingEnableObject(type, reference, false))
+            {
+                Diagnostics::MWScriptNativeScope terrain("world.reloadTerrain");
                 mWorldScene->reloadTerrain();
+            }
         }
 
         if (mWorldScene->getActiveCells().find(reference.getCell()) != mWorldScene->getActiveCells().end()
             && reference.getCellRef().getCount())
         {
+            Diagnostics::MWScriptNativeScope scene("world.disable.sceneAndPhysics");
             mWorldScene->removeObjectFromScene(reference);
             mWorldScene->addPostponedPhysicsObjects();
         }
@@ -1108,7 +1124,7 @@ namespace MWWorld
             mWorldScene->playerMoved(position);
         else
         {
-            mRendering->pagingBlacklistObject(mStore.find(ptr.getCellRef().getRefId()), ptr);
+            mRendering->pagingBlacklistObject(mStore.find(newPtr.getCellRef().getRefId()), newPtr);
             mWorldScene->removeFromPagedRefs(newPtr);
         }
 
@@ -1739,17 +1755,30 @@ namespace MWWorld
         return focusObject;
     }
 
-    bool World::castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
-        bool ignorePlayer, bool ignoreActors, bool ignoreTerrain, std::span<const MWWorld::Ptr> ignoreList)
+    static void assignRenderingHit(MWPhysics::RayCastingResult& res, const MWRender::RenderingManager::RayResult& rayRes)
     {
-        MWRender::RenderingManager::RayResult rayRes
-            = mRendering->castRay(from, to, ignorePlayer, ignoreActors, ignoreTerrain, ignoreList);
         res.mHit = rayRes.mHit;
         res.mHitPos = rayRes.mHitPointWorld;
         res.mHitNormal = rayRes.mHitNormalWorld;
         res.mHitObject = rayRes.mHitObject;
         if (res.mHitObject.isEmpty() && rayRes.mHitRefnum.isSet())
             res.mHitObject = MWBase::Environment::get().getWorldModel()->getPtr(rayRes.mHitRefnum);
+    }
+
+    void World::castRenderingRays(std::span<MWPhysics::RayCastingResult> out, const osg::Vec3f& origin,
+        std::span<const osg::Vec3f> ends, std::span<const MWWorld::Ptr> ignore)
+    {
+        const auto hits = mRendering->castRays(origin, ends, ignore);
+        for (std::size_t i = 0; i < hits.size(); ++i)
+            assignRenderingHit(out[i], hits[i]);
+    }
+
+    bool World::castRenderingRay(MWPhysics::RayCastingResult& res, const osg::Vec3f& from, const osg::Vec3f& to,
+        bool ignorePlayer, bool ignoreActors, bool ignoreTerrain, std::span<const MWWorld::Ptr> ignoreList)
+    {
+        MWRender::RenderingManager::RayResult rayRes
+            = mRendering->castRay(from, to, ignorePlayer, ignoreActors, ignoreTerrain, ignoreList);
+        assignRenderingHit(res, rayRes);
         return res.mHit;
     }
 
@@ -1861,6 +1890,7 @@ namespace MWWorld
                 if (newMarker.name.empty())
                     return true;
                 newMarker.dest = ref.mRef.getDestCell();
+                newMarker.doorId = ref.mRef.getRefId();
 
                 ESM::Position pos = ref.mData.getPosition();
 
@@ -2231,24 +2261,31 @@ namespace MWWorld
 
     void World::setupPlayer()
     {
-        const ESM::NPC* player = mStore.get<ESM::NPC>().find(ESM::RefId::stringRefId("Player"));
-        if (!mPlayer)
-            mPlayer = std::make_unique<MWWorld::Player>(player);
-        else
+        Ptr ptr;
         {
-            // Remove the old CharacterController
-            MWBase::Environment::get().getMechanicsManager()->remove(getPlayerPtr(), true);
-            mNavigator->removeAgent(getPathfindingAgentBounds(getPlayerConstPtr()));
-            mPhysics->remove(getPlayerPtr());
-            mRendering->removePlayer(getPlayerPtr());
-            MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(getPlayerPtr());
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerBaseSetup);
+            const ESM::NPC* player = mStore.get<ESM::NPC>().find(ESM::RefId::stringRefId("Player"));
+            if (!mPlayer)
+                mPlayer = std::make_unique<MWWorld::Player>(player);
+            else
+            {
+                // Remove the old CharacterController
+                MWBase::Environment::get().getMechanicsManager()->remove(getPlayerPtr(), true);
+                mNavigator->removeAgent(getPathfindingAgentBounds(getPlayerConstPtr()));
+                mPhysics->remove(getPlayerPtr());
+                mRendering->removePlayer(getPlayerPtr());
+                MWBase::Environment::get().getLuaManager()->objectRemovedFromScene(getPlayerPtr());
 
-            mPlayer->set(player);
+                mPlayer->set(player);
+            }
+
+            ptr = mPlayer->getPlayer();
+            mRendering->setupPlayer(ptr);
         }
-
-        Ptr ptr = mPlayer->getPlayer();
-        mRendering->setupPlayer(ptr);
-        MWBase::Environment::get().getLuaManager()->setupPlayer(ptr);
+        {
+            Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerLuaSetup);
+            MWBase::Environment::get().getLuaManager()->setupPlayer(ptr);
+        }
     }
 
     void World::renderPlayer()

@@ -1,4 +1,6 @@
 #include "actionteleport.hpp"
+#include <components/diagnostics/exteriorarrival.hpp>
+#include <components/diagnostics/timing.hpp>
 
 #include <components/esm3/loadcell.hpp>
 #include <components/esm3/loadmgef.hpp>
@@ -29,6 +31,9 @@ namespace MWWorld
 
     void ActionTeleport::executeImp(const Ptr& actor)
     {
+        Diagnostics::Scope timing("activation", "teleport", "execute");
+        if (actor == MWBase::Environment::get().getWorld()->getPlayerPtr())
+            Diagnostics::ExteriorArrival::begin();
         if (mTeleportFollowers)
         {
             // Find any NPCs that are following the actor and teleport them with him

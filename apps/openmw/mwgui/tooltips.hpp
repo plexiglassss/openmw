@@ -5,6 +5,13 @@
 #include "layout.hpp"
 
 #include "widgets.hpp"
+#include <memory>
+
+namespace LuaUi
+{
+    struct Element;
+    class LuaAdapter;
+}
 
 namespace ESM
 {
@@ -14,6 +21,8 @@ namespace ESM
 
 namespace MWGui
 {
+    class TravelTooltip;
+
     // Info about tooltip that is supplied by the MWWorld::Class object
     struct ToolTipInfo
     {
@@ -52,6 +61,9 @@ namespace MWGui
     {
     public:
         ToolTips();
+        ~ToolTips();
+        MWWorld::Ptr getFocusObject() const { return mFocusObject; }
+        void setLuaTooltip(const MWWorld::Ptr&, const std::shared_ptr<LuaUi::Element>&);
 
         void onFrame(float frameDuration);
         void update(float frameDuration);
@@ -104,7 +116,13 @@ namespace MWGui
         /// Returns True if taking mFocusObject would be crime
 
     private:
+        std::unique_ptr<TravelTooltip> mTravelTooltip;
         MyGUI::Widget* mDynamicToolTipBox;
+        MyGUI::Widget* mLuaTooltipBox = nullptr;
+        bool mLuaTooltipOwned = false;
+        LuaUi::LuaAdapter* mLuaTooltipAdapter = nullptr;
+        MWWorld::Ptr mLuaTooltipObject;
+        std::shared_ptr<LuaUi::Element> mLuaTooltipElement;
 
         MWWorld::Ptr mFocusObject;
 

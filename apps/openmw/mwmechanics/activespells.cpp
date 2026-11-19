@@ -1,5 +1,7 @@
 #include "activespells.hpp"
 
+#include <atomic>
+
 #include <components/debug/debuglog.hpp>
 
 #include <components/misc/resourcehelpers.hpp>
@@ -91,6 +93,7 @@ namespace MWMechanics
     ActiveSpells::IterationGuard::IterationGuard(ActiveSpells& spells)
         : mActiveSpells(spells)
     {
+        mActiveSpells.mReadEpoch = 0;
         mActiveSpells.mIterating = true;
     }
 
@@ -252,6 +255,7 @@ namespace MWMechanics
                         Log(Debug::Error) << "Dropping non-existent active effect: " << spellIt->mSourceSpellId;
                     auto params = *spellIt;
                     spellIt = mSpells.erase(spellIt);
+                    touchEffectSources();
                     for (const auto& effect : params.mEffects)
                         onMagicEffectRemoved(ptr, params, effect);
                     applyPurges(ptr, &spellIt);
@@ -270,6 +274,7 @@ namespace MWMechanics
                 {
                     auto effect = *effectIt;
                     effectIt = spellIt->mEffects.erase(effectIt);
+                    touchEffectSources();
                     onMagicEffectRemoved(ptr, *spellIt, effect);
                     removedSpell = applyPurges(ptr, &spellIt, &effectIt);
                     if (removedSpell)
@@ -283,7 +288,10 @@ namespace MWMechanics
             if (removedSpell)
                 continue;
             if (spellIt->mEffects.empty())
+            {
                 spellIt = mSpells.erase(spellIt);
+                touchEffectSources();
+            }
             else
                 ++spellIt;
         }
@@ -385,7 +393,10 @@ namespace MWMechanics
                 ++it;
                 continue;
             }
+            const bool wasApplied = (it->mFlags & ESM::ActiveEffect::Flag_Applied) != 0;
             auto result = applyMagicEffect(ptr, caster, *spellIt, *it, duration, context.mPlayNonLooping);
+            if (((it->mFlags & ESM::ActiveEffect::Flag_Applied) != 0) != wasApplied)
+                touchEffectSources();
             if (result.mType == MagicApplicationResult::Type::REFLECTED)
             {
                 ESM::IndexedENAMstruct& reflected = reflectedEffects.emplace_back();
@@ -394,9 +405,13 @@ namespace MWMechanics
                 reflected.mData.mMagnMax = static_cast<int32_t>(it->mMaxMagnitude);
                 reflected.mIndex = static_cast<uint32_t>(it->mEffectIndex);
                 it = spellIt->mEffects.erase(it);
+                touchEffectSources();
             }
             else if (result.mType == MagicApplicationResult::Type::REMOVED)
+            {
                 it = spellIt->mEffects.erase(it);
+                touchEffectSources();
+            }
             else
             {
                 const MWWorld::Ptr player = MWMechanics::getPlayer();
@@ -457,6 +472,7 @@ namespace MWMechanics
             {
                 auto params = *spellIt;
                 spellIt = mSpells.erase(spellIt);
+                touchEffectSources();
                 for (const auto& effect : params.mEffects)
                     onMagicEffectRemoved(ptr, params, effect);
                 applyPurges(ptr, &spellIt);
@@ -471,6 +487,7 @@ namespace MWMechanics
     bool ActiveSpells::initParams(const MWWorld::Ptr& ptr, const ActiveSpellParams& params, UpdateContext& context)
     {
         mSpells.emplace_back(params);
+        touchEffectSources();
         if (mSpells.back().getActiveSpellId().empty())
             mSpells.back().setActiveSpellId(MWBase::Environment::get().getESMStore()->generateId());
         auto it = mSpells.end();
@@ -494,12 +511,31 @@ namespace MWMechanics
                 if (!spell.hasFlag(ESM::ActiveSpells::Flag_Temporary))
                     return;
                 if (merge(found->mEffects, spell.mEffects))
+                {
+                    touchEffectSources();
                     return;
+                }
                 for (auto& effect : found->mEffects)
                     effect.mTimeLeft = 0.f;
             }
         }
         initParams(ptr, spell, context);
+    }
+
+    std::uint64_t ActiveSpells::EffectRevision::next()
+    {
+        static std::atomic_uint64_t sequence{ 0 };
+        return sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    }
+
+    std::uint64_t ActiveSpells::getReadEpoch() const
+    {
+        // A callback nested in native effect processing must compare the current values on every read.
+        if (mIterating)
+            return 0;
+        if (mReadEpoch == 0)
+            mReadEpoch = EffectRevision::next();
+        return mReadEpoch;
     }
 
     ActiveSpells::ActiveSpells()
@@ -595,6 +631,7 @@ namespace MWMechanics
                             {
                                 auto params = *spellIt;
                                 spellIt = mSpells.erase(spellIt);
+                                touchEffectSources();
                                 if (isCurrentSpell)
                                 {
                                     *currentSpell = spellIt;
@@ -620,10 +657,14 @@ namespace MWMechanics
                                         if (effectIt <= *currentEffect)
                                             distance--;
                                         effectIt = spellIt->mEffects.erase(effectIt);
+                                        touchEffectSources();
                                         *currentEffect = spellIt->mEffects.begin() + distance;
                                     }
                                     else
+                                    {
                                         effectIt = spellIt->mEffects.erase(effectIt);
+                                        touchEffectSources();
+                                    }
                                     onMagicEffectRemoved(ptr, *spellIt, effect);
                                 }
                                 else
@@ -691,6 +732,7 @@ namespace MWMechanics
 
     void ActiveSpells::readState(const ESM::ActiveSpells& state)
     {
+        mReadEpoch = 0;
         for (const ESM::ActiveSpells::ActiveSpellParams& spell : state.mSpells)
         {
             mSpells.emplace_back(ActiveSpellParams{ spell });
@@ -700,6 +742,7 @@ namespace MWMechanics
         }
         for (const ESM::ActiveSpells::ActiveSpellParams& spell : state.mQueue)
             mQueue.emplace_back(ActiveSpellParams{ spell });
+        touchEffectSources();
         if (state.mActorIdConverter)
         {
             const auto convertSummons = [converter = state.mActorIdConverter](auto& collection) {
@@ -709,7 +752,11 @@ namespace MWMechanics
                     for (ESM::ActiveEffect& effect : params.mEffects)
                     {
                         if (ESM::RefNum* refNum = std::get_if<ESM::RefNum>(&effect.mArg))
+                        {
+                            // Older saves may resolve this reference after readState, outside the mechanics update.
+                            params.mMayHaveDeferredEffectArgs = true;
                             converter->convert(*refNum, refNum->mIndex);
+                        }
                     }
                 }
             };

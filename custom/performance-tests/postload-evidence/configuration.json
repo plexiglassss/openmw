@@ -1,0 +1,6 @@
+{
+  "scope": "bounded automatic engine post-load instrumentation",
+  "installed_user_configuration": "not inspected in this implementation task; no installation-wide claim",
+  "normal_test": "load affected save in foreground, then play 15-20 seconds after freeze ends; return ordinary openmw.log",
+  "no_mod_changes": true
+}

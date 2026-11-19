@@ -1,3 +1,5 @@
+#include <components/diagnostics/postload.hpp>
+#include <components/diagnostics/timing.hpp>
 #include "worker.hpp"
 
 #include "luamanagerimp.hpp"
@@ -46,6 +48,7 @@ namespace MWLua
 
     void Worker::finishUpdate(Misc::FrameClock::time_point statsEpoch, unsigned frameNumber, Misc::FrameStats& stats)
     {
+        Diagnostics::Scope timing("wait", "LuaWorker", "finishUpdate");
         if (mThread)
         {
             std::unique_lock<std::mutex> lk(mMutex);
@@ -53,6 +56,8 @@ namespace MWLua
         }
         else
             update(statsEpoch, frameNumber, stats);
+        // Both synchronized and worker callbacks for this frame have finished. GC has not started yet.
+        mManager.reportActiveSpellReads(frameNumber, stats);
     }
 
     void Worker::gc()
@@ -74,6 +79,7 @@ namespace MWLua
 
     void Worker::finishGc()
     {
+        Diagnostics::Scope timing("wait", "LuaWorker", "finishGc");
         if (!mThread)
             return;
         std::unique_lock<std::mutex> lk(mMutex);
@@ -96,6 +102,9 @@ namespace MWLua
 
     void Worker::update(Misc::FrameClock::time_point statsEpoch, unsigned frameNumber, Misc::FrameStats& stats)
     {
+        Diagnostics::setFrame(frameNumber);
+        Diagnostics::Scope timing("phase", "LuaWorker", "update");
+        Diagnostics::PostLoad::Scope postLoadPhase(Diagnostics::PostLoad::Phase::LuaExecution);
         OMW::ScopedProfile<OMW::UserStatsType::Lua> profile(statsEpoch, frameNumber, stats);
 
         mManager.update();

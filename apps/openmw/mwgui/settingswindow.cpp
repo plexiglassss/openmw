@@ -1,5 +1,6 @@
 #include "settingswindow.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 
@@ -7,10 +8,13 @@
 
 #include <MyGUI_ComboBox.h>
 #include <MyGUI_Gui.h>
+#include <MyGUI_ImageBox.h>
 #include <MyGUI_LanguageManager.h>
 #include <MyGUI_ScrollBar.h>
 #include <MyGUI_ScrollView.h>
 #include <MyGUI_TabControl.h>
+#include <MyGUI_TabItem.h>
+#include <MyGUI_TextBox.h>
 #include <MyGUI_UString.h>
 #include <MyGUI_Window.h>
 
@@ -20,6 +24,7 @@
 #include <components/files/configurationmanager.hpp>
 #include <components/l10n/manager.hpp>
 #include <components/lua_ui/scriptsettings.hpp>
+#include <components/mapmarkers/classification.hpp>
 #include <components/misc/constants.hpp>
 #include <components/misc/display.hpp>
 #include <components/misc/strings/algorithm.hpp>
@@ -40,6 +45,7 @@
 #include "../mwlua/luamanagerimp.hpp"
 
 #include "confirmationdialog.hpp"
+#include "textcolours.hpp"
 #include "weightedsearch.hpp"
 
 namespace
@@ -72,6 +78,37 @@ namespace
 
     const std::string_view checkButtonType = "CheckButton";
     const std::string_view sliderType = "Slider";
+
+    constexpr std::array<std::string_view, 4> dialogueColourToggleSettings{
+        "dialogue colouring", "dialogue use system colour", "dialogue classify narration", "journal colour narration"
+    };
+    constexpr std::array<std::string_view, 8> dialogueColourSettings{ "color dialogue normal",
+        "color dialogue inventory", "color dialogue stat", "color dialogue narration", "color dialogue journal",
+        "color journal narration", "color dialogue topic", "color dialogue inventory removal" };
+    constexpr std::array<std::string_view, 8> dialogueColourSamples{ "#{OMWEngine:DialogueColourSampleNormal}",
+        "#{OMWEngine:DialogueColourSampleInventory}", "#{OMWEngine:DialogueColourSampleStat}",
+        "#{OMWEngine:DialogueColourSampleNarration}", "#{OMWEngine:DialogueColourSampleJournal}",
+        "#{OMWEngine:DialogueColourSampleJournalNarration}", "#{OMWEngine:DialogueColourSampleTopic}", "#{OMWEngine:DialogueColourSampleRemoval}" };
+
+    std::array<Settings::SettingValue<bool>*, 8> tooltipToggleSettings()
+    {
+        auto& s = Settings::gui();
+        return { &s.mTravelEnabled, &s.mTravelOverview, &s.mTravelGondoliers, &s.mTravelFallback, &s.mTravelWide,
+            &s.mKeyTooltips, &s.mClearedDungeonTooltips, &s.mClearedDungeonMapTitle };
+    }
+
+    std::array<Settings::SettingValue<int>*, 5> tooltipChoiceSettings()
+    {
+        auto& s = Settings::gui();
+        return { &s.mTravelPack, &s.mTravelOverviewMap, &s.mTravelColour, &s.mTravelTitleFont, &s.mTravelTextFont };
+    }
+
+    size_t colourChannelPosition(float value)
+    {
+        if (!std::isfinite(value))
+            return 0;
+        return static_cast<size_t>(std::lround(std::clamp(value, 0.f, 1.f) * 255.f));
+    }
 
     std::string_view getSettingType(MyGUI::Widget* widget)
     {
@@ -244,6 +281,13 @@ namespace MWGui
 
     void SettingsWindow::onFrame(float duration)
     {
+        LuaUi::setControlsPageVisible(mModControlsMode && mModControlsView->getInheritedVisible());
+        if (mModControlsMode && mModControlsView->getCanvasSize() != mModControlsAdapter->getSize())
+            mModControlsView->setCanvasSize(mModControlsAdapter->getSize());
+        if (mModControlsMode && mModControlsNavigation->getCanvasSize() != mModControlsNavigationAdapter->getSize())
+            mModControlsNavigation->setCanvasSize(mModControlsNavigationAdapter->getSize());
+        if (mModControlsMode && LuaUi::consumeControlsPageScrollReset())
+            mModControlsView->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mScriptView->getVisible())
         {
             const auto scriptsSize = mScriptAdapter->getSize();
@@ -289,9 +333,18 @@ namespace MWGui
         getWidget(mTextureFilteringButton, "TextureFilteringButton");
         getWidget(mAnisotropy, "Anisotropy");
         getWidget(mControlsBox, "ControlsBox");
+        getWidget(mControlsFrame, "ControlsFrame");
+        getWidget(mNativeControlsOptions, "NativeControlsOptions");
+        getWidget(mModControlsPanel, "ModControlsPanel");
         getWidget(mResetControlsButton, "ResetControlsButton");
         getWidget(mKeyboardSwitch, "KeyboardButton");
         getWidget(mControllerSwitch, "ControllerButton");
+        getWidget(mModControlsSwitch, "ModControlsButton");
+        getWidget(mModControlsView, "ModControlsView");
+        getWidget(mModControlsAdapter, "ModControlsAdapter");
+        getWidget(mModControlsNavigation, "ModControlsNavigation");
+        getWidget(mModControlsNavigationAdapter, "ModControlsNavigationAdapter");
+        mModControlsSwitch->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onModControlsSwitchClicked);
         getWidget(mWaterRefractionButton, "WaterRefractionButton");
         getWidget(mWaterTextureSize, "WaterTextureSize");
         getWidget(mWaterReflectionDetail, "WaterReflectionDetail");
@@ -379,6 +432,32 @@ namespace MWGui
             += MyGUI::newDelegate(this, &SettingsWindow::onSecondaryLanguageChanged);
         mGmstOverridesL10n->eventMouseButtonClick
             += MyGUI::newDelegate(this, &SettingsWindow::onGmstOverridesL10nChanged);
+
+        initialiseJournalControls();
+        mJournalFontSize->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:JournalFontSizeAutomatic}"), 0);
+        mJournalPageNumberFontSize->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:JournalPageNumberFontSizeAutomatic}"), 0);
+        for (int size = 10; size <= 24; ++size)
+        {
+            mJournalFontSize->addItem(MyGUI::utility::toString(size), size);
+            mJournalPageNumberFontSize->addItem(MyGUI::utility::toString(size), size);
+        }
+        for (int scale = 50; scale <= 100; ++scale)
+            mJournalButtonScale->addItem(MyGUI::utility::toString(scale) + "%", scale);
+        mJournalFontSize->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalFontSizeChanged);
+        mJournalTextAlignment->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalTextAlignmentChanged);
+        mJournalPageNumberFontSize->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalPageNumberFontSizeChanged);
+        mJournalButtonScale->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onJournalButtonScaleChanged);
+        updateJournalSettings();
+        initialiseDialogueColourControls();
+        initialiseMessagePositionControls();
+        initialiseMapIconControls();
+        initialiseTooltipControls();
 
         computeMinimumWindowSize();
 
@@ -509,6 +588,10 @@ namespace MWGui
 
     void SettingsWindow::onTabChanged(MyGUI::TabControl* /*sender*/, size_t /*index*/)
     {
+        layoutDialogueColourControls();
+        layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
         resetScrollbars();
     }
 
@@ -674,6 +757,7 @@ namespace MWGui
         Settings::shaders().mClassicFalloff.reset();
         Settings::shaders().mParticlePointLighting.reset();
         Settings::shaders().mClampLighting.reset();
+        Settings::shaders().mLocationRenderingProfiles.reset();
         Settings::shaders().mMatchSunlightToSun.reset();
         Settings::shaders().mLightRadiusMultiplier.reset();
         Settings::shaders().mMaximumLightDistance.reset();
@@ -766,6 +850,533 @@ namespace MWGui
         apply();
     }
 
+    void SettingsWindow::initialiseJournalControls()
+    {
+        const auto findComboBox = [this](std::string_view name) {
+            std::string fullName = mPrefix;
+            fullName += name;
+            MyGUI::Widget* widget = mMainWidget->findWidget(fullName);
+            return widget ? widget->castType<MyGUI::ComboBox>(false) : nullptr;
+        };
+        mJournalFontSize = findComboBox("JournalFontSize");
+        mJournalTextAlignment = findComboBox("JournalTextAlignment");
+        mJournalPageNumberFontSize = findComboBox("JournalPageNumberFontSize");
+        mJournalButtonScale = findComboBox("JournalButtonScale");
+        if (mJournalFontSize && mJournalTextAlignment && mJournalPageNumberFontSize && mJournalButtonScale)
+            return;
+
+        // Keep any controls an older interface layout already provides. Put only
+        // missing controls in a native tab, avoiding duplicate or orphaned fields.
+
+        const auto translated = [](std::string_view text) {
+            return MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(text));
+        };
+        MyGUI::TabItem* tab = mSettingsTab->addItem(translated("#{OMWEngine:JournalTypography}"));
+        int row = 12;
+        const auto addControl = [this, tab, &row](
+                                    MyGUI::ComboBox*& control, std::string_view caption, const std::string& name) {
+            if (control)
+                return;
+            auto* label = tab->createWidget<MyGUI::TextBox>(
+                "SandText", { 4, row + 4, 154, 24 }, MyGUI::Align::Default);
+            label->setCaptionWithReplacing(caption);
+            control = tab->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 164, row, 202, 28 },
+                MyGUI::Align::Default, mPrefix + name);
+            control->setComboModeDrop(true);
+            row += 36;
+        };
+        const bool alignmentMissing = mJournalTextAlignment == nullptr;
+        addControl(mJournalFontSize, "#{OMWEngine:JournalFontSize}", "JournalFontSizeFallback");
+        addControl(mJournalTextAlignment, "#{OMWEngine:JournalTextAlignment}", "JournalTextAlignmentFallback");
+        addControl(mJournalPageNumberFontSize, "#{OMWEngine:JournalPageNumberFontSize}",
+            "JournalPageNumberFontSizeFallback");
+        addControl(mJournalButtonScale, "#{OMWEngine:JournalButtonScale}", "JournalButtonScaleFallback");
+        // The hint is deliberately wrapped within the same content width as the
+        // bundled Interface tab, independent of the replacement's decoration.
+        auto* hint = tab->createWidget<MyGUI::EditBox>(
+            "SandText", { 4, row + 12, 362, 100 }, MyGUI::Align::Default);
+        hint->setEditStatic(true);
+        hint->setEditMultiLine(true);
+        hint->setEditWordWrap(true);
+        hint->setTextAlign(MyGUI::Align::Left | MyGUI::Align::Top);
+        hint->setCaptionWithReplacing("#{OMWEngine:JournalTypographyHint}");
+        if (alignmentMissing)
+            for (std::string_view name : { "#{OMWEngine:JournalAlignLeft}", "#{OMWEngine:JournalAlignCentre}",
+                     "#{OMWEngine:JournalAlignRight}", "#{OMWEngine:JournalAlignJustified}" })
+                mJournalTextAlignment->addItem(translated(name));
+    }
+
+    void SettingsWindow::updateJournalSettings()
+    {
+        const int size = Settings::gui().mJournalFontSize;
+        mJournalFontSize->setIndexSelected(size == 0 ? 0 : static_cast<size_t>(size - 9));
+        mJournalTextAlignment->setIndexSelected(Settings::gui().mJournalTextAlignment);
+        const int pageSize = Settings::gui().mJournalPageNumberFontSize;
+        mJournalPageNumberFontSize->setIndexSelected(pageSize == 0 ? 0 : static_cast<size_t>(pageSize - 9));
+        mJournalButtonScale->setIndexSelected(static_cast<size_t>(Settings::gui().mJournalButtonScale.get() - 50));
+    }
+
+    void SettingsWindow::onJournalFontSizeChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE)
+            return;
+        if (const int* size = sender->getItemDataAt<int>(pos))
+        {
+            Settings::gui().mJournalFontSize.set(*size);
+            apply();
+        }
+    }
+
+    void SettingsWindow::onJournalTextAlignmentChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE || pos > 3)
+            return;
+        Settings::gui().mJournalTextAlignment.set(static_cast<int>(pos));
+        apply();
+    }
+
+    void SettingsWindow::onJournalPageNumberFontSizeChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE)
+            return;
+        if (const int* size = sender->getItemDataAt<int>(pos))
+        {
+            Settings::gui().mJournalPageNumberFontSize.set(*size);
+            apply();
+        }
+    }
+
+    void SettingsWindow::onJournalButtonScaleChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (pos == MyGUI::ITEM_NONE)
+            return;
+        if (const int* scale = sender->getItemDataAt<int>(pos))
+        {
+            Settings::gui().mJournalButtonScale.set(*scale);
+            apply();
+        }
+    }
+
+    void SettingsWindow::initialiseDialogueColourControls()
+    {
+        // Build this tab natively so a UI mod's older settings layout cannot omit it.
+        mDialogueColourTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:DialogueColours}"));
+        mDialogueColourControls = createDialogueColourControls(mDialogueColourTab, mPrefix);
+        for (size_t i = 0; i < dialogueColourToggleSettings.size(); ++i)
+        {
+            auto* button = mDialogueColourControls.mToggles[i];
+            button->setUserString("SettingName", std::string(dialogueColourToggleSettings[i]));
+            button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourToggled);
+        }
+        mDialogueColourControls.mRole->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourRoleChanged);
+        for (auto* slider : mDialogueColourControls.mSliders)
+            slider->eventScrollChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourChanged);
+        mDialogueColourControls.mReset->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onDialogueColourReset);
+        updateDialogueColourSettings();
+    }
+
+    void SettingsWindow::layoutDialogueColourControls()
+    {
+        MWGui::layoutDialogueColourControls(mDialogueColourControls);
+    }
+
+    void SettingsWindow::updateDialogueColourSettings()
+    {
+        if (!mDialogueColourControls.mRole)
+            return;
+        mUpdatingDialogueColours = true;
+        for (size_t i = 0; i < dialogueColourToggleSettings.size(); ++i)
+        {
+            const bool enabled = Settings::get<bool>("GUI", dialogueColourToggleSettings[i]);
+            mDialogueColourControls.mToggles[i]->setCaptionWithReplacing(enabled ? "#{Interface:On}" : "#{Interface:Off}");
+        }
+        const size_t role = mDialogueColourControls.mRole->getIndexSelected();
+        if (role < dialogueColourSettings.size())
+        {
+            const bool useTheme = role == 0 && Settings::gui().mDialogueUseSystemColour;
+            const MyGUI::Colour colour = useTheme
+                ? MWBase::Environment::get().getWindowManager()->getTextColours().normal
+                : Settings::get<MyGUI::Colour>("GUI", dialogueColourSettings[role]).get();
+            const std::array<float, 3> channels{ colour.red, colour.green, colour.blue };
+            for (size_t i = 0; i < channels.size(); ++i)
+            {
+                const size_t position = colourChannelPosition(channels[i]);
+                mDialogueColourControls.mSliders[i]->setScrollPosition(position);
+                mDialogueColourControls.mSliders[i]->setEnabled(!useTheme);
+                mDialogueColourControls.mValues[i]->setCaption(std::to_string(position));
+            }
+            mDialogueColourControls.mReset->setEnabled(!useTheme);
+            // Journal text is previewed against paper, not the dark dialogue box.
+            mDialogueColourControls.mPreviewBackground->setColour(
+                role == 5 ? MyGUI::Colour(0.87f, 0.83f, 0.69f) : MyGUI::Colour(0.06f, 0.06f, 0.06f));
+            mDialogueColourControls.mPreview->setCaptionWithReplacing(dialogueColourSamples[role]);
+            mDialogueColourControls.mPreview->setTextColour(colour);
+        }
+        mUpdatingDialogueColours = false;
+        layoutDialogueColourControls();
+    }
+
+    void SettingsWindow::onDialogueColourToggled(MyGUI::Widget* sender)
+    {
+        auto& setting = Settings::get<bool>("GUI", getSettingName(sender));
+        setting.set(!setting.get());
+        updateDialogueColourSettings();
+        apply();
+    }
+
+    void SettingsWindow::onDialogueColourRoleChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (!mUpdatingDialogueColours && pos < dialogueColourSettings.size())
+            updateDialogueColourSettings();
+    }
+
+    void SettingsWindow::onDialogueColourChanged(MyGUI::ScrollBar* sender, size_t pos)
+    {
+        if (mUpdatingDialogueColours)
+            return;
+        const size_t role = mDialogueColourControls.mRole->getIndexSelected();
+        if (role >= dialogueColourSettings.size() || (role == 0 && Settings::gui().mDialogueUseSystemColour))
+            return;
+        const auto channel
+            = std::find(mDialogueColourControls.mSliders.begin(), mDialogueColourControls.mSliders.end(), sender);
+        if (channel == mDialogueColourControls.mSliders.end())
+            return;
+        auto& setting = Settings::get<MyGUI::Colour>("GUI", dialogueColourSettings[role]);
+        MyGUI::Colour colour = setting.get();
+        const float value = static_cast<float>(std::min(pos, size_t(255))) / 255.f;
+        switch (channel - mDialogueColourControls.mSliders.begin())
+        {
+            case 0:
+                colour.red = value;
+                break;
+            case 1:
+                colour.green = value;
+                break;
+            case 2:
+                colour.blue = value;
+                break;
+        }
+        // Change only the edited channel; merely opening this tab never rounds
+        // colours loaded from settings.cfg to the slider's 8-bit display values.
+        setting.set(colour);
+        updateDialogueColourSettings();
+        apply();
+    }
+
+    void SettingsWindow::onDialogueColourReset(MyGUI::Widget* /*sender*/)
+    {
+        const size_t role = mDialogueColourControls.mRole->getIndexSelected();
+        if (role >= dialogueColourSettings.size() || (role == 0 && Settings::gui().mDialogueUseSystemColour))
+            return;
+        Settings::get<MyGUI::Colour>("GUI", dialogueColourSettings[role]).reset();
+        updateDialogueColourSettings();
+        apply();
+    }
+
+    void SettingsWindow::initialiseMessagePositionControls()
+    {
+        // A native tab stays available when a mod replaces the settings layout.
+        mMessagePositionTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:MessagePositionTab}"));
+        mMessagePositionControls = createMessagePositionControls(mMessagePositionTab, mPrefix);
+        mMessagePositionControls.mPosition->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionChanged);
+        for (auto* slider : mMessagePositionControls.mSliders)
+            slider->eventScrollChangePosition
+                += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionOffsetChanged);
+        mMessagePositionControls.mReset->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionReset);
+        mMessagePositionControls.mTest->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionTest);
+        updateMessagePositionSettings();
+    }
+
+    void SettingsWindow::layoutMessagePositionControls()
+    {
+        MWGui::layoutMessagePositionControls(mMessagePositionControls);
+    }
+
+    void SettingsWindow::updateMessagePositionSettings()
+    {
+        if (!mMessagePositionControls.mPosition)
+            return;
+        mUpdatingMessagePosition = true;
+        const auto& settings = Settings::gui();
+        mMessagePositionControls.mPosition->setIndexSelected(static_cast<size_t>(settings.mMessageBoxPosition.get()));
+        const std::array<int, 2> offsets{
+            settings.mMessageBoxHorizontalOffset.get(), settings.mMessageBoxVerticalOffset.get()
+        };
+        for (size_t i = 0; i < offsets.size(); ++i)
+        {
+            mMessagePositionControls.mSliders[i]->setScrollPosition(static_cast<size_t>(offsets[i] + 1000));
+            mMessagePositionControls.mValues[i]->setCaption(std::to_string(offsets[i]));
+        }
+        mUpdatingMessagePosition = false;
+        layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
+    }
+
+    void SettingsWindow::onMessagePositionChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (mUpdatingMessagePosition || pos >= 9)
+            return;
+        Settings::gui().mMessageBoxPosition.set(static_cast<int>(pos));
+        updateMessagePositionSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMessagePositionOffsetChanged(MyGUI::ScrollBar* sender, size_t pos)
+    {
+        if (mUpdatingMessagePosition)
+            return;
+        const auto slider = std::find(
+            mMessagePositionControls.mSliders.begin(), mMessagePositionControls.mSliders.end(), sender);
+        if (slider == mMessagePositionControls.mSliders.end())
+            return;
+        const int value = static_cast<int>(std::min(pos, size_t(2000))) - 1000;
+        auto& settings = Settings::gui();
+        if (slider == mMessagePositionControls.mSliders.begin())
+            settings.mMessageBoxHorizontalOffset.set(value);
+        else
+            settings.mMessageBoxVerticalOffset.set(value);
+        updateMessagePositionSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMessagePositionReset(MyGUI::Widget* /*sender*/)
+    {
+        auto& settings = Settings::gui();
+        settings.mMessageBoxPosition.reset();
+        settings.mMessageBoxHorizontalOffset.reset();
+        settings.mMessageBoxVerticalOffset.reset();
+        updateMessagePositionSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMessagePositionTest(MyGUI::Widget* /*sender*/)
+    {
+        MWBase::Environment::get().getWindowManager()->messageBox(
+            "#{OMWEngine:MessagePositionTest}", MWGui::ShowInDialogueMode_Never);
+    }
+
+    void SettingsWindow::initialiseMapIconControls()
+    {
+        // Keep the controls available even when a mod replaces the Options layout.
+        mMapIconTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:MapIconsTab}"));
+        mMapIconTab->setUserString("AllowTabOverflow", "true");
+        mMapIconControls = createMapIconControls(mMapIconTab, mPrefix);
+        for (auto* button : mMapIconControls.mToggles)
+            button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onMapIconToggled);
+        for (auto* slider : { mMapIconControls.mSize, mMapIconControls.mLocalSize, mMapIconControls.mMaximum })
+            slider->eventScrollChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onMapIconSizeChanged);
+        mMapIconControls.mColours->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconColoursChanged);
+        mMapIconControls.mCategory->eventComboChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconCategoryChanged);
+        mMapIconControls.mCategoryToggle->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconCategoryToggled);
+        mMapIconControls.mReset->eventMouseButtonClick
+            += MyGUI::newDelegate(this, &SettingsWindow::onMapIconReset);
+        updateMapIconSettings();
+    }
+
+    void SettingsWindow::updateMapIconSettings()
+    {
+        if (!mMapIconControls.mContent)
+            return;
+        mUpdatingMapIcons = true;
+        const auto& settings = Settings::map();
+        const std::array<bool, 4> enabled{
+            settings.mLocationIcons.get(), settings.mLocationEntranceIcons.get(), settings.mLocationIconTooltips.get(),
+            settings.mLocalDoorIcons.get()
+        };
+        for (size_t i = 0; i < enabled.size(); ++i)
+            mMapIconControls.mToggles[i]->setCaptionWithReplacing(enabled[i] ? "#{Interface:On}" : "#{Interface:Off}");
+        mMapIconControls.mSize->setScrollPosition(static_cast<size_t>(settings.mLocationIconSize.get() - 16));
+        mMapIconControls.mSizeValue->setCaption(std::to_string(settings.mLocationIconSize.get()));
+        mMapIconControls.mLocalSize->setScrollPosition(settings.mLocalDoorIconSize.get() - 8);
+        mMapIconControls.mLocalSizeValue->setCaption(std::to_string(settings.mLocalDoorIconSize.get()));
+        mMapIconControls.mMaximum->setScrollPosition(settings.mLocationIconMaximumSize.get() - 8);
+        mMapIconControls.mMaximumValue->setCaption(std::to_string(settings.mLocationIconMaximumSize.get()));
+        mMapIconControls.mColours->setIndexSelected(settings.mLocationIconColours == 2 ? 1 : 0);
+        const size_t selected = mMapIconControls.mCategory->getIndexSelected();
+        const bool categoryEnabled = selected < MapMarkers::categoryCount
+            && (static_cast<unsigned>(settings.mLocationIconCategories.get())
+                & MapMarkers::bit(static_cast<MapMarkers::Category>(selected))) != 0;
+        mMapIconControls.mCategoryToggle->setCaptionWithReplacing(categoryEnabled ? "#{Interface:On}" : "#{Interface:Off}");
+        mUpdatingMapIcons = false;
+        layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
+    }
+
+    void SettingsWindow::onMapIconToggled(MyGUI::Widget* sender)
+    {
+        if (mUpdatingMapIcons)
+            return;
+        auto& settings = Settings::map();
+        if (sender == mMapIconControls.mToggles[0])
+            settings.mLocationIcons.set(!settings.mLocationIcons.get());
+        else if (sender == mMapIconControls.mToggles[1])
+            settings.mLocationEntranceIcons.set(!settings.mLocationEntranceIcons.get());
+        else if (sender == mMapIconControls.mToggles[2])
+            settings.mLocationIconTooltips.set(!settings.mLocationIconTooltips.get());
+        else if (sender == mMapIconControls.mToggles[3])
+            settings.mLocalDoorIcons.set(!settings.mLocalDoorIcons.get());
+        else
+            return;
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconSizeChanged(MyGUI::ScrollBar* sender, size_t pos)
+    {
+        if (mUpdatingMapIcons)
+            return;
+        auto& settings = Settings::map();
+        if (sender == mMapIconControls.mSize)
+            settings.mLocationIconSize.set(16 + static_cast<int>(pos));
+        else if (sender == mMapIconControls.mLocalSize)
+            settings.mLocalDoorIconSize.set(8 + static_cast<int>(pos));
+        else if (sender == mMapIconControls.mMaximum)
+            settings.mLocationIconMaximumSize.set(8 + static_cast<int>(pos));
+        else
+            return;
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconColoursChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (mUpdatingMapIcons || pos >= 2)
+            return;
+        Settings::map().mLocationIconColours.set(pos == 1 ? 2 : 0);
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconCategoryChanged(MyGUI::ComboBox* /*sender*/, size_t pos)
+    {
+        if (!mUpdatingMapIcons && pos < MapMarkers::categoryCount)
+            updateMapIconSettings();
+    }
+
+    void SettingsWindow::onMapIconCategoryToggled(MyGUI::Widget* /*sender*/)
+    {
+        if (mUpdatingMapIcons)
+            return;
+        const size_t selected = mMapIconControls.mCategory->getIndexSelected();
+        if (selected >= MapMarkers::categoryCount)
+            return;
+        auto& settings = Settings::map();
+        settings.mLocationIconCategories.set(static_cast<int>(static_cast<unsigned>(settings.mLocationIconCategories.get())
+            ^ MapMarkers::bit(static_cast<MapMarkers::Category>(selected))));
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::onMapIconReset(MyGUI::Widget* /*sender*/)
+    {
+        auto& settings = Settings::map();
+        settings.mLocationIcons.reset();
+        settings.mLocationEntranceIcons.reset();
+        settings.mLocationIconTooltips.reset();
+        settings.mLocationIconSize.reset();
+        settings.mLocalDoorIcons.reset();
+        settings.mLocalDoorIconSize.reset();
+        settings.mLocationIconMaximumSize.reset();
+        settings.mLocationIconColours.reset();
+        settings.mLocationIconCategories.reset();
+        updateMapIconSettings();
+        apply();
+    }
+
+    void SettingsWindow::initialiseTooltipControls()
+    {
+        mTooltipTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:TooltipOptionsTab}"));
+        mTooltipTab->setUserString("AllowTabOverflow", "true");
+        mTooltipControls = createTooltipControls(mTooltipTab, mPrefix);
+        for (auto* button : mTooltipControls.mToggles)
+            button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onTooltipToggled);
+        for (auto* choice : mTooltipControls.mChoices)
+            choice->eventComboChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onTooltipChoiceChanged);
+        mTooltipControls.mScale->eventScrollChangePosition
+            += MyGUI::newDelegate(this, &SettingsWindow::onTooltipScaleChanged);
+        mTooltipControls.mReset->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onTooltipReset);
+        updateTooltipSettings();
+    }
+
+    void SettingsWindow::updateTooltipSettings()
+    {
+        if (!mTooltipControls.mContent)
+            return;
+        mUpdatingTooltips = true;
+        const auto toggles = tooltipToggleSettings();
+        for (size_t i = 0; i < toggles.size(); ++i)
+            mTooltipControls.mToggles[i]->setCaptionWithReplacing(
+                toggles[i]->get() ? "#{Interface:On}" : "#{Interface:Off}");
+        const auto choices = tooltipChoiceSettings();
+        for (size_t i = 0; i < choices.size(); ++i)
+            mTooltipControls.mChoices[i]->setIndexSelected(static_cast<size_t>(choices[i]->get()));
+        const int scale = Settings::gui().mTravelScale.get();
+        mTooltipControls.mScale->setScrollPosition(static_cast<size_t>(scale - 50));
+        mTooltipControls.mScaleValue->setCaption(std::to_string(scale) + "%");
+        mUpdatingTooltips = false;
+        layoutTooltipControls(mTooltipControls);
+    }
+
+    void SettingsWindow::onTooltipToggled(MyGUI::Widget* sender)
+    {
+        if (mUpdatingTooltips)
+            return;
+        const auto& buttons = mTooltipControls.mToggles;
+        const auto found = std::find(buttons.begin(), buttons.end(), sender);
+        if (found == buttons.end())
+            return;
+        auto* setting = tooltipToggleSettings()[static_cast<size_t>(found - buttons.begin())];
+        setting->set(!setting->get());
+        updateTooltipSettings();
+        apply();
+    }
+
+    void SettingsWindow::onTooltipChoiceChanged(MyGUI::ComboBox* sender, size_t pos)
+    {
+        if (mUpdatingTooltips || pos >= sender->getItemCount())
+            return;
+        const auto& choices = mTooltipControls.mChoices;
+        const auto found = std::find(choices.begin(), choices.end(), sender);
+        if (found == choices.end())
+            return;
+        tooltipChoiceSettings()[static_cast<size_t>(found - choices.begin())]->set(static_cast<int>(pos));
+        updateTooltipSettings();
+        apply();
+    }
+
+    void SettingsWindow::onTooltipScaleChanged(MyGUI::ScrollBar* /*sender*/, size_t pos)
+    {
+        if (mUpdatingTooltips)
+            return;
+        Settings::gui().mTravelScale.set(50 + static_cast<int>(std::min(pos, size_t(150))));
+        updateTooltipSettings();
+        apply();
+    }
+
+    void SettingsWindow::onTooltipReset(MyGUI::Widget* /*sender*/)
+    {
+        for (auto* setting : tooltipToggleSettings())
+            setting->reset();
+        for (auto* setting : tooltipChoiceSettings())
+            setting->reset();
+        Settings::gui().mTravelScale.reset();
+        updateTooltipSettings();
+        apply();
+    }
+
     void SettingsWindow::onShadowsButtonClicked(MyGUI::Widget* /*sender*/)
     {
         auto& shadowSettings = Settings::shadows();
@@ -844,6 +1455,10 @@ namespace MWGui
     void SettingsWindow::onResChange(int /*width*/, int /*height*/)
     {
         center();
+        layoutDialogueColourControls();
+        layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
         highlightCurrentResolution();
     }
 
@@ -910,11 +1525,50 @@ namespace MWGui
         updateLightSettings();
     }
 
+    void SettingsWindow::updateControlsVisibility()
+    {
+        mControlsBox->setVisible(!mModControlsMode);
+        mModControlsPanel->setVisible(mModControlsMode);
+        mNativeControlsOptions->setVisible(!mModControlsMode);
+        mResetControlsButton->setVisible(!mModControlsMode);
+        mModControlsSwitch->setStateSelected(mModControlsMode);
+        mKeyboardSwitch->setStateSelected(!mModControlsMode && mKeyboardMode);
+        mControllerSwitch->setStateSelected(!mModControlsMode && !mKeyboardMode);
+        LuaUi::setControlsPageVisible(mModControlsMode);
+        layoutModControls();
+        if (mModControlsMode)
+            LuaUi::attachControlsPage(mModControlsAdapter, mModControlsNavigationAdapter);
+    }
+
+    void SettingsWindow::layoutModControls()
+    {
+        // Mod controls use the whole tab; mouse sensitivity belongs to the native tabs.
+        const int bottom = mModControlsMode ? mControlsFrame->getParent()->getHeight() - 4
+                                            : mNativeControlsOptions->getTop() - 6;
+        mControlsFrame->setSize(mControlsFrame->getWidth(), std::max(1, bottom - mControlsFrame->getTop()));
+        const int width = mModControlsPanel->getWidth();
+        const int height = mModControlsPanel->getHeight();
+        const int navigation = std::clamp(width / 4, 150, 260);
+        mModControlsNavigation->setCoord(0, 0, navigation, height);
+        mModControlsView->setCoord(navigation + 12, 0, std::max(1, width - navigation - 12), height);
+        // Reserve the vertical scrollbar from the start, avoiding wrap/scrollbar feedback.
+        LuaUi::setControlsPageWidths(std::max(1, mModControlsView->getWidth() - 28),
+            std::max(1, mModControlsNavigation->getWidth() - 24));
+    }
+
+    void SettingsWindow::onModControlsSwitchClicked(MyGUI::Widget*)
+    {
+        mModControlsMode = true;
+        updateControlsVisibility();
+    }
+
     void SettingsWindow::onKeyboardSwitchClicked(MyGUI::Widget* /*sender*/)
     {
-        if (mKeyboardMode)
+        if (mKeyboardMode && !mModControlsMode)
             return;
+        mModControlsMode = false;
         mKeyboardMode = true;
+        updateControlsVisibility();
         mKeyboardSwitch->setStateSelected(true);
         mControllerSwitch->setStateSelected(false);
         updateControlsBox();
@@ -923,9 +1577,11 @@ namespace MWGui
 
     void SettingsWindow::onControllerSwitchClicked(MyGUI::Widget* /*sender*/)
     {
-        if (!mKeyboardMode)
+        if (!mKeyboardMode && !mModControlsMode)
             return;
+        mModControlsMode = false;
         mKeyboardMode = false;
+        updateControlsVisibility();
         mKeyboardSwitch->setStateSelected(false);
         mControllerSwitch->setStateSelected(true);
         updateControlsBox();
@@ -1100,6 +1756,7 @@ namespace MWGui
         for (size_t i = 0; i < LuaUi::scriptSettingsPageCount(); ++i)
         {
             LuaUi::ScriptSettingsPage page = LuaUi::scriptSettingsPageAt(i);
+            if (page.mControls) continue;
             size_t nameWeight = weightedSearch(page.mName, patternArray);
             size_t hintWeight = weightedSearch(page.mSearchHints, patternArray);
             if ((nameWeight + hintWeight) > 0)
@@ -1176,18 +1833,26 @@ namespace MWGui
 
     void SettingsWindow::onOpen()
     {
+        updateControlsVisibility();
         highlightCurrentResolution();
         updateControlsBox();
         updateLightSettings();
         updateWindowModeSettings();
         updateVSyncModeSettings();
+        updateJournalSettings();
+        updateDialogueColourSettings();
+        updateMessagePositionSettings();
         resetScrollbars();
+        updateMapIconSettings();
+        updateTooltipSettings();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
     }
 
     void SettingsWindow::onClose()
     {
+        LuaUi::setControlsPageVisible(false);
+        MWBase::Environment::get().getInputManager()->cancelBindingCapture();
         // Save user settings
         Settings::Manager::saveUser(mCfgMgr.getUserConfigPath() / "settings.cfg");
         MWBase::Environment::get().getLuaManager()->savePermanentStorage(mCfgMgr.getUserConfigPath());
@@ -1196,7 +1861,12 @@ namespace MWGui
 
     void SettingsWindow::onWindowResize(MyGUI::Window* /*sender*/)
     {
+        layoutModControls();
         layoutControlsBox();
+        layoutDialogueColourControls();
+        layoutMessagePositionControls();
+        layoutMapIconControls(mMapIconControls);
+        layoutTooltipControls(mTooltipControls);
     }
 
     void SettingsWindow::computeMinimumWindowSize()
@@ -1204,11 +1874,15 @@ namespace MWGui
         auto* window = mMainWidget->castType<MyGUI::Window>();
         auto minSize = window->getMinSize();
 
-        // Window should be at minimum wide enough to show all tabs.
+        // Preserve the existing layout's minimum width. Native colour/message tabs
+        // and layout tabs marked AllowTabOverflow use the tab bar's overflow arrows.
         int tabBarWidth = 0;
         for (uint32_t i = 0; i < mSettingsTab->getItemCount(); i++)
         {
-            tabBarWidth += mSettingsTab->getButtonWidthAt(i);
+            const MyGUI::TabItem* tab = mSettingsTab->getItemAt(i);
+            if (tab != mDialogueColourTab && tab != mMessagePositionTab
+                && tab->getUserString("AllowTabOverflow") != "true")
+                tabBarWidth += mSettingsTab->getButtonWidthAt(i);
         }
 
         // Need to include window margins
@@ -1229,6 +1903,14 @@ namespace MWGui
     {
         mResolutionList->setScrollPosition(0);
         mControlsBox->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mDialogueColourControls.mView)
+            mDialogueColourControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mMessagePositionControls.mView)
+            mMessagePositionControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mMapIconControls.mView)
+            mMapIconControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mTooltipControls.mView)
+            mTooltipControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
     }
 
     bool SettingsWindow::onControllerButtonEvent(const SDL_ControllerButtonEvent& arg)
@@ -1243,6 +1925,7 @@ namespace MWGui
             size_t index = mSettingsTab->getIndexSelected();
             index = wrap(index, mSettingsTab->getItemCount(), -1);
             mSettingsTab->setIndexSelected(index);
+            mSettingsTab->beginToItemSelected();
             MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Menu Click"));
             return true;
         }
@@ -1251,6 +1934,7 @@ namespace MWGui
             size_t index = mSettingsTab->getIndexSelected();
             index = wrap(index, mSettingsTab->getItemCount(), 1);
             mSettingsTab->setIndexSelected(index);
+            mSettingsTab->beginToItemSelected();
             MWBase::Environment::get().getWindowManager()->playSound(ESM::RefId::stringRefId("Menu Click"));
             return true;
         }

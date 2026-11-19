@@ -407,7 +407,8 @@ namespace MWPhysics
         const VFS::Path::Normalized animationMesh = ptr.getClass().useAnim()
             ? Misc::ResourceHelpers::correctActorModelPath(mesh, mResourceSystem->getVFS())
             : VFS::Path::Normalized(mesh);
-        std::shared_ptr<Resource::BulletShapeInstance> shapeInstance = mShapeManager->getInstance(animationMesh);
+        std::shared_ptr<Resource::BulletShapeInstance> shapeInstance
+            = mShapeManager->getInstance(animationMesh, ptr.getCellRef().getScale());
         if (!shapeInstance || !shapeInstance->mCollisionShape)
             return;
 

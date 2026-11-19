@@ -12,8 +12,15 @@
 #include <MyGUI_KeyCode.h>
 
 #include "../mwgui/mode.hpp"
+#include "../mwgui/messageboxstate.hpp"
 
+#include <components/misc/dialoguetext.hpp>
 #include <components/sdlutil/events.hpp>
+
+namespace LuaUi
+{
+    struct Element;
+}
 
 namespace ESM
 {
@@ -156,6 +163,8 @@ namespace MWBase
 
         /// \todo investigate, if we really need to expose every single lousy UI element to the outside world
         virtual MWGui::InventoryWindow* getInventoryWindow() = 0;
+        virtual MWWorld::Ptr getWorldTooltipObject() const = 0;
+        virtual void setWorldTooltip(const MWWorld::Ptr&, const std::shared_ptr<LuaUi::Element>&) = 0;
         virtual MWGui::CountDialog* getCountDialog() = 0;
         virtual MWGui::ConfirmationDialog* getConfirmationDialog() = 0;
         virtual MWGui::TradeWindow* getTradeWindow() = 0;
@@ -251,17 +260,20 @@ namespace MWBase
         virtual void exitCurrentGuiMode() = 0;
 
         virtual void messageBox(std::string_view message,
-            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible)
-            = 0;
+            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible,
+            Misc::DialogueText::Category category = Misc::DialogueText::Category::Default) = 0;
         /// Puts message into a queue to show on the next update. Thread safe alternative for messageBox.
         virtual void scheduleMessageBox(std::string message,
-            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible)
-            = 0;
+            enum MWGui::ShowInDialogueMode showInDialogueMode = MWGui::ShowInDialogueMode_IfPossible) = 0;
         virtual void staticMessageBox(std::string_view message) = 0;
         virtual void removeStaticMessageBox() = 0;
         virtual void interactiveMessageBox(std::string_view message, const std::vector<std::string>& buttons = {},
-            bool block = false, int defaultFocus = -1)
-            = 0;
+            bool block = false, int defaultFocus = -1, std::string_view sourceScriptId = {}) = 0;
+
+        virtual std::optional<MWGui::InteractiveMessageBoxInfo> getInteractiveMessageBoxInfo(
+            std::optional<MWGui::MessageBoxId> lastId = {}) const = 0;
+        virtual void setMessageBoxButtonSpellTooltips(
+            MWGui::MessageBoxId id, const MWGui::MessageBoxSpellTooltips& tooltips) = 0;
 
         /// returns the index of the pressed button or -1 if no button was pressed
         /// (->MessageBoxmanager->InteractiveMessageBox)
@@ -371,6 +383,7 @@ namespace MWBase
 
         virtual const MWGui::TextColours& getTextColours() = 0;
 
+        virtual bool onActivateKey() { return false; }
         virtual bool injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat) = 0;
         virtual bool injectKeyRelease(MyGUI::KeyCode key) = 0;
 
@@ -388,6 +401,7 @@ namespace MWBase
         virtual void forceLootMode(const MWWorld::Ptr& ptr) = 0;
 
         virtual void asyncPrepareSaveMap() = 0;
+        virtual void advanceSaveMapRestore(bool /*finish*/) {}
 
         /// Sets the cull masks for all applicable views
         virtual void setCullMask(uint32_t mask) = 0;

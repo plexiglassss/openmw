@@ -157,6 +157,7 @@ namespace MWWorld
 
     RefData& RefData::operator=(const RefData& refData)
     {
+        mQueryMutation = refData.mQueryMutation;
         try
         {
             cleanup();
@@ -208,6 +209,8 @@ namespace MWWorld
 
     void RefData::setDeletedByContentFile(bool deleted)
     {
+        if (mDeletedByContentFile != deleted)
+            invalidateReferenceQueries();
         mDeletedByContentFile = deleted;
     }
 
@@ -262,6 +265,8 @@ namespace MWWorld
 
     void RefData::setPosition(const ESM::Position& pos)
     {
+        if (mPosition.pos[0] != pos.pos[0] || mPosition.pos[1] != pos.pos[1] || mPosition.pos[2] != pos.pos[2])
+            invalidatePositionQueries();
         mChanged = true;
         mPosition = pos;
     }

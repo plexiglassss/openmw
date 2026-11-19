@@ -7,15 +7,17 @@ uniform mat4 texMat0;
 uniform float alpha;
 
 #include "lib/core/vertex.h.glsl"
+#include "lib/core/skinning.glsl"
 #include "lib/material/vertexcolors.glsl"
 
 void main()
 {
     Material material = getMaterial();
+    vec4 modelPosition = openmwRigMatrix() * gl_Vertex;
 
-    gl_Position = modelToClip(gl_Vertex);
+    gl_Position = modelToClip(modelPosition);
 
-    vec4 viewPos = modelToView(gl_Vertex);
+    vec4 viewPos = modelToView(modelPosition);
     gl_ClipVertex = viewPos;
 
     if (material.vertexColorMode == ColorMode_AmbientAndDiffuse)

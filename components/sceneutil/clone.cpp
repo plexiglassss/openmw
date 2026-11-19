@@ -17,6 +17,87 @@
 namespace SceneUtil
 {
 
+    std::optional<std::size_t> estimateInstanceBytes(const osg::Node& root)
+    {
+        class Estimate : public osg::NodeVisitor
+        {
+        public:
+            Estimate()
+                : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
+            {
+                setNodeMaskOverride(~0u);
+            }
+            void apply(osg::Node& node) override
+            {
+                mBytes += 1024;
+                traverse(node);
+            }
+            void geometry(const osg::Geometry& value)
+            {
+                mBytes += 1024;
+                if (value.getVertexArray())
+                    mBytes += 3 * std::size_t(value.getVertexArray()->getTotalDataSize());
+                if (value.getNormalArray())
+                    mBytes += 3 * std::size_t(value.getNormalArray()->getTotalDataSize());
+                if (value.getColorArray())
+                    mBytes += 3 * std::size_t(value.getColorArray()->getTotalDataSize());
+                for (const auto& array : value.getTexCoordArrayList())
+                    if (array)
+                        mBytes += 3 * std::size_t(array->getTotalDataSize());
+                for (const auto& array : value.getVertexAttribArrayList())
+                    if (array)
+                        mBytes += 3 * std::size_t(array->getTotalDataSize());
+                for (const auto& primitive : value.getPrimitiveSetList())
+                    mBytes += primitive->getTotalDataSize();
+            }
+            void apply(osg::Geometry& value) override
+            {
+                if (dynamic_cast<osgAnimation::RigGeometry*>(&value)
+                    || dynamic_cast<osgAnimation::MorphGeometry*>(&value))
+                    mSupported = false;
+                else
+                    geometry(value);
+            }
+            void apply(osg::Drawable& value) override
+            {
+                if (const auto* rig = dynamic_cast<const RigGeometry*>(&value))
+                {
+                    const auto source = rig->getSourceGeometry();
+                    if (!source || !source->getVertexArray())
+                    {
+                        mSupported = false;
+                        return;
+                    }
+                    geometry(*source);
+                    // Private GPU indices/weights, double-buffered palettes and clone metadata.
+                    // Source influence tables are immutable and shared by CopyOp.
+                    mBytes += 64 * std::size_t(source->getVertexArray()->getNumElements()) + 65536;
+                }
+                else if (const auto* morph = dynamic_cast<const MorphGeometry*>(&value))
+                {
+                    const auto source = morph->getSourceGeometry();
+                    if (!source)
+                    {
+                        mSupported = false;
+                        return;
+                    }
+                    geometry(*source);
+                    for (const auto& target : morph->getMorphTargetList())
+                        if (target.getOffsets())
+                            mBytes += 2 * std::size_t(target.getOffsets()->getTotalDataSize()) + 128;
+                }
+                else
+                    mSupported = false; // Includes particles and third-party dynamic drawable implementations.
+            }
+            std::size_t mBytes = 0;
+            bool mSupported = true;
+        } estimate;
+        const_cast<osg::Node&>(root).accept(estimate);
+        if (!estimate.mSupported)
+            return {};
+        return estimate.mBytes;
+    }
+
     CopyOp::CopyOp()
     {
         setCopyFlags(osg::CopyOp::DEEP_COPY_NODES

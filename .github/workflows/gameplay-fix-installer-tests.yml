@@ -1,0 +1,36 @@
+name: Gameplay helper installer checks
+on:
+  push:
+    branches: [tools/gameplay-fix-installer-20261105]
+    paths:
+      - custom/gameplay-fix-installer/**
+      - .github/workflows/gameplay-fix-installer-tests.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-powershell:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test authored installer with dummy files on Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/gameplay-fix-installer/Test-Installer.ps1 -InstallerScript ./custom/gameplay-fix-installer/Install-Fix.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW installer checks" -ReportPath "$env:GITHUB_WORKSPACE\installer-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gameplay-fix-installer-verification
+          path: |
+            installer-test-report.json
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.json
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.stdout.txt
+            ${{ runner.temp }}/OpenMW installer checks/**/invoke-*.stderr.txt
+            ${{ runner.temp }}/OpenMW installer checks/**/receipt.json
+          if-no-files-found: error

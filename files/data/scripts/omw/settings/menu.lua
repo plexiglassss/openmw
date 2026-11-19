@@ -22,6 +22,7 @@ require('scripts.omw.settings.renderers')(registerRenderer)
 local interfaceL10n = core.l10n('Interface')
 
 local pages = {}
+local pageRevision = 0
 local groups = {}
 local pageOptions = {}
 local groupElements = {}
@@ -294,7 +295,9 @@ local function renderPage(page, options)
         end
         local groupElement = groupElements[page.key][group.key]
         if not groupElement or not groupElement.layout then
-            groupElement = ui.create(renderGroup(group, pageGroup.global))
+            -- A settings page only needs native widgets when the player first opens it.
+            -- Keep rendering Lua layouts and running custom renderers as usual.
+            groupElement = ui.create(renderGroup(group, pageGroup.global), { deferUntilAttached = true })
         end
         if groupElement.layout == nil then
             error(string.format('Destroyed group element for %s %s', page.key, group.key))
@@ -367,7 +370,7 @@ local function onSettingChanged(global)
 
         if not settingKey then
             if groupElement then
-                groupElement.layout = renderGroup(group)
+                groupElement.layout = renderGroup(group, global)
                 groupElement:update()
             else
                 renderPage(pages[group.page], pageOptions[group.page])
@@ -463,6 +466,8 @@ local function resetPlayerGroups()
                 end
                 ui.removeSettingsPage(options)
                 pageOptions[pageKey] = nil
+                pages[pageKey] = nil
+                pageRevision = pageRevision + 1
             else
                 renderPage(pages[pageKey], options)
             end
@@ -493,6 +498,7 @@ local function registerPage(options)
         description = options.description,
     }
     pages[page.key] = page
+    pageRevision = pageRevision + 1
     groups[page.key] = groups[page.key] or {}
     pageOptions[page.key] = pageOptions[page.key] or {}
     renderPage(page, pageOptions[page.key])
@@ -507,7 +513,14 @@ end
 return {
     interfaceName = 'Settings',
     interface = {
-        version = 1,
+        version = 2,
+        -- Return a copy: controls may read the owning page without changing it.
+        getPageInfo = function(key)
+            local p = pages[key]
+            if not p then return nil end
+            return {key=p.key, l10n=p.l10n, name=p.name, description=p.description}
+        end,
+        getPageRevision = function() return pageRevision end,
         registerPage = function(options)
             registerPage(options)
             menuPages[options.key] = true

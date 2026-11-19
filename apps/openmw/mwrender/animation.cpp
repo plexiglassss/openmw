@@ -610,25 +610,22 @@ namespace MWRender
         return mKeyframes->mTextKeys;
     }
 
-    void Animation::loadAdditionalAnimations(VFS::Path::NormalizedView model, const std::string& baseModel)
+    void Animation::loadAdditionalAnimations(
+        VFS::Path::NormalizedView model, const std::string& baseModel, VFS::Path::NormalizedView directory)
     {
-        constexpr VFS::Path::NormalizedView meshes("meshes/");
-        if (!model.value().starts_with(meshes.value()))
+        const auto path = Misc::ResourceHelpers::additionalAnimationPath(model);
+        if (!path)
             return;
 
-        std::string path(model.value());
-
-        constexpr VFS::Path::NormalizedView animations("animations/");
-        path.replace(0, meshes.value().size(), animations.value());
-
-        const std::string::size_type extensionStart = path.find_last_of(VFS::Path::extensionSeparator);
-        if (extensionStart == std::string::npos)
+        constexpr std::string_view animations = "animations/";
+        std::string animationPath(path->value());
+        if (!animationPath.starts_with(animations))
             return;
-
-        path.replace(extensionStart, path.size() - extensionStart, "/");
+        animationPath.replace(0, animations.size(), directory.value());
 
         constexpr VFS::Path::ExtensionView kf("kf");
-        for (const VFS::Path::Normalized& name : mResourceSystem->getVFS()->getRecursiveDirectoryIterator(path))
+        for (const VFS::Path::Normalized& name :
+            mResourceSystem->getVFS()->getRecursiveDirectoryIterator(animationPath))
             if (name.extension() == kf)
                 addSingleAnimSource(name, baseModel);
     }

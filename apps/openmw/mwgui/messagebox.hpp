@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "messageboxstate.hpp"
 #include "windowbase.hpp"
 
 namespace MyGUI
@@ -26,8 +27,11 @@ namespace MWGui
         void createMessageBox(std::string_view message, bool stat = false);
         void removeStaticMessageBox();
         bool createInteractiveMessageBox(std::string_view message, const std::vector<std::string>& buttons,
-            bool immediate = false, int defaultFocus = -1);
+            bool immediate = false, int defaultFocus = -1, std::string_view sourceScriptId = {});
         bool isInteractiveMessageBox();
+
+        const InteractiveMessageBoxInfo* getInteractiveMessageBoxInfo(std::optional<MessageBoxId> lastId = {}) const;
+        void setMessageBoxButtonSpellTooltips(MessageBoxId id, const MessageBoxSpellTooltips& tooltips);
 
         std::size_t getMessagesCount();
 
@@ -52,6 +56,8 @@ namespace MWGui
 
         void onButtonPressed(int button)
         {
+            // Invalidate before listeners run, including immediate message boxes.
+            mInteractiveState.clear();
             eventButtonPressed(button);
             eventButtonPressed.clear();
         }
@@ -61,8 +67,11 @@ namespace MWGui
         const std::vector<std::unique_ptr<MessageBox>>& getActiveMessageBoxes() const;
 
     private:
+        void updateMessageBoxes();
+
         std::vector<std::unique_ptr<MessageBox>> mMessageBoxes;
         std::unique_ptr<InteractiveMessageBox> mInterMessageBoxe;
+        MessageBoxState mInteractiveState;
         MessageBox* mStaticMessageBox;
         float mMessageBoxSpeed;
         int mLastButtonPressed;
@@ -75,7 +84,7 @@ namespace MWGui
         MessageBox(MessageBoxManager& parMessageBoxManager, std::string_view message);
         const std::string& getMessage() { return mMessage; }
         int getHeight();
-        void update(int height);
+        void update(int precedingHeight, int stackHeight, int anchor, int horizontalOffset, int verticalOffset);
         void setVisible(bool value);
 
         float mCurrentTime;
@@ -85,7 +94,6 @@ namespace MWGui
         MessageBoxManager& mMessageBoxManager;
         std::string mMessage;
         MyGUI::EditBox* mMessageWidget;
-        int mBottomPadding;
         int mNextBoxPadding;
     };
 
@@ -96,6 +104,10 @@ namespace MWGui
             const std::vector<std::string>& buttons, bool immediate, size_t defaultFocus);
         void mousePressed(MyGUI::Widget* widget);
         int readPressedButton();
+
+        std::string getMessageCaption() const;
+        std::vector<std::string> getButtonCaptions() const;
+        void setSpellTooltips(const MessageBoxSpellTooltips& tooltips);
 
         MyGUI::Widget* getDefaultKeyFocus() override;
 
@@ -112,6 +124,7 @@ namespace MWGui
         MyGUI::EditBox* mMessageWidget;
         MyGUI::Widget* mButtonsWidget;
         std::vector<MyGUI::Button*> mButtons;
+        MessageBoxSpellTooltips mOwnedSpellTooltips;
 
         int mButtonPressed;
         size_t mDefaultFocus;

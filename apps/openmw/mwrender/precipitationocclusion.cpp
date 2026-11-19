@@ -64,6 +64,7 @@ namespace
         void setDefaults(osg::StateSet* stateset) override
         {
             stateset->addUniform(new osg::Uniform("projectionMatrix", osg::Matrixf()));
+            stateset->addUniform(new osg::Uniform("openmwRigEnabled", false));
             stateset->setAttributeAndModes(mProgram, osg::StateAttribute::ON | osg::StateAttribute::OVERRIDE);
             stateset->setTextureAttribute(0, mDummyTexture);
             stateset->setRenderBinDetails(

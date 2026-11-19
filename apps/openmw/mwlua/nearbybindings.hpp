@@ -7,6 +7,7 @@ namespace MWLua
 {
     struct Context;
 
+    void addNearbyDistanceBindings(sol::table& api, const Context& context);
     sol::table initNearbyPackage(const Context& context);
 }
 

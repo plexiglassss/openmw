@@ -1,0 +1,35 @@
+name: Performance capture follow-up source checks
+on:
+  push:
+    branches: [tools/performance-capture-sources-20261105]
+    paths:
+      - custom/performance-capture-followup/**
+      - .github/workflows/performance-capture-followup-tests.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-powershell:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check only changed collection functions and dummy installer orchestration
+        shell: powershell
+        run: |
+          & ./custom/performance-capture-followup/Test-CaptureFollowup.ps1 -CaptureScript ./custom/performance-capture-followup/Start-Capture.ps1 -InstallWrapper ./custom/performance-capture-followup/Install-All.ps1 -TestRoot "$env:RUNNER_TEMP\OpenMW followup checks" -ReportPath "$env:GITHUB_WORKSPACE\followup-test-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-capture-followup-verification
+          path: |
+            followup-test-report.json
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.json
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.stdout.txt
+            ${{ runner.temp }}/OpenMW followup checks/**/invoke.stderr.txt
+          if-no-files-found: error

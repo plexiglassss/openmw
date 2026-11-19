@@ -3,6 +3,7 @@
 #include <SDL_events.h>
 #include <SDL_gamecontroller.h>
 #include <SDL_mouse.h>
+#include <MyGUI_LanguageManager.h>
 
 #include <components/lua/inputactions.hpp>
 #include <components/lua/luastate.hpp>
@@ -156,6 +157,44 @@ namespace MWLua
         MWBase::InputManager* input = MWBase::Environment::get().getInputManager();
         sol::table api(lua, sol::create);
 
+        if (context.mType == Context::Menu)
+        {
+            api["_beginBindingCapture"] = [input]() { input->beginBindingCapture(); };
+            api["_cancelBindingCapture"] = [input]() { input->cancelBindingCapture(); };
+            api["_takeCapturedBinding"] = [input, lua]() -> sol::object {
+                const auto result = input->takeCapturedBinding();
+                if (!result)
+                    return sol::nil;
+                sol::table value(lua, sol::create);
+                value["device"] = result->first == 0 ? "keyboard" : result->first == 1 ? "mouse" : "controller";
+                value["button"] = result->second;
+                return value;
+            };
+            api["_getBaseBindings"] = [input, lua]() {
+                sol::table result(lua, sol::create);
+                size_t index = 0;
+                for (int action = 0; action < input->getNumActions(); ++action)
+                {
+                    const std::string description(input->getActionDescription(action));
+                    if (description.empty())
+                        continue;
+                    for (int device = 0; device < 3; ++device)
+                    {
+                        const int code = input->getActionBinding(action, device);
+                        if (code < 0)
+                            continue;
+                        sol::table entry(lua, sol::create);
+                        entry["action"] = action;
+                        entry["name"] = MyGUI::LanguageManager::getInstance().replaceTags(description).asUTF8();
+                        entry["device"] = device == 0 ? "keyboard" : device == 1 ? "mouse" : "controller";
+                        entry["button"] = code;
+                        result[++index] = entry;
+                    }
+                }
+                return result;
+            };
+        }
+
         api["ACTION_TYPE"]
             = LuaUtil::makeStrictReadOnly(LuaUtil::tableFromPairs<std::string_view, LuaUtil::InputAction::Type>(lua,
                 {
@@ -224,8 +263,9 @@ namespace MWLua
             = [manager = context.mLuaManager](std::string_view key) { manager->inputTriggers().activate(key); };
 
         api["isIdle"] = [input]() { return input->isIdle(); };
-        api["isActionPressed"] = [input](int action) { return input->actionIsActive(action); };
-        api["isKeyPressed"] = [](SDL_Scancode code) -> bool {
+        api["isActionPressed"] = [input](int action) { return !input->isCapturingBinding() && input->actionIsActive(action); };
+        api["isKeyPressed"] = [input](SDL_Scancode code) -> bool {
+            if (input->isCapturingBinding()) return false;
             int maxCode;
             const auto* state = SDL_GetKeyboardState(&maxCode);
             if (code >= 0 && code < maxCode)
@@ -238,10 +278,10 @@ namespace MWLua
         api["isAltPressed"] = []() -> bool { return SDL_GetModState() & KMOD_ALT; };
         api["isSuperPressed"] = []() -> bool { return SDL_GetModState() & KMOD_GUI; };
         api["isControllerButtonPressed"] = [input](int button) {
-            return input->isControllerButtonPressed(static_cast<SDL_GameControllerButton>(button));
+            return !input->isCapturingBinding() && input->isControllerButtonPressed(static_cast<SDL_GameControllerButton>(button));
         };
         api["isMouseButtonPressed"]
-            = [](int button) -> bool { return SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(button); };
+            = [input](int button) -> bool { return !input->isCapturingBinding() && (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(button)); };
         api["_isGamepadCursorActive"] = [input]() -> bool { return input->isGamepadGuiCursorEnabled(); };
         api["_isControllerMenusEnabled"] = []() -> bool { return Settings::gui().mControllerMenus; };
         api["_setGamepadCursorActive"] = [input](bool v) {
@@ -251,6 +291,7 @@ namespace MWLua
         api["getMouseMoveX"] = [input]() { return input->getMouseMoveX(); };
         api["getMouseMoveY"] = [input]() { return input->getMouseMoveY(); };
         api["getAxisValue"] = [input](int axis) {
+            if (input->isCapturingBinding()) return 0.0f;
             if (axis < SDL_CONTROLLER_AXIS_MAX)
                 return input->getControllerAxisValue(static_cast<SDL_GameControllerAxis>(axis));
             else

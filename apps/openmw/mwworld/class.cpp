@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <components/diagnostics/actorfailure.hpp>
+
 #include <components/esm/defs.hpp>
 #include <components/esm3/loadench.hpp>
 #include <components/esm3/loadmgef.hpp>
@@ -70,7 +72,7 @@ namespace MWWorld
 
     MWMechanics::CreatureStats& Class::getCreatureStats(const Ptr& ptr) const
     {
-        throw std::runtime_error("class does not have creature stats");
+        throw std::runtime_error(Diagnostics::actorFailureDetails("getCreatureStats", ptr.toString()));
     }
 
     MWMechanics::NpcStats& Class::getNpcStats(const Ptr& ptr) const
@@ -554,9 +556,9 @@ namespace MWWorld
         return result;
     }
 
-    void Class::setBaseAISetting(const ESM::RefId&, MWMechanics::AiSetting setting, int value) const
+    void Class::setBaseAISetting(const ESM::RefId& id, MWMechanics::AiSetting setting, int value) const
     {
-        throw std::runtime_error("class does not have creature stats");
+        throw std::runtime_error(Diagnostics::actorFailureDetails("setBaseAISetting", id.toDebugString()));
     }
 
     void Class::modifyBaseInventory(const ESM::RefId& actorId, const ESM::RefId& itemId, int amount) const

@@ -1,5 +1,6 @@
 set(OPENMW_SOURCES
     engine.cpp
+    startupscreen.cpp
     options.cpp
 )
 
@@ -18,7 +19,7 @@ set(OPENMW_HEADERS
 source_group(apps/openmw FILES main.cpp androidmain.cpp ${OPENMW_SOURCES} ${OPENMW_HEADERS} ${OPENMW_RESOURCES})
 
 add_openmw_dir (mwrender
-    actors objects renderingmanager animation rotatecontroller sky skyutil npcanimation esm4npcanimation vismask
+    actors objects renderingmanager locationrenderingprofiles animation rotatecontroller sky skyutil npcanimation esm4npcanimation vismask
     creatureanimation effectmanager util renderinginterface pathgrid rendermode weaponanimation screenshotmanager
     bulletdebugdraw globalmap characterpreview camera localmap water terrainstorage ripplesimulation
     renderbin actoranimation landmanager navmesh actorspaths recastmesh fogmanager objectpaging groundcover
@@ -32,12 +33,12 @@ add_openmw_dir (mwinput
     )
 
 add_openmw_dir (mwgui
-    layout textinput widgets race class birth review windowmanagerimp console dialogue
-    windowbase statswindow messagebox journalwindow charactercreation
+    layout textinput widgets race class birth review windowmanagerimp console dialogue dialogueformatting dialoguecolourcontrols
+    windowbase statswindow messagebox messagepositioncontrols mapiconcontrols tooltipcontrols traveltooltip traveltooltipdata traveltooltipview journalwindow charactercreation
     mapwindow windowpinnablebase tooltips scrollwindow bookwindow resourceskin
-    formatting inventorywindow container hud countdialog tradewindow settingswindow
-    confirmationdialog alchemywindow referenceinterface spellwindow mainmenu quickkeysmenu
-    itemselection spellbuyingwindow loadingscreen levelupdialog waitdialog spellcreationdialog
+    formatting inventorywindow luapaperdoll container hud countdialog tradewindow settingswindow
+    confirmationdialog alchemywindow referenceinterface spellwindow mainmenu mainmenutextbutton quickkeysmenu
+    itemselection spellbuyingwindow loadingscreen levelupdialog waitdialog waitdialogtime spellcreationdialog
     enchantingdialog trainingwindow travelwindow exposedwindow cursor spellicons
     merchantrepair repair soulgemdialog companionwindow bookpage journalviewmodel journalbooks
     itemmodel containeritemmodel inventoryitemmodel sortfilteritemmodel itemview
@@ -59,7 +60,7 @@ add_openmw_dir (mwscript
     )
 
 add_openmw_dir (mwlua
-    objectcache luamanagerimp object objectlists userdataserializer luaevents engineevents objectvariant loadscripts contentbindings
+    objectcache luamanagerimp object objectlists nativequeryservice userdataserializer luaevents engineevents objectvariant loadscripts contentbindings
     context menuscripts globalscripts localscripts playerscripts luabindings objectbindings cellbindings coremwscriptbindings
     mwscriptbindings camerabindings vfsbindings uibindings soundbindings inputbindings nearbybindings dialoguebindings
     postprocessingbindings stats recordstore debugbindings corebindings worldbindings worker landbindings magicbindings factionbindings
@@ -108,7 +109,7 @@ add_openmw_dir (mwmechanics
     )
 
 add_openmw_dir (mwstate
-    statemanagerimp charactermanager character quicksavemanager
+    statemanagerimp charactermanager character quicksavemanager saveselection
     )
 
 add_openmw_dir (mwbase
@@ -118,7 +119,16 @@ add_openmw_dir (mwbase
 
 # Main executable
 
-add_library(openmw-lib STATIC
+# The cacheable MSVC /Z7 profile embeds debug information in each object.
+# Archiving the engine's objects can exceed lib.exe's 4 GiB COFF limit.
+# Link the same objects directly into openmw and openmw-tests in that profile;
+# target_link_libraries still propagates all dependencies and usage requirements.
+set(OPENMW_LIB_TYPE STATIC)
+if (MSVC AND CMAKE_MSVC_DEBUG_INFORMATION_FORMAT STREQUAL "Embedded")
+    set(OPENMW_LIB_TYPE OBJECT)
+endif()
+
+add_library(openmw-lib ${OPENMW_LIB_TYPE}
     ${OPENMW_FILES}
     ${OPENMW_SOURCES}
 )
@@ -273,4 +283,9 @@ endif()
 
 if (NOT APPLE AND BUILD_OPENMW)
     install(TARGETS openmw ${runtime_dependency_arguments})
+endif()
+
+# The early Windows startup panel uses native painting, before OpenGL/MyGUI assets.
+if (WIN32)
+    target_link_libraries(openmw-lib user32 gdi32)
 endif()

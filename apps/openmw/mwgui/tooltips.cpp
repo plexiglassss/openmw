@@ -1,5 +1,8 @@
 #include "tooltips.hpp"
+#include <components/lua_ui/adapter.hpp>
+#include <components/lua_ui/element.hpp>
 
+#include <algorithm>
 #include <format>
 #include <iomanip>
 
@@ -28,6 +31,7 @@
 
 #include "inventorywindow.hpp"
 #include "mapwindow.hpp"
+#include "traveltooltip.hpp"
 
 #include "itemmodel.hpp"
 
@@ -46,6 +50,14 @@ namespace MWGui
         , mFrameDuration(0.f)
     {
         getWidget(mDynamicToolTipBox, "DynamicToolTipBox");
+        mLuaTooltipBox = mMainWidget->createWidget<MyGUI::Widget>("HUD_Box", MyGUI::IntCoord(), MyGUI::Align::Default);
+        mLuaTooltipBox->setNeedMouseFocus(false);
+        mLuaTooltipBox->setNeedKeyFocus(false);
+        mLuaTooltipAdapter
+            = mLuaTooltipBox->createWidget<LuaUi::LuaAdapter>("", MyGUI::IntCoord(), MyGUI::Align::Default);
+        mLuaTooltipAdapter->setNeedMouseFocus(false);
+        mLuaTooltipAdapter->setNeedKeyFocus(false);
+        mTravelTooltip = std::make_unique<TravelTooltip>(mMainWidget);
 
         mDynamicToolTipBox->setVisible(false);
 
@@ -57,6 +69,27 @@ namespace MWGui
         for (size_t i = 0; i < mMainWidget->getChildCount(); ++i)
         {
             mMainWidget->getChildAt(i)->setVisible(false);
+        }
+    }
+
+    ToolTips::~ToolTips()
+    {
+        mLuaTooltipAdapter->detach();
+    }
+
+    void ToolTips::setLuaTooltip(const MWWorld::Ptr& object, const std::shared_ptr<LuaUi::Element>& element)
+    {
+        mLuaTooltipAdapter->detach();
+        mLuaTooltipElement.reset();
+        mLuaTooltipObject = MWWorld::Ptr();
+        mLuaTooltipBox->setVisible(false);
+        if (!object.isEmpty() && element && element->mRoot && element->mState != LuaUi::Element::Destroy
+            && element->mState != LuaUi::Element::Destroyed)
+        {
+            mLuaTooltipObject = object;
+            mLuaTooltipElement = element;
+            mLuaTooltipAdapter->attach(element);
+            mLuaTooltipBox->setVisible(false);
         }
     }
 
@@ -171,7 +204,14 @@ namespace MWGui
 
                 // special handling for markers on the local map: the tooltip should only be visible
                 // if the marker is not hidden due to the fog of war.
-                if (type == "MapMarker")
+                if (type == "TravelDestination" || type == "TravelOverview")
+                {
+                    const auto size = mTravelTooltip->show(*focus, type == "TravelOverview", viewSize);
+                    if (!size)
+                        return;
+                    tooltipSize = *size;
+                }
+                else if (type == "MapMarker")
                 {
                     LocalMapBase::MarkerUserData data = *focus->getUserData<LocalMapBase::MarkerUserData>();
 
@@ -301,6 +341,12 @@ namespace MWGui
 
                 position(tooltipPosition, tooltipSize, viewSize);
 
+                if (type == "TravelDestination" || type == "TravelOverview")
+                {
+                    tooltipPosition.left = std::clamp(tooltipPosition.left, 0, std::max(0, viewSize.width - tooltipSize.width));
+                    tooltipPosition.top = std::clamp(tooltipPosition.top, 0, std::max(0, viewSize.height - tooltipSize.height));
+                }
+
                 setCoord(tooltipPosition.left, tooltipPosition.top, tooltipSize.width, tooltipSize.height);
             }
         }
@@ -314,7 +360,8 @@ namespace MWGui
                 const int top = std::max(0, int(mFocusToolTipY * viewSize.height - tooltipSize.height - 20));
                 setCoord(left, top, tooltipSize.width, tooltipSize.height);
 
-                mDynamicToolTipBox->setVisible(true);
+                mDynamicToolTipBox->setVisible(tooltipSize.width > 0 && tooltipSize.height > 0
+                    && !mLuaTooltipBox->getVisible());
             }
         }
     }
@@ -338,6 +385,8 @@ namespace MWGui
 
     void ToolTips::clear()
     {
+        mTravelTooltip->clear();
+        setLuaTooltip({}, nullptr);
         mFocusObject = MWWorld::Ptr();
 
         while (mDynamicToolTipBox->getChildCount())
@@ -366,6 +415,37 @@ namespace MWGui
         MyGUI::IntSize tooltipSize;
 
         const MWWorld::Class& object = mFocusObject.getClass();
+        if (object.hasToolTip(mFocusObject) && !mFullHelp && !MWBase::Environment::get().getWindowManager()->isGuiMode()
+            && mLuaTooltipElement && mLuaTooltipObject == mFocusObject && mLuaTooltipElement->mRoot
+            && mLuaTooltipElement->mState != LuaUi::Element::Destroy
+            && mLuaTooltipElement->mState != LuaUi::Element::Destroyed)
+        {
+            const auto size = mLuaTooltipAdapter->getSize();
+            // An explicit empty override suppresses this focused world label
+            // independently of whether rich world tooltips are enabled.
+            if (size.width <= 0 || size.height <= 0)
+            {
+                mLuaTooltipBox->setVisible(false);
+                mDynamicToolTipBox->setVisible(false);
+                return {};
+            }
+            if (Settings::gui().mEnhancedWorldTooltips)
+            {
+                const bool owned = (Settings::game().mShowOwned == 1 || Settings::game().mShowOwned == 3) && isOwned;
+                if (owned != mLuaTooltipOwned)
+                {
+                    mLuaTooltipBox->changeWidgetSkin(owned ? "HUD_Box_Owned" : "HUD_Box");
+                    mLuaTooltipOwned = owned;
+                }
+                mLuaTooltipBox->setSize(size.width + 8, size.height + 8);
+                mLuaTooltipAdapter->setPosition(4, 4);
+                mLuaTooltipBox->setVisible(true);
+                mLuaTooltipAdapter->refresh();
+                mDynamicToolTipBox->setVisible(false);
+                return mLuaTooltipBox->getSize();
+            }
+        }
+
         if (!object.hasToolTip(mFocusObject))
         {
             mDynamicToolTipBox->setVisible(false);

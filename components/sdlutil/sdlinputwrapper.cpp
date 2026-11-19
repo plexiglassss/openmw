@@ -1,5 +1,7 @@
 #include "sdlinputwrapper.hpp"
 
+#include <SDL_hints.h>
+
 #include <components/debug/debuglog.hpp>
 #include <components/settings/values.hpp>
 
@@ -366,6 +368,16 @@ namespace SDLUtil
         bool success = mAllowGrab && SDL_SetRelativeMouseMode(relative ? SDL_TRUE : SDL_FALSE) == 0;
         if (relative && !success)
             mWrapPointer = true;
+
+#if defined(_WIN32) && SDL_VERSION_ATLEAST(2, 0, 16)
+        // Log only on relative-mode transitions, never for individual key events.
+        const char* keyboardHint = SDL_GetHint(SDL_HINT_GRAB_KEYBOARD);
+        Log(Debug::Info) << "SDL input mode: keyboardGrab=" << int(SDL_GetWindowKeyboardGrab(mSDLWindow))
+                         << " mouseGrab=" << int(SDL_GetWindowMouseGrab(mSDLWindow))
+                         << " relative=" << int(SDL_GetRelativeMouseMode())
+                         << " fullscreen=" << (SDL_GetWindowFlags(mSDLWindow) & SDL_WINDOW_FULLSCREEN_DESKTOP)
+                         << " grabKeyboardHint=" << (keyboardHint ? keyboardHint : "unset");
+#endif
 
         // now remove all mouse events using the old setting from the queue
         SDL_PumpEvents();

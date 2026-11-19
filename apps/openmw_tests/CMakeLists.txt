@@ -7,20 +7,49 @@ file(GLOB UNITTEST_SRC_FILES
     options.cpp
 
     mwworld/teststore.cpp
+    mwworld/testcelllookup.cpp
     mwworld/testduration.cpp
     mwworld/testtimestamp.cpp
     mwworld/testptr.cpp
     mwworld/testlocalscripts.cpp
+    mwworld/testpostponedphysics.cpp
     mwworld/testweather.cpp
     mwworld/testpositioncellgrid.cpp
+    mwworld/testpreloaddependencies.cpp
+    mwworld/testpreloadplans.cpp
 
     mwdialogue/testkeywordsearch.cpp
 
+    mwmechanics/testlevelledlist.cpp
+    mwmechanics/testmagiceffectaccounting.cpp
+
+    mwrender/testlocationrenderingprofiles.cpp
+    mwrender/testcellobjectindex.cpp
+    mwrender/testsavedglobalmap.cpp
+
     mwgui/tooltips.cpp
     mwgui/weightedsearch.cpp
+    mwgui/test_journaltypography.cpp
+    mwgui/testdialogueformatting.cpp
+    mwgui/testdialoguecolourcontrols.cpp
+    mwgui/testmessageboxstate.cpp
+    mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
+    mwgui/testresttime.cpp
+    mwgui/testcontinuegame.cpp
+    mwgui/testmainmenubutton.cpp
+    mwgui/testluauilayout.cpp
 
+    mwlua/testmodkeybindings.cpp
     mwlua/testobjectcache.cpp
     mwlua/testmwscriptbindings.cpp
+    mwlua/testmagicbindings.cpp
+    mwlua/testnativequeryservice.cpp
+    mwlua/testspatialdistance.cpp
+    mwlua/testpositionsnapshots.cpp
+    mwworld/testarrivalcancellation.cpp
+    mwlua/testparallelqueries.cpp
+    mwlua/testvfsiterators.cpp
 
     mwscript/testscripts.cpp
 
@@ -67,6 +96,29 @@ endif()
 target_compile_definitions(openmw-tests
     PRIVATE OPENMW_DATA_DIR=u8"${CMAKE_CURRENT_BINARY_DIR}/data"
             OPENMW_PROJECT_SOURCE_DIR=u8"${PROJECT_SOURCE_DIR}")
+
+# Execute the same real widget fixtures before the full engine LTO link.
+# This target has no game/component-library dependency and is not installed.
+openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
+    controls-test-main.cpp
+    mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
+    ../openmw/mwgui/mapiconcontrols.cpp
+    ../openmw/mwgui/messagepositioncontrols.cpp
+    ../openmw/mwgui/tooltipcontrols.cpp
+    ../openmw/mwgui/traveltooltipdata.cpp
+    ../openmw/mwgui/traveltooltipview.cpp
+    ../openmw/mwgui/resourceskin.cpp
+    ${PROJECT_SOURCE_DIR}/components/mapmarkers/classification.cpp
+)
+target_link_libraries(openmw-controls-tests GTest::GTest ${MyGUI_LIBRARIES})
+# Match the MyGUI ABI definition normally inherited through components.
+target_compile_definitions(openmw-controls-tests
+    PRIVATE OPENMW_PROJECT_SOURCE_DIR=u8"${PROJECT_SOURCE_DIR}"
+            MYGUI_DONT_USE_OBSOLETE=ON)
+if (WIN32)
+    target_sources(openmw-controls-tests PRIVATE ${CMAKE_SOURCE_DIR}/files/windows/other-apps.manifest)
+endif()
 
 if (MSVC AND PRECOMPILE_HEADERS_WITH_MSVC)
     target_precompile_headers(openmw-tests PRIVATE

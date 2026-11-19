@@ -14,6 +14,7 @@ namespace LuaUi
 
     public:
         LuaWindow();
+        ~LuaWindow() override;
         void updateTemplate() override;
         void updateProperties() override;
 
@@ -21,6 +22,7 @@ namespace LuaUi
         LuaText* mCaption;
         std::map<MyGUI::Widget*, WidgetExtension*> mActionWidgets;
         MyGUI::IntPoint mPreviousMouse;
+        MyGUI::IntPoint mSnapOffset;
         MyGUI::IntCoord mChangeScale;
 
         MyGUI::IntCoord mMoveResize;

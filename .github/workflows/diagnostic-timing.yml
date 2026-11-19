@@ -1,0 +1,139 @@
+name: Diagnostic timing build
+on:
+  workflow_dispatch:
+    inputs:
+      full_build:
+        description: Build all editor/tools/benchmarks without the diagnostic compiler cache
+        type: boolean
+        default: false
+  push:
+    branches: [diagnostic-timing-2829ae6d]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  UIFeatureTests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - run: sudo apt-get update && sudo apt-get install -y liblua5.4-0
+      - name: Window snapping and tooltip lifecycle tests
+        run: |
+          g++ -std=c++20 -I. custom/ui-features/snap-tests.cpp -o snap-tests
+          ./snap-tests
+          g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -I. custom/performance-tests/loading.cpp -o loading-test
+          ./loading-test
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. custom/performance-tests/cell-type-index.cpp -o cell-type-index-test
+          ./cell-type-index-test
+          g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -Wno-unused-parameter -I. custom/performance-tests/loading-reporter.cpp components/loadinglistener/reporter.cpp -o loading-reporter-test
+          ./loading-reporter-test
+          g++ -std=c++20 -O2 -pthread -Wall -Wextra -Werror -I. custom/performance-tests/postload.cpp -o postload-test
+          ./postload-test
+          python3 custom/performance-tests/test-postload-integration.py
+          python3 custom/performance-tests/test-content-reference-index.py
+          python3 custom/performance-tests/test-save-metadata.py
+          python3 custom/performance-tests/test-transition-preload.py
+          python3 custom/performance-tests/test-preload.py
+          g++ -std=c++20 -Wall -Wextra -Werror -I. custom/performance-tests/save-reference-index.cpp -o save-reference-index-test
+          ./save-reference-index-test
+          g++ -std=c++20 -O2 -Wall -Wextra -Werror -I. custom/performance-tests/compiler-locals.cpp components/compiler/locals.cpp -o compiler-locals-test
+          ./compiler-locals-test
+          python3 custom/ui-features/test-lifecycle-repairs.py
+          python3 custom/ui-features/test-lua.py
+          python3 custom/ui-features/test-paper-doll.py
+          python3 custom/ui-features/test-integration-layout.py
+          python3 custom/ui-features/test-native-integration.py
+          python3 custom/ui-features/test-dialogue-keys.py
+          python3 -c "import xml.etree.ElementTree as E; E.parse('files/data/mygui/openmw_settings_window.layout')"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Inventory-Extender-Engine-Integration-${{ github.sha }}
+          path: custom/ui-features/InventoryExtenderIntegration/
+          if-no-files-found: error
+  TimingTests:
+    needs: UIFeatureTests
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Test timing recorder
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /I. custom/startup-tests/smoke.cpp apps/openmw/startupscreen.cpp /DNOGDI /DNOMB /DNOMINMAX /DWIN32_LEAN_AND_MEAN /Fe:startup-screen-smoke.exe /link user32.lib gdi32.lib
+          if ($LASTEXITCODE) { throw "Startup screen compile failed" }
+          ./startup-screen-smoke.exe
+          if ($LASTEXITCODE) { throw "Startup screen lifecycle test failed" }
+          python custom/ui-features/test-native-integration.py
+          if ($LASTEXITCODE) { throw "Native UI integration regression failed" }
+          python custom/performance-tests/test-preload.py
+          if ($LASTEXITCODE) { throw "Cell preload regression failed" }
+          cl /nologo /std:c++20 /EHsc /O2 /I. custom/performance-tests/compiler-locals.cpp components/compiler/locals.cpp /Fe:compiler-locals-test.exe
+          if ($LASTEXITCODE) { throw "Compiler locals regression compile failed" }
+          ./compiler-locals-test.exe
+          if ($LASTEXITCODE) { throw "Compiler locals regression failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/singleflight.cpp /Fe:singleflight-smoke.exe
+          if ($LASTEXITCODE) { throw "Model preparation test compile failed" }
+          ./singleflight-smoke.exe
+          if ($LASTEXITCODE) { throw "Model preparation test failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/reference-cache.cpp /Fe:reference-cache-smoke.exe
+          if ($LASTEXITCODE) { throw "Reference cache test compile failed" }
+          ./reference-cache-smoke.exe
+          if ($LASTEXITCODE) { throw "Reference cache test failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/performance-tests/parallel.cpp /Fe:parallel-smoke.exe
+          if ($LASTEXITCODE) { throw "Parallel scan test compile failed" }
+          ./parallel-smoke.exe
+          if ($LASTEXITCODE) { throw "Parallel scan test failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/save-reference-index.cpp /Fe:save-reference-index-test.exe
+          if ($LASTEXITCODE) { throw "Save reference index test compile failed" }
+          ./save-reference-index-test.exe
+          if ($LASTEXITCODE) { throw "Save reference index test failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/loading.cpp /Fe:loading-test.exe
+          if ($LASTEXITCODE) { throw "Loading diagnostics compile failed" }
+          ./loading-test.exe
+          if ($LASTEXITCODE) { throw "Loading diagnostics regression failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/cell-type-index.cpp /Fe:cell-type-index-test.exe
+          if ($LASTEXITCODE) { throw "Cell type index compile failed" }
+          ./cell-type-index-test.exe
+          if ($LASTEXITCODE) { throw "Cell type index regression failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /wd4100 /I. custom/performance-tests/loading-reporter.cpp components/loadinglistener/reporter.cpp /Fe:loading-reporter-test.exe
+          if ($LASTEXITCODE) { throw "Loading Reporter compile failed" }
+          ./loading-reporter-test.exe
+          if ($LASTEXITCODE) { throw "Loading Reporter regression failed" }
+          cl /nologo /std:c++20 /EHsc /W4 /WX /I. custom/performance-tests/postload.cpp /Fe:postload-test.exe
+          if ($LASTEXITCODE) { throw "Post-load test compile failed" }
+          ./postload-test.exe
+          if ($LASTEXITCODE) { throw "Post-load recorder regression failed" }
+          python custom/performance-tests/test-postload-integration.py
+          if ($LASTEXITCODE) { throw "Post-load integration regression failed" }
+          python custom/performance-tests/test-content-reference-index.py
+          if ($LASTEXITCODE) { throw "Content reference index regression failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/smoke.cpp /Fe:timing-smoke.exe
+          if ($LASTEXITCODE) { throw "Compile failed" }
+          $env:OPENMW_TIMING_FILE = "$PWD/timing-test.csv"
+          ./timing-smoke.exe
+          if ($LASTEXITCODE) { throw "Recorder test failed" }
+          python custom/timing-tests/verify.py timing-test.csv
+          if ($LASTEXITCODE) { throw "Timing verification failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/actorfailure.cpp /Fe:actorfailure-smoke.exe
+          if ($LASTEXITCODE) { throw "Actor diagnostic compile failed" }
+          ./actorfailure-smoke.exe
+          if ($LASTEXITCODE) { throw "CSV verification failed" }
+          cl /nologo /std:c++20 /EHsc /I. custom/timing-tests/mwscript.cpp /Fe:mwscript-smoke.exe
+          if ($LASTEXITCODE) { throw "MWScript diagnostic compile failed" }
+          $env:OPENMW_TIMING_FILE = "$PWD/mwscript-test.csv"
+          ./mwscript-smoke.exe
+          if ($LASTEXITCODE) { throw "MWScript diagnostic test failed" }
+          python custom/timing-tests/verify-mwscript.py mwscript-test.csv
+          if ($LASTEXITCODE) { throw "MWScript timing verification failed" }
+  Engine:
+    needs: TimingTests
+    uses: ./.github/workflows/windows.yml
+    with:
+      image: "2022"
+      msvc: "2022"
+      build-type: Release
+      package: false
+      release: false
+      diagnostic-fast: ${{ github.event_name != 'workflow_dispatch' || !inputs.full_build }}
+
+

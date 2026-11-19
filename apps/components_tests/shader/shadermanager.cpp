@@ -3,6 +3,9 @@
 #include <components/testing/util.hpp>
 
 #include <fstream>
+#include <chrono>
+
+#include <osgViewer/Viewer>
 
 #include <gtest/gtest.h>
 
@@ -40,6 +43,75 @@ namespace
             f(subdir);
         }
     };
+
+    TEST_F(ShaderManagerTest, global_defines_invalidate_existing_compile_readiness)
+    {
+        ShaderManager::DefineMap defines{ { "value", "1" } };
+        mManager.setGlobalDefines(defines);
+        withShaderFile("const int value = @value;\n", [&](const std::filesystem::path& path) {
+            auto shader = mManager.getShader(Files::pathToUnicodeString(path));
+            ASSERT_TRUE(shader);
+            auto revision = mManager.compileRevision();
+            auto program = mManager.getProgram(shader, nullptr);
+            EXPECT_EQ(mManager.compileRevision(), revision);
+            defines["value"] = "2";
+            mManager.setGlobalDefines(defines);
+            EXPECT_GT(mManager.compileRevision(), revision);
+            EXPECT_EQ(shader->getShaderSource(), "const int value = 2;\n");
+            EXPECT_EQ(mManager.getProgram(shader, nullptr), program);
+        });
+    }
+
+    TEST_F(ShaderManagerTest, graphics_release_and_template_changes_invalidate_compile_readiness)
+    {
+        auto revision = mManager.compileRevision();
+        mManager.releaseGLObjects(nullptr);
+        EXPECT_GT(mManager.compileRevision(), revision);
+        revision = mManager.compileRevision();
+        osg::ref_ptr<osg::Program> program = new osg::Program;
+        mManager.setProgramTemplate(program);
+        EXPECT_GT(mManager.compileRevision(), revision);
+        revision = mManager.compileRevision();
+        mManager.setShaderPath(TestingOpenMW::outputDir() / "different");
+        EXPECT_GT(mManager.compileRevision(), revision);
+    }
+
+    TEST_F(ShaderManagerTest, hot_reload_invalidates_existing_compile_readiness)
+    {
+        withShaderFile("void original() {}\n", [&](const std::filesystem::path& path) {
+            auto shader = mManager.getShader(Files::pathToUnicodeString(path));
+            ASSERT_TRUE(shader);
+            const auto revision = mManager.compileRevision();
+            const auto absolute = TestingOpenMW::outputDir() / path;
+            {
+                std::ofstream stream(absolute);
+                stream << "void changed() {}\n";
+            }
+            // Ensure a new timestamp even on filesystems with coarse resolution.
+            std::filesystem::last_write_time(absolute,
+                std::filesystem::file_time_type::clock::now() + std::chrono::seconds(2));
+            osgViewer::Viewer viewer;
+            viewer.setThreadingModel(osgViewer::Viewer::SingleThreaded);
+            mManager.triggerShaderReload();
+            mManager.update(viewer);
+            EXPECT_GT(mManager.compileRevision(), revision);
+            EXPECT_EQ(shader->getShaderSource(), "void changed() {}\n");
+            const auto after = mManager.compileRevision();
+            mManager.update(viewer);
+            EXPECT_EQ(mManager.compileRevision(), after);
+        });
+    }
+
+    TEST_F(ShaderManagerTest, get_program_with_null_vertex_shader_does_not_dereference)
+    {
+        osg::ref_ptr<osg::Shader> fragment = new osg::Shader(osg::Shader::FRAGMENT);
+        fragment->setShaderSource("#version 120\nvoid main() {}\n");
+
+        EXPECT_NO_THROW({
+            const osg::ref_ptr<osg::Program> program = mManager.getProgram(nullptr, fragment, nullptr, {});
+            EXPECT_TRUE(program);
+        });
+    }
 
     TEST_F(ShaderManagerTest, get_shader_with_empty_content_should_succeed)
     {

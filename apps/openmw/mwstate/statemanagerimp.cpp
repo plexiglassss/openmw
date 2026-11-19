@@ -1,8 +1,13 @@
+#include <components/diagnostics/loading.hpp>
+#include <components/diagnostics/postload.hpp>
 #include "statemanagerimp.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <map>
+#include <string>
 
 #include <SDL_clipboard.h>
 
@@ -50,6 +55,9 @@
 
 void MWState::StateManager::cleanup(bool force)
 {
+    if (Diagnostics::PostLoad::capture().active())
+        Log(Debug::Info) << "Post-load capture cancelled by game cleanup";
+    Diagnostics::PostLoad::capture().cancel();
     if (mState != State_NoGame || force)
     {
         MWBase::Environment::get().getSoundManager()->clear();
@@ -215,6 +223,13 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
     try
     {
         const auto start = std::chrono::steady_clock::now();
+        auto savePhaseStart = start;
+        const auto savePhase = [&](const char* name) {
+            const auto now = std::chrono::steady_clock::now();
+            Log(Debug::Info) << "Save write phase: " << name << " = "
+                             << std::chrono::duration<double, std::milli>(now - savePhaseStart).count() << " ms";
+            savePhaseStart = now;
+        };
 
         MWBase::Environment::get().getWindowManager()->asyncPrepareSaveMap();
 
@@ -255,7 +270,19 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         profile.mMaximumHealth = stats.getHealth().getModified();
 
         Log(Debug::Info) << "Making a screenshot for saved game '" << description << "'";
+        savePhase("profile and map preparation kickoff");
         writeScreenshot(profile.mScreenshot);
+        savePhase("screenshot");
+
+        // Capture the thumbnail first; then present feedback before any blocking serialization.
+        Loading::Listener& listener = *MWBase::Environment::get().getWindowManager()->getLoadingScreen();
+        const size_t savedCells = world.countSavedGameCells();
+        const size_t finalizationWork = std::max<size_t>(savedCells / 4, 4);
+        const size_t progressRange = savedCells + finalizationWork;
+        listener.setProgressRange(progressRange);
+        listener.setLabel("#{OMWEngine:SavingInProgress}", false);
+        Loading::ScopedLoad load(&listener);
+        listener.refresh(true);
 
         if (!slot)
             slot = character->createSlot(profile);
@@ -297,13 +324,7 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
 
         writer.save(stream);
 
-        Loading::Listener& listener = *MWBase::Environment::get().getWindowManager()->getLoadingScreen();
-        // Using only Cells for progress information, since they typically have the largest records by far
-        listener.setProgressRange(MWBase::Environment::get().getWorld()->countSavedGameCells());
-        listener.setLabel("#{OMWEngine:SavingInProgress}", true);
-
-        Loading::ScopedLoad load(&listener);
-
+        savePhase("slot, animations, record counts and writer setup");
         writer.startRecord(ESM::REC_SAVE);
         slot->mProfile.save(writer);
         writer.endRecord(ESM::REC_SAVE);
@@ -312,12 +333,18 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         MWBase::Environment::get().getDialogueManager()->write(writer, listener);
         // LuaManager::write should be called before World::write because world also saves
         // local scripts that depend on LuaManager.
+        savePhase("header, journal and dialogue");
         MWBase::Environment::get().getLuaManager()->write(writer, listener);
+        savePhase("Lua state");
         MWBase::Environment::get().getWorld()->write(writer, listener);
+        savePhase("world and cells");
         MWBase::Environment::get().getScriptManager()->getGlobalScripts().write(writer, listener);
         MWBase::Environment::get().getMechanicsManager()->write(writer, listener);
         MWBase::Environment::get().getInputManager()->write(writer, listener);
+        savePhase("scripts, mechanics and input");
+        listener.refresh(true); // Map encoding may still be running on the worker.
         MWBase::Environment::get().getWindowManager()->write(writer, listener);
+        savePhase("map and UI");
 
         // Ensure we have written the number of records that was estimated
         if (static_cast<size_t>(writer.getRecordCount()) != recordCount + 1) // 1 extra for TES3 record
@@ -330,13 +357,20 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
             throw std::runtime_error(
                 "Write operation failed (memory stream): " + std::generic_category().message(errno));
 
+        savePhase("finish serialization");
+        listener.setProgress(savedCells + finalizationWork / 2);
+        listener.refresh(true);
         // All good, write to file
         std::ofstream filestream(slot->mPath, std::ios::binary);
         filestream << stream.rdbuf();
+        filestream.flush();
 
         if (filestream.fail())
             throw std::runtime_error("Write operation failed (file stream): " + std::generic_category().message(errno));
 
+        listener.setProgress(progressRange);
+        listener.refresh(true);
+        savePhase("file write and stream flush");
         Settings::saves().mCharacter.set(Files::pathToUnicodeString(slot->mPath.parent_path().filename()));
         mLastSavegame = slot->mPath;
 
@@ -450,7 +484,17 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
 {
     try
     {
+        using LoadClock = std::chrono::steady_clock;
+        const auto loadStart = LoadClock::now();
+        auto phaseStart = loadStart;
+        const auto phase = [&](const char* name) {
+            const auto now = LoadClock::now();
+            const double ms = std::chrono::duration<double, std::milli>(now - phaseStart).count();
+            phaseStart = now;
+            Log(Debug::Info) << "Save load phase: " << name << " = " << ms << " ms";
+        };
         cleanup();
+        phase("previous game cleanup");
 
         Log(Debug::Info) << "Reading save file " << filepath.filename();
 
@@ -471,7 +515,8 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         if (version <= ESM::MaxActorIdSaveGameFormatVersion)
             reader.mActorIdConverter = &actorIdConverter;
 
-        Loading::Listener& listener = *MWBase::Environment::get().getWindowManager()->getLoadingScreen();
+        auto& windowManager = *MWBase::Environment::get().getWindowManager();
+        Loading::Listener& listener = *windowManager.getLoadingScreen();
 
         listener.setProgressRange(100);
         listener.setLabel("#{OMWEngine:LoadingInProgress}");
@@ -482,8 +527,12 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
 
         size_t total = reader.getFileSize();
         int currentPercent = 0;
+        phase("open, mapping and loading screen");
+        std::map<std::string, std::pair<std::size_t, double>> recordTimes;
+        double progressMs = 0;
         while (reader.hasMoreRecs())
         {
+            const auto recordStart = LoadClock::now();
             ESM::NAME n = reader.getRecName();
             reader.getRecHeader();
 
@@ -561,6 +610,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                     break;
 
                 case ESM::REC_GMAP:
+                case ESM::REC_LMRK:
                 case ESM::REC_KEYS:
                 case ESM::REC_ASPL:
                 case ESM::REC_MARK:
@@ -569,6 +619,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                     break;
 
                 case ESM::REC_DCOU:
+                case ESM::REC_DCLR:
                 case ESM::REC_STLN:
 
                     MWBase::Environment::get().getMechanicsManager()->readRecord(reader, n.toInt());
@@ -588,13 +639,26 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
                     Log(Debug::Warning) << "Warning: Ignoring unknown record: " << n.toStringView();
                     reader.skipRecord();
             }
+            const auto recordEnd = LoadClock::now();
+            auto& recordTime = recordTimes[std::string(n.toStringView())];
+            ++recordTime.first;
+            recordTime.second += std::chrono::duration<double, std::milli>(recordEnd - recordStart).count();
             int progressPercent = static_cast<int>(float(reader.getFileOffset()) / total * 100);
             if (progressPercent > currentPercent)
             {
+                windowManager.advanceSaveMapRestore(false);
+                const auto progressStart = LoadClock::now();
                 listener.increaseProgress(progressPercent - currentPercent);
+                progressMs += std::chrono::duration<double, std::milli>(LoadClock::now() - progressStart).count();
                 currentPercent = progressPercent;
             }
         }
+        phase("restore save records including progress display");
+        MWBase::Environment::get().getWorldModel()->reportSaveLoadTimings();
+        Log(Debug::Info) << "Save load progress display: " << progressMs << " ms";
+        for (const auto& [name, time] : recordTimes)
+            Log(Debug::Info) << "Save load records: " << name << " count=" << time.first << " ms=" << time.second;
+        phaseStart = LoadClock::now();
         mCharacterManager.setCurrentCharacter(character);
 
         mState = State_Running;
@@ -605,16 +669,42 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
 
         MWBase::Environment::get().getWindowManager()->setNewGame(false);
         MWBase::Environment::get().getWorld()->saveLoaded(reader);
+        phase("world saveLoaded");
         actorIdConverter.apply();
-        MWBase::Environment::get().getWorld()->setupPlayer();
-        MWBase::Environment::get().getWorld()->renderPlayer();
-        MWBase::Environment::get().getWindowManager()->updatePlayer();
-        MWBase::Environment::get().getMechanicsManager()->playerLoaded();
-        MWBase::Environment::get().getWorld()->toggleVanityMode(false);
+        phase("legacy actor IDs");
+        const auto playerStart = LoadClock::now();
+        Diagnostics::Loading::Metrics playerMetrics;
+        {
+            Diagnostics::Loading::Session playerSession(playerMetrics);
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerWorldSetup);
+                MWBase::Environment::get().getWorld()->setupPlayer();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerRender);
+                MWBase::Environment::get().getWorld()->renderPlayer();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerUi);
+                MWBase::Environment::get().getWindowManager()->updatePlayer();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerMechanics);
+                MWBase::Environment::get().getMechanicsManager()->playerLoaded();
+            }
+            {
+                Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::PlayerCamera);
+                MWBase::Environment::get().getWorld()->toggleVanityMode(false);
+                if (firstPersonCam != MWBase::Environment::get().getWorld()->isFirstPerson())
+                    MWBase::Environment::get().getWorld()->togglePOV();
+            }
+        }
+        Log(Debug::Info) << "Save load player detail: totalMs="
+                         << std::chrono::duration<double, std::milli>(LoadClock::now() - playerStart).count()
+                         << " (stages inclusive)" << playerMetrics;
 
-        if (firstPersonCam != MWBase::Environment::get().getWorld()->isFirstPerson())
-            MWBase::Environment::get().getWorld()->togglePOV();
-
+        phase("player setup, render and mechanics");
+        windowManager.advanceSaveMapRestore(false);
         MWWorld::ConstPtr ptr = MWMechanics::getPlayer();
 
         if (ptr.isInCell())
@@ -641,6 +731,7 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
             MWBase::Environment::get().getWorld()->changeToCell(cell.getCell()->getId(), pos, true, false);
         }
 
+        phase("initial cell and scene");
         MWBase::Environment::get().getWorld()->updateProjectilesCasters();
 
         // Vanilla MW will restart startup scripts when a save game is loaded. This is unintuitive,
@@ -651,13 +742,24 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         // But make sure the flag is cleared anyway in case it was set from an earlier game.
         MWBase::Environment::get().getWorldScene()->markCellAsUnchanged();
 
+        phase("projectiles and startup scripts");
+        // Finish while the loading screen owns the frame, before scripts or the player can open/save the map.
+        windowManager.advanceSaveMapRestore(true);
+        phase("finish saved world map");
         MWBase::Environment::get().getLuaManager()->gameLoaded();
+        phase("Lua gameLoaded");
         for (int actorId : actorIdConverter.mGraveyard)
         {
             auto mapped = actorIdConverter.mMappings.find(actorId);
             if (mapped != actorIdConverter.mMappings.end())
                 MWBase::Environment::get().getMechanicsManager()->cleanupSummonedCreature(mapped->second);
         }
+        phase("summoned creature cleanup");
+        Log(Debug::Info) << "Save load total: "
+                         << std::chrono::duration<double, std::milli>(LoadClock::now() - loadStart).count() << " ms";
+        Diagnostics::PostLoad::capture().arm();
+        Log(Debug::Info) << "Post-load capture armed: 10 seconds, at least 5 frame observations, at most 10000;"
+                            " first 5 frames plus slow frames, at most 40 detail lines total; inclusive phase timings";
     }
     catch (const SaveVersionTooNewError& e)
     {

@@ -1,6 +1,8 @@
 #ifndef COMPONENTS_LUA_LUASTATE_H
 #define COMPONENTS_LUA_LUASTATE_H
 
+#include <components/diagnostics/timing.hpp>
+
 #include <filesystem>
 #include <map>
 #include <typeinfo>
@@ -28,6 +30,8 @@ namespace LuaUtil
         ScriptsContainer* mContainer = nullptr;
         int mIndex = -1; // index in LuaUtil::ScriptsConfiguration
     };
+
+    std::string_view timingScriptName(ScriptId scriptId);
 
     struct LuaStateSettings
     {
@@ -122,6 +126,20 @@ namespace LuaUtil
     class LuaState
     {
     public:
+        /// Immutable package bindings shared by a container's sandboxes. Loaded modules,
+        /// environments and factory results are still private to each sandbox.
+        struct PreparedPackages
+        {
+            struct Loader
+            {
+                std::string mName;
+                sol::main_object mFunction;
+                bool mPublish;
+            };
+            sol::main_table mValues;
+            std::vector<Loader> mLoaders;
+            std::uint64_t mCommonRevision = 0;
+        };
         explicit LuaState(const VFS::Manager* vfs, const ScriptsConfiguration* conf,
             const LuaStateSettings& settings = LuaStateSettings{});
         LuaState(const LuaState&) = delete;
@@ -157,9 +175,14 @@ namespace LuaUtil
         //         (once per sandbox) with the argument 'hiddenData' the first time when requested.
         sol::protected_function_result runInNewSandbox(const VFS::Path::Normalized& path,
             const std::string& envName = "unnamed", const std::map<std::string, sol::main_object>& packages = {},
-            const sol::main_object& hiddenData = sol::nil);
+            const sol::main_object& hiddenData = sol::nil, PreparedPackages* prepared = nullptr);
 
-        void dropScriptCache() { mCompiledScripts.clear(); }
+        void dropScriptCache()
+        {
+            mCompiledScripts.clear();
+            mPendingSourceBytes = 0;
+            mModulePaths.clear();
+        }
 
         const ScriptsConfiguration& getConfiguration() const { return *mConf; }
 
@@ -193,6 +216,12 @@ namespace LuaUtil
             ScriptId scriptId, const sol::protected_function& fn, Args&&... args);
 
         sol::function loadScriptAndCache(const VFS::Path::Normalized& path);
+#ifndef NO_LUAJIT
+        sol::function makeScriptFactory(const VFS::Path::Normalized& path, std::string_view body);
+#endif
+        void updateVfsRevision();
+        VFS::Path::Normalized resolveModulePath(std::string_view name);
+        void preparePackages(PreparedPackages& result, const std::map<std::string, sol::main_object>& packages);
         static void countHook(lua_State* state, lua_Debug* ar);
         static void* trackingAllocator(void* ud, void* ptr, size_t osize, size_t nsize);
 
@@ -220,8 +249,20 @@ namespace LuaUtil
         sol::state_view mSol;
         const ScriptsConfiguration* mConf;
         sol::table mSandboxEnv;
-        std::map<VFS::Path::Normalized, sol::bytecode> mCompiledScripts;
+        struct CachedScript
+        {
+            sol::bytecode mBytecode;
+            // LuaJIT creates fresh closures sharing immutable prototypes. Their
+            // environments and all executed module results remain per-sandbox.
+            sol::function mFactory;
+            std::optional<std::string> mPendingSource;
+        };
+        std::map<VFS::Path::Normalized, CachedScript> mCompiledScripts;
+        std::size_t mPendingSourceBytes = 0;
         std::map<std::string, sol::object> mCommonPackages;
+        std::uint64_t mCommonPackagesRevision = 1;
+        std::uint64_t mVfsRevision = 0;
+        std::map<std::string, VFS::Path::Normalized, std::less<>> mModulePaths;
         const VFS::Manager* mVFS;
         std::vector<std::filesystem::path> mLibSearchPaths;
 
@@ -255,6 +296,7 @@ namespace LuaUtil
     template <typename... Args>
     sol::protected_function_result call(ScriptId scriptId, const sol::protected_function& fn, Args&&... args)
     {
+        Diagnostics::Scope timing("lua", Diagnostics::enabled() ? timingScriptName(scriptId) : std::string_view{});
         LuaState* luaState = nullptr;
         if (LuaState::sProfilerEnabled && scriptId.mContainer)
         {

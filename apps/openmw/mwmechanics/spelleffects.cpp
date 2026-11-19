@@ -18,6 +18,7 @@
 #include "../mwbase/world.hpp"
 
 #include "../mwmechanics/actorutil.hpp"
+#include "../mwmechanics/magiceffectaccounting.hpp"
 #include "../mwmechanics/aifollow.hpp"
 #include "../mwmechanics/npcstats.hpp"
 #include "../mwmechanics/spellresistance.hpp"
@@ -1224,7 +1225,8 @@ namespace MWMechanics
         ActiveSpells::ActiveSpellParams& spellParams, ESM::ActiveEffect& effect, float dt, bool playNonLooping)
     {
         const auto world = MWBase::Environment::get().getWorld();
-        int32_t applied = ESM::ActiveEffect::Flag_Remove;
+        const std::int32_t previousFlags = effect.mFlags;
+        std::int32_t applied = ESM::ActiveEffect::Flag_Remove;
         bool receivedMagicDamage = false;
         bool recalculateMagicka = false;
         bool affectedHealth = false;
@@ -1382,8 +1384,11 @@ namespace MWMechanics
                 applied |= applyActorMagicEffect(
                     target, caster, spellParams, effect, receivedMagicDamage, affectedHealth, recalculateMagicka);
             effect.mMagnitude = magnitude;
-            magnitudes.add(EffectKey(effect.mEffectId, effect.getSkillOrAttribute()),
-                EffectParam(effect.mMagnitude - oldMagnitude));
+            if (MagicEffectAccounting::shouldTrackMagnitude(previousFlags, applied))
+            {
+                magnitudes.add(EffectKey(effect.mEffectId, effect.getSkillOrAttribute()),
+                    EffectParam(effect.mMagnitude - oldMagnitude));
+            }
         }
         effect.mTimeLeft -= dt;
         if (applied & ESM::ActiveEffect::Flag_Invalid)

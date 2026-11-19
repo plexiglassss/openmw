@@ -108,6 +108,22 @@ namespace SceneUtil
 
         void setWaterEnabled(bool enabled);
 
+        void setLocationRenderingProfile(bool active, bool clampLighting, bool forcePerPixelLighting,
+            bool autoUseObjectNormalMaps, bool autoUseObjectSpecularMaps)
+        {
+            mLocationRenderingProfileActive = active;
+            mLocationProfileClampLighting = clampLighting;
+            mLocationProfileForcePerPixelLighting = forcePerPixelLighting;
+            mLocationProfileAutoUseObjectNormalMaps = autoUseObjectNormalMaps;
+            mLocationProfileAutoUseObjectSpecularMaps = autoUseObjectSpecularMaps;
+        }
+
+        void setOrdinaryAutomaticObjectMaps(bool normalMaps, bool specularMaps)
+        {
+            mOrdinaryAutoUseObjectNormalMaps = normalMaps;
+            mOrdinaryAutoUseObjectSpecularMaps = specularMaps;
+        }
+
     private:
         osg::Vec4f mAmbientColor;
         osg::Vec4f mFogColor;
@@ -119,6 +135,13 @@ namespace SceneUtil
         bool mWireframe = false;
         float mWaterHeight = 0.f;
         bool mWaterEnabled = false;
+        bool mLocationRenderingProfileActive = false;
+        bool mLocationProfileClampLighting = false;
+        bool mLocationProfileForcePerPixelLighting = false;
+        bool mLocationProfileAutoUseObjectNormalMaps = true;
+        bool mLocationProfileAutoUseObjectSpecularMaps = true;
+        bool mOrdinaryAutoUseObjectNormalMaps = false;
+        bool mOrdinaryAutoUseObjectSpecularMaps = false;
     };
 }
 

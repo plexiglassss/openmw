@@ -80,10 +80,12 @@ ContentSelectorModel::EsmFile* ContentSelectorModel::ContentModel::item(int row)
 }
 const ContentSelectorModel::EsmFile* ContentSelectorModel::ContentModel::item(const QString& name) const
 {
-    bool path = name.contains('/');
+    if (!name.contains('/'))
+        return mFilesByName.value(name.toCaseFolded(), nullptr);
+
     for (const EsmFile* file : mFiles)
     {
-        if (name.compare(path ? file->filePath() : file->fileName(), Qt::CaseInsensitive) == 0)
+        if (name.compare(file->filePath(), Qt::CaseInsensitive) == 0)
             return file;
     }
     return nullptr;
@@ -252,6 +254,16 @@ bool ContentSelectorModel::ContentModel::setData(const QModelIndex& index, const
             for (int i = EsmFile::FileProperty_GameFile; i < list.size(); i++)
                 file->setFileProperty(EsmFile::FileProperty_GameFile, list.at(i));
 
+            // Editing can rename an entry. Rebuild here (an infrequent path),
+            // retaining the original first-match behavior for duplicate names.
+            mFilesByName.clear();
+            for (EsmFile* entry : mFiles)
+            {
+                const QString key = entry->fileName().toCaseFolded();
+                if (!mFilesByName.contains(key))
+                    mFilesByName.insert(key, entry);
+            }
+
             emit dataChanged(index, index);
             return true;
         }
@@ -373,6 +385,7 @@ void ContentSelectorModel::ContentModel::addFile(EsmFile* file)
 {
     beginInsertRows(QModelIndex(), mFiles.count(), mFiles.count());
     mFiles.append(file);
+    mFilesByName.insert(file->fileName().toCaseFolded(), file);
     endInsertRows();
 
     QModelIndex idx = index(mFiles.size() - 2, 0, QModelIndex());
@@ -393,9 +406,12 @@ void ContentSelectorModel::ContentModel::addFiles(const QString& path, bool newf
     dir.setNameFilters(filters);
     dir.setSorting(QDir::Name);
 
+    bool containsDataFiles = false;
     for (const QString& path2 : dir.entryList())
     {
         QFileInfo info(dir.absoluteFilePath(path2));
+        if (!info.fileName().endsWith(".omwscripts", Qt::CaseInsensitive) && info.isFile())
+            containsDataFiles = true;
 
         EsmFile* file = const_cast<EsmFile*>(item(info.fileName()));
         bool add = file == nullptr;
@@ -487,10 +503,17 @@ void ContentSelectorModel::ContentModel::addFiles(const QString& path, bool newf
             qWarning() << "Error reading addon file: " << e.what();
         }
     }
+    // The launcher asks for the directory icon immediately after addFiles.
+    // Reuse this enumeration rather than scanning the directory again.
+    mDirectoriesWithDataFiles.insert(path, containsDataFiles);
 }
 
 bool ContentSelectorModel::ContentModel::containsDataFiles(const QString& path)
 {
+    const auto found = mDirectoriesWithDataFiles.constFind(path);
+    if (found != mDirectoriesWithDataFiles.cend())
+        return found.value();
+
     QStringList filters;
     filters << "*.esp"
             << "*.esm"
@@ -502,6 +525,10 @@ bool ContentSelectorModel::ContentModel::containsDataFiles(const QString& path)
 
 void ContentSelectorModel::ContentModel::clearFiles()
 {
+    mFilesByName.clear();
+    mDirectoriesWithDataFiles.clear();
+    mCheckedFiles.clear();
+    mGameFile = nullptr;
     const int filesCount = mFiles.count();
 
     if (filesCount > 0)
@@ -562,6 +589,7 @@ void ContentSelectorModel::ContentModel::sortFiles()
             // the file is not in the VFS, and will be displayed with an error
             auto missingFile = std::make_unique<EsmFile>(filename);
             missingFile->setFromAnotherConfigFile(true);
+            mFilesByName.insert(filename.toCaseFolded(), missingFile.get());
             mFiles.insert(firstModifiable++, missingFile.release());
         }
     }

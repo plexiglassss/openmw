@@ -5,6 +5,8 @@
 #include <memory>
 #include <string>
 
+#include <components/sceneutil/cellobjectindex.hpp>
+#include <osg/Object>
 #include <osg/ref_ptr>
 
 #include "../mwworld/ptr.hpp"
@@ -12,6 +14,7 @@
 namespace osg
 {
     class Group;
+    class Stats;
 }
 
 namespace Resource
@@ -41,6 +44,9 @@ namespace MWRender
         typedef std::map<const MWWorld::CellStore*, osg::ref_ptr<osg::Group>> CellMap;
         CellMap mCellSceneNodes;
         PtrAnimationMap mObjects;
+        SceneUtil::CellObjectIndex<const MWWorld::LiveCellRefBase*, const MWWorld::CellStore*> mObjectsByCell;
+        std::size_t mUnloadVisited = 0;
+        std::size_t mUnloadRemoved = 0;
         osg::ref_ptr<osg::Group> mRootNode;
         Resource::ResourceSystem* mResourceSystem;
         SceneUtil::UnrefQueue& mUnrefQueue;
@@ -68,6 +74,8 @@ namespace MWRender
 
         /// Updates containing cell for object rendering data
         void updatePtr(const MWWorld::Ptr& old, const MWWorld::Ptr& cur);
+
+        void reportStats(unsigned int frameNumber, osg::Stats& stats) const;
 
     private:
         void operator=(const Objects&);

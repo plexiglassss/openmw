@@ -298,22 +298,54 @@ return {
 
     TEST_F(LuaStateTest, RemovedScriptsGarbageCollecting)
     {
-        auto getMem = [&] {
+        auto collect = [&] {
             for (int i = 0; i < 5; ++i)
                 lua_gc(mLua.unsafeState(), LUA_GCCOLLECT, 0);
-            return mLua.getTotalMemoryUsage();
         };
-        int64_t memWithScript;
+        sol::state_view lua(mLua.unsafeState());
+        sol::table weak = lua.create_table();
+        weak[sol::metatable_key] = lua.create_table_with("__mode", "v");
+        int tracked = 0;
         const VFS::Path::Normalized path("requireBig.lua");
+        auto instance = [&] {
+            sol::table script = mLua.runInNewSandbox(path);
+            sol::function module = script[1];
+            sol::environment env(sol::env_key, module);
+            // Execute the module too: its runtime table belongs to this sandbox,
+            // whereas cached immutable code may intentionally outlive it.
+            sol::table data = LuaUtil::call(module);
+            weak[++tracked] = script;
+            weak[++tracked] = module;
+            weak[++tracked] = env;
+            weak[++tracked] = data;
+            weak[++tracked] = static_cast<sol::object>(env["require"]);
+            return script;
+        };
+        auto expectAlive = [&](int first, int last) {
+            for (int i = first; i <= last; ++i)
+                EXPECT_NE(static_cast<sol::object>(weak[i]), sol::nil) << "Object " << i;
+        };
+        auto expectCollected = [&](int first, int last) {
+            for (int i = first; i <= last; ++i)
+                EXPECT_EQ(static_cast<sol::object>(weak[i]), sol::nil) << "Object " << i;
+        };
         {
-            sol::object s = mLua.runInNewSandbox(path);
-            memWithScript = getMem();
+            sol::table cold = instance();
+            {
+                sol::table warm = instance();
+                for (int i = 0; i < 100; ++i)
+                    instance();
+                collect();
+                // Positive controls cover both the initial and promoted paths.
+                expectAlive(1, 10);
+                expectCollected(11, tracked);
+            }
+            collect();
+            expectAlive(1, 5);
+            expectCollected(6, tracked);
         }
-        for (int i = 0; i < 100; ++i) // run many times to make small memory leaks visible
-            mLua.runInNewSandbox(path);
-        int64_t memWithoutScript = getMem();
-        // At this moment all instances of the script should be garbage-collected.
-        EXPECT_LT(memWithoutScript, memWithScript);
+        collect();
+        expectCollected(1, tracked);
     }
 
     TEST_F(LuaStateTest, SafeIndexMetamethod)

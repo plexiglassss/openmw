@@ -540,6 +540,20 @@ namespace MWRender
         if (customArgonianSwim)
             addAnimSource(Settings::models().mXargonianswimkna.get().value(), smodel);
 
+        // Mods may keep player-only KF sources outside the ordinary Animations tree. This avoids registering
+        // player poses on unrelated NPCs and biped creatures while retaining the real player representation.
+        if (!is1stPerson && !isWerewolf && Settings::game().mUseAdditionalAnimSources
+            && mPtr == MWBase::Environment::get().getWorld()->getPlayerPtr())
+        {
+            constexpr VFS::Path::NormalizedView directory("playeranimations/");
+            if (!base.empty())
+                loadAdditionalAnimations(VFS::Path::toNormalized(base), smodel, directory);
+            if (defaultSkeleton != base)
+                loadAdditionalAnimations(VFS::Path::toNormalized(defaultSkeleton), smodel, directory);
+            if (isCustomModel)
+                loadAdditionalAnimations(VFS::Path::toNormalized(smodel), smodel, directory);
+        }
+
         if (is1stPerson)
         {
             mObjectRoot->setNodeMask(Mask_FirstPerson);
@@ -569,6 +583,16 @@ namespace MWRender
         }
 
         return mesh;
+    }
+
+    void NpcAnimation::updateInventoryPreviewParts(bool showCarriedLeft)
+    {
+        // A paper doll uses the equipped pose, independently of the live actor's attack animation.
+        // Drop a previously displayed projectile before updating parts for the new weapon.
+        mAmmunition.reset();
+        mShowWeapons = true;
+        mShowCarriedLeft = showCarriedLeft;
+        updateParts();
     }
 
     void NpcAnimation::updateParts()

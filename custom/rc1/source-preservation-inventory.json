@@ -1,0 +1,768 @@
+{
+  "schema": "openmw-rc1-source-preservation-inventory-v1",
+  "reviewer": "/root/review_rc1_port",
+  "captured_utc": "2026-11-19T15:19:30.439773+00:00",
+  "scope": "The 47 remote branch heads available in the port checkout when the independent omission audit began. Immutable SHAs identify this inventory; later remote updates require a separate decision.",
+  "baseline": {
+    "common_upstream": "2062366b727978165213a7be14319e977edf3d5a",
+    "official_rc1_tag": "openmw-52-rc1",
+    "official_rc1_sha": "4ff261bf7c0d42a6cc06dd1ebc5d451802cff055",
+    "cumulative_union_sha": "61bf55d21b5537f0665fd86540ab9dcf635209f6",
+    "candidate_head_at_review": "5fcf320f3812a1d094d335550291c8a0c0e834d7"
+  },
+  "decision": "All 47 branch heads classified; no unresolved feature omission in this inventory. This is a source-scope disposition inventory, not native/runtime or package certification.",
+  "validation_contract": [
+    "Run the unchanged historical town-performance source gate on exact cumulative union61bf55d21b5537f0665fd86540ab9dcf635209f6.",
+    "Use the RC1 three-way source preservation gate for final upstream/custom adaptations and explicit upstream deletions.",
+    "Retain ancestor history plus the explicit player-only feature port; ancestry alone is not proof of behavioral preservation.",
+    "Final exact-head native build, focused regression results, and package provenance remain separate release requirements.",
+    "Temporary source exports, historical archive QA, and superseded implementations are deliberately excluded only for the reasons below."
+  ],
+  "classification_counts": {
+    "excluded-historical-archive-qa": 1,
+    "excluded-temporary-audit-tooling": 1,
+    "excluded-temporary-export-only": 3,
+    "included-by-cumulative-ancestry": 36,
+    "included-through-official-rc1": 1,
+    "no-effective-tree-change": 2,
+    "ported-production-feature": 1,
+    "preserved-fix-excluded-standalone-tooling": 1,
+    "superseded-with-preserved-behavior": 1
+  },
+  "branches": [
+    {
+      "branch": "origin/audit/luminus-lanes-assets-20261110",
+      "sha": "e6a0bae8903502b393f52d7379f9c0e300e68f23",
+      "ancestral_to_union": false,
+      "disposition": "The six unique commits add temporary Luminus Lanes asset collectors and an NIF geometry exporter under niftest; they do not change the game executable. Excluded from the RC1 gameplay port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "excluded-temporary-audit-tooling",
+      "evidence_paths": [],
+      "unique_commit_count": 6,
+      "unique_commits": [
+        "e6a0bae8903502b393f52d7379f9c0e300e68f23 Use OpenMW parser for Luminus Lanes geometry export",
+        "f7ce8f5e993f3ac64992ed4979f070e6d140411f Build temporary NIF geometry exporter",
+        "fed3d325ef1ae857072e8ca4949a66f20fe3bc8a Add temporary OpenMW NIF geometry exporter",
+        "b528aaaf7ecef03289778565d5afeadb754714ea Export Luminus Lanes support geometry",
+        "b4ab98d9bc43cdc0b7d4fa3751e391085b87290f Collect NIF parser dependencies",
+        "25a661e1cf7604a71ec288c0c65a777ec2599193 Add temporary Luminus Lanes asset collector"
+      ],
+      "merge_base_tree_delta_count": 5,
+      "merge_base_tree_delta_sha256": "4ddf0b0ba6bf4008f10ef0fb170bcee96589947aaf811bbce73a6a5bbc7fe8db",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/luminus-lanes-asset-collector.yml",
+        "A\t.github/workflows/luminus-lanes-geometry-export.yml",
+        "A\t.github/workflows/luminus-lanes-nif-tools.yml",
+        "M\tapps/niftest/CMakeLists.txt",
+        "A\tapps/niftest/nifgeometry.cpp"
+      ],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/cumulative/windows-20261106",
+      "sha": "29022d6176d82b9281075cc2189d19b11ebce463",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/diagnostic-timing-2829ae6d",
+      "sha": "1eec2736c72590d028327dd45191357a3ae286d2",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/dialogue-iterator-fix-2062366",
+      "sha": "e3b3dbe6067b17c261b1a190b29ef760ccbef85d",
+      "ancestral_to_union": false,
+      "disposition": "The two unique commits add then remove a temporary Sable Dragon compatibility-patch fetch workflow. The merge-base-to-head tree delta is empty; no additional dialogue implementation remains to port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "no-effective-tree-change",
+      "evidence_paths": [],
+      "unique_commit_count": 2,
+      "unique_commits": [
+        "e3b3dbe6067b17c261b1a190b29ef760ccbef85d Remove temporary Sable Dragon patch fetch workflow",
+        "bef8cf3323ca8d1fa4ebcd32e21de6ad13db6c44 Temporary: fetch authoritative Sable Dragon compatibility patch"
+      ],
+      "merge_base_tree_delta_count": 0,
+      "merge_base_tree_delta_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "merge_base_tree_delta": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/docs/gameplay-installation-20261106",
+      "sha": "541a1e13cfcdac0c1101c08a465ea2c61ab951e4",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feat/follower-balance-api-20261118",
+      "sha": "407469c78a5d7b8afce30403d565b91d57aadb16",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feat/horror-interior-lighting-20261109",
+      "sha": "6750a518501e4fc752511e65931b309218abeb0e",
+      "ancestral_to_union": false,
+      "disposition": "The original hardcoded Horror-interior implementation was superseded by the generic data-driven location-rendering profiles in 39f44294a5fdc815b1fc4bb52f59cb7cb654e3a7, including the editable Horror profile. The separate null vertex-shader guard is present in current ShaderManager. Reintroducing the old hardcoded implementation would regress the accepted generic design; the temporary source-export workflow is excluded.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "superseded-with-preserved-behavior",
+      "evidence_paths": [
+        "apps/openmw/mwrender/locationrenderingprofiles.cpp",
+        "apps/openmw/mwrender/locationrenderingprofiles.hpp",
+        "files/data/shader_profiles/horror_mod.yaml",
+        "components/shader/shadermanager.cpp"
+      ],
+      "unique_commit_count": 4,
+      "unique_commits": [
+        "6750a518501e4fc752511e65931b309218abeb0e Add temporary source export for profile refactor",
+        "7fce234b1ea3f4339f3c709b571f2b295885a961 Guard null vertex shaders in classic tangent binding",
+        "3e2b09ed0940253911368aad998b6710932045a2 Remove extra final blank lines from focused native tests",
+        "617bd44cdd17a4d9e9d70a73d6bae16b66206841 Apply classic lighting only in dedicated Horror interiors"
+      ],
+      "merge_base_tree_delta_count": 42,
+      "merge_base_tree_delta_sha256": "c64af624f9c15fec63ff1b257c5453f2ee5c0fe348b058485a7590be09c97aa6",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/export-horror-source.yml",
+        "M\t.github/workflows/push.yml",
+        "M\tapps/components_tests/CMakeLists.txt",
+        "A\tapps/components_tests/shader/classicbindings.cpp",
+        "A\tapps/components_tests/shader/classicgeometry.cpp",
+        "A\tapps/components_tests/shader/shadervisitor.cpp",
+        "M\tapps/openmw/CMakeLists.txt",
+        "M\tapps/openmw/mwrender/characterpreview.cpp",
+        "A\tapps/openmw/mwrender/interiorlighting.cpp",
+        "A\tapps/openmw/mwrender/interiorlighting.hpp",
+        "M\tapps/openmw/mwrender/localmap.cpp",
+        "M\tapps/openmw/mwrender/renderingmanager.cpp",
+        "M\tapps/openmw/mwrender/renderingmanager.hpp",
+        "M\tapps/openmw/mwworld/scene.cpp",
+        "M\tapps/openmw/mwworld/worldimp.cpp",
+        "M\tapps/openmw_tests/CMakeLists.txt",
+        "A\tapps/openmw_tests/mwrender/testinteriorlighting.cpp",
+        "M\tcomponents/sceneutil/optimizer.cpp",
+        "M\tcomponents/sceneutil/riggeometry.cpp",
+        "M\tcomponents/sceneutil/riggeometry.hpp",
+        "M\tcomponents/sceneutil/riggeometryosgaextension.cpp",
+        "M\tcomponents/sceneutil/stateupdater.cpp",
+        "M\tcomponents/sceneutil/stateupdater.hpp",
+        "A\tcomponents/sceneutil/vertexattributes.hpp",
+        "M\tcomponents/settings/categories/shaders.hpp",
+        "M\tcomponents/shader/shadermanager.cpp",
+        "M\tcomponents/shader/shadervisitor.cpp",
+        "M\tcomponents/shader/shadervisitor.hpp",
+        "A\tcustom/horror-lighting/README.md",
+        "A\tcustom/horror-lighting/profile/shader_profiles/horror_mod.yaml",
+        "M\tcustom/town-performance/source-plan.json",
+        "M\tdocs/source/reference/modding/settings/shaders.rst",
+        "M\tfiles/settings-default.cfg",
+        "M\tfiles/shaders/CMakeLists.txt",
+        "M\tfiles/shaders/compatibility/bs/default.frag",
+        "M\tfiles/shaders/compatibility/bs/default.vert",
+        "M\tfiles/shaders/compatibility/objects.frag",
+        "M\tfiles/shaders/compatibility/objects.vert",
+        "M\tfiles/shaders/lib/light/clamp.glsl",
+        "A\tfiles/shaders/lib/light/classicinterior.glsl",
+        "A\tfiles/shaders/lib/light/objectlighting.glsl",
+        "A\tscripts/test_classic_interior_shaders.py"
+      ],
+      "evidence_sha256": {
+        "apps/openmw/mwrender/locationrenderingprofiles.cpp": "3650f3b5248980d1429ace977a78c94a8a73e836f0d8fb634caa3fcfbeee02cc",
+        "apps/openmw/mwrender/locationrenderingprofiles.hpp": "90594266ec56b2bfa4d03055db0b2b0622ea187928ff51704e91ecfcf6078feb",
+        "files/data/shader_profiles/horror_mod.yaml": "a7a165e47f471ccf383ba5b896e512c02f1d532e201663a44825a1f7eb1c1251",
+        "components/shader/shadermanager.cpp": "8d77e386d61378517b05c891b27de1e6294fc6335e922ef7dbb331ad595ad07a"
+      }
+    },
+    {
+      "branch": "origin/feat/location-rendering-profiles-20261110",
+      "sha": "4b8b9acd7b139fdd86f321cc98395f43518b7eb4",
+      "ancestral_to_union": false,
+      "disposition": "All substantive location-rendering profile work is in cumulative ancestry. The two commits unique to this branch add/fix only a temporary exact-source export workflow.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "excluded-temporary-export-only",
+      "evidence_paths": [
+        "apps/openmw/mwrender/locationrenderingprofiles.cpp",
+        "apps/openmw/mwrender/locationrenderingprofiles.hpp",
+        "files/data/shader_profiles/horror_mod.yaml",
+        "components/shader/shadermanager.cpp"
+      ],
+      "unique_commit_count": 2,
+      "unique_commits": [
+        "4b8b9acd7b139fdd86f321cc98395f43518b7eb4 Write temporary source archive outside checkout",
+        "53dbf19873b60e8a2959e045f615015d01ce803a Add temporary exact-source export for profile integration"
+      ],
+      "merge_base_tree_delta_count": 1,
+      "merge_base_tree_delta_sha256": "6b8f613303f07c6449b3a2d32f818429acf7f3b61585313c607760cd8d29f499",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/export-integration-source.yml"
+      ],
+      "evidence_sha256": {
+        "apps/openmw/mwrender/locationrenderingprofiles.cpp": "3650f3b5248980d1429ace977a78c94a8a73e836f0d8fb634caa3fcfbeee02cc",
+        "apps/openmw/mwrender/locationrenderingprofiles.hpp": "90594266ec56b2bfa4d03055db0b2b0622ea187928ff51704e91ecfcf6078feb",
+        "files/data/shader_profiles/horror_mod.yaml": "a7a165e47f471ccf383ba5b896e512c02f1d532e201663a44825a1f7eb1c1251",
+        "components/shader/shadermanager.cpp": "8d77e386d61378517b05c891b27de1e6294fc6335e922ef7dbb331ad595ad07a"
+      }
+    },
+    {
+      "branch": "origin/feat/native-map-icons-20261109",
+      "sha": "ca144536f3dd813f9fb13c832b7396d1554d71f5",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feat/native-tooltips-20261109",
+      "sha": "7024d00c79fb0a88a97ff0b636096a5f3fd316d0",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feat/unified-mod-controls-20261117",
+      "sha": "d2df2892ab8f8728d5c7f0135ac80edad4f033f3",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feature/dialogue-colours-20261104",
+      "sha": "b34db5770f947b0f5b90dc699627c2ccdae12f16",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feature/journal-typography-20261101",
+      "sha": "cbdf7a0adfac4c33f0d5f5bc62174f3bd3146fd0",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feature/message-position-20261106",
+      "sha": "caeede91ff424d63b398737eb0220dea29058981",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feature/native-deleveler-20261108",
+      "sha": "8737a9ca9c3fb1eb0210fff62731c9c5cab43654",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feature/player-only-animations-20261117",
+      "sha": "e39f2dd83a8308589cbd9940978fe142c713590b",
+      "ancestral_to_union": false,
+      "disposition": "This was the one missing substantive gameplay feature in the cumulative union. Its three production-file changes are ported in 5fcf320f3812a1d094d335550291c8a0c0e834d7: generic playeranimations/ sources only for the real player, excluding first person and werewolf, with ordinary additional sources preserved. RC1 uses the cumulative additionalAnimationPath helper. Historical source-patch application workflows are not needed; original verification is retained as historical evidence, not current native proof.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "ported-production-feature",
+      "evidence_paths": [
+        "apps/openmw/mwrender/animation.cpp",
+        "apps/openmw/mwrender/animation.hpp",
+        "apps/openmw/mwrender/npcanimation.cpp"
+      ],
+      "unique_commit_count": 7,
+      "unique_commits": [
+        "e39f2dd83a8308589cbd9940978fe142c713590b Add generic player-only animation sources [player-only-applied]",
+        "1a368c5e648eb383118acf4bb2ec28e4be185991 Correct player-only animation patch line counts",
+        "48241c00a22510acb4cdfe7f622ac7cd7b87a359 Fix player-only animation patch hunk metadata",
+        "a95f50f2d4e50479048729313fbc17a8cba10c04 Apply generic player-only animation sources",
+        "6bc55425b6d07d92e4070a717442a1944951327b Document generic player-only animation convention",
+        "7bc34b5b6406775a767153dd7e512de571dd970c Add generic player-only animation source gate",
+        "f8aea394a287ce523f10da4964d9e54c75ffb6b8 Add reviewed player-only animation migration patch"
+      ],
+      "merge_base_tree_delta_count": 8,
+      "merge_base_tree_delta_sha256": "cfab809469a1e10414ab6df42c20b35d8d5bf1a11c2a662765c401cb26518e92",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/apply-player-only-animations.yml",
+        "M\tapps/openmw/mwrender/animation.cpp",
+        "M\tapps/openmw/mwrender/animation.hpp",
+        "M\tapps/openmw/mwrender/npcanimation.cpp",
+        "A\tcustom/player-only-animations/README.md",
+        "A\tcustom/player-only-animations/player-only-animations.patch",
+        "A\tcustom/player-only-animations/verify.py",
+        "A\tplayer-only-animations-verification.json"
+      ],
+      "evidence_sha256": {
+        "apps/openmw/mwrender/animation.cpp": "6715e5120de27680d1015c939ca6c390c903cab5a43c029f5e63c2f5569abfa9",
+        "apps/openmw/mwrender/animation.hpp": "7d4ec87ef534ace9950e5ccb71be292aff7ee84c4bf3c4144d614c7003c6892d",
+        "apps/openmw/mwrender/npcanimation.cpp": "71f9a6d00e4d99cef2650745f096d88482404376f404895af209954e49263c7b"
+      }
+    },
+    {
+      "branch": "origin/feature/rest-time-continue-20261108",
+      "sha": "40b63e17984c74d45803c5f157b30943c3a3590c",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/feature/shrine-tooltips-20261105",
+      "sha": "1b78b9c1a566b91bbe1576387842625f3ae509d1",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/continue-menu-hover-20261108",
+      "sha": "ce3d5a2e981999df432cf8df416352cc85842e97",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/dialogue-topics-layout-20261104",
+      "sha": "528bffb348872a964d25c092fa5dd574c1b7f673",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/fg-loading-progress-20261104",
+      "sha": "982317342ca63687c0c50fecb09b3de681e99be9",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/fg-overlay-pixel-controls-20261104",
+      "sha": "ba5c0bb03bb13604adf61781b8afb0d63ea231f0",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/follower-balance-cumulative-20261119",
+      "sha": "f6f8542512fc35508d9f0fdcb3725475a01aff60",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/follower-balance-layout-fixture-20261118",
+      "sha": "2f92bc21d1268534f0f7e76ea2fb6540489dee1c",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/hbfs-godmode-effects-20261115",
+      "sha": "809fc3b3081e8b0f9be54ce08bfa27e46baa02f2",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/lua-ui-template-textures-20261108",
+      "sha": "85b3384dd06528914e090f5fb39aad415e808a0b",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/quickloot-tooltips-20261116",
+      "sha": "dd179b236099280c813933ad5404439b62f11d96",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/fix/windows-package-20261106",
+      "sha": "de695387ff24adac5ff28a56eaac30d996e45011",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/framegen-loading-continuity-24b9e917",
+      "sha": "04f9c83fe1569953133ecc07e182bdc6a30d2e8a",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/master",
+      "sha": "5e38b3eb19195817a63698194e2de31506bb067f",
+      "ancestral_to_union": false,
+      "disposition": "This fork master head is an ancestor of the official openmw-52-rc1 tag and the RC1 candidate. Its upstream changes are therefore already present through the selected official baseline.",
+      "ancestral_to_official_rc1": true,
+      "ancestral_to_candidate": true,
+      "classification": "included-through-official-rc1",
+      "evidence_paths": [],
+      "unique_commit_count": 374,
+      "unique_commits": [],
+      "merge_base_tree_delta_count": 343,
+      "merge_base_tree_delta_sha256": "d4b7ea8d360efc1eaf6eebb88320f57c05632a543edf8ba1b70d3ae68e121dfb",
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/perf/combined-native-20261109",
+      "sha": "8bd0d90b2727b8d654288d5c42e45a3edefc7146",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/perf/gameplay-activation-20261106",
+      "sha": "b3c424837d3757d2520526b088e2b3bf61fe9ed4",
+      "ancestral_to_union": false,
+      "disposition": "Its one unique commit is merge-only; the merge-base-to-head tree delta is empty. Gameplay activation implementation is already in the cumulative union.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "no-effective-tree-change",
+      "evidence_paths": [],
+      "unique_commit_count": 1,
+      "unique_commits": [
+        "b3c424837d3757d2520526b088e2b3bf61fe9ed4 Merge native world map icons and Options controls"
+      ],
+      "merge_base_tree_delta_count": 0,
+      "merge_base_tree_delta_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "merge_base_tree_delta": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/perf/generic-native-jobs-20261109",
+      "sha": "afa9a970b81ce193b5d6d3a36d24c995353e665d",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/perf/indexed-inactive-cell-candidates-20261027",
+      "sha": "e9476be66251d181d0016a5fd112e1d90e3875f6",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/perf/loading-handoff-20261027",
+      "sha": "00af1d5c63313c61a46c6c8782ce45b3e05f023a",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/perf/town-cpu-20261108",
+      "sha": "41b969ecf663a53d8f95c779313458bbd37ad264",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/performance-and-framegen-2062366",
+      "sha": "2829ae6de450cd8ed6082bb7090af87587ce06bd",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/qa/parallel-query-archive-cb0af729",
+      "sha": "2e7b5ec31900cc0ad64c874cfeb55b3c19139fb9",
+      "ancestral_to_union": false,
+      "disposition": "The three unique commits add only a workflow comparing/package-checking two previously completed Windows archives. They add no engine or mod behavior and are tied to historical archive inputs rather than this RC1 candidate.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "excluded-historical-archive-qa",
+      "evidence_paths": [],
+      "unique_commit_count": 3,
+      "unique_commits": [
+        "2e7b5ec31900cc0ad64c874cfeb55b3c19139fb9 Run the archive-only companion packaging check when the QA branch updates",
+        "64d0c5c4cc3d82b21b8bb3c29b0dc1483c2cbbf0 Package the verified optional data directories and Windows validation separately",
+        "03725ac87cdb2f17f0132375c7dc6bfcf198e0c6 Compare the two completed Windows archives without rebuilding the engine"
+      ],
+      "merge_base_tree_delta_count": 1,
+      "merge_base_tree_delta_sha256": "cd89061966576c90835d82e8c2ea0596b664de55b044297aeb3162596fa400f9",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/verify-parallel-query-archives.yml"
+      ],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/temp-mwgc-0610-build",
+      "sha": "9d1b16746bcba2645d6931867d7598c543dff03b",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/temp/export-profile-base-20261110",
+      "sha": "74559e0bf32d256262918ad489f7759fe432e388",
+      "ancestral_to_union": false,
+      "disposition": "The sole unique commit is a temporary source export workflow for the profile merge base. It adds no product implementation.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "excluded-temporary-export-only",
+      "evidence_paths": [],
+      "unique_commit_count": 1,
+      "unique_commits": [
+        "74559e0bf32d256262918ad489f7759fe432e388 Add temporary source export for profile merge base"
+      ],
+      "merge_base_tree_delta_count": 1,
+      "merge_base_tree_delta_sha256": "0da43b21b6a066c8c4f4000f82c79429a77d3c11d0d49849c24a4c8dcad3ba1d",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/export-base-source.yml"
+      ],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/temp/export-town-baseline-20261110",
+      "sha": "3da0cecebc00b68608d5943fa1f7cad6d146db5d",
+      "ancestral_to_union": false,
+      "disposition": "The sole unique commit is a temporary source export workflow for the town baseline. It adds no product implementation.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "excluded-temporary-export-only",
+      "evidence_paths": [],
+      "unique_commit_count": 1,
+      "unique_commits": [
+        "3da0cecebc00b68608d5943fa1f7cad6d146db5d Add temporary source export for town baseline"
+      ],
+      "merge_base_tree_delta_count": 1,
+      "merge_base_tree_delta_sha256": "b2a6cac8a1ddd5fa9ba4a02cb5c435c719e12d75238ed9bbdba5c858a6005d7c",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/export-town-baseline.yml"
+      ],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/tools/gameplay-activation-installer-20261106",
+      "sha": "5a446619744f2b07eb5efecef75c048ad09d046b",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/tools/gameplay-fix-installer-20261105",
+      "sha": "41991a65789a8a2ca1daa1203c36175cc1c63a48",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/tools/gameplay-source-collector-20261105",
+      "sha": "4c24bdba15664b60c1d48c43a3c43b5df8592dda",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/tools/hud-installer-defaultpaths-20261108",
+      "sha": "405b2a00a48440ae37bc27fb909edd85da227be2",
+      "ancestral_to_union": false,
+      "disposition": "The separate branch packages a standalone HUD-installer reproduction and launcher regression tool. Its user-facing default-path correction is present in both current installer entry points: PackageRoot and BackupRoot use empty parameter defaults and are resolved in the script body using PSScriptRoot and MyDocuments. The historical standalone duplicate package and workflow are not an additional engine feature.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": false,
+      "classification": "preserved-fix-excluded-standalone-tooling",
+      "evidence_paths": [
+        "custom/gameplay-fix-installer/Install-Fix.ps1",
+        "custom/gameplay-responsiveness/Install-Fix.ps1"
+      ],
+      "unique_commit_count": 2,
+      "unique_commits": [
+        "405b2a00a48440ae37bc27fb909edd85da227be2 Serialize native installer regression reports with explicit arrays",
+        "ffcc029eda3a804f37c139c844c60a4be062a480 Fix HUD installer default path resolution and test native Windows launchers"
+      ],
+      "merge_base_tree_delta_count": 8,
+      "merge_base_tree_delta_sha256": "0baac31ec0cb3fcd901fb070b63685d8ddc68ff42b896d9cc428b143890bf862",
+      "merge_base_tree_delta": [
+        "A\t.github/workflows/hud-installer-defaultpaths.yml",
+        "A\tcustom/hud-installer-defaultpaths/INSTALL.cmd",
+        "A\tcustom/hud-installer-defaultpaths/INSTALL_HUD_FIX.cmd",
+        "A\tcustom/hud-installer-defaultpaths/Install-Fix.ps1",
+        "A\tcustom/hud-installer-defaultpaths/Original-Install-Fix.ps1",
+        "A\tcustom/hud-installer-defaultpaths/RESTORE.cmd",
+        "A\tcustom/hud-installer-defaultpaths/RESTORE_HUD_FIX.cmd",
+        "A\tcustom/hud-installer-defaultpaths/Test-Installer-EntryPoint.ps1"
+      ],
+      "evidence_sha256": {
+        "custom/gameplay-fix-installer/Install-Fix.ps1": "9c42bd5a4aa6b1d2347684336f1374d7d0553cb8eea1ee4f9bce374b8fe86079",
+        "custom/gameplay-responsiveness/Install-Fix.ps1": "82d88da3480f58219f32b3aaaf154a56b9de30b91448d4c3a29d9c27613a866c"
+      }
+    },
+    {
+      "branch": "origin/tools/performance-capture-20261104",
+      "sha": "dfcc08f2bceae100de8a11fb09067e62597549ca",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    },
+    {
+      "branch": "origin/tools/performance-capture-sources-20261105",
+      "sha": "80ce5372258b3cffd972dbdd2565d80e940b9351",
+      "ancestral_to_union": true,
+      "disposition": "Included in cumulative union 61bf55d21b5537f0665fd86540ab9dcf635209f6 and candidate ancestry. Historical source gate must pass on the union; the separate RC1 three-way gate and exact-head native tests validate the final port.",
+      "ancestral_to_official_rc1": false,
+      "ancestral_to_candidate": true,
+      "classification": "included-by-cumulative-ancestry",
+      "evidence_paths": [],
+      "evidence_sha256": {}
+    }
+  ],
+  "substantive_extra_feature": {
+    "name": "Generic player-only additional animation sources",
+    "origin_sha": "e39f2dd83a8308589cbd9940978fe142c713590b",
+    "port_commit": "5fcf320f3812a1d094d335550291c8a0c0e834d7",
+    "production_files": [
+      "apps/openmw/mwrender/animation.cpp",
+      "apps/openmw/mwrender/animation.hpp",
+      "apps/openmw/mwrender/npcanimation.cpp"
+    ],
+    "historical_verification": "custom/rc1/history/player-only-animations-original-verification.json"
+  },
+  "limitations": [
+    "This inventory does not certify the installed modlist.",
+    "No in-game execution or Windows package execution was performed by this branch classification."
+  ]
+}
