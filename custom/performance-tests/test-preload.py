@@ -28,6 +28,7 @@ using VFS::Path::Normalized;
 using VFS::Path::NormalizedView;
 int corrections=0, actorCorrections=0, templates=0, instances=0, shapes=0, keys=0, attempts=0;
 int templatesBeforeFirstKey=-1, renderClones=0, clonesBeforeFirstKey=-1;
+std::vector<float> mCollisionScales, preparedScales;
 bool failOnce=false, abortOnInstance=false, abortOnKey=false, failKeyOnce=false;
 namespace VFS {
 struct Manager {
@@ -69,7 +70,7 @@ struct SceneManager {
  }
 } scene;
 struct Bullet {
- int cacheInstance(const Normalized&) { ++instances; if(abortOnInstance)mAbort=true; return 100+instances; }
+ int cacheInstance(const Normalized&,float scale) { ++instances;preparedScales.push_back(scale);if(abortOnInstance)mAbort=true;return 100+instances; }
  int getShape(const Normalized&) { ++shapes; return 2; }
 } bullet;
 std::set<std::string> requestedKeys;
@@ -91,18 +92,23 @@ std::vector<NormalizedView> mInstanceMeshes;
 std::vector<NormalizedView> mAnimationMeshes;
 std::vector<int> mInstanceTickets;
 std::set<int> mPreloadedObjects;
-void run()
+void work()
 '''
 tests = r'''
+void run() { mCollisionScales.resize(mMeshes.size(),1.f); work(); }
 void reset() {
  corrections=actorCorrections=templates=instances=shapes=keys=attempts=0;
  scene.vfs.checks=0; mAbort=false; failOnce=false; abortOnInstance=false; abortOnKey=false; failKeyOnce=false;
  mTiming=std::make_shared<SceneUtil::PreparationSample>();
  mPreloadAdditionalAnimations=false; mAnimationMeshes.clear(); requestedKeys.clear(); templatesBeforeFirstKey=-1;
  mPreloadInstances=true; mPreloadedObjects.clear(); mInstanceMeshes.clear(); mInstanceTickets.clear(); renderClones=0;clonesBeforeFirstKey=-1;
+ mCollisionScales.clear();preparedScales.clear();
  scene.vfs.files={"meshes/a.nif","meshes/xanim.nif","meshes/xanim.kf"};
 }
 int main() {
+ reset();mMeshes={NormalizedView("a.nif"),NormalizedView("alias.nif"),NormalizedView("a.nif")};
+ mCollisionScales={0.75f,1.5f,2.f};run();
+ assert((preparedScales==std::vector<float>{0.75f,1.5f,2.f}) && templates==1 && instances==3);
  reset(); mMeshes.assign(2000,NormalizedView("a.nif")); run();
  assert(corrections==1 && actorCorrections==1 && scene.vfs.checks==1);
  assert(templates==1 && instances==2000 && shapes==0 && mPreloadedObjects.size()==2001);

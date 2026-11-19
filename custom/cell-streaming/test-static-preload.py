@@ -41,9 +41,9 @@ enum{REC_STAT=1,REC_ACTI,REC_DOOR,REC_CONT,REC_LIGH};
 struct Path{VFS::Path::Normalized value;VFS::Path::NormalizedView getNormalized()const{return value;}};
 struct Static{Path mModel;};struct Activator{Path mModel;};struct Door{Path mModel;};
 struct Container{Path mModel;};struct Light{Path mModel;};
-struct Entry{int number,id;bool deleted=false,moved=false;};
+struct Entry{int number,id;bool deleted=false,moved=false;float scale=1;};
 struct ESMReader{const std::vector<Entry>* entries=nullptr;std::size_t offset=0;};
-struct CellRef{int mRefNum=0,mRefID=0;};struct MovedCellRef{};
+struct CellRef{int mRefNum=0,mRefID=0;float mScale=1;};struct MovedCellRef{};
 struct Cell{
  static constexpr RefId sDefaultWorldspaceId=0;
  struct Context{int index;};std::vector<Context> mContextList;
@@ -53,7 +53,7 @@ struct Cell{
  void restore(ESMReader& reader,std::size_t i)const{reader={&records[i],0};}
  static bool getNextRef(ESMReader& reader,CellRef& ref,bool& deleted,MovedCellRef&,bool& moved,GetNextRefMode){
   if(reader.offset==reader.entries->size())return false;
-  const auto e=reader.entries->at(reader.offset++);ref={e.number,e.id};deleted=e.deleted;moved=e.moved;
+  const auto e=reader.entries->at(reader.offset++);ref={e.number,e.id,e.scale};deleted=e.deleted;moved=e.moved;
   if(++reads==cancelAt)const_cast<std::atomic_bool*>(runningAbort)->store(true);return true;
  }
 };
@@ -97,8 +97,9 @@ struct Scene{VFSState vfs;std::uint64_t revision=0;std::set<std::string> loaded;
  auto getTemplate(VFS::Path::NormalizedView path){loaded.insert(std::string(path.value()));return std::make_shared<osg::Node>();}
  auto cacheInstance(VFS::Path::NormalizedView,const std::atomic_bool&){++clones;return std::make_shared<int>(1);}
 };
-struct Shapes{int shapes=0,instances=0;auto getShape(VFS::Path::NormalizedView){++shapes;return std::make_shared<osg::Node>();}
- auto cacheInstance(VFS::Path::NormalizedView){++instances;return std::make_shared<osg::Node>();}};
+struct Shapes{int shapes=0,instances=0;std::multiset<std::pair<std::string,float>> scales;
+ auto getShape(VFS::Path::NormalizedView){++shapes;return std::make_shared<osg::Node>();}
+ auto cacheInstance(VFS::Path::NormalizedView path,float scale){++instances;scales.emplace(path.value(),scale);return std::make_shared<osg::Node>();}};
 struct Resources{Scene* scene;Scene* getSceneManager(){return scene;}};
 struct ExistingCell{ESM::ExteriorCellLocation location;bool isExterior()const{return true;}const ExistingCell* getCell()const{return this;}
  ESM::ExteriorCellLocation getExteriorCellLocation()const{return location;}};
@@ -115,14 +116,15 @@ int main(){
  CellPreloader preload;preload.mResourceSystem=&resources;preload.mBulletShapeManager=&shapes;
  const ESM::ExteriorCellLocation target{1,2,0};
  auto& cell=store.get<ESM::Cell>().values[{1,2}];cell.mContextList={{0},{1}};
- cell.records={{{1,1},{2,2},{3,3},{4,4}},{{1,1,true},{2,5},{6,6,false,true}}};
- cell.mMovedRefs={3};cell.mLeasedRefs={{{7,7},false},{{4,4},true}};
+ cell.records={{{1,1},{2,2},{3,3},{4,4}},{{1,1,true},{2,5,false,false,1.5f},{6,6,false,true}}};
+ cell.mMovedRefs={3};cell.mLeasedRefs={{{7,7,0.75f},false},{{4,4},true}};
  for(int i=1;i<=7;++i)store.get<ESM::Door>().values[i].mModel.value=VFS::Path::Normalized(std::to_string(i)+".nif");
  preload.preloadStaticExterior(target,1);assert(preload.mStaticPreloads->mJobs.size()==1);
  // Changing the source cell after admission cannot change its owned snapshot.
  cell.records.clear();preload.mStaticPreloads->mJobs.run(target);
  assert(scene.loaded==(std::set<std::string>{"meshes/5.nif","meshes/7.nif"}));
  assert(shapes.shapes==2&&shapes.instances==2&&scene.clones==2&&worldCalls==0);
+ assert((shapes.scales==std::multiset<std::pair<std::string,float>>{{"meshes/5.nif",1.5f},{"meshes/7.nif",0.75f}}));
  assert(preload.mStaticPreloads->mSamples.at(target)->mComplete.load());
  assert(preload.mStaticPreloads->mSamples.at(target)->mColdAssets==2);
  preload.mStaticPreloads->observe();

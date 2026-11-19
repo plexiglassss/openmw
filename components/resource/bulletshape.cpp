@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <components/misc/combinedperformance.hpp>
 
 #include <BulletCollision/CollisionShapes/btBoxShape.h>
 #include <BulletCollision/CollisionShapes/btCompoundShape.h>
@@ -92,8 +93,10 @@ namespace Resource
 
     void BulletShape::setLocalScaling(const btVector3& scale)
     {
-        mCollisionShape->setLocalScaling(scale);
-        if (mAvoidCollisionShape)
+        if (!Misc::usePreparedCollisionScale() || mCollisionShape->getLocalScaling() != scale)
+            mCollisionShape->setLocalScaling(scale);
+        if (mAvoidCollisionShape
+            && (!Misc::usePreparedCollisionScale() || mAvoidCollisionShape->getLocalScaling() != scale))
             mAvoidCollisionShape->setLocalScaling(scale);
     }
 

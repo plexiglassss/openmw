@@ -22,7 +22,7 @@ EXPECTED = {
     'apps/openmw/mwgui/loadingscreen.hpp': 'bb5884ba617b541a814243fe141bd04361e93118',
     'apps/openmw/mwstate/statemanagerimp.cpp': 'c94ee39f447b51782b1780e2e81ef86436710ac5',
     'apps/openmw/mwworld/worldmodel.cpp': '59c7fa345da96f10e73e220b69975bb1fd4f50d7',
-    'apps/openmw/mwworld/worldmodel.hpp': '233ca8ff1665323ca6efd96454c4bd3cd8ca88fd',
+    'apps/openmw/mwworld/worldmodel.hpp': 'b210399cb318814a3abf69cd677c2079c8e2a51b',
 }
 
 def blob(text):

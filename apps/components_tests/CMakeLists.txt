@@ -107,6 +107,8 @@ file(GLOB UNITTEST_SRC_FILES
     esmterrain/testgridsampling.cpp
 
     resource/testobjectcache.cpp
+    resource/testcollisioninstancecache.cpp
+    resource/testcollisionpreparation.cpp
     resource/testsceneinstancecache.cpp
     resource/testresourcesystem.cpp
     resource/testpagedmodelpreparation.cpp
