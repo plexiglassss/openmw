@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7147d08e0eb8b3e13fbf329202e2ea8451cbfd4b"
+        "blob": "d9f348f80ed72c6ac94662ede8ee157a5cd15dc1"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,7 +5937,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7147d08e0eb8b3e13fbf329202e2ea8451cbfd4b"
+        "blob": "d9f348f80ed72c6ac94662ede8ee157a5cd15dc1"
       },
       "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API."
     },
@@ -12319,7 +12319,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "436b4cf6c2395cadc6363ddec241e90c0690a366"
+        "blob": "32fbd6597fcbab930120c26f65dd0e42cc4780b5"
       },
       "purpose": "RC1 provenance, source verification and installation documentation."
     },

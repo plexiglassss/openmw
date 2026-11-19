@@ -61,10 +61,21 @@ class PackageSources(unittest.TestCase):
                     self.write(name, original)
 
     def test_native_cases_must_run_successfully(self):
+        interactions = [("ModControlsInteractionTest", name) for name in (
+            "ActualLabelsSelectModsCaptureKeysAndScrollBothPanels",
+            "ConsumedLuaWheelDoesNotScrollTheNativeHost",
+            "OverflowingNativeEditorKeepsWheelOwnershipAtItsBounds",
+            "HorizontalWheelMovesHostedContentInTheRequestedDirection",
+        )]
         fixtures = {
             "components-tests.xml": [("LuaScriptsContainerTest", "RealTimersRemainLiveDuringIdleAndPausedSimulation"),
                                      ("LuaScriptsContainerTest", "RealTimersRestoreRelativeDeadlinesAndRunWhilePaused")],
-            "openmw-tests.xml": [("LuaUiLayoutTest", "Rc1CursorsAndLegacyPointersPreservePrecedenceAndInheritance")],
+            "openmw-tests.xml": [("LuaUiLayoutTest", "Rc1CursorsAndLegacyPointersPreservePrecedenceAndInheritance"),
+                                 ("ModKeybindings", "RuntimeDiscoveryWritebackConflictSemanticsAndCaptureLifecycle"),
+                                 *interactions],
+            "lua-ui-legacy-tests.xml": interactions,
+            "lua-ui-legacy-updates-tests.xml": interactions,
+            "combined-performance-off-tests.xml": interactions,
         }
         for name, cases in fixtures.items():
             content = '<testsuites>' + ''.join(f'<testcase classname="{suite}" name="{case}" status="run" result="completed"/>' for suite, case in cases) + '</testsuites>'
@@ -76,6 +87,14 @@ class PackageSources(unittest.TestCase):
                                 original.replace('/>', '><failure/></testcase>', 1)):
                 with self.subTest(name=name, replacement=replacement):
                     (self.root / name).write_text(replacement)
+                    with self.assertRaises(ValueError):
+                        package.require_rc1_cases(self.root)
+                    (self.root / name).write_text(original)
+            # Dropping any one required case must fail even when the rest pass.
+            for suite, case in fixtures[name]:
+                with self.subTest(name=name, missing=case):
+                    fragment = f'<testcase classname="{suite}" name="{case}" status="run" result="completed"/>'
+                    (self.root / name).write_text(original.replace(fragment, ''))
                     with self.assertRaises(ValueError):
                         package.require_rc1_cases(self.root)
                     (self.root / name).write_text(original)

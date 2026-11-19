@@ -830,7 +830,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Installed map icon resource verification failed' }
           Copy-Item map-icons-classification.json,map-icons-package.json install/
           Copy-Item map-icon-controls-early.xml,components-tests-early.xml install/
-          Copy-Item lua-ui-legacy-tests.xml,lua-ui-layout-parity.json install/
+          Copy-Item lua-ui-legacy-tests.xml,lua-ui-legacy-updates-tests.xml,combined-performance-off-tests.xml,lua-ui-layout-parity.json install/
           New-Item -ItemType Directory -Force install/tools/town-performance/capture | Out-Null
           Copy-Item custom/town-performance/Start-Comparison.ps1,custom/town-performance/Compare-Optimized.cmd,custom/town-performance/Compare-Legacy-Layout.cmd install/tools/town-performance/
           Copy-Item custom/performance-capture-followup/Start-Capture.ps1 install/tools/town-performance/capture/
