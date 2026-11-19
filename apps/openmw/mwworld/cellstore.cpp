@@ -607,6 +607,7 @@ namespace MWWorld
 
     void CellStore::requestMergedRefsUpdate()
     {
+        ++mReferenceListRevision;
         mObjectIdSnapshots.clear();
         mRechargingItemsUpToDate = false;
         mMergedRefsNeedsUpdate = true;

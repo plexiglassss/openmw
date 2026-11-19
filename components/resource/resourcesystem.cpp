@@ -1,6 +1,7 @@
 #include "resourcesystem.hpp"
 
 #include <algorithm>
+#include <mutex>
 
 #include "animblendrulesmanager.hpp"
 #include "bgsmfilemanager.hpp"
@@ -72,6 +73,7 @@ namespace Resource
 
     void ResourceSystem::setExpiryDelay(double expiryDelay)
     {
+        const std::shared_lock lock(mResourceManagersMutex);
         for (std::vector<BaseResourceManager*>::iterator it = mResourceManagers.begin(); it != mResourceManagers.end();
              ++it)
             (*it)->setExpiryDelay(expiryDelay);
@@ -83,6 +85,7 @@ namespace Resource
 
     void ResourceSystem::updateCache(double referenceTime)
     {
+        const std::shared_lock lock(mResourceManagersMutex);
         for (std::vector<BaseResourceManager*>::iterator it = mResourceManagers.begin(); it != mResourceManagers.end();
              ++it)
             (*it)->updateCache(referenceTime);
@@ -90,22 +93,42 @@ namespace Resource
 
     void ResourceSystem::clearCache()
     {
+        const std::shared_lock lock(mResourceManagersMutex);
         for (std::vector<BaseResourceManager*>::iterator it = mResourceManagers.begin(); it != mResourceManagers.end();
              ++it)
             (*it)->clearCache();
     }
 
+    bool ResourceSystem::updateCacheStep(double referenceTime, CacheUpdateCursor& cursor)
+    {
+        const std::shared_lock lock(mResourceManagersMutex);
+        if (cursor.mRevision != mResourceManagersRevision)
+        {
+            cursor.mNext = 0;
+            cursor.mRevision = mResourceManagersRevision;
+        }
+        if (cursor.mNext < mResourceManagers.size())
+            mResourceManagers[cursor.mNext++]->updateCache(referenceTime);
+        return cursor.mNext >= mResourceManagers.size();
+    }
+
     void ResourceSystem::addResourceManager(BaseResourceManager* resourceMgr)
     {
+        const std::unique_lock lock(mResourceManagersMutex);
         mResourceManagers.push_back(resourceMgr);
+        ++mResourceManagersRevision;
     }
 
     void ResourceSystem::removeResourceManager(BaseResourceManager* resourceMgr)
     {
+        const std::unique_lock lock(mResourceManagersMutex);
         std::vector<BaseResourceManager*>::iterator found
             = std::find(mResourceManagers.begin(), mResourceManagers.end(), resourceMgr);
         if (found != mResourceManagers.end())
+        {
             mResourceManagers.erase(found);
+            ++mResourceManagersRevision;
+        }
     }
 
     const VFS::Manager* ResourceSystem::getVFS() const
@@ -115,6 +138,7 @@ namespace Resource
 
     void ResourceSystem::reportStats(unsigned int frameNumber, osg::Stats* stats) const
     {
+        const std::shared_lock lock(mResourceManagersMutex);
         for (std::vector<BaseResourceManager*>::const_iterator it = mResourceManagers.begin();
              it != mResourceManagers.end(); ++it)
             (*it)->reportStats(frameNumber, stats);
@@ -122,6 +146,7 @@ namespace Resource
 
     void ResourceSystem::releaseGLObjects(osg::State* state)
     {
+        const std::shared_lock lock(mResourceManagersMutex);
         for (std::vector<BaseResourceManager*>::const_iterator it = mResourceManagers.begin();
              it != mResourceManagers.end(); ++it)
             (*it)->releaseGLObjects(state);

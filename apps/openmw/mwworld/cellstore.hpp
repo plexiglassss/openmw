@@ -214,6 +214,8 @@ namespace MWWorld
         ObjectIdSnapshot getObjectIdSnapshot(uint32_t type, std::size_t registryRevision) const;
         void setObjectIdSnapshot(uint32_t type, std::size_t registryRevision, ObjectIdSnapshot ids);
 
+        std::uint64_t getReferenceListRevision() const { return mReferenceListRevision; }
+
         void preload();
         ///< Build ID list from content file.
 
@@ -470,6 +472,7 @@ namespace MWWorld
         // mMovedToAnotherCell
         mutable std::vector<LiveCellRefBase*> mMergedRefs;
         mutable bool mMergedRefsNeedsUpdate = false;
+        std::uint64_t mReferenceListRevision = 0;
 
         // A separate view keeps forEach order (and duplicate-ID precedence) intact.
         // Build only for repeated searches, and invalidate with the merged view.

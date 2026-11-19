@@ -15,6 +15,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwworld/testweather.cpp
     mwworld/testpositioncellgrid.cpp
     mwworld/testpreloaddependencies.cpp
+    mwworld/testpreloadplans.cpp
 
     mwdialogue/testkeywordsearch.cpp
 
@@ -22,6 +23,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwmechanics/testmagiceffectaccounting.cpp
 
     mwrender/testlocationrenderingprofiles.cpp
+    mwrender/testcellobjectindex.cpp
     mwrender/testsavedglobalmap.cpp
 
     mwgui/tooltips.cpp

@@ -52,7 +52,8 @@
     "8013500753ac374291bf0cb4469e28b32d4df28b",
     "d63b95313274c794b14c70d4eaa08bf09c120cad",
     "f41ed8fc35ab6aceacb7b70a4bcdd86a13605d26",
-    "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c"
+    "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c",
+    "ba93fd8ecb1cf741081e7f6f5b36a5f588fc5827"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -72,10 +73,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "10f99dcb20035b45788516428b99ae1889fe0d8c"
+        "blob": "e390aa64d84a91d9d50e53bf8a5ca7a4a0332164"
       },
-      "sha256": "6d56697d8cd4aea75a05ad6756370ec5d2fa51c0068fcde6603e523e6ba911b3",
-      "bytes": 80331,
+      "sha256": "9caeeade847de07aaf077a4ceba9858054856be1270a7fd1efd74db1a7c267cf",
+      "bytes": 82693,
       "reason": "Retain both merged regression suites and execute built-in Lua packaging negative controls before compiling the cumulative engine. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/components_tests/CMakeLists.txt": {
@@ -85,10 +86,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "25ba4615bc8b2457adce2e83d103f3e0e7409e38"
+        "blob": "457b54cbbc60c9af7c59294f3569fcb296896793"
       },
-      "sha256": "40adb4f50d46dcd8d617ffeb7983120ab4961a8966405ea6cf0935aecac02106",
-      "bytes": 4937,
+      "sha256": "c6ba356601e6a5f08db595465e4b93ae4ef5198642dbda6424099b31a2072234",
+      "bytes": 4974,
       "reason": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/components_tests/detournavigator/tilecachedrecastmeshmanager.cpp": {
@@ -293,10 +294,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "7ae129c05af9ed977e1d1697389171b5ea15c925"
+        "blob": "33be4610dd377c0755232715a20f9333b975193d"
       },
-      "sha256": "5754b8f0a6fb1bcf6db452462e3cd6cee6459e2eb8042a732d850209f6f7e6e8",
-      "bytes": 8730,
+      "sha256": "e4370d4c34b6826649a8fd80d6289fd5e4028ee030e7b8f44cf70bb1fe808280",
+      "bytes": 13195,
       "reason": "Exercise actual NIF instance preparation independently of process-wide test serializers; preserve consumption/invalidation assertions and cover ordinary geometry budgeting."
     },
     "apps/components_tests/resource/testsceneinstancecache.cpp": {
@@ -488,10 +489,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "961c2ac044678fd6512d33c1a17562430a68be75"
+        "blob": "7548feab251d80fcc96c044d25dae086ff3fc8d0"
       },
-      "sha256": "52d37195d465d51375fb74f62fead3ee0c5c68c3f324f314248918f5c9490ba1",
-      "bytes": 53371,
+      "sha256": "185db057091c6d765aec8e267144a55c6a26af21aaa41cfba706710dbc10f6eb",
+      "bytes": 53699,
       "reason": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Reviewed 17 November controls/save/barter follow-up."
     },
     "apps/openmw/engine.hpp": {
@@ -1777,10 +1778,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "cfbbc90b6b772a9a31e2db6db8a0355608732add"
+        "blob": "3b08ab7d5d95cbf82d4b7036fda9ec84fd6b2f02"
       },
-      "sha256": "9018d0c3972a0782bf8de45dcd034f5f6347e8570fe80ddaf5ac49ffb973d6cd",
-      "bytes": 76917,
+      "sha256": "eee74a5bc86b30fa91650033ec1b64796ec1353c3ee15805b6a9d54d7199b758",
+      "bytes": 76973,
       "reason": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
@@ -1855,10 +1856,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "6f151c2141a336d09f96c9869455f03bfaefd6da"
+        "blob": "bccd3053b230d608e26860bc860f904e71897e0b"
       },
-      "sha256": "af72799bbbe57245ef0d79ca8c5be3bc8f4f3a6a64180c389cdfca0c3f8d34c9",
-      "bytes": 52977,
+      "sha256": "960fd1601ea2125fa8cd330da6a80b31f37e9b6de094443199f932146ff9b164",
+      "bytes": 53926,
       "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
@@ -1868,10 +1869,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "a889a8600ab9019487d93dfff1892abeaeb00bc8"
+        "blob": "ea7bd02ee31c768897d2d62aaa1b41d69afc8a72"
       },
-      "bytes": 5769,
-      "sha256": "d1c2fe113fcaa95c07796f41a2cbaf812d33f83b1ef964614bb4abbe29634257",
+      "bytes": 6130,
+      "sha256": "2a4e7e0156fb58028364a65a88b07341aed9866ee1e303fa277e7020afef176b",
       "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/openmw/mwworld/cellref.cpp": {
@@ -1907,10 +1908,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "40b2870969a2b5dbe97ae46e2af2a45eddf0fe0d"
+        "blob": "1fe65f9b136be85d930fe1a6bd4664936cef3767"
       },
-      "sha256": "74ad1a7eddd671500ef3f1d54e7f63e3b1e1338971e50162ab54186dc3ced4d5",
-      "bytes": 56610,
+      "sha256": "3a9b7f231ae74f0fca0759cdad8c93a280b6e55ddd5e942d8bc7b0588d4da090",
+      "bytes": 56644,
       "reason": "Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwworld/cellstore.hpp": {
@@ -1920,10 +1921,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "779480b12ce4b873b26804937040fa114f67cbc7"
+        "blob": "2a0850e92f5e8acf12a2fcce3b5f57b5cdd3d842"
       },
-      "sha256": "5a7808768ce02501022095d8c5c6bc18e2638d509a5c91d7b91cdc95c5d2b234",
-      "bytes": 19780,
+      "sha256": "4b2d724a08badce4b7e033185218bb7ee91940c5a06fe501bab0b0f5cadf1e96",
+      "bytes": 19921,
       "reason": "Native world-map icon feature: apps/openmw/mwworld/cellstore.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Combined performance candidate: Share typed cell object-ID snapshots with structural/semantic invalidation and avoid only identical pointer registrations. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools."
     },
     "apps/openmw/mwworld/esmstore.cpp": {
@@ -2018,10 +2019,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "56667a3434788c308d665f21f6065b3c4ddabcec"
+        "blob": "39fa05f319b7f6dd6d83cdb84d7e634e571d3538"
       },
-      "sha256": "1cceef22b2ff1c83fd38401f14cf456f2b123566d279d3694b70032cd17a8a1c",
-      "bytes": 69965,
+      "sha256": "95f35587138848c8274b5dd8089bc626bf27bbe8e27587ff82d6267c4d363fd2",
+      "bytes": 73460,
       "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw/mwworld/scene.hpp": {
@@ -2031,10 +2032,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "5c1e2b629dfd2484298bea6c76524d433e091248"
+        "blob": "023037f9ade47a5c4381741a34516152f9e92599"
       },
-      "bytes": 6125,
-      "sha256": "7ab8ad4224256f7c073ea50a7b44b850b8d309c0ec71b1072f9d7d968768c0b0",
+      "bytes": 6971,
+      "sha256": "e2ddb37594f86fa8ab179823f0e84b671e7e8df679610e4383f033e652851572",
       "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
     },
     "apps/openmw/mwworld/worldimp.cpp": {
@@ -2083,10 +2084,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "1537d8c6c5935016c4ca7b874e0df58578900377"
+        "blob": "ce4d19af42f41d2a700049ef875512b4a3e6f56b"
       },
-      "sha256": "b1f23c63cf707eae793d8316d12fe2c56b8972a2668fe848b669584cc5a363fe",
-      "bytes": 4199,
+      "sha256": "b1798f50fd96a38a350d47caf8bd851e12b6cd2205d85aef9e9ed970b8350230",
+      "bytes": 4269,
       "reason": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
@@ -2880,10 +2881,10 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "1aab0542e2f74027edc5e8ab323dbe107938954a"
+        "blob": "edc6c37bffafb98a7969191398820818aaf2dcda"
       },
-      "sha256": "75e7013b3f72d9285dfa1b7e1f6b3f5a11223667fcce81a709590f073fb734b3",
-      "bytes": 5702,
+      "sha256": "d5bfdcf413faeae5948c4d4be6e28ad6442e04b9c8a97820fc218f2bb37f0d29",
+      "bytes": 6440,
       "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
     "components/misc/dialoguetext.cpp": {
@@ -3375,10 +3376,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "894f29fc77ae559f82d152763f4ca173f7a2fe1b"
+        "blob": "0d6cf22e8bba75f08db860a1b70cbc5fa039ca8f"
       },
-      "sha256": "47f872949642579e1c73deddeb1b104b89c11131604bf82bea6ae18022bf3dad",
-      "bytes": 4000,
+      "sha256": "75bbb54a39c1f6d8439c51fcee86946cfd053f65af5f685d60409479b8beb49b",
+      "bytes": 6000,
       "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/sceneutil/workqueue.hpp": {
@@ -3388,10 +3389,10 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "e758307ab5afcfd683c1e4f5b1d07df57c99f363"
+        "blob": "fe21ef1fc090fb78b0e5bbee3148f1880a877127"
       },
-      "sha256": "d93005389461536b9e2b993aa5dbb39889c8ac970fbb90d6962b718b5193bff5",
-      "bytes": 3157,
+      "sha256": "f2788a1914a6daa194cd0a608da1b17e9235bf73f8f73f8b754a7c9dbb2c9392",
+      "bytes": 3720,
       "reason": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths."
     },
     "components/settings/categories/cells.hpp": {
@@ -4607,9 +4608,9 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "aa8165a2acaf895244b9c76a4d9360a9c2f032f0"
+        "blob": "9af693620cb4754018f11cd29c3bfb0f4c6c9ccf"
       },
-      "sha256": "15383c62684e8e22c0bce39342ceffb4a37029ffe1ffe5e637836a3e503fc7cf",
+      "sha256": "ced912ede57a6d6400b7fe04606c34bfeb62c07f608a76b9bda60be83a6cda76",
       "bytes": 5594,
       "reason": "Build, run or package the combined candidate and four captured script adapters. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
     },
@@ -4620,9 +4621,9 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "20a7f34faf6c18af5d154649f4f03a764af5f892"
+        "blob": "3af55823a897d1e09d2b7ddc044d8dc6052d83a7"
       },
-      "sha256": "66c892319ce265cbbf5cc58cb678692f50bcf7fc5595dba0be718e2f0dabbe65",
+      "sha256": "db8229ee8f776eda780e58be6744f8f50a7e4b011909246c98da1b9d1ed56207",
       "bytes": 3399,
       "reason": "Build, run or package the combined candidate and four captured script adapters. Bind the complete saved-map load source and reconstruct the preceding state manager byte for byte before verifying the existing lookup-only build patch. Bind the unchanged lookup-only build transformation to the independently reviewed loading-screen budget handoff; preserve exact source checks and reject any other loading-stage edits. Reviewed 17 November controls/save/barter follow-up. Reviewed 17 November controls/save/barter follow-up."
     },
@@ -5861,6 +5862,184 @@
       "sha256": "2c552f29c2e1d352445d3785a48cc4b658dae48407f5dd63bf1c058c8126bd4a",
       "bytes": 5165,
       "reason": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging."
+    },
+    "apps/openmw/mwrender/objects.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "9393846d7a7577db9e08dc2b4d725c7cd2468d26"
+      },
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "34a92062653bd59711d81933468ff3d246ab26e6"
+      },
+      "sha256": "656d9e131eb2316725c1c600ae00b870a0293f08dfe4f969dc049de8144ebd36",
+      "bytes": 10328
+    },
+    "apps/openmw/mwrender/objects.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "b4359fdb99deba0463b5f51f28d4b5c00e30c0d2"
+      },
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "592320fc4b7f7fad62deab5a21950a4a4f8c074f"
+      },
+      "sha256": "b9af5782396eb19030a79008f26c73344f3ef98e469f18c00e9a844981111ed2",
+      "bytes": 2622
+    },
+    "components/resource/resourcesystem.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "f3eb835ddbd73ef5be6aa579b0f8c17a446a9ad2"
+      },
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "0ca2705f8872a63347f57822a05fa5438ee1265c"
+      },
+      "sha256": "5f723c344a786e448558caf4ef45a910512e1d5c60b70c7c839e69a4d85a1336",
+      "bytes": 5405
+    },
+    "components/resource/resourcesystem.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "abc696aae324d0e33db878061381e7929ce99d7f"
+      },
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "e02d70832e19809908c2d0ceab3e8bb45d48de66"
+      },
+      "sha256": "d002f07bd064e1cde3d8d3643070cb07ec4897161cd892b55c24e8012ed1dbc9",
+      "bytes": 3896
+    },
+    "components/sceneutil/unrefqueue.cpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "58bff4ac53c6de4a830a7d424cbbc9fbfe6f97e9"
+      },
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "3ed40145942419a9ec70d86d522c765b1146ed9a"
+      },
+      "sha256": "55b8bc4a569053b76cddb13c4e332cf6e26a41e071e25f2ea385d658b17296f6",
+      "bytes": 4163
+    },
+    "components/sceneutil/unrefqueue.hpp": {
+      "before": {
+        "mode": "100644",
+        "blob": "dc89754ad30e8e7e9845362f5d469e0534140068"
+      },
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "09b39b0cb34dfbb1a9c25aea9262474e26e0204e"
+      },
+      "sha256": "4ae585f765495480d8d77a6e8f104642434bc9eae4ec82e5db7a27450aa7bce1",
+      "bytes": 1835
+    },
+    "apps/components_tests/sceneutil/teststreamingbatch.cpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "8dbf47263f42a27601daf1b46e9dccb706d65f8b"
+      },
+      "sha256": "829794772983fe904dcee78cc3b08cdb1c71ba0aea0e70b4434ee002469c4b6e",
+      "bytes": 14035
+    },
+    "apps/openmw_tests/mwrender/testcellobjectindex.cpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "7b5983c8d649e974dae123a67d1c82823af133b3"
+      },
+      "sha256": "f8e0a116c37db51fc777da49d8b672b33c81aff5a6be328febd1c2d943824d1e",
+      "bytes": 4672
+    },
+    "apps/openmw_tests/mwworld/testpreloadplans.cpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "2f8529f1211186494b6c417d8b2a95987bfa5138"
+      },
+      "sha256": "c421b3f9ed842a20922bf8e46eb4d5d95a21d8cf07b20a79d9d8d562df57568b",
+      "bytes": 4543
+    },
+    "components/sceneutil/cellobjectindex.hpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "c87db71525ab7ce979babbaac08d0ad4891006a4"
+      },
+      "sha256": "1e34e95a4aa7f6d590fa9bb65d5196c6c1ac5b19b857ace33a40df7d0b5e4228",
+      "bytes": 1761
+    },
+    "components/sceneutil/pendingpreload.hpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "f4ebb9d930d40d2b8624a25451d4da6bd821e793"
+      },
+      "sha256": "fdd1fdd4e52541eb3a7c8406bb8bd302d7d7c1be49e838afad40509271de49c8",
+      "bytes": 1236
+    },
+    "components/sceneutil/preloadplancache.hpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "7081d689170b728a7155df57263470a181aab5e1"
+      },
+      "sha256": "6983baf13377ff44b5aaf836c0a244beabe49a232d59cb0105725f820f944d11",
+      "bytes": 2226
+    },
+    "components/sceneutil/preloadretention.hpp": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "447bbb60f7f9b9eeea1dfd5b6f966b6c5abf8328"
+      },
+      "sha256": "1c55cea79822bb1644f336b61c85da47632adc5edea71f92b4123cffa2bfb90e",
+      "bytes": 1315
+    },
+    "custom/cell-streaming/BATCH-20261119.md": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "35e54c6222e631846f5d65d8a573eb24fec7147a"
+      },
+      "sha256": "82ad05638f6672b289a236a52fd370d93777daf79ba17e924d412a93fc3f2c35",
+      "bytes": 2935
+    },
+    "custom/cell-streaming/test-batch-planning.py": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "0fabd3847e8fda4824bcd44ea1b0185e039fa5e1"
+      },
+      "sha256": "320454d0ffcbaf99f2370e7680251b4f78c1851a8f852b37740e139a10b8b73f",
+      "bytes": 7673
+    },
+    "custom/cell-streaming/verify-batch.py": {
+      "before": null,
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "after": {
+        "mode": "100644",
+        "blob": "084a22ee7d7534565fdd4cfa364a68f44affb865"
+      },
+      "sha256": "e1b63d72e04c7ff4c309bd1b5f96256d0f2824f8a433a7666718fb0ac277b41d",
+      "bytes": 4762
     }
   }
 }

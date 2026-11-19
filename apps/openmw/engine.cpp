@@ -431,7 +431,13 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         const bool reportResource = stats->collectStats("resource");
 
         if (reportResource)
+        {
             stats->setAttribute(frameNumber, "UnrefQueue", static_cast<double>(mUnrefQueue->getSize()));
+            stats->setAttribute(frameNumber, "UnrefQueue Peak Queued Objects",
+                static_cast<double>(mUnrefQueue->getPeakQueuedObjects()));
+            stats->setAttribute(
+                frameNumber, "UnrefQueue Backpressure Waits", static_cast<double>(mUnrefQueue->getBackpressureWaits()));
+        }
 
         mUnrefQueue->flush(*mWorkQueue);
 

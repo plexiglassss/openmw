@@ -4,6 +4,7 @@ include_directories(SYSTEM ${GMOCK_INCLUDE_DIRS})
 file(GLOB UNITTEST_SRC_FILES
     main.cpp
     sceneutil/testworkqueue.cpp
+    sceneutil/teststreamingbatch.cpp
     sceneutil/testselectionrevision.cpp
     sceneutil/testasyncpreparation.cpp
     sceneutil/testcompilepriority.cpp

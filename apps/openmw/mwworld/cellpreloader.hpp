@@ -147,6 +147,14 @@ namespace MWWorld
             double mTimeStamp;
             osg::ref_ptr<SceneUtil::WorkItem> mWorkItem;
             std::shared_ptr<SceneUtil::PreparationSample> mTiming;
+            double mPreparationSeconds = 0;
+
+            double preparationSeconds() const
+            {
+                if (mTiming && mTiming->mComplete.load(std::memory_order_acquire) && mTiming->mSuccessful)
+                    return mTiming->mWorkSeconds;
+                return mPreparationSeconds;
+            }
         };
         typedef std::map<const MWWorld::CellStore*, PreloadEntry> PreloadMap;
 
@@ -164,6 +172,7 @@ namespace MWWorld
         std::size_t mAdded = 0;
         std::size_t mExpired = 0;
         std::size_t mLoaded = 0;
+        std::size_t mCostRetentions = 0;
     };
 
 }

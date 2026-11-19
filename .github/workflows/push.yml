@@ -619,6 +619,32 @@ jobs:
           } finally {
             Remove-Item Env:OPENMW_CELL_ID_INDEX,Env:OPENMW_WORLD_CELL_INDEX,Env:OPENMW_WORLD_CELL_CANDIDATES -ErrorAction SilentlyContinue
           }
+      - name: Compare streaming batch with previous and master rollback paths
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          $components = 'CellObjectIndexTest.*:PreloadPlanCacheTest.*:PendingPreloadTest.*:PreloadRetentionTest.*:SlicedCleanupTest.*:ResourceResourceSystem.cleanup*:ResourceResourceSystem.managerRemoval*'
+          $engine = 'RendererCellIndexTest.*:DoorPreloadPlanTest.*'
+          try {
+            $env:OPENMW_CELL_OBJECT_INDEX = '0'
+            $env:OPENMW_PRELOAD_PLAN_CACHE = '0'
+            $env:OPENMW_PRELOAD_RETENTION = '0'
+            $env:OPENMW_SLICED_CLEANUP = '0'
+            ./build/components-tests.exe "--gtest_filter=$components" --gtest_output=xml:batch-previous-components.xml
+            if ($LASTEXITCODE) { throw 'Previous-batch component regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$engine" --gtest_output=xml:batch-previous-engine.xml
+            if ($LASTEXITCODE) { throw 'Previous-batch engine regressions failed' }
+            Remove-Item Env:OPENMW_CELL_OBJECT_INDEX,Env:OPENMW_PRELOAD_PLAN_CACHE,Env:OPENMW_PRELOAD_RETENTION,Env:OPENMW_SLICED_CLEANUP
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe "--gtest_filter=$components" --gtest_output=xml:batch-master-off-components.xml
+            if ($LASTEXITCODE) { throw 'Master-off batch component regressions failed' }
+            ./build/openmw-tests.exe "--gtest_filter=$engine" --gtest_output=xml:batch-master-off-engine.xml
+            if ($LASTEXITCODE) { throw 'Master-off batch engine regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_CELL_OBJECT_INDEX,Env:OPENMW_PRELOAD_PLAN_CACHE,Env:OPENMW_PRELOAD_RETENTION,Env:OPENMW_SLICED_CLEANUP,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/cell-streaming/verify-batch.py
+          if ($LASTEXITCODE) { throw 'Streaming batch evidence did not verify' }
       - name: Compare cell activation and collision preparation with rollback paths
         if: steps.existing_engine.outputs.reused != 'true'
         shell: pwsh
@@ -780,6 +806,8 @@ jobs:
           Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
           Copy-Item custom/cell-streaming/ACTIVATION-20261118.md install/CELL-ACTIVATION.md
           Copy-Item activation-tests.json install/
+          Copy-Item custom/cell-streaming/BATCH-20261119.md install/STREAMING-BATCH.md
+          Copy-Item streaming-batch-tests.json install/
           Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
           Copy-Item custom/native-tooltips/README.md install/NATIVE-TOOLTIPS.md
           Copy-Item native-tooltip-tests.json install/
@@ -947,6 +975,9 @@ jobs:
             navigation-previous.xml
             navigation-master-off.xml
             activation-tests.json
+            streaming-batch-tests.json
+            batch-*-components.xml
+            batch-*-engine.xml
             activation-*-components.xml
             activation-*-engine.xml
             cell-streaming-tests.json
@@ -984,6 +1015,7 @@ jobs:
         run: |
           python3 custom/cell-streaming/test-scenery-handover.py
           python3 custom/cell-streaming/test-static-preload.py
+          python3 custom/cell-streaming/test-batch-planning.py
           python3 custom/performance-tests/test-transition-preload.py
       - name: Verify complete scenery handover with actual graphics compilation
         run: |
@@ -1014,6 +1046,7 @@ jobs:
             scenery-native-gl-tests.xml
             scenery-handover-tests.json
             static-resource-preload-tests.json
+            batch-planning-tests.json
           if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'
