@@ -5006,11 +5006,11 @@
       },
       "after": {
         "mode": "100644",
-        "blob": "9ae150013b66d739a34ea598e3801be285645530"
+        "blob": "34d0a5035d7c14aa05a0950e0e09491cb78287e9"
       },
-      "sha256": "f3e7b9d0e32ffdb31f94ef96a38f42b90e1407d0bb991684de7fc9c3202838ef",
-      "bytes": 6402,
-      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions."
+      "sha256": "ce42ca0f9dace9150026534b408191b4b74dbfc5cefbccc7b297534bbb9781e4",
+      "bytes": 7369,
+      "reason": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Update counted-boundary fixture for current retention and destination-plan interfaces, extract actual preparationSeconds method and execute both batch modes without dropping existing admission checks."
     },
     "custom/review-tests/lua-arrival-benchmark.cpp": {
       "before": null,
