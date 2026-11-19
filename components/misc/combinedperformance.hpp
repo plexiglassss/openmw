@@ -73,6 +73,30 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useCellObjectIndex()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_CELL_OBJECT_INDEX");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool usePreloadPlanCache()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_PRELOAD_PLAN_CACHE");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool usePreloadRetention()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_PRELOAD_RETENTION");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useSlicedCleanup()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_SLICED_CLEANUP");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useCostAwarePreload()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_COST_AWARE_PRELOAD");

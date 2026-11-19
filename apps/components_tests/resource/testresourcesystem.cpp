@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 
 #include <components/misc/combinedperformance.hpp>
+#include <future>
 #include <osg/Stats>
 #include <osg/observer_ptr>
 #include <sstream>
@@ -21,6 +22,113 @@
 namespace
 {
     using namespace testing;
+
+    struct CleanupTestManager : Resource::BaseResourceManager
+    {
+        std::vector<double> updates;
+        std::promise<void>* started = nullptr;
+        std::shared_future<void> release;
+        void updateCache(double time) override
+        {
+            updates.push_back(time);
+            if (started)
+            {
+                started->set_value();
+                release.wait();
+            }
+        }
+        void clearCache() override {}
+        void setExpiryDelay(double) override {}
+        void reportStats(unsigned int, osg::Stats*) const override {}
+        void releaseGLObjects(osg::State*) override {}
+    };
+
+    TEST(ResourceResourceSystem, cleanupRestartsSafelyWhenManagersChangeBetweenSlices)
+    {
+        const VFS::Manager vfs;
+        const ToUTF8::Utf8Encoder encoder(ToUTF8::WINDOWS_1252);
+        Resource::ResourceSystem resources(&vfs, 1.0, &encoder.getStatelessEncoder());
+        CleanupTestManager first, second;
+        resources.addResourceManager(&first);
+        Resource::ResourceSystem::CacheUpdateCursor cursor;
+        ASSERT_FALSE(resources.updateCacheStep(10, cursor));
+        const auto generation = cursor.mRevision;
+        resources.removeResourceManager(&first);
+        resources.addResourceManager(&second);
+        EXPECT_FALSE(resources.updateCacheStep(10, cursor));
+        EXPECT_NE(cursor.mRevision, generation);
+        EXPECT_EQ(cursor.mNext, 1u);
+        for (int i = 0; i < 100 && !resources.updateCacheStep(10, cursor); ++i)
+        {
+        }
+        EXPECT_TRUE(first.updates.empty());
+        EXPECT_EQ(second.updates, (std::vector<double>{ 10 }));
+        resources.removeResourceManager(&second);
+    }
+
+    TEST(ResourceResourceSystem, managerRemovalWaitsForRunningSliceBeforeDestruction)
+    {
+        const VFS::Manager vfs;
+        const ToUTF8::Utf8Encoder encoder(ToUTF8::WINDOWS_1252);
+        Resource::ResourceSystem resources(&vfs, 1.0, &encoder.getStatelessEncoder());
+        CleanupTestManager manager;
+        std::promise<void> started, release, removing;
+        manager.started = &started;
+        manager.release = release.get_future().share();
+        resources.addResourceManager(&manager);
+        auto worker = std::async(std::launch::async, [&] {
+            Resource::ResourceSystem::CacheUpdateCursor cursor;
+            while (!resources.updateCacheStep(10, cursor))
+            {
+            }
+        });
+        started.get_future().wait();
+        auto removal = std::async(std::launch::async, [&] {
+            removing.set_value();
+            resources.removeResourceManager(&manager);
+        });
+        removing.get_future().wait();
+        EXPECT_EQ(removal.wait_for(std::chrono::milliseconds(5)), std::future_status::timeout);
+        release.set_value();
+        worker.get();
+        removal.get();
+        EXPECT_EQ(manager.updates, (std::vector<double>{ 10 }));
+    }
+
+    TEST(ResourceResourceSystem, cleanupStepsVisitEachManagerOnceAndKeepTimestamp)
+    {
+        struct CountedManager : Resource::BaseResourceManager
+        {
+            std::vector<double> updates;
+            void updateCache(double time) override { updates.push_back(time); }
+            void clearCache() override {}
+            void setExpiryDelay(double) override {}
+            void reportStats(unsigned int, osg::Stats*) const override {}
+            void releaseGLObjects(osg::State*) override {}
+        } first, second;
+        const VFS::Manager vfs;
+        const ToUTF8::Utf8Encoder encoder(ToUTF8::WINDOWS_1252);
+        Resource::ResourceSystem resources(&vfs, 1.0, &encoder.getStatelessEncoder());
+        resources.addResourceManager(&first);
+        resources.addResourceManager(&second);
+        Resource::ResourceSystem::CacheUpdateCursor cursor;
+        std::size_t steps = 0;
+        bool complete = false;
+        while (!complete && steps < 100)
+        {
+            const auto oldCursor = cursor.mNext;
+            complete = resources.updateCacheStep(10.0, cursor);
+            EXPECT_EQ(cursor.mNext, oldCursor + 1);
+            ++steps;
+        }
+        ASSERT_TRUE(complete);
+        EXPECT_EQ(first.updates, (std::vector<double>{ 10.0 }));
+        EXPECT_EQ(second.updates, (std::vector<double>{ 10.0 }));
+        EXPECT_TRUE(resources.updateCacheStep(10.0, cursor));
+        EXPECT_EQ(second.updates.size(), 1u);
+        resources.removeResourceManager(&first);
+        resources.removeResourceManager(&second);
+    }
 
     TEST(ResourceResourceSystem, nativePagingDecodesColdInputsAndReusesWarmModels)
     {

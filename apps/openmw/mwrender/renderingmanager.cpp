@@ -1476,6 +1476,7 @@ namespace MWRender
         if (stats->collectStats("resource"))
         {
             mTerrain->reportStats(frameNumber, stats);
+            mObjects->reportStats(frameNumber, *stats);
         }
     }
 

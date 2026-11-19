@@ -16,16 +16,13 @@
 #include <osg/Stats>
 
 #include <components/debug/debuglog.hpp>
+#include <components/esm3/loadacti.hpp>
 #include <components/esm3/loadcell.hpp>
 #include <components/esm3/loadcrea.hpp>
-#include <components/esm3/loadnpc.hpp>
-#include <components/esm3/loadacti.hpp>
 #include <components/esm3/loaddoor.hpp>
+#include <components/esm3/loadnpc.hpp>
 #include <components/esm3/loadstat.hpp>
 #include <components/esm3/readerscache.hpp>
-#include <components/sceneutil/asyncpreparation.hpp>
-#include <components/sceneutil/scenefootprint.hpp>
-#include <components/sceneutil/preparationcost.hpp>
 #include <components/loadinglistener/reporter.hpp>
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/constants.hpp>
@@ -37,6 +34,10 @@
 #include <components/resource/keyframemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/sceneutil/asyncpreparation.hpp>
+#include <components/sceneutil/preloadretention.hpp>
+#include <components/sceneutil/preparationcost.hpp>
+#include <components/sceneutil/scenefootprint.hpp>
 #include <components/settings/values.hpp>
 #include <components/terrain/view.hpp>
 #include <components/terrain/world.hpp>
@@ -220,7 +221,10 @@ namespace MWWorld
             if (sample.mComplete.load(std::memory_order_acquire))
             {
                 if (sample.mSuccessful)
+                {
                     mPreparationCost.observe(sample.mQueueSeconds, sample.mWorkSeconds, sample.mAssets, sample.mColdAssets);
+                    entry.mPreparationSeconds = sample.mWorkSeconds;
+                }
                 entry.mTiming.reset();
             }
             else
@@ -747,9 +751,22 @@ namespace MWWorld
 
         void doWork() override { mResourceSystem->updateCache(mReferenceTime); }
 
+        bool isMaintenance() const override { return Misc::useSlicedCleanup(); }
+        bool doWorkSlice() override
+        {
+            Diagnostics::Scope measured("resource-cleanup", "cache", "manager-step");
+            if (!Misc::useSlicedCleanup())
+            {
+                doWork();
+                return true;
+            }
+            return mResourceSystem->updateCacheStep(mReferenceTime, mCursor);
+        }
+
     private:
         double mReferenceTime;
         Resource::ResourceSystem* mResourceSystem;
+        Resource::ResourceSystem::CacheUpdateCursor mCursor;
     };
 
     CellPreloader::CellPreloader(Resource::ResourceSystem* resourceSystem,
@@ -798,21 +815,18 @@ namespace MWWorld
 
         while (mPreloadCells.size() >= mMaxCacheSize)
         {
-            // throw out oldest cell to make room
-            PreloadMap::iterator oldestCell = mPreloadCells.begin();
-            double oldestTimestamp = std::numeric_limits<double>::max();
-            double threshold = 1.0; // seconds
-            for (PreloadMap::iterator it = mPreloadCells.begin(); it != mPreloadCells.end(); ++it)
+            Diagnostics::Scope measured("preload-cache", "admission", "evict");
+            const auto lastUse = [](const auto& v) { return v.second.mTimeStamp; };
+            const auto cost = [](const auto& v) { return v.second.preparationSeconds(); };
+            const auto oldestCell = SceneUtil::selectPreloadVictim(
+                mPreloadCells.begin(), mPreloadCells.end(), timestamp, Misc::usePreloadRetention(), lastUse, cost);
+            if (oldestCell != mPreloadCells.end())
             {
-                if (it->second.mTimeStamp < oldestTimestamp)
-                {
-                    oldestTimestamp = it->second.mTimeStamp;
-                    oldestCell = it;
-                }
-            }
-
-            if (oldestTimestamp + threshold < timestamp)
-            {
+                if (Misc::usePreloadRetention()
+                    && oldestCell
+                        != SceneUtil::selectPreloadVictim(
+                            mPreloadCells.begin(), mPreloadCells.end(), timestamp, false, lastUse, cost))
+                    ++mCostRetentions;
                 mWorkQueue->cancelWorkItem(oldestCell->second.mWorkItem);
                 mPreloadCells.erase(oldestCell);
                 ++mEvicted;
@@ -823,7 +837,7 @@ namespace MWWorld
 
         osg::ref_ptr<PreloadItem> item(new PreloadItem(&cell, mResourceSystem->getSceneManager(), mBulletShapeManager,
             mResourceSystem->getKeyframeManager(), mTerrain, mLandManager, mPreloadInstances));
-        if (cell.isExterior() && Misc::useCostAwarePreload())
+        if ((cell.isExterior() && Misc::useCostAwarePreload()) || Misc::usePreloadRetention())
             item->mTiming = std::make_shared<SceneUtil::PreparationSample>();
         mWorkQueue->addWorkItem(item);
 
@@ -1203,6 +1217,7 @@ namespace MWWorld
         stats.setAttribute(frameNumber, "CellPreloader Evicted", static_cast<double>(mEvicted));
         stats.setAttribute(frameNumber, "CellPreloader Loaded", static_cast<double>(mLoaded));
         stats.setAttribute(frameNumber, "CellPreloader Expired", static_cast<double>(mExpired));
+        stats.setAttribute(frameNumber, "CellPreloader Cost Retentions", static_cast<double>(mCostRetentions));
         stats.setAttribute(frameNumber, "CellPreloader Static Jobs",
             mStaticPreloads ? static_cast<double>(mStaticPreloads->mJobs.size()) : 0.0);
     }

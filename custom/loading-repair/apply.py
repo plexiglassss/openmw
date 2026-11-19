@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # prior state-manager blob, after subtracting the separately verified saved-map handoff.
 EXPECTED = {
     # Exact reviewed engine: worker lifecycle retained; F3 timing history uses seconds.
-    'apps/openmw/engine.cpp': '961c2ac044678fd6512d33c1a17562430a68be75',
+    'apps/openmw/engine.cpp': '7548feab251d80fcc96c044d25dae086ff3fc8d0',
     # Reviewed cooperative compile budget, loading-mode handoff and UTF-8 label conversion.
     'apps/openmw/mwgui/loadingscreen.cpp': 'b6300c34ef08ced463e411b5865df07ac1c1a55e',
     'apps/openmw/mwgui/loadingscreen.hpp': 'bb5884ba617b541a814243fe141bd04361e93118',

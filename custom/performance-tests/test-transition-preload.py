@@ -12,12 +12,17 @@ def extract(source,signature):
  return source[begin:end]
 scene=(root/'apps/openmw/mwworld/scene.cpp').read_text()
 preload=(root/'apps/openmw/mwworld/cellpreloader.cpp').read_text()
+preload_header=(root/'apps/openmw/mwworld/cellpreloader.hpp').read_text()
 grid=extract(scene,'void Scene::changeCellGrid(')
 assert grid.index('mPreloader->preload(cell,') < grid.index('mPreloader->syncTerrainLoad') < grid.index('                loadCell(cell,')
 assert 'if (mPreloadEnabled)' in grid
 assert grid.count('sortCellsToLoad(')==1
 code=r'''
 #include <components/sceneutil/preparationcost.hpp>
+#include <components/sceneutil/preloadplancache.hpp>
+#include <components/sceneutil/preloadretention.hpp>
+#include <string>
+#include <tuple>
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -26,10 +31,11 @@ code=r'''
 #include <memory>
 #include <vector>
 namespace Debug {enum {Error,Warning};}
-namespace Misc {bool useCostAwarePreload(){return true;}}
+namespace Diagnostics {struct Scope {template<class... T> Scope(T&&...) {}};}
+namespace Misc {bool batch=true;bool useCostAwarePreload(){return true;}bool usePreloadRetention(){return batch;}bool usePreloadPlanCache(){return batch;}}
 std::ostream& Log(int) {return std::cerr;}
 namespace osg {template<class T> using ref_ptr=std::shared_ptr<T>;}
-namespace ESM {using RefId=int; struct ExteriorCellLocation {int x,y,world; ExteriorCellLocation(int a,int b,int c):x(a),y(b),world(c) {}};}
+namespace ESM {using RefId=int; struct ExteriorCellLocation {int x,y,world; ExteriorCellLocation(int a,int b,int c):x(a),y(b),world(c) {}auto operator<=>(const ExteriorCellLocation&)const=default;};}
 struct Cell {int x=0,y=0;int getGridX(){return x;}int getGridY(){return y;}int getWorldSpace(){return 0;}};
 struct CellStore {enum State {State_Unloaded,State_Preloaded,State_Loaded};State state=State_Loaded;bool exterior=true;Cell info;
  State getState(){return state;}bool isExterior(){return exterior;}Cell* getCell(){return &info;}};
@@ -40,12 +46,13 @@ struct PreloadItem {std::shared_ptr<SceneUtil::PreparationSample> mTiming;
 struct WorkQueue {int jobs=0;void cancelWorkItem(const osg::ref_ptr<PreloadItem>& item){item->abort();}void addWorkItem(const osg::ref_ptr<PreloadItem>&){++jobs;}};
 struct Resource {int getSceneManager(){return 0;}int getKeyframeManager(){return 0;}};
 struct PreloadEntry {double mTimeStamp;osg::ref_ptr<PreloadItem> mWorkItem;std::shared_ptr<SceneUtil::PreparationSample> mTiming;
+ double mPreparationSeconds=0;double preparationSeconds() const PREPARATION_SECONDS_BODY
  PreloadEntry(double t,osg::ref_ptr<PreloadItem> i,std::shared_ptr<SceneUtil::PreparationSample> timing):mTimeStamp(t),mWorkItem(i),mTiming(std::move(timing)){}};
 struct CellPreloader {
  WorkQueue queue;WorkQueue* mWorkQueue=&queue;Resource resource;Resource* mResourceSystem=&resource;
  int mBulletShapeManager=0,mTerrain=0,mLandManager=0;bool mPreloadInstances=true;
  using PreloadMap=std::map<const CellStore*,PreloadEntry>;PreloadMap mPreloadCells;
- std::size_t mMaxCacheSize=9;int mAdded=0,mEvicted=0;
+ std::size_t mMaxCacheSize=9;int mAdded=0,mEvicted=0,mCostRetentions=0;
  std::size_t getMaxCacheSize(){return mMaxCacheSize;}std::size_t getCacheSize(){return mPreloadCells.size();}
  void preload(CellStore& cell,double timestamp);
 };
@@ -54,16 +61,20 @@ struct WorldModel {std::map<std::pair<int,int>,CellStore> cells;int lookups=0;
 struct World {WorldModel model;WorldModel& getWorldModel(){return model;}};
 struct Rendering {double time=10;double getReferenceTime(){return time;}};
 struct Scene {World mWorld;Rendering mRendering;CellPreloader* mPreloader;int mHalfGridSize=1;
+ using GridPlanKey=std::tuple<ESM::ExteriorCellLocation,int,std::size_t>;
+ SceneUtil::PreloadPlanCache<GridPlanKey,int,std::vector<CellStore*>> mDestinationPlans{32};
  void preloadCellWithSurroundings(CellStore& cell);};
 template<class F> void iterateOverCellsAround(int x,int y,int r,F f){for(int a=x-r;a<=x+r;++a)for(int b=y-r;b<=y+r;++b)f(a,b);}
 void sortCellsToLoad(int x,int y,std::vector<std::pair<int,int>>& cells){
  std::stable_sort(cells.begin(),cells.end(),[=](auto a,auto b){return std::abs(a.first-x)+std::abs(a.second-y)<std::abs(b.first-x)+std::abs(b.second-y);});}
 void CellPreloader::preload(CellStore& cell,double timestamp)
 '''
+code=code.replace('PREPARATION_SECONDS_BODY',extract(preload_header,'double preparationSeconds() const'))
 code+=extract(preload,'void CellPreloader::preload(')
 code+='\nvoid Scene::preloadCellWithSurroundings(CellStore& cell)\n'+extract(scene,'void Scene::preloadCellWithSurroundings(')
 code+=r'''
-int main(){
+int main(int argc,char** argv){
+ assert(argc==2);Misc::batch=std::string(argv[1])=="1";
  CellPreloader p;Scene scene;scene.mPreloader=&p;CellStore center;
  scene.preloadCellWithSurroundings(center);assert(p.queue.jobs==9 && p.getCacheSize()==9);
  for(auto& [cell,e]:p.mPreloadCells){(void)cell;assert(e.mTiming && e.mTiming==e.mWorkItem->mTiming);}
@@ -82,11 +93,12 @@ int main(){
  for(auto& [cell,e]:limited.mPreloadCells){(void)cell;assert(e.mTimeStamp==12);}
  CellStore interior;interior.exterior=false;CellPreloader inside;Scene indoors;indoors.mPreloader=&inside;
  indoors.preloadCellWithSurroundings(interior);assert(inside.queue.jobs==1 && indoors.mWorld.model.lookups==0);
- assert(!inside.mPreloadCells.at(&interior).mTiming);
+ assert(static_cast<bool>(inside.mPreloadCells.at(&interior).mTiming)==Misc::batch);
  std::cout<<"PASS: production door-grid and preload admission: full-cache refresh, no duplicate jobs, eviction, small/zero capacity, interior; transition scheduling precedes terrain wait and insertion.\n";
 }
 '''
 with tempfile.TemporaryDirectory() as d:
  cpp=Path(d)/'test.cpp';exe=Path(d)/'test';cpp.write_text(code)
  subprocess.run(['g++','-std=c++20','-Wall','-Wextra','-Werror','-I',str(root),str(cpp),'-o',str(exe)],check=True)
- subprocess.run([str(exe)],check=True)
+ for mode in ('1','0'):
+  subprocess.run([str(exe),mode],check=True)
