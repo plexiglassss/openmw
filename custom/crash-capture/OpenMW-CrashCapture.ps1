@@ -259,7 +259,19 @@ function Test-MinidumpHeader {
 function Read-ProcDumpText {
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return '' }
-    $bytes = [IO.File]::ReadAllBytes($Path)
+    # ProcDump or its child may still hold the redirected output handle after exit.
+    # Read a shared snapshot; dump/completion counts and game lifetime are verified separately.
+    $stream = $null
+    $copy = $null
+    try {
+        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        $copy = New-Object IO.MemoryStream
+        $stream.CopyTo($copy)
+        $bytes = $copy.ToArray()
+    } finally {
+        if ($null -ne $copy) { $copy.Dispose() }
+        if ($null -ne $stream) { $stream.Dispose() }
+    }
     if ($bytes.Length -ge 2 -and $bytes[0] -eq 255 -and $bytes[1] -eq 254) {
         return [Text.Encoding]::Unicode.GetString($bytes).TrimStart([char]0xFEFF)
     }
@@ -284,7 +296,7 @@ function Get-ProcDumpCaptureResult {
     $valid = @($dumpFiles | Where-Object { Test-MinidumpHeader -Path $_.FullName })
     $completed = @([regex]::Matches($stdout, '(?m)^\s*\[[^\]\r\n]+\]\s*Dump\s+([1-9][0-9]*)\s+complete:') | ForEach-Object { [int]$_.Groups[1].Value })
     $distinctCompleted = @($completed | Sort-Object -Unique)
-    $logError = [regex]::IsMatch(($stdout + "`n" + $stderr), '(?im)^\s*(?:\[\d{2}:\d{2}:\d{2}\]\s*(?:Dump\s+\d+\s+(?:error|failed)\b|Error\s+(?:writing|creating|opening)\b|Failed\s+(?:to\s+)?(?:write|create|open)\b|Access is denied\b)|Error\s+(?:creating process|writing dump|opening process)\b)')
+    $logError = [regex]::IsMatch(($stdout + "`n" + $stderr), '(?im)^\s*(?:\[\d{2}:\d{2}:\d{2}\]\s*(?:Dump\s+\d+\s+(?:error|failed)\b|Error\s+(?:writing|creating|opening)\b|Failed\s+(?:to\s+)?(?:write|create|open)\b|Access is denied\b)|Error\s+(?:(?:creating (?:process|dump file)|writing dump|opening process|debugging process)\b|(?:opening [^\r\n]+ \(\d+\)|launching [^\r\n]+):)|Exception in MiniDumpWriteDump Callback:)')
     $ordinalSequence = (($distinctCompleted -join ',') -ceq ((1..([Math]::Max(1,$distinctCompleted.Count))) -join ','))
     # ProcDump's successful return is the number of dumps written, not conventional zero.
     # Require independent file and completed-write evidence; a positive exit alone is insufficient.
@@ -388,6 +400,12 @@ function Start-MonitoredOpenMW {
         }
     }
     $monitor.WaitForExit()
+    # A dump cap can end ProcDump just before a crashing child finishes terminating.
+    # Wait briefly for that independently tracked process; never kill it or assume exit.
+    if ($null -ne $game) {
+        try { $null = $game.WaitForExit(10000) }
+        catch { Add-CaptureNote ('Final game-exit wait: ' + $_.Exception.Message) }
+    }
     $gameExit = $null
     if ($null -ne $game) {
         try { if ($game.HasExited) { $gameExit = $game.ExitCode } } catch { Add-CaptureNote ('Game exit-code read: ' + $_.Exception.Message) }
@@ -419,12 +437,39 @@ function Start-MonitoredOpenMW {
 function Complete-Capture {
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'copied-evidence.json') -Value @($script:Copied.ToArray())
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'omitted-evidence.json') -Value @($script:Omitted.ToArray())
-    $entries = @(Get-ChildItem -LiteralPath $script:CaptureRoot -Recurse -File | ForEach-Object { Get-FileIdentity -Path $_.FullName -Hash })
+    $entries = @(Get-ChildItem -LiteralPath $script:CaptureRoot -Recurse -File | ForEach-Object {
+        $filePath = $_.FullName
+        try { Get-FileIdentity -Path $filePath -Hash }
+        catch {
+            $identity = Get-FileIdentity -Path $filePath
+            $identity | Add-Member -NotePropertyName hash_unavailable -NotePropertyValue $_.Exception.Message
+            $identity
+        }
+    })
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'file-manifest.json') -Value $entries
     $zipPath = $script:CaptureRoot + '.zip'
     # ZipFile handles ZIP64; Compress-Archive on Windows PowerShell has a 2 GiB file limit.
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [IO.Compression.ZipFile]::CreateFromDirectory($script:CaptureRoot, $zipPath, [IO.Compression.CompressionLevel]::Optimal, $false)
+    # A failed/incomplete session may leave redirected logs open for writing.
+    # Zip a shared-read snapshot instead of failing to return all evidence.
+    $archive = $null
+    try {
+        $archive = [IO.Compression.ZipFile]::Open($zipPath, [IO.Compression.ZipArchiveMode]::Create)
+        foreach ($file in @(Get-ChildItem -LiteralPath $script:CaptureRoot -Recurse -File)) {
+            $name = $file.FullName.Substring($script:CaptureRoot.Length).TrimStart([char[]]'\/').Replace('\','/')
+            $entry = $archive.CreateEntry($name, [IO.Compression.CompressionLevel]::Optimal)
+            $sourceStream = $null
+            $entryStream = $null
+            try {
+                $sourceStream = [IO.File]::Open($file.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+                $entryStream = $entry.Open()
+                $sourceStream.CopyTo($entryStream)
+            } finally {
+                if ($null -ne $entryStream) { $entryStream.Dispose() }
+                if ($null -ne $sourceStream) { $sourceStream.Dispose() }
+            }
+        }
+    } finally { if ($null -ne $archive) { $archive.Dispose() } }
     Write-Host ''
     Write-Host ('Evidence saved: ' + $zipPath) -ForegroundColor Green
     Write-Host 'Upload this ZIP to the chat. The original files have not been moved.'

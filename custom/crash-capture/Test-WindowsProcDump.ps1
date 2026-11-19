@@ -34,6 +34,23 @@ try {
     $license = Start-Process -FilePath $procdump -ArgumentList '-accepteula -?' -NoNewWindow -PassThru -RedirectStandardOutput (Join-Path $script:CaptureRoot 'license-output.txt') -RedirectStandardError (Join-Path $script:CaptureRoot 'license-error.txt')
     $licenseHandle=$license.Handle
     $license.WaitForExit()
+    $sharedLog=Join-Path $script:CaptureRoot 'held-writer.txt'
+    $writer=[IO.File]::Open($sharedLog,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::ReadWrite)
+    try {
+        $heldText='[20:00:00]Dump 1 complete: 1 MB written in 0.0 seconds'
+        $heldBytes=[Text.Encoding]::Unicode.GetBytes($heldText)
+        $writer.Write($heldBytes,0,$heldBytes.Length)
+        $writer.Flush()
+        Check-Windows 'ProcDump text remains readable while another writer holds the file' ((Read-ProcDumpText -Path $sharedLog) -ceq $heldText)
+        Complete-Capture
+        $heldZip=[IO.Compression.ZipFile]::OpenRead($script:CaptureRoot+'.zip')
+        try {
+            $heldEntry=$heldZip.GetEntry('held-writer.txt')
+            $reader=New-Object IO.StreamReader($heldEntry.Open(),[Text.Encoding]::Unicode)
+            try { $savedText=$reader.ReadToEnd() } finally { $reader.Dispose() }
+            Check-Windows 'Evidence ZIP retains log held by a writer' ($savedText -ceq $heldText)
+        } finally { $heldZip.Dispose() }
+    } finally { $writer.Dispose() }
     Set-TestCapture 'probe'
     Test-ProcDumpCapture -ProcDump $procdump
     $probe=Get-Content -Raw -LiteralPath (Join-Path $script:CaptureRoot 'procdump-self-test/result.json') | ConvertFrom-Json
