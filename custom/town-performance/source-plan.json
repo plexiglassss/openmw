@@ -55,7 +55,8 @@
     "cb4fe859b8cc06edeee6d1a979d3a45b02ce591c",
     "d2df2892ab8f8728d5c7f0135ac80edad4f033f3",
     "407469c78a5d7b8afce30403d565b91d57aadb16",
-    "e34132e01c9d2f2af4c66cc8e40f42c74e17fbda"
+    "e34132e01c9d2f2af4c66cc8e40f42c74e17fbda",
+    "d3c068eacf1da794b4bb111621210adef41de92d"
   ],
   "files": {
     ".github/workflows/hbfs-godmode-build.yml": {
@@ -2119,11 +2120,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "fa97507490cadb9e783dbbf1e6df0be60e6b42e4"
+        "blob": "cc25128c28d90cf3b77f593fc0e6efd17eaf9966"
       },
-      "sha256": "0c87b7ca188d843ba06612f6effa0637fae59ed9a2e01f39de0dd46ff58ea057",
-      "bytes": 77088,
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture.; Initialize the standalone native keybindings fixture with the actual internal util library loader; no layout assertion or production behavior change."
+      "sha256": "57969ba579b16ef8d78d1e0265abe0b33f925dc8192a0ac5cc4a512f96b6678e",
+      "bytes": 79059,
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups.; Redesign mod controls with registered owner/action descriptions, independent responsive panes and expandable accurate conflicts; preserve original binding storage and capture.; Initialize the standalone native keybindings fixture with the actual internal util library loader; no layout assertion or production behavior change.; Supply deterministic iteration only for the two exact four-part border maps while the real border module initializes; preserve native snapshots and all layout bounds assertions."
     },
     "apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp": {
       "before": {
@@ -5088,11 +5089,11 @@
       "before": null,
       "after": {
         "mode": "100644",
-        "blob": "79fc3031572614d3d933ebe0ccb1e0594c63dc9d"
+        "blob": "dab350f3a7603a3187a4c6b590deb3de1e83309d"
       },
-      "sha256": "1163785e1156c0a526ac362a3dccdaf361a3f4f6a40266df42687e156ce9cbf5",
-      "bytes": 7317,
-      "reason": "Bind same-executable parity, performance measurements, packaging and existing features."
+      "sha256": "c44df297d7c5cdadb77bd1396842abe018d55a03b3f7713a2fe9173cb9f68528",
+      "bytes": 7878,
+      "reason": "Bind same-executable parity, performance measurements, packaging and existing features.; Require the existing mod keybindings native case and all three width snapshots in strict same-executable parity."
     },
     "custom/town-performance/verify-source.py": {
       "before": null,

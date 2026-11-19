@@ -372,8 +372,46 @@ namespace LuaUi
                     _getDefaultFontSize=function()return 16 end,_getMenuTransparency=function()return .8 end,
                     texture=function(options)return texture(options.path)end}
                 local templates={}
+                -- The real border module builds child arrays from two maps.
+                -- Give both native modes the same input order; do not alter
+                -- snapshots or native sibling order after widget creation.
+                local originalPairs = pairs
+                local borderOrders = {
+                    {'left', 'right', 'top', 'bottom'},
+                    {'top_left', 'top_right', 'bottom_left', 'bottom_right'},
+                }
+                local function borderPairs(value)
+                    if type(value) == 'table' then
+                        for _, order in ipairs(borderOrders) do
+                            local matches = true
+                            for _, key in ipairs(order) do
+                                if rawget(value, key) == nil then matches = false; break end
+                            end
+                            if matches then
+                                local count = 0
+                                for _ in originalPairs(value) do count = count + 1 end
+                                if count == #order then
+                                    local index = 0
+                                    return function()
+                                        index = index + 1
+                                        local key = order[index]
+                                        if key then return key, value[key] end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    return originalPairs(value)
+                end
                 for _,part in ipairs{'text','textEdit','space','borders'} do
-                    require('scripts.omw.mwui.'..part)(templates)
+                    if part == 'borders' then
+                        pairs = borderPairs
+                        local ok, err = pcall(function() require('scripts.omw.mwui.'..part)(templates) end)
+                        pairs = originalPairs
+                        assert(ok, err)
+                    else
+                        require('scripts.omw.mwui.'..part)(templates)
+                    end
                 end
                 package.loaded['openmw.util']=nil
                 package.loaded['openmw.core']=nil
