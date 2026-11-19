@@ -1,0 +1,32 @@
+name: OpenMW crash capture Windows integration
+on:
+  push:
+    branches: [diagnostics/crash-capture-validation-20261119]
+    paths:
+      - custom/crash-capture/**
+      - .github/workflows/crash-capture-validation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-powershell:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run signed ProcDump against real synthetic processes with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          & ./custom/crash-capture/Test-WindowsProcDump.ps1 -CaptureScript ./custom/crash-capture/OpenMW-CrashCapture.ps1 -Output "$env:GITHUB_WORKSPACE\capture-test-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: crash-capture-windows-evidence
+          path: |
+            capture-test-evidence/**/*.json
+            capture-test-evidence/**/*.txt
+          if-no-files-found: error
