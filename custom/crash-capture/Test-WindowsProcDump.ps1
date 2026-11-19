@@ -39,23 +39,32 @@ try {
     $probe=Get-Content -Raw -LiteralPath (Join-Path $script:CaptureRoot 'procdump-self-test/result.json') | ConvertFrom-Json
     Check-Windows 'Real native cmd self-test accepts one completed dump and exit 1' ($probe.passed -and $probe.procdump_exit_code -eq 1 -and $probe.dumps_with_mdmp_header -eq 1)
     $fixtureSource=@'
-using System;
-using System.IO;
-using System.Threading;
-using System.Runtime.InteropServices;
-public static class CaptureFixture {
-    [DllImport("kernel32.dll")]
-    private static extern void RaiseFailFastException(IntPtr record, IntPtr context, uint flags);
-    public static int Main() {
-        string mode=File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"scenario.txt")).Trim();
-        Thread.Sleep(2500);
-        if(mode=="failfast") { RaiseFailFastException(IntPtr.Zero,IntPtr.Zero,0); return 99; }
-        return mode=="nonzero" ? 23 : 0;
-    }
+#include <windows.h>
+#include <intrin.h>
+#include <fstream>
+#include <string>
+int main() {
+    wchar_t executable[MAX_PATH] = {};
+    if (!GetModuleFileNameW(nullptr, executable, MAX_PATH)) return 98;
+    std::wstring folder(executable);
+    folder.resize(folder.find_last_of(L"\\/") + 1);
+    std::ifstream input(folder + L"scenario.txt");
+    std::string mode;
+    std::getline(input, mode);
+    Sleep(2500);
+    if (mode == "failfast") __fastfail(7);
+    return mode == "nonzero" ? 23 : 0;
 }
 '@
     $fixture=Join-Path $Output 'fixture.exe'
-    Add-Type -TypeDefinition $fixtureSource -Language CSharp -OutputAssembly $fixture -OutputType ConsoleApplication
+    $cpp=Join-Path $Output 'fixture.cpp'
+    [IO.File]::WriteAllText($cpp,$fixtureSource)
+    $compileArgs=@('/nologo','/O2','/EHsc','/MT',('/Fe:'+$fixture),('/Fo:'+(Join-Path $Output 'fixture.obj')),$cpp)
+    $compileCommand=($compileArgs | ForEach-Object { Quote-NativeArgument -Value $_ }) -join ' '
+    $compiler=Start-Process -FilePath (Get-Command cl.exe).Source -ArgumentList $compileCommand -WorkingDirectory $Output -NoNewWindow -PassThru -RedirectStandardOutput (Join-Path $Output 'compiler-output.txt') -RedirectStandardError (Join-Path $Output 'compiler-error.txt')
+    $compilerHandle=$compiler.Handle
+    $compiler.WaitForExit()
+    Check-Windows 'Native fixture compiled successfully' ($compiler.ExitCode -eq 0 -and (Test-Path -LiteralPath $fixture))
     foreach($scenario in @('normal','nonzero','failfast')) {
         Set-TestCapture $scenario
         $app=Join-Path $script:CaptureRoot 'fixture app'
@@ -67,7 +76,10 @@ public static class CaptureFixture {
         Check-Windows ($scenario+' monitor verifies actual dumps and observes game exit') ($result.capture_completed -and $result.capture_evidence.verified -and $result.game_still_alive -eq $false)
         if($scenario -eq 'normal') { Check-Windows 'Normal child exit remains zero' ($result.game_exit_code -eq 0) }
         if($scenario -eq 'nonzero') { Check-Windows 'Child exit 23 stays separate from ProcDump dump count' ($result.game_exit_code -eq 23 -and $result.procdump_exit_code -ne 23) }
-        if($scenario -eq 'failfast') { Check-Windows 'Native fail-fast remains an abnormal child exit' ($null -ne $result.game_exit_code -and $result.game_exit_code -ne 0) }
+        if($scenario -eq 'failfast') {
+            $trace=Read-ProcDumpText -Path (Join-Path $script:CaptureRoot 'procdump-output.txt')
+            Check-Windows 'Native fast-fail captures exact C0000409 instead of a fallback return' ($result.game_exit_code -eq -1073740791 -and $trace -match '(?i)c0000409')
+        }
     }
     Set-TestCapture 'missing-executable'
     $rejected=$false

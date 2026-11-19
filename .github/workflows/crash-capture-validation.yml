@@ -18,6 +18,9 @@ jobs:
       GIT_CONFIG_VALUE_0: "false"
     steps:
       - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
       - name: Run signed ProcDump against real synthetic processes with Windows PowerShell 5.1
         shell: powershell
         run: |
