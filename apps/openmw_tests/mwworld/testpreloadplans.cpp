@@ -1,4 +1,5 @@
 #include "apps/openmw/mwbase/environment.hpp"
+#include "apps/openmw/mwclass/door.hpp"
 #include "apps/openmw/mwworld/cellstore.hpp"
 #include "apps/openmw/mwworld/esmstore.hpp"
 #include "apps/openmw/mwworld/worldmodel.hpp"
@@ -25,6 +26,7 @@ namespace MWWorld
             Cache plans{ 4 };
             void SetUp() override
             {
+                MWClass::Door::registerSelf();
                 environment.setWorldModel(world);
                 environment.setESMStore(store);
                 environment.setLuaManager(lua);

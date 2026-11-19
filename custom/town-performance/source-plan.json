@@ -5963,13 +5963,13 @@
     },
     "apps/openmw_tests/mwworld/testpreloadplans.cpp": {
       "before": null,
-      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification.",
+      "reason": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Register the door class in the fixture itself so filtered optimized/rollback runs do not depend on another test suite.",
       "after": {
         "mode": "100644",
-        "blob": "2f8529f1211186494b6c417d8b2a95987bfa5138"
+        "blob": "4f5a100d35a56e265fa12fc8490e3cab1b8584d1"
       },
-      "sha256": "c421b3f9ed842a20922bf8e46eb4d5d95a21d8cf07b20a79d9d8d562df57568b",
-      "bytes": 4543
+      "sha256": "29a5b5863755255950283115a342ca55695013929f51e3b8771e3d768b5578eb",
+      "bytes": 4630
     },
     "components/sceneutil/cellobjectindex.hpp": {
       "before": null,
