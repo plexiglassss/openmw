@@ -9,6 +9,7 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/files/conversion.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/vfs/manager.hpp>
 
 #include "luastateptr.hpp"
@@ -206,9 +207,8 @@ namespace LuaUtil
 
             sol["setEnvironment"]
                 = [](const sol::environment& env, const sol::function& fn) { sol::set_environment(env, fn); };
-            sol["loadFromVFS"] = [this](std::string_view packageName) {
-                return loadScriptAndCache(packageNameToVfsPath(packageName, *mVFS));
-            };
+            sol["loadFromVFS"]
+                = [this](std::string_view packageName) { return loadScriptAndCache(resolveModulePath(packageName)); };
             sol["loadInternalLib"] = [this](std::string_view packageName) { return loadInternalLib(packageName); };
 
             // Some fixes for compatibility between different Lua versions
@@ -246,9 +246,10 @@ namespace LuaUtil
                 end
                 printGen = function(name) return function(...) return printToLog(name, ...) end end
 
-                function requireGen(env, loaded, loadFn)
+                function requireGen(env, loaded, loadFn, packages)
                     return function(packageName)
                         local p = loaded[packageName]
+                        if p == nil and packages then p = packages[packageName] end
                         if p == nil then
                             local loader = loadFn(packageName)
                             setEnvironment(env, loader)
@@ -355,11 +356,43 @@ namespace LuaUtil
         if (!package.is<sol::function>())
             package = makeReadOnly(std::move(package));
         mCommonPackages.insert_or_assign(std::move(packageName), std::move(package));
+        ++mCommonPackagesRevision;
+    }
+
+    void LuaState::preparePackages(PreparedPackages& result, const std::map<std::string, sol::main_object>& packages)
+    {
+        if (result.mCommonRevision == mCommonPackagesRevision)
+            return;
+        PreparedPackages next;
+        next.mValues = sol::table(mSol, sol::create);
+        for (const auto& [key, value] : mCommonPackages)
+        {
+            if (value.is<sol::function>())
+            {
+                const auto override = packages.find(key);
+                const bool publish = override == packages.end() || override->second.is<sol::function>();
+                next.mLoaders.push_back({ key, value, publish });
+            }
+            else
+                next.mValues[key] = value;
+        }
+        for (const auto& [key, value] : packages)
+        {
+            if (value.is<sol::function>())
+            {
+                next.mValues[key] = sol::nil;
+                next.mLoaders.push_back({ key, value, true });
+            }
+            else
+                next.mValues[key] = value;
+        }
+        next.mCommonRevision = mCommonPackagesRevision;
+        result = std::move(next);
     }
 
     sol::protected_function_result LuaState::runInNewSandbox(const VFS::Path::Normalized& path,
         const std::string& envName, const std::map<std::string, sol::main_object>& packages,
-        const sol::main_object& hiddenData)
+        const sol::main_object& hiddenData, PreparedPackages* prepared)
     {
         Diagnostics::Scope timing("lua-load", path.value(), "sandbox");
         // TODO
@@ -383,11 +416,27 @@ namespace LuaUtil
                 return package;
         };
         sol::table loaded(mSol, sol::create);
-        for (const auto& [key, value] : mCommonPackages)
-            loaded[key] = maybeRunLoader(value);
-        for (const auto& [key, value] : packages)
-            loaded[key] = maybeRunLoader(value);
-        env["require"] = mSol["requireGen"](env, loaded, mSol["loadFromVFS"]);
+        if (prepared && Misc::useSharedSandboxPackages())
+        {
+            preparePackages(*prepared, packages);
+            for (const auto& loader : prepared->mLoaders)
+            {
+                // Preserve eager factory execution and its order even when a local
+                // binding overrides the result. Only immutable bindings are shared.
+                sol::object value = maybeRunLoader(loader.mFunction);
+                if (loader.mPublish)
+                    loaded[loader.mName] = value;
+            }
+            env["require"] = mSol["requireGen"](env, loaded, mSol["loadFromVFS"], prepared->mValues);
+        }
+        else
+        {
+            for (const auto& [key, value] : mCommonPackages)
+                loaded[key] = maybeRunLoader(value);
+            for (const auto& [key, value] : packages)
+                loaded[key] = maybeRunLoader(value);
+            env["require"] = mSol["requireGen"](env, loaded, mSol["loadFromVFS"]);
+        }
 
         sol::set_environment(env, script);
         return call(scriptId, script);
@@ -414,19 +463,111 @@ namespace LuaUtil
 
     sol::function LuaState::loadScriptAndCache(const VFS::Path::Normalized& path)
     {
+        updateVfsRevision();
         auto iter = mCompiledScripts.find(path);
         if (iter != mCompiledScripts.end())
         {
-            sol::load_result res = mSol.load(iter->second.as_string_view(), path.value(), sol::load_mode::binary);
+#ifndef NO_LUAJIT
+            auto& cached = iter->second;
+            if (cached.mPendingSource)
+            {
+                auto source = std::move(*cached.mPendingSource);
+                cached.mPendingSource.reset();
+                mPendingSourceBytes -= source.size();
+                // Attempt promotion once; unsupported source keeps its bytecode.
+                auto factory = makeScriptFactory(path, source);
+                if (factory.valid())
+                {
+                    auto fresh = call(factory).get<sol::function>();
+                    cached.mFactory = std::move(factory);
+                    cached.mBytecode = {};
+                    return fresh;
+                }
+            }
+#endif
+            if (iter->second.mFactory.valid())
+                return call(iter->second.mFactory).get<sol::function>();
+            sol::load_result res = mSol.load(iter->second.mBytecode.as_string_view(), path.value(), sol::load_mode::binary);
             // Unless we have memory corruption issues, the bytecode is valid at this point, but loading might still
             // fail because we've hit our Lua memory cap
             if (!res.valid())
                 throw std::runtime_error("Lua error: " + res.get<std::string>());
             return res;
         }
-        sol::function res = loadFromVFS(path);
-        mCompiledScripts[path] = res.dump();
+        std::string fileContent(std::istreambuf_iterator<char>(*mVFS->get(path)), {});
+        sol::load_result loaded = mSol.load(fileContent, path.value(), sol::load_mode::text);
+        if (!loaded.valid())
+            throw std::runtime_error(std::string("Lua error: ") += loaded.get<sol::error>().what());
+        sol::function res = loaded;
+        CachedScript cached;
+        cached.mBytecode = res.dump();
+#ifndef NO_LUAJIT
+        // Promote on first reuse so one-off startup modules pay only their usual
+        // parse. Bound the additional retained source independently of Lua memory.
+        constexpr std::size_t pendingSourceBudget = 16ull * 1024 * 1024;
+        if (Misc::useLuaPrototypeCache() && fileContent.size() <= pendingSourceBudget - mPendingSourceBytes)
+            cached.mPendingSource = std::move(fileContent);
+#endif
+        const auto inserted = mCompiledScripts.emplace(path, std::move(cached)).first;
+        if (inserted->second.mPendingSource)
+            mPendingSourceBytes += inserted->second.mPendingSource->size();
         return res;
+    }
+
+#ifndef NO_LUAJIT
+    sol::function LuaState::makeScriptFactory(const VFS::Path::Normalized& path, std::string_view body)
+    {
+        // The caller retains only source already accepted as a standalone text
+        // chunk. Never run a source-constructed wrapper without that validation.
+        if (body.starts_with("\xEF\xBB\xBF"))
+            body.remove_prefix(3);
+        // Newer LuaJIT versions also accept first-line source directives.
+        // Leave those on the bytecode path rather than altering debug locations.
+        if (!body.starts_with('#') || body.starts_with("#!"))
+        {
+            std::string factorySource("return function(...) ");
+            // LuaJIT accepts a first-line shebang. Turn it into a comment, keeping
+            // all source newlines so runtime errors retain their original lines.
+            if (body.starts_with("#!"))
+            {
+                factorySource += "--";
+                body.remove_prefix(1);
+            }
+            factorySource.append(body);
+            factorySource += "\nend";
+            sol::load_result factory = mSol.load(factorySource, path.value(), sol::load_mode::text);
+            if (factory.valid())
+            {
+                sol::function result = factory;
+                sol::set_environment(sol::environment(mSol, sol::create), result);
+                return result;
+            }
+        }
+        // Scripts at a parser nesting limit retain the original bytecode path.
+        return {};
+    }
+#endif
+
+    void LuaState::updateVfsRevision()
+    {
+        const auto revision = mVFS->getIndexRevision();
+        if (revision != mVfsRevision)
+        {
+            dropScriptCache();
+            mVfsRevision = revision;
+        }
+    }
+
+    VFS::Path::Normalized LuaState::resolveModulePath(std::string_view name)
+    {
+        updateVfsRevision();
+        if (const auto found = mModulePaths.find(name); found != mModulePaths.end())
+            return found->second;
+        auto path = packageNameToVfsPath(name, *mVFS);
+        // Bound this lookup cache independently of user-supplied module names.
+        if (mModulePaths.size() < 4096)
+            mModulePaths.emplace(name, path);
+        return path;
     }
 
     sol::function LuaState::loadFromVFS(const VFS::Path::Normalized& path)

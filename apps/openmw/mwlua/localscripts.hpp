@@ -55,6 +55,8 @@ namespace MWLua
         {
         }
 
+        bool hasCachedStats() const { return !mStatsCache.empty(); }
+
         const sol::main_object* getCachedStat(const CachedStat& key) const
         {
             auto it = mStatsCache.find(key);

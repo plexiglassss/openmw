@@ -127,6 +127,7 @@ namespace ESM
         REC_MPRJ = esm3Recname("MPRJ"),
         REC_PROJ = esm3Recname("PROJ"),
         REC_DCOU = esm3Recname("DCOU"),
+        REC_DCLR = esm3Recname("DCLR"),
         REC_MARK = esm3Recname("MARK"),
         REC_ENAB = esm3Recname("ENAB"),
         REC_CAM_ = esm3Recname("CAM_"),

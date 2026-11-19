@@ -18,6 +18,7 @@
  */
 
 #include "character.hpp"
+#include <components/diagnostics/exteriorarrival.hpp>
 
 #include <array>
 #include <unordered_set>
@@ -2009,6 +2010,9 @@ namespace MWMechanics
             bool isrunning = cls.getCreatureStats(mPtr).getStance(MWMechanics::CreatureStats::Stance_Run) && !flying;
             CreatureStats& stats = cls.getCreatureStats(mPtr);
             Movement& movementSettings = cls.getMovementSettings(mPtr);
+            if (isPlayer && Diagnostics::ExteriorArrival::landed)
+                Diagnostics::ExteriorArrival::movement(mPtr.getRefData().getPosition().asVec3(),
+                    movementSettings.mPosition[0], movementSettings.mPosition[1]);
 
             // Force Jump Logic
 

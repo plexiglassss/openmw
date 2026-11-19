@@ -16,6 +16,7 @@ PLAYER: scripts/omw/skillhandlers.lua
 PLAYER: scripts/omw/mechanics/playercontroller.lua
 MENU: scripts/omw/camera/settings.lua
 MENU: scripts/omw/input/settings.lua
+MENU: scripts/omw/input/modbindings.lua
 PLAYER: scripts/omw/input/playercontrols.lua
 PLAYER: scripts/omw/camera/camera.lua
 PLAYER: scripts/omw/input/actionbindings.lua

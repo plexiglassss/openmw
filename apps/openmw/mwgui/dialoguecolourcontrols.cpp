@@ -159,7 +159,7 @@ namespace MWGui
         for (std::string_view caption : { "#{OMWEngine:DialogueColourNormal}", "#{OMWEngine:DialogueColourInventory}",
                  "#{OMWEngine:DialogueColourStat}", "#{OMWEngine:DialogueColourNarration}",
                  "#{OMWEngine:DialogueColourJournal}", "#{OMWEngine:DialogueColourJournalNarration}",
-                 "#{OMWEngine:DialogueColourTopic}" })
+                 "#{OMWEngine:DialogueColourTopic}", "#{OMWEngine:DialogueColourRemoval}" })
             controls.mRole->addItem(translated(caption));
         controls.mRole->setIndexSelected(0);
 

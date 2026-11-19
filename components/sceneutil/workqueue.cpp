@@ -3,6 +3,7 @@
 #include <components/debug/debuglog.hpp>
 
 #include <numeric>
+#include <algorithm>
 
 namespace SceneUtil
 {
@@ -81,6 +82,34 @@ namespace SceneUtil
         else
             mQueue.push_back(std::move(item));
         mCondition.notify_one();
+    }
+
+    bool WorkQueue::promoteWorkItem(WorkItem* item)
+    {
+        const std::lock_guard lock(mMutex);
+        const auto it = std::find(mQueue.begin(), mQueue.end(), item);
+        if (it == mQueue.end())
+            return false;
+        std::rotate(mQueue.begin(), it, std::next(it));
+        return true;
+    }
+
+    bool WorkQueue::cancelWorkItem(WorkItem* item)
+    {
+        if (!item)
+            return false;
+        item->abort();
+        osg::ref_ptr<WorkItem> removed;
+        {
+            const std::lock_guard lock(mMutex);
+            const auto it = std::find(mQueue.begin(), mQueue.end(), item);
+            if (it == mQueue.end())
+                return false;
+            removed = std::move(*it);
+            mQueue.erase(it);
+        }
+        removed->signalDone();
+        return true;
     }
 
     osg::ref_ptr<WorkItem> WorkQueue::removeWorkItem()

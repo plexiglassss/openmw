@@ -20,6 +20,7 @@ namespace MWInput
 
     private:
         BindingsManager* mBindingsManager;
+        SDL_Scancode mConsumedActivate = SDL_SCANCODE_UNKNOWN;
     };
 }
 #endif

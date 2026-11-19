@@ -67,6 +67,7 @@ local function registerSetting(options)
         default = options.default,
         renderer = options.renderer,
         argument = options.argument,
+        binding = options.binding, -- optional contexts/modifier semantics for unified controls
 
         name = options.name,
         description = options.description,

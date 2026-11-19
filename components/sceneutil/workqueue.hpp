@@ -57,6 +57,12 @@ namespace SceneUtil
         /// @param front If true, add item to the front of the queue. If false (default), add to the back.
         void addWorkItem(osg::ref_ptr<WorkItem> item, bool front = false);
 
+        /// Abort an item and remove it if it has not started. Running work keeps its
+        /// owner and completion signal until doWork returns; it is never joined here.
+        bool cancelWorkItem(WorkItem* item);
+        /// Promote queued prediction to required work without enqueuing it twice.
+        bool promoteWorkItem(WorkItem* item);
+
         /// Get the next work item from the front of the queue. If the queue is empty, waits until a new item is added.
         /// If the workqueue is in the process of being destroyed, may return nullptr.
         /// @par Used internally by the WorkThread.

@@ -518,6 +518,6 @@ namespace MWLua
         };
 
         addActorStatsBindings(actor, context);
-        addActorMagicBindings(actor, context);
+        addActorMagicBindings(actor, context, context.mLuaManager ? context.mLuaManager->activeSpellReadStats() : nullptr);
     }
 }

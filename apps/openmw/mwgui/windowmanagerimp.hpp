@@ -389,6 +389,7 @@ namespace MWGui
 
         const MWGui::TextColours& getTextColours() override;
 
+        bool onActivateKey() override;
         bool injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat = false) override;
         bool injectKeyRelease(MyGUI::KeyCode key) override;
 
@@ -398,6 +399,7 @@ namespace MWGui
         void forceLootMode(const MWWorld::Ptr& ptr) override;
 
         void asyncPrepareSaveMap() override;
+        void advanceSaveMapRestore(bool finish) override;
 
         WindowBase* getActiveControllerWindow() override;
         int getControllerMenuHeight() override;

@@ -1,9 +1,13 @@
 #include "cellpreloader.hpp"
 
+#include <chrono>
+#include <components/esm/util.hpp>
+
 #include <components/diagnostics/timing.hpp>
 #include <components/diagnostics/loading.hpp>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <limits>
 #include <map>
@@ -13,7 +17,17 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/esm3/loadcell.hpp>
+#include <components/esm3/loadcrea.hpp>
+#include <components/esm3/loadnpc.hpp>
+#include <components/esm3/loadacti.hpp>
+#include <components/esm3/loaddoor.hpp>
+#include <components/esm3/loadstat.hpp>
+#include <components/esm3/readerscache.hpp>
+#include <components/sceneutil/asyncpreparation.hpp>
+#include <components/sceneutil/scenefootprint.hpp>
+#include <components/sceneutil/preparationcost.hpp>
 #include <components/loadinglistener/reporter.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/constants.hpp>
 #include <components/misc/pathhelpers.hpp>
 #include <components/misc/resourcehelpers.hpp>
@@ -23,14 +37,21 @@
 #include <components/resource/keyframemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/settings/values.hpp>
 #include <components/terrain/view.hpp>
 #include <components/terrain/world.hpp>
 #include <components/vfs/manager.hpp>
+#include <components/vfs/recursivedirectoryiterator.hpp>
 
+#include "../mwbase/environment.hpp"
+#include "../mwbase/world.hpp"
+#include "../mwmechanics/creaturestats.hpp"
 #include "../mwrender/landmanager.hpp"
 
 #include "cellstore.hpp"
 #include "class.hpp"
+#include "manualref.hpp"
+#include "preloaddependencies.hpp"
 
 namespace MWWorld
 {
@@ -56,20 +77,304 @@ namespace MWWorld
 
     struct ListModelsVisitor
     {
+        void appendActorResources(const MWWorld::ConstPtr& ptr)
+        {
+            const auto& settings = Settings::models();
+            const ActorPreloadModels paths{ settings.mXbaseanim.get(), settings.mBaseanim.get(),
+                settings.mBaseanimfemale.get(), settings.mBaseanimkna.get(), settings.mXargonianswimkna.get() };
+            const auto begin = mAnimations.size();
+            if (ptr.getType() == ESM::REC_NPC_)
+            {
+                const auto& npc = *ptr.get<ESM::NPC>()->mBase;
+                if (const auto* race = mStore.get<ESM::Race>().search(npc.mRace))
+                    appendActorAnimationPreloadModels(npc, *race, paths, mAnimations);
+            }
+            else if (ptr.getType() == ESM::REC_CREA)
+                appendActorAnimationPreloadModels(*ptr.get<ESM::Creature>()->mBase, paths, mAnimations);
+            mOut.insert(mOut.end(), mAnimations.begin() + begin, mAnimations.end());
+            appendInitialEquipment(ptr);
+        }
+
+        void appendInitialEquipment(const MWWorld::ConstPtr& ptr)
+        {
+            if (ptr.getRefData().getCustomData())
+                return; // The existing class path already captures current equipped items.
+            if (ptr.getType() == ESM::REC_NPC_)
+            {
+                const auto* npc = ptr.get<ESM::NPC>()->mBase;
+                appendEquipmentPreloadModels(mStore, npc->mInventory, !npc->isMale(), mOptions, mOut);
+            }
+            else if (ptr.getType() == ESM::REC_CREA)
+                appendEquipmentPreloadModels(
+                    mStore, ptr.get<ESM::Creature>()->mBase->mInventory, false, mOptions, mOut);
+        }
+
         bool operator()(const MWWorld::ConstPtr& ptr)
         {
+            const auto start = mOut.size();
             ptr.getClass().getModelsToPreload(ptr, mOut);
+            mCollisionScales.insert(mCollisionScales.end(), mOut.size() - start,
+                ptr.getClass().isActor() ? 1.f : ptr.getCellRef().getScale());
 
+            // Exterior statics normally use ObjectPaging's own copy path. Reserve the
+            // bounded instance budget for objects that still get individual scene nodes.
+            if (!mExterior || (ptr.getType() != ESM::REC_STAT && ptr.getType() != ESM::REC_STAT4))
+                mInstances.insert(mInstances.end(), mOut.begin() + start, mOut.end());
+
+            // New actors have no runtime inventory yet. Inspect base records only:
+            // do not create custom data, auto-equip, spawn, or advance the game's RNG.
+            if (!Misc::useActorResourcePreload())
+                return true;
+            appendActorResources(ptr);
+            if (ptr.getType() == ESM::REC_LEVC && mCandidateRecordsLeft
+                && mPredictedLists.insert(ptr.getCellRef().getRefId()).second)
+            {
+                const std::array roots{ ptr.getCellRef().getRefId() };
+                auto options = mOptions;
+                options.mMaxCandidates = std::min(options.mMaxCandidates, mCandidateRecordsLeft);
+                for (const auto& id : collectPreloadCandidates(mStore, roots, options))
+                {
+                    if (!mPredictedActors.insert(id).second)
+                        continue;
+                    --mCandidateRecordsLeft;
+                    const auto type = mStore.find(id);
+                    if (type != ESM::REC_NPC_ && type != ESM::REC_CREA)
+                        continue;
+                    try
+                    {
+                        ManualRef candidate(mStore, id);
+                        const auto actor = candidate.getPtr();
+                        actor.getClass().getModelsToPreload(actor, mOut);
+                        appendActorResources(actor);
+                    }
+                    catch (const std::exception&)
+                    {
+                        // A broken optional candidate must not discard the cell's other resources.
+                    }
+                }
+            }
+            // Additional actor/equipment candidates have no placed object transform.
+            mCollisionScales.resize(mOut.size(), 1.f);
             return true;
         }
 
         std::vector<VFS::Path::NormalizedView>& mOut;
+        std::vector<VFS::Path::NormalizedView>& mInstances;
+        std::vector<VFS::Path::NormalizedView>& mAnimations;
+        std::vector<float>& mCollisionScales;
+        bool mExterior;
+        const ESMStore& mStore;
+        PreloadDependencyOptions mOptions;
+        std::size_t mCandidateRecordsLeft = 128;
+        std::set<ESM::RefId> mPredictedActors;
+        std::set<ESM::RefId> mPredictedLists;
     };
+
+    struct CellPreloader::StaticPreloads
+    {
+        struct Resources
+        {
+            std::vector<osg::ref_ptr<const osg::Referenced>> mObjects;
+            std::vector<Resource::SceneInstanceCache::TicketPtr> mInstances;
+        };
+        using Jobs = SceneUtil::AsyncPreparation<ESM::ExteriorCellLocation, std::shared_ptr<Resources>>;
+        Jobs mJobs;
+        std::map<ESM::ExteriorCellLocation, std::shared_ptr<SceneUtil::PreparationSample>> mSamples;
+        SceneUtil::PreparationCost mCost;
+        std::pair<std::uint64_t, std::uint64_t> mGeneration;
+        explicit StaticPreloads(SceneUtil::WorkQueue* queue)
+            : mJobs(queue, 2, 8, 256ull * 1024 * 1024, 4.0, 10.0) {}
+
+        double observe()
+        {
+            double oldest = 0;
+            for (auto it = mSamples.begin(); it != mSamples.end();)
+            {
+                const auto& sample = *it->second;
+                if (sample.mComplete.load(std::memory_order_acquire))
+                {
+                    if (sample.mSuccessful)
+                        mCost.observe(sample.mQueueSeconds, sample.mWorkSeconds, sample.mAssets, sample.mColdAssets);
+                    it = mSamples.erase(it);
+                }
+                else if (!mJobs.contains(it->first))
+                    it = mSamples.erase(it); // Cancelled queued work may never run.
+                else
+                {
+                    oldest = std::max(oldest, sample.age());
+                    ++it;
+                }
+            }
+            return oldest;
+        }
+    };
+
+    double CellPreloader::preparationLeadTime(double configured)
+    {
+        double oldest = 0;
+        for (auto& [cell, entry] : mPreloadCells)
+        {
+            if (!cell->isExterior() || !entry.mTiming)
+                continue;
+            const auto& sample = *entry.mTiming;
+            if (sample.mComplete.load(std::memory_order_acquire))
+            {
+                if (sample.mSuccessful)
+                    mPreparationCost.observe(sample.mQueueSeconds, sample.mWorkSeconds, sample.mAssets, sample.mColdAssets);
+                entry.mTiming.reset();
+            }
+            else
+                oldest = std::max(oldest, sample.age());
+        }
+        double lead = mPreparationCost.leadTime(configured, oldest);
+        if (mStaticPreloads)
+        {
+            oldest = mStaticPreloads->observe();
+            lead = std::max(lead, mStaticPreloads->mCost.leadTime(configured, oldest));
+        }
+        return lead;
+    }
+
+    void CellPreloader::preloadStaticExterior(ESM::ExteriorCellLocation location, double timestamp)
+    {
+        if (!mWorkQueue || !mMaxCacheSize || location.mWorldspace != ESM::Cell::sDefaultWorldspaceId)
+            return; // Other record formats keep their existing resource preloader.
+        for (const auto& [cell, entry] : mPreloadCells)
+            if (cell->isExterior() && cell->getCell()->getExteriorCellLocation() == location)
+                return;
+        if (!mStaticPreloads)
+            mStaticPreloads = std::make_unique<StaticPreloads>(mWorkQueue);
+        auto* scene = mResourceSystem->getSceneManager();
+        const auto generation = std::pair(scene->modelSettingsRevision(), scene->getVFS()->getIndexRevision());
+        if (generation != mStaticPreloads->mGeneration)
+        {
+            mStaticPreloads->mJobs.clear();
+            mStaticPreloads->mSamples.clear();
+            mStaticPreloads->mCost = {};
+            mStaticPreloads->mGeneration = generation;
+        }
+        if (mStaticPreloads->mJobs.contains(location))
+        {
+            mStaticPreloads->mJobs.poll(location, timestamp);
+            return;
+        }
+        if (mStaticPreloads->mJobs.size() >= std::min<std::size_t>(8, mMaxCacheSize))
+            return;
+        const ESMStore* store = &*MWBase::Environment::get().getESMStore();
+        const auto* source = store->get<ESM::Cell>().searchStatic(location.mX, location.mY);
+        if (!source)
+            return;
+        auto sample = Misc::useCostAwarePreload() ? std::make_shared<SceneUtil::PreparationSample>() : nullptr;
+        // Copy immutable plugin metadata. Do not call WorldModel::getExterior,
+        // load a CellStore, register references, choose spawns or emit Lua events.
+        mStaticPreloads->mJobs.request(location, timestamp,
+            [cell = *source, store, scene, shapes = mBulletShapeManager,
+                instances = mPreloadInstances, sample](const std::atomic_bool& abort) -> StaticPreloads::Jobs::Prepared {
+                SceneUtil::PreparationSample::Run measured(sample.get(), abort);
+                std::map<ESM::RefNum, std::pair<ESM::RefId, float>> refs;
+                ESM::ReadersCache readers;
+                for (std::size_t i = 0; i < cell.mContextList.size() && !abort; ++i)
+                {
+                    const auto reader = readers.get(static_cast<std::size_t>(cell.mContextList[i].index));
+                    cell.restore(*reader, i);
+                    ESM::CellRef ref;
+                    ESM::MovedCellRef movedRef;
+                    bool deleted = false, moved = false;
+                    while (!abort && ESM::Cell::getNextRef(*reader, ref, deleted, movedRef, moved,
+                        ESM::Cell::GetNextRefMode::LoadOnlyNotMoved))
+                    {
+                        if (moved || std::find(cell.mMovedRefs.begin(), cell.mMovedRefs.end(), ref.mRefNum)
+                                != cell.mMovedRefs.end())
+                            continue;
+                        if (deleted)
+                            refs.erase(ref.mRefNum);
+                        else
+                            refs.insert_or_assign(ref.mRefNum, std::pair(ref.mRefID, ref.mScale));
+                    }
+                }
+                for (const auto& [ref, deleted] : cell.mLeasedRefs)
+                    if (deleted)
+                        refs.erase(ref.mRefNum);
+                    else
+                        refs.insert_or_assign(ref.mRefNum, std::pair(ref.mRefID, ref.mScale));
+                struct Model
+                {
+                    std::vector<float> mScales;
+                    bool mIndividual = false;
+                };
+                std::map<VFS::Path::Normalized, Model> models;
+                const auto model = [](const auto* record) {
+                    return record ? record->mModel.getNormalized() : VFS::Path::NormalizedView{};
+                };
+                for (const auto& [number, reference] : refs)
+                {
+                    if (abort)
+                        return {};
+                    VFS::Path::NormalizedView path;
+                    const auto& [id, scale] = reference;
+                    const int type = store->findStatic(id);
+                    switch (type)
+                    {
+                        case ESM::REC_STAT: path = model(store->get<ESM::Static>().searchStatic(id)); break;
+                        case ESM::REC_ACTI: path = model(store->get<ESM::Activator>().searchStatic(id)); break;
+                        case ESM::REC_DOOR: path = model(store->get<ESM::Door>().searchStatic(id)); break;
+                        case ESM::REC_CONT: path = model(store->get<ESM::Container>().searchStatic(id)); break;
+                        case ESM::REC_LIGH: path = model(store->get<ESM::Light>().searchStatic(id)); break;
+                        default: continue;
+                    }
+                    if (path.empty())
+                        continue;
+                    const auto corrected = Misc::ResourceHelpers::correctMeshPath(path);
+                    if (!models.contains(corrected) && models.size() >= 128)
+                        continue; // Optional preparation is bounded; activation is unchanged.
+                    auto& value = models[corrected];
+                    if (value.mScales.size() < 128)
+                        value.mScales.push_back(scale);
+                    value.mIndividual |= type != ESM::REC_STAT;
+                }
+                auto prepared = std::make_shared<StaticPreloads::Resources>();
+                SceneUtil::SceneFootprint footprint;
+                std::size_t bytes = 0, count = 0;
+                for (const auto& [path, model] : models)
+                {
+                    if (abort)
+                        break;
+                    try
+                    {
+                        if (sample)
+                        {
+                            ++sample->mAssets;
+                            sample->mColdAssets += !scene->getCachedTemplate(path);
+                        }
+                        auto node = scene->getTemplate(path);
+                        bytes += footprint.measure(const_cast<osg::Node&>(*node));
+                        prepared->mObjects.emplace_back(std::move(node));
+                        prepared->mObjects.emplace_back(shapes->getShape(path));
+                        bytes += 1024 * 1024; // Collision admission allowance, not measured allocation.
+                        for (std::size_t i = 0; instances && i < model.mScales.size() && count < 128 && !abort; ++i, ++count)
+                        {
+                            prepared->mObjects.emplace_back(shapes->cacheInstance(path, model.mScales[i]));
+                            if (model.mIndividual)
+                                if (auto ticket = scene->cacheInstance(path, abort))
+                                    prepared->mInstances.push_back(std::move(ticket));
+                        }
+                    }
+                    catch (const std::exception& error)
+                    {
+                        Log(Debug::Warning) << "Static resource preparation failed for " << path << ": " << error.what();
+                    }
+                }
+                return { std::move(prepared), {}, {}, bytes };
+            });
+        if (sample && mStaticPreloads->mJobs.contains(location))
+            mStaticPreloads->mSamples.emplace(location, std::move(sample));
+    }
 
     /// Worker thread item: preload models in a cell.
     class PreloadItem : public SceneUtil::WorkItem
     {
     public:
+        std::shared_ptr<SceneUtil::PreparationSample> mTiming;
         /// Constructor to be called from the main thread.
         explicit PreloadItem(MWWorld::CellStore* cell, Resource::SceneManager* sceneManager,
             Resource::BulletShapeManager* bulletShapeManager, Resource::KeyframeManager* keyframeManager,
@@ -83,12 +388,26 @@ namespace MWWorld
             , mTerrain(terrain)
             , mLandManager(landManager)
             , mPreloadInstances(preloadInstances)
+            , mPreloadAdditionalAnimations(
+                  Misc::useActorResourcePreload() && Settings::game().mUseAdditionalAnimSources)
             , mAbort(false)
         {
             mTerrainView = mTerrain->createView();
 
-            ListModelsVisitor visitor{ mMeshes };
+            const auto& player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+            // Do not initialize player stats as a side effect of resource prediction.
+            const int level
+                = player.getRefData().getCustomData() ? player.getClass().getCreatureStats(player).getLevel() : 0;
+            const PreloadDependencyOptions options{ level, Settings::game().mDelevelCreatures,
+                Settings::game().mDelevelItems };
+            std::vector<VFS::Path::NormalizedView> meshes, instanceMeshes, animationMeshes;
+            ListModelsVisitor visitor{ meshes, instanceMeshes, animationMeshes, mCollisionScales, mIsExterior,
+                *MWBase::Environment::get().getESMStore(), options };
             cell->forEachConst(visitor);
+            // The worker must not retain views into mutable records or settings.
+            mMeshes = snapshotPreloadModels(meshes);
+            mInstanceMeshes = snapshotPreloadModels(instanceMeshes);
+            mAnimationMeshes = snapshotPreloadModels(animationMeshes);
         }
 
         void abort() override { mAbort = true; }
@@ -96,6 +415,7 @@ namespace MWWorld
         /// Preload work to be called from the worker thread.
         void doWork() override
         {
+            SceneUtil::PreparationSample::Run measured(mTiming.get(), mAbort);
             if (mIsExterior)
             {
                 try
@@ -114,12 +434,20 @@ namespace MWWorld
             // Preserve one collision instance per occurrence, but resolve each source path once.
             std::map<VFS::Path::NormalizedView, VFS::Path::Normalized> resolvedMeshes;
             std::set<VFS::Path::Normalized> loadedMeshes;
+            std::set<VFS::Path::Normalized> animationPaths;
             VFS::Path::Normalized mesh;
             VFS::Path::Normalized kfname;
-            for (VFS::Path::NormalizedView path : mMeshes)
+            const auto meshPath = [](VFS::Path::NormalizedView path) {
+                // Settings use full VFS paths; record models normally omit the prefix.
+                return path.value().starts_with("meshes/") ? VFS::Path::Normalized(path)
+                                                           : Misc::ResourceHelpers::correctMeshPath(path);
+            };
+            for (std::size_t i = 0; i < mMeshes.size(); ++i)
             {
                 if (mAbort)
                     break;
+
+                const VFS::Path::NormalizedView path = mMeshes[i];
 
                 try
                 {
@@ -127,7 +455,7 @@ namespace MWWorld
                     auto resolved = resolvedMeshes.find(path);
                     if (resolved == resolvedMeshes.end())
                     {
-                        auto corrected = Misc::ResourceHelpers::correctMeshPath(path);
+                        auto corrected = meshPath(path);
                         corrected = Misc::ResourceHelpers::correctActorModelPath(corrected, &vfs);
                         if (!vfs.exists(corrected))
                             corrected = VFS::Path::Normalized{};
@@ -141,7 +469,7 @@ namespace MWWorld
                     if (loadedMeshes.contains(mesh))
                     {
                         if (mPreloadInstances)
-                            mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
+                            mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
                         continue;
                     }
 
@@ -155,9 +483,14 @@ namespace MWWorld
                             mPreloadedObjects.insert(mKeyframeManager->get(kfname));
                     }
 
+                    if (mTiming)
+                    {
+                        ++mTiming->mAssets;
+                        mTiming->mColdAssets += !mSceneManager->getCachedTemplate(mesh);
+                    }
                     mPreloadedObjects.insert(mSceneManager->getTemplate(mesh));
                     if (mPreloadInstances)
-                        mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh));
+                        mPreloadedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
                     else
                         mPreloadedObjects.insert(mBulletShapeManager->getShape(mesh));
                     loadedMeshes.insert(mesh);
@@ -168,19 +501,109 @@ namespace MWWorld
                                         << e.what();
                 }
             }
+
+            // Prepare the cell commit resources before scanning optional animations. Clone only detached
+            // resource graphs here; actor assembly, particles and gameplay stay at activation.
+            if (mPreloadInstances && Misc::useCellRenderPreparation())
+            {
+                for (const auto path : mInstanceMeshes)
+                {
+                    if (mAbort)
+                        break;
+                    const auto found = resolvedMeshes.find(path);
+                    if (found == resolvedMeshes.end() || found->second.empty())
+                        continue;
+                    try
+                    {
+                        if (auto ticket = mSceneManager->cacheInstance(found->second, mAbort))
+                            mInstanceTickets.push_back(std::move(ticket));
+                    }
+                    catch (const std::exception& e)
+                    {
+                        Log(Debug::Warning) << "Failed to prepare instance for " << path << ": " << e.what();
+                    }
+                }
+            }
+
+            // Finish all known model/collision requests before optional animation work.
+            // Animation roots are independent of template existence: a valid KF source
+            // does not require a sibling NIF (matching Animation::addAnimSource).
+            const VFS::Manager& vfs = *mSceneManager->getVFS();
+            std::set<VFS::Path::Normalized> animationRoots, animationDirectories;
+            for (const auto& path : mAnimationMeshes)
+            {
+                if (mAbort || animationPaths.size() >= 4096)
+                    break;
+                // Configured common animation sources are used verbatim by the renderer;
+                // model-derived sources use actor correction. Warm their bounded union.
+                const auto requested = meshPath(path);
+                const std::array roots{ requested, Misc::ResourceHelpers::correctActorModelPath(requested, &vfs) };
+                for (const auto& root : roots)
+                {
+                    if (mAbort || animationPaths.size() >= 4096)
+                        break;
+                    if (!animationRoots.insert(root).second)
+                        continue;
+                    if (mPreloadAdditionalAnimations)
+                        if (const auto directory = Misc::ResourceHelpers::additionalAnimationPath(root))
+                            animationDirectories.insert(*directory);
+                    try
+                    {
+                        auto keyframe = root;
+                        if (keyframe.extension() == VFS::Path::ExtensionView("nif"))
+                            keyframe.changeExtension(VFS::Path::ExtensionView("kf"));
+                        if (vfs.exists(keyframe) && animationPaths.insert(keyframe).second)
+                            mPreloadedObjects.insert(mKeyframeManager->get(keyframe));
+                    }
+                    catch (const std::exception&)
+                    {
+                        // Demand loading retains normal diagnostics and retry behavior.
+                    }
+                }
+            }
+            for (const auto& directory : animationDirectories)
+            {
+                if (mAbort || animationPaths.size() >= 4096)
+                    break;
+                for (const auto& name : vfs.getRecursiveDirectoryIterator(directory.value()))
+                {
+                    if (mAbort || animationPaths.size() >= 4096)
+                        break;
+                    if (!animationPaths.insert(name).second)
+                        continue;
+                    try
+                    {
+                        if (name.extension() == VFS::Path::ExtensionView("kf"))
+                            mPreloadedObjects.insert(mKeyframeManager->get(name));
+                        else if (name.extension() == VFS::Path::ExtensionView("nif"))
+                            mPreloadedObjects.insert(mSceneManager->getTemplate(name));
+                    }
+                    catch (const std::exception&)
+                    {
+                        // One optional failure must not discard later valid dependencies.
+                    }
+                }
+            }
+
+
         }
 
     private:
         bool mIsExterior;
         ESM::ExteriorCellLocation mCellLocation;
         ESM::RefId mCellId;
-        std::vector<VFS::Path::NormalizedView> mMeshes;
+        std::vector<VFS::Path::Normalized> mMeshes;
+        std::vector<float> mCollisionScales;
+        std::vector<VFS::Path::Normalized> mInstanceMeshes;
+        std::vector<VFS::Path::Normalized> mAnimationMeshes;
+        std::vector<Resource::SceneInstanceCache::TicketPtr> mInstanceTickets;
         Resource::SceneManager* mSceneManager;
         Resource::BulletShapeManager* mBulletShapeManager;
         Resource::KeyframeManager* mKeyframeManager;
         Terrain::World* mTerrain;
         MWRender::LandManager* mLandManager;
         bool mPreloadInstances;
+        bool mPreloadAdditionalAnimations;
 
         std::atomic<bool> mAbort;
 
@@ -254,6 +677,65 @@ namespace MWWorld
     };
 
     /// Worker thread item: update the resource system's cache, effectively deleting unused entries.
+    class ExteriorArrivalJob : public SceneUtil::WorkItem
+    {
+        std::atomic_bool mAbort{ false };
+        std::atomic_bool mReady{ false };
+        Loading::Reporter mProgress;
+        Terrain::World* mWorld;
+        osg::ref_ptr<Terrain::View> mWorkView;
+    public:
+        std::shared_ptr<Terrain::ArrivalView> mView;
+        ExteriorArrivalJob(Terrain::World* world, std::shared_ptr<Terrain::ArrivalView> view)
+            : mWorld(world), mWorkView(world->createView()), mView(std::move(view)) {}
+        void abort() override { mAbort = true; }
+        bool matches(Terrain::World* world, const PositionCellGrid& pos, float tolerance) const
+        {
+            return mWorld == world && !mAbort && world->validArrival(*mView)
+                && mView->matches(pos.mPosition, pos.mCellBounds, tolerance, mView->mRevision);
+        }
+        bool finishedVisible() const { return mReady.load(); }
+        bool waitVisible(Loading::Listener& listener)
+        {
+            mProgress.wait(listener);
+            return mReady && !mAbort && mWorld->validArrival(*mView);
+        }
+        void doWork() override
+        {
+            using Clock = std::chrono::steady_clock;
+            const auto begin = Clock::now();
+            const auto elapsed = [&] { return std::chrono::duration<double, std::milli>(Clock::now()-begin).count(); };
+            try
+            {
+                mWorld->preloadArrival(mWorkView, mView, mAbort, mProgress, [&](std::size_t near, std::size_t far) {
+                    if (!mAbort && mWorld->validArrival(*mView))
+                    {
+                        Log(Debug::Info) << "Exterior arrival active ready: nearChunks=" << near
+                            << " distantChunks=" << far << " workerMs=" << elapsed();
+                    }
+                });
+                if (mView->complete() && !mAbort)
+                {
+                    mReady = mWorld->validArrival(*mView);
+                    Log(Debug::Info) << "Exterior arrival visible CPU ready: workerMs=" << elapsed()
+                        << " estimatedBytes=" << mView->bytes();
+                }
+            }
+            catch (const std::exception& e)
+            {
+                Log(Debug::Warning) << "Exterior arrival preparation stopped: " << e.what();
+            }
+            catch (...)
+            {
+                Log(Debug::Warning) << "Exterior arrival preparation stopped with an unknown error";
+            }
+            // A failed or interrupted far pass must allow the normal visitor to complete missing entries.
+            if (!mView->complete())
+                mView->finish(false);
+            mProgress.complete();
+        }
+    };
+
     class UpdateCacheItem : public SceneUtil::WorkItem
     {
     public:
@@ -285,6 +767,7 @@ namespace MWWorld
 
     CellPreloader::~CellPreloader()
     {
+        clearArrivals();
         clearAllTasks();
     }
 
@@ -304,7 +787,7 @@ namespace MWWorld
         PreloadMap::iterator found = mPreloadCells.find(&cell);
         if (found != mPreloadCells.end())
         {
-            // already preloaded, nothing to do other than updating the timestamp
+            // Refresh useful predictions and move queued arrival work ahead without duplicating it.
             found->second.mTimeStamp = timestamp;
             return;
         }
@@ -330,7 +813,7 @@ namespace MWWorld
 
             if (oldestTimestamp + threshold < timestamp)
             {
-                oldestCell->second.mWorkItem->abort();
+                mWorkQueue->cancelWorkItem(oldestCell->second.mWorkItem);
                 mPreloadCells.erase(oldestCell);
                 ++mEvicted;
             }
@@ -340,20 +823,24 @@ namespace MWWorld
 
         osg::ref_ptr<PreloadItem> item(new PreloadItem(&cell, mResourceSystem->getSceneManager(), mBulletShapeManager,
             mResourceSystem->getKeyframeManager(), mTerrain, mLandManager, mPreloadInstances));
+        if (cell.isExterior() && Misc::useCostAwarePreload())
+            item->mTiming = std::make_shared<SceneUtil::PreparationSample>();
         mWorkQueue->addWorkItem(item);
 
-        mPreloadCells.emplace(&cell, PreloadEntry(timestamp, item));
+        mPreloadCells.emplace(&cell, PreloadEntry(timestamp, item, item->mTiming));
         ++mAdded;
     }
 
     void CellPreloader::notifyLoaded(CellStore* cell)
     {
+        if (mStaticPreloads && cell->isExterior())
+            mStaticPreloads->mJobs.cancel(cell->getCell()->getExteriorCellLocation());
         PreloadMap::iterator found = mPreloadCells.find(cell);
         if (found != mPreloadCells.end())
         {
             if (found->second.mWorkItem)
             {
-                found->second.mWorkItem->abort();
+                mWorkQueue->cancelWorkItem(found->second.mWorkItem);
                 found->second.mWorkItem = nullptr;
             }
 
@@ -362,13 +849,28 @@ namespace MWWorld
         }
     }
 
+    void CellPreloader::prioritize(const CellStore& cell)
+    {
+        const auto found = mPreloadCells.find(&cell);
+        if (mWorkQueue && found != mPreloadCells.end())
+            mWorkQueue->promoteWorkItem(found->second.mWorkItem);
+    }
+
     void CellPreloader::clear()
     {
+        clearArrivals();
+        mPreparationCost = {};
+        if (mStaticPreloads)
+        {
+            mStaticPreloads->mJobs.clear();
+            mStaticPreloads->mSamples.clear();
+            mStaticPreloads->mCost = {};
+        }
         for (PreloadMap::iterator it = mPreloadCells.begin(); it != mPreloadCells.end();)
         {
             if (it->second.mWorkItem)
             {
-                it->second.mWorkItem->abort();
+                mWorkQueue->cancelWorkItem(it->second.mWorkItem);
                 it->second.mWorkItem = nullptr;
             }
 
@@ -378,13 +880,21 @@ namespace MWWorld
 
     void CellPreloader::updateCache(double timestamp)
     {
+        if (mStaticPreloads)
+            mStaticPreloads->mJobs.update(timestamp);
+        std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
+        if (mReturnView && (timestamp - mReturnTime > 120.0 || !mReturnWorld->validArrival(*mReturnView)))
+        {
+            mReturnWorld = nullptr;
+            mReturnView.reset();
+        }
         for (PreloadMap::iterator it = mPreloadCells.begin(); it != mPreloadCells.end();)
         {
             if (mPreloadCells.size() >= mMinCacheSize && it->second.mTimeStamp < timestamp - mExpiryDelay)
             {
                 if (it->second.mWorkItem)
                 {
-                    it->second.mWorkItem->abort();
+                    mWorkQueue->cancelWorkItem(it->second.mWorkItem);
                     it->second.mWorkItem = nullptr;
                 }
                 mPreloadCells.erase(it++);
@@ -422,7 +932,162 @@ namespace MWWorld
 
     void CellPreloader::setWorkQueue(osg::ref_ptr<SceneUtil::WorkQueue> workQueue)
     {
+        mStaticPreloads.reset();
         mWorkQueue = workQueue;
+    }
+
+    void CellPreloader::retireArrival()
+    {
+        std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
+        if (mArrivalWorld)
+            mArrivalWorld->showArrival({});
+        if (mArrivalJob)
+        {
+            if (!mArrivalJob->isDone())
+            {
+                if (Misc::useResponsiveArrivalCancellation() && mWorkQueue)
+                {
+                    const bool removed = mWorkQueue->cancelWorkItem(mArrivalJob.get());
+                    if (!removed && !mArrivalJob->isDone())
+                        mRetiredArrivals.push_back(mArrivalJob);
+                    Log(Debug::Info) << "Exterior arrival cancelled: queuedRemoved=" << removed
+                        << " runningRetired=" << mRetiredArrivals.size();
+                }
+                else
+                {
+                    mArrivalJob->abort();
+                    mRetiredArrivals.push_back(mArrivalJob);
+                }
+            }
+            mArrivalJob = nullptr;
+        }
+        mArrivalWorld = nullptr;
+    }
+
+    void CellPreloader::updateArrivalGrid(Terrain::World* world, const osg::Vec4i& grid)
+    {
+        if (mArrivalWorld && (mArrivalWorld != world || (mArrivalJob && mArrivalJob->mView->mGrid != grid)
+                || (!mArrivalJob && mReturnView && mReturnView->mGrid != grid)))
+            retireArrival();
+        if (mReturnView && (mReturnWorld != world || mReturnView->mGrid != grid))
+        {
+            mReturnWorld = nullptr;
+            mReturnView.reset();
+        }
+    }
+
+    void CellPreloader::clearArrivals()
+    {
+        retireArrival();
+        for (auto& job : mRetiredArrivals)
+            job->waitTillDone();
+        mRetiredArrivals.clear();
+        mReturnView.reset();
+        mReturnWorld = nullptr;
+    }
+
+    bool CellPreloader::startArrival(Terrain::World* world, const PositionCellGrid& target, bool required)
+    {
+        if (!mWorkQueue || !world)
+            return false;
+        if (mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance))
+        {
+            if (required && Misc::useResponsiveArrivalCancellation())
+                mWorkQueue->promoteWorkItem(mArrivalJob.get());
+            return true;
+        }
+        std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
+        // Speculation waits for the previous prediction to stop. A required arrival
+        // cancels its queued predecessor; only already-running workers are retained.
+        // Thus retirees are bounded by the worker count, without a main-thread join.
+        if (!mRetiredArrivals.empty())
+        {
+            if (!required)
+                return false;
+            if (!Misc::useResponsiveArrivalCancellation())
+            {
+                for (auto& previous : mRetiredArrivals)
+                    previous->waitTillDone();
+                mRetiredArrivals.clear();
+            }
+        }
+        retireArrival();
+        auto view = world->createArrival(target.mPosition, target.mCellBounds);
+        if (!view)
+            return false;
+        auto job = osg::ref_ptr<ExteriorArrivalJob>(new ExteriorArrivalJob(world, std::move(view)));
+        mWorkQueue->addWorkItem(job, required);
+        mArrivalWorld = world;
+        mArrivalJob = std::move(job);
+        return true;
+    }
+
+    void CellPreloader::predictArrival(Terrain::World* world, const PositionCellGrid& target)
+    {
+        if (mReturnWorld == world && mReturnView && world->validArrival(*mReturnView)
+            && mReturnView->matches(target.mPosition, target.mCellBounds, ESM::getCellSize(world->getWorldspace()),
+                mReturnView->mRevision))
+            return;
+        startArrival(world, target, false);
+    }
+
+    bool CellPreloader::ensureArrival(Terrain::World* world, const PositionCellGrid& target,
+        Loading::Listener& listener, double timestamp)
+    {
+        if (mReturnView && mReturnWorld == world && world->validArrival(*mReturnView)
+            && timestamp - mReturnTime <= 120.0 && mReturnView->matches(target.mPosition, target.mCellBounds,
+                ESM::getCellSize(world->getWorldspace()), mReturnView->mRevision))
+        {
+            retireArrival();
+            mArrivalWorld = world;
+            mReturnView->presentRetainedView();
+            world->showArrival(mReturnView);
+            Log(Debug::Info) << "Exterior arrival reused last exterior: estimatedBytes=" << mReturnView->bytes();
+            return true;
+        }
+        const bool predicted = mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance);
+        if (!startArrival(world, target, true))
+            return false;
+        const auto begin = std::chrono::steady_clock::now();
+        if ((mArrivalJob->isDone() && !mArrivalJob->finishedVisible()) || !mArrivalJob->waitVisible(listener))
+        {
+            retireArrival();
+            return false;
+        }
+        world->showArrival(mArrivalJob->mView);
+        Log(Debug::Info) << "Exterior arrival visible CPU wait: predicted=" << predicted << " waitMs="
+            << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now()-begin).count();
+        return true;
+    }
+
+    bool CellPreloader::keepStreamingArrival(std::span<const PositionCellGrid> targets)
+    {
+        if (targets.size() != 1 || !mArrivalJob || mArrivalJob->isDone() || !mArrivalWorld)
+            return false;
+        return mArrivalJob->matches(mArrivalWorld, targets.front(), ESM::getCellSize(mArrivalWorld->getWorldspace()));
+    }
+
+    void CellPreloader::leaveExterior(Terrain::World* world, const PositionCellGrid& current, double timestamp)
+    {
+        constexpr std::size_t returnBudget = 128u * 1024u * 1024u;
+        std::shared_ptr<Terrain::ArrivalView> view;
+        if (mArrivalJob && mArrivalJob->matches(world, current, ESM::getCellSize(world->getWorldspace())))
+            view = mArrivalJob->mView;
+        else if (mReturnWorld == world && mReturnView && world->validArrival(*mReturnView)
+            && mReturnView->matches(current.mPosition, current.mCellBounds, ESM::getCellSize(world->getWorldspace()),
+                mReturnView->mRevision))
+            view = mReturnView;
+        if (!view || !view->complete() || view->bytes() > returnBudget)
+            view = world->captureArrival(current.mPosition, current.mCellBounds, returnBudget);
+        mReturnView.reset();
+        mReturnWorld = nullptr;
+        if (view && view->complete() && view->bytes() <= returnBudget)
+        {
+            mReturnWorld = world;
+            mReturnView = std::move(view);
+            mReturnTime = timestamp;
+        }
+        retireArrival();
     }
 
     void CellPreloader::syncTerrainLoad(Loading::Listener& listener)
@@ -507,6 +1172,8 @@ namespace MWWorld
 
     void CellPreloader::clearAllTasks()
     {
+        mPreparationCost = {};
+        mStaticPreloads.reset(); // joins detached readers before their resource/store owners disappear
         if (mTerrainPreloadItem)
         {
             mTerrainPreloadItem->abort();
@@ -536,6 +1203,8 @@ namespace MWWorld
         stats.setAttribute(frameNumber, "CellPreloader Evicted", static_cast<double>(mEvicted));
         stats.setAttribute(frameNumber, "CellPreloader Loaded", static_cast<double>(mLoaded));
         stats.setAttribute(frameNumber, "CellPreloader Expired", static_cast<double>(mExpired));
+        stats.setAttribute(frameNumber, "CellPreloader Static Jobs",
+            mStaticPreloads ? static_cast<double>(mStaticPreloads->mJobs.size()) : 0.0);
     }
 }
 

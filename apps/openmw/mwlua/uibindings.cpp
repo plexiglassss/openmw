@@ -1,6 +1,8 @@
 #include <tuple>
 #include <components/widgets/windowsnap.hpp>
 #include "uibindings.hpp"
+#include <components/lua_ui/input.hpp>
+#include <SDL_keyboard.h>
 
 #include <components/lua/util.hpp>
 #include <components/lua_ui/alignment.hpp>
@@ -8,6 +10,7 @@
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/layers.hpp>
 #include <components/lua_ui/registerscriptsettings.hpp>
+#include <components/lua_ui/scriptsettings.hpp>
 #include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 
@@ -187,6 +190,7 @@ namespace MWLua
                     return sol::nil;
                 return sol::make_object(state, LObject(object));
             };
+            api["worldTooltipSuppressionSupported"] = true;
             api["setWorldTooltip"] = [luaManager = context.mLuaManager, windowManager](sol::optional<LObject> object,
                                          sol::optional<std::shared_ptr<LuaUi::Element>> element) {
                 luaManager->addAction(
@@ -217,7 +221,8 @@ namespace MWLua
         api["create"]
             = [luaManager = context.mLuaManager, menu](const sol::table& layout, sol::optional<sol::table> options) {
                   auto element = LuaUi::Element::make(layout, menu, options);
-                  luaManager->addAction([element] { element->create(); }, "Create UI");
+                  if (!options || !options->raw_get<sol::optional<bool>>("deferUntilAttached").value_or(false))
+                      luaManager->addAction([element] { element->create(); }, "Create UI");
                   return element;
               };
 
@@ -246,12 +251,9 @@ namespace MWLua
         };
 
         api["updateAll"] = [luaManager = context.mLuaManager, menu]() {
-            LuaUi::Element::forEach(menu, [](LuaUi::Element* e) {
-                if (e->mState == LuaUi::Element::Created)
-                    e->mState = LuaUi::Element::Update;
-            });
             luaManager->addAction([menu]() { LuaUi::Element::forEach(menu, [](LuaUi::Element* e) { e->update(); }); },
                 "Update all menu UI elements");
+            LuaUi::Element::forEach(menu, [](LuaUi::Element* e) { e->requestUpdate(nullptr, [] {}); });
         };
         api["_getMenuTransparency"] = []() -> float { return Settings::gui().mMenuTransparency; };
 
@@ -323,7 +325,15 @@ namespace MWLua
             { { "Start", LuaUi::Alignment::Start }, { "Center", LuaUi::Alignment::Center },
                 { "End", LuaUi::Alignment::End } }));
 
+        if (!menu)
+            api["registerUiActionHandler"] = [](std::string id, const sol::table& callback) {
+                LuaUi::registerUiActionHandler(std::move(id), LuaUtil::Callback::fromLua(callback));
+            };
+        api["isTextInputActive"] = []() { return SDL_IsTextInputActive() == SDL_TRUE; };
         api["registerSettingsPage"] = &LuaUi::registerSettingsPage;
+        api["_controlsPageVisible"] = &LuaUi::controlsPageVisible;
+        api["_controlsPageWidth"] = &LuaUi::controlsPageWidth;
+        api["_resetControlsPageScroll"] = &LuaUi::resetControlsPageScroll;
         api["removeSettingsPage"] = &LuaUi::removeSettingsPage;
 
         api["texture"] = [luaManager = context.mLuaManager](const sol::table& options) {
@@ -436,11 +446,18 @@ namespace MWLua
             };
             uiElement["layout"] = sol::property([](const LuaUi::Element& element) { return element.mLayout; },
                 [](LuaUi::Element& element, const sol::main_table& layout) { element.mLayout = layout; });
-            uiElement["update"] = [luaManager = context.mLuaManager](const std::shared_ptr<LuaUi::Element>& element) {
-                if (element->mState != LuaUi::Element::Created)
-                    return;
-                luaManager->addAction([element] { element->update(); }, "Update UI");
-                element->mState = LuaUi::Element::Update;
+            const auto scheduleUpdate = [luaManager = context.mLuaManager](
+                const std::shared_ptr<LuaUi::Element>& element, const sol::table* changed) {
+                element->requestUpdate(changed, [&] {
+                    luaManager->addAction([element] { element->update(); }, "Update UI");
+                });
+            };
+            uiElement["update"] = [scheduleUpdate](const std::shared_ptr<LuaUi::Element>& element) {
+                scheduleUpdate(element, nullptr);
+            };
+            uiElement["updateProperties"] = [scheduleUpdate](
+                const std::shared_ptr<LuaUi::Element>& element, const sol::table& changed) {
+                scheduleUpdate(element, &changed);
             };
             uiElement["destroy"] = [luaManager = context.mLuaManager](const std::shared_ptr<LuaUi::Element>& element) {
                 if (element->mState == LuaUi::Element::Destroyed)

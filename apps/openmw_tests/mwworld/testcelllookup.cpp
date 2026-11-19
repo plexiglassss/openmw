@@ -1,6 +1,11 @@
 #include "lookup_test_lua.hpp"
 
+#include "apps/openmw/mwlua/cellbindings.hpp"
+#include "apps/openmw/mwlua/context.hpp"
+#include "apps/openmw/mwworld/queryrevision.hpp"
+
 #include "apps/openmw/mwbase/environment.hpp"
+#include "apps/openmw/mwclass/door.hpp"
 #include "apps/openmw/mwclass/npc.hpp"
 #include "apps/openmw/mwclass/static.hpp"
 #include "apps/openmw/mwworld/cellstore.hpp"
@@ -12,13 +17,17 @@
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/formatversion.hpp>
 #include <components/esm3/loadcell.hpp>
+#include <components/esm3/loadclas.hpp>
+#include <components/esm3/loaddoor.hpp>
 #include <components/esm3/loadnpc.hpp>
+#include <components/esm3/loadrace.hpp>
 #include <components/esm3/loadstat.hpp>
 #include <components/esm3/objectstate.hpp>
 #include <components/esm3/readerscache.hpp>
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -46,6 +55,7 @@ namespace MWWorld
             {
                 MWClass::Static::registerSelf();
                 MWClass::Npc::registerSelf();
+                MWClass::Door::registerSelf();
                 mEnvironment.setWorldModel(mWorld);
                 mEnvironment.setESMStore(mStore);
                 mEnvironment.setLuaManager(mLua);
@@ -139,6 +149,45 @@ namespace MWWorld
             CellStore& room = cell("room");
             check(room, "missing");
             EXPECT_FALSE(room.hasState());
+        }
+
+        TEST_F(CellLookupTest, luaQueryRejectsUnknownTypeAfterLoading)
+        {
+            CellStore& room = cell("unknown Lua type", false);
+            ASSERT_EQ(room.getState(), CellStore::State_Unloaded);
+            LuaUtil::LuaState bindingState{ nullptr, nullptr };
+            MWLua::Context context{ MWLua::Context::Global };
+            context.mLua = &bindingState;
+            // Use the real userdata binding and its empty type-package map.
+            // No World service is installed: treating an unknown table as the
+            // zero-valued Player type would enter the wrong service branch.
+            MWLua::initCellBindingsForGlobalScripts(context);
+            sol::state_view lua = bindingState.unsafeState();
+            lua["testedCell"] = MWLua::GCell{ &room };
+            const auto result = lua.safe_script(R"(
+                assert(not testedCell.hasBeenLoaded)
+                local formattedAfterLoad = false
+                local unknownType = setmetatable({}, {
+                    __tostring = function()
+                        formattedAfterLoad = testedCell.hasBeenLoaded
+                        return 'unregistered fixture type'
+                    end,
+                })
+                local ok, message = pcall(function() return testedCell:getAll(unknownType) end)
+                assert(not ok, 'An unknown type table must be rejected')
+                assert(type(message) == 'string')
+                assert(string.find(message,
+                    'Incorrect type argument in cell:getAll: unregistered fixture type', 1, true), message)
+                assert(formattedAfterLoad, 'The cell must load before formatting the type error')
+                assert(testedCell.hasBeenLoaded, 'Type rejection must preserve the preceding cell load')
+            )",
+                sol::script_pass_on_error);
+            if (!result.valid())
+            {
+                const auto error = result.get<sol::error>();
+                FAIL() << error.what();
+            }
+            EXPECT_EQ(room.getState(), CellStore::State_Loaded);
         }
 
         TEST_F(CellLookupTest, preservesDuplicateOrderAcrossRecordTypesAndCase)
@@ -337,6 +386,380 @@ namespace MWWorld
             // Informational benchmark, never an assertion about in-game FPS.
             std::cout << "CELL_LOOKUP_BENCH refs=" << count << " queries=" << queries.size()
                       << " linear_ms=" << before.first << " candidate_ms=" << after.first << '\n';
+        }
+
+        TEST_F(CellLookupTest, typedQuerySharesSnapshotsWithoutInvalidatingRegisteredPointers)
+        {
+            CellStore& room = cell("query room");
+            add(room, "first");
+            add(room, "second");
+            const auto first = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            const auto registry = mWorld.getPtrRegistryRevision();
+            const auto second = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ASSERT_EQ(first->size(), 2u);
+            EXPECT_EQ(first, second);
+            EXPECT_EQ(registry, mWorld.getPtrRegistryRevision());
+            const auto uncached = MWLua::queryCellObjects(room, ESM::REC_STAT, false);
+            EXPECT_NE(first, uncached);
+            EXPECT_EQ(*first, *uncached);
+            EXPECT_EQ(registry, mWorld.getPtrRegistryRevision());
+        }
+
+        TEST_F(CellLookupTest, typedQueryObservesDeletionAndUndeletionInSameUpdate)
+        {
+            CellStore& room = cell("query room");
+            const Ptr ref = add(room, "temporary");
+            const auto before = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ASSERT_EQ(before->size(), 1u);
+            count(ref, 0); // Saved/live state replacement, with no frame advance.
+            const auto deleted = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            EXPECT_TRUE(deleted->empty());
+            EXPECT_EQ(before->size(), 1u); // Previously returned snapshots are immutable.
+            ref.getCellRef().setCount(1); // Direct zero-to-nonzero setter path.
+            const auto restored = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            EXPECT_EQ(*restored, *before);
+            EXPECT_TRUE(deleted->empty());
+            EXPECT_EQ(restored, MWLua::queryCellObjects(room, ESM::REC_STAT));
+        }
+
+        TEST_F(CellLookupTest, typedQueryDoesNotTrustAnOldEmptyMergedViewAfterUndelete)
+        {
+            CellStore& room = cell("query room");
+            const Ptr ref = add(room, "temporary");
+            count(ref, 0);
+            const auto empty = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ASSERT_TRUE(empty->empty());
+            ref.getCellRef().setCount(1);
+            const auto result = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ASSERT_EQ(result->size(), 1u);
+            EXPECT_EQ(result->front(), ref.getCellRef().getRefNum());
+        }
+
+        TEST_F(CellLookupTest, typedQueryTracksContentDeletionAndRefDataReplacement)
+        {
+            CellStore& room = cell("query room");
+            const Ptr ref = add(room, "content", true);
+            ASSERT_EQ(MWLua::queryCellObjects(room, ESM::REC_STAT)->size(), 1u);
+            ref.getRefData().setDeletedByContentFile(true);
+            EXPECT_TRUE(MWLua::queryCellObjects(room, ESM::REC_STAT)->empty());
+            RefData restored;
+            ref.getRefData() = restored;
+            ASSERT_EQ(MWLua::queryCellObjects(room, ESM::REC_STAT)->size(), 1u);
+            RefData deleted;
+            deleted.setDeletedByContentFile(true);
+            ref.getRefData() = std::move(deleted);
+            EXPECT_TRUE(MWLua::queryCellObjects(room, ESM::REC_STAT)->empty());
+            ref.getRefData().setDeletedByContentFile(false);
+            EXPECT_EQ(MWLua::queryCellObjects(room, ESM::REC_STAT)->size(), 1u);
+        }
+
+        TEST_F(CellLookupTest, typedQueryPreservesMoveMembershipAndOrder)
+        {
+            CellStore& a = cell("query a");
+            CellStore& b = cell("query b");
+            CellStore& c = cell("query c");
+            const Ptr first = add(a, "first");
+            const Ptr stay = add(a, "stay");
+            const Ptr local = add(b, "local");
+            const auto original = MWLua::queryCellObjects(a, ESM::REC_STAT);
+            MWLua::queryCellObjects(b, ESM::REC_STAT);
+            Ptr moved = a.moveTo(first, &b);
+            const auto inA = MWLua::queryCellObjects(a, ESM::REC_STAT);
+            const auto inB = MWLua::queryCellObjects(b, ESM::REC_STAT);
+            EXPECT_EQ(*inA, (std::vector<ESM::RefNum>{ stay.getCellRef().getRefNum() }));
+            EXPECT_EQ(
+                *inB, (std::vector<ESM::RefNum>{ local.getCellRef().getRefNum(), first.getCellRef().getRefNum() }));
+            moved = b.moveTo(moved, &c);
+            EXPECT_EQ(MWLua::queryCellObjects(b, ESM::REC_STAT)->size(), 1u);
+            EXPECT_EQ(MWLua::queryCellObjects(c, ESM::REC_STAT)->size(), 1u);
+            c.moveTo(moved, &a);
+            EXPECT_EQ(*MWLua::queryCellObjects(a, ESM::REC_STAT), *original);
+            EXPECT_EQ(original->size(), 2u);
+            EXPECT_EQ(inA->size(), 1u);
+        }
+
+        TEST_F(CellLookupTest, typedQueryRefreshesAfterInsertionAndKeepsOldEmptySnapshot)
+        {
+            CellStore& room = cell("query room");
+            const auto empty = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ASSERT_TRUE(empty->empty());
+            add(room, "new reference");
+            EXPECT_EQ(MWLua::queryCellObjects(room, ESM::REC_STAT)->size(), 1u);
+            EXPECT_TRUE(empty->empty());
+        }
+
+        TEST_F(CellLookupTest, typedQueryFiltersPlayerAndHiddenMarkers)
+        {
+            CellStore& room = cell("query room");
+            add<ESM::NPC>(room, "player");
+            const Ptr npc = add<ESM::NPC>(room, "ordinary npc");
+            add(room, "prisonmarker");
+            const Ptr visible = add(room, "ordinary static");
+            const auto npcs = MWLua::queryCellObjects(room, ESM::REC_NPC_);
+            const auto statics = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            EXPECT_EQ(*npcs, (std::vector<ESM::RefNum>{ npc.getCellRef().getRefNum() }));
+            EXPECT_EQ(*statics, (std::vector<ESM::RefNum>{ visible.getCellRef().getRefNum() }));
+        }
+
+        TEST_F(CellLookupTest, typedQueryRefreshesIdentityAndSpecialTypeAfterReplacement)
+        {
+            CellStore& room = cell("query room");
+            const Ptr ref = add(room, "ordinary static");
+            const auto first = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            const ESM::RefNum replacement{ 9000, 3 };
+            ref.getCellRef().setRefNum(replacement);
+            const auto changed = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ASSERT_EQ(changed->size(), 1u);
+            EXPECT_EQ(changed->front(), replacement);
+            EXPECT_NE(first->front(), replacement);
+            ESM::ObjectState state;
+            ref.getCellRef().writeState(state);
+            state.mRef.mRefID = ESM::RefId::stringRefId("prisonmarker");
+            ref.getCellRef() = CellRef(state.mRef);
+            EXPECT_TRUE(MWLua::queryCellObjects(room, ESM::REC_STAT)->empty());
+            EXPECT_EQ(changed->size(), 1u);
+        }
+
+        TEST_F(CellLookupTest, typedQueryKeepsMembershipWhileDynamicPropertiesChange)
+        {
+            CellStore& room = cell("query room");
+            const Ptr ref = add(room, "ordinary static");
+            const auto first = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            ref.getCellRef().setCount(-3); // Nonzero negative counts remain live.
+            ref.getRefData().disable();
+            ESM::Position position = ref.getRefData().getPosition();
+            position.pos[0] += 500;
+            ref.getRefData().setPosition(position);
+            const auto second = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            EXPECT_EQ(first, second);
+            EXPECT_FALSE(mWorld.getPtr(first->front()).getRefData().isEnabled());
+            EXPECT_EQ(mWorld.getPtr(first->front()).getRefData().getPosition().pos[0], position.pos[0]);
+        }
+
+        TEST_F(CellLookupTest, registryAvoidsOnlyExactlyIdempotentRegistration)
+        {
+            CellStore& a = cell("registry a");
+            CellStore& b = cell("registry b");
+            const Ptr ref = add(a, "registered");
+            mWorld.registerPtr(ref);
+            const auto initial = mWorld.getPtrRegistryRevision();
+            mWorld.registerPtr(ref);
+            EXPECT_EQ(mWorld.getPtrRegistryRevision(), initial);
+            Ptr changed(ref.mRef, &b);
+            mWorld.registerPtr(changed);
+            EXPECT_GT(mWorld.getPtrRegistryRevision(), initial);
+            EXPECT_EQ(mWorld.getPtr(ref.getCellRef().getRefNum()).mCell, &b);
+            const auto afterCell = mWorld.getPtrRegistryRevision();
+            std::max_align_t storage;
+            changed.mCell = nullptr;
+            changed.mContainerStore = reinterpret_cast<ContainerStore*>(&storage);
+            mWorld.registerPtr(changed);
+            EXPECT_GT(mWorld.getPtrRegistryRevision(), afterCell);
+            EXPECT_EQ(mWorld.getPtr(ref.getCellRef().getRefNum()).mContainerStore, changed.mContainerStore);
+            mWorld.registerPtr(ref);
+        }
+
+        TEST_F(CellLookupTest, typedQueryRefreshesAfterRegistryRemoval)
+        {
+            CellStore& room = cell("query room");
+            const Ptr ref = add(room, "ordinary static");
+            const auto first = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            mWorld.deregisterLiveCellRef(*ref.mRef);
+            EXPECT_TRUE(mWorld.getPtr(first->front()).isEmpty());
+            const auto refreshed = MWLua::queryCellObjects(room, ESM::REC_STAT);
+            EXPECT_NE(first, refreshed);
+            EXPECT_EQ(*first, *refreshed);
+            EXPECT_EQ(mWorld.getPtr(refreshed->front()).mRef, ref.mRef);
+        }
+
+        TEST_F(CellLookupTest, typedQueryRetainsEmptyCellShortcutAndRejectsUnsupportedTypes)
+        {
+            CellStore& room = cell("query empty", false);
+            // The conservative shortcut requires the completed content index,
+            // just as it does in a running game. An unindexed cell is unknown.
+            EXPECT_TRUE(room.mayHaveReferenceOfType(ESM::REC_NPC_));
+            ESM::Class cls;
+            cls.blank();
+            cls.mId = ESM::RefId::stringRefId("class");
+            mStore.insertStatic(cls);
+            ESM::Race race;
+            race.blank();
+            race.mId = ESM::RefId::stringRefId("race");
+            mStore.insertStatic(race);
+            mStore.setUp();
+            mStore.validateRecords(mReaders);
+            ASSERT_FALSE(room.mayHaveReferenceOfType(ESM::REC_NPC_));
+            ASSERT_FALSE(room.mayHaveReferenceOfType(ESM::REC_DOOR));
+            const auto result = MWLua::queryCellObjects(room, ESM::REC_NPC_);
+            EXPECT_TRUE(result->empty());
+            EXPECT_EQ(room.getState(), CellStore::State_Unloaded);
+            EXPECT_TRUE(MWLua::queryCellObjects(room, ESM::REC_DOOR)->empty());
+            EXPECT_EQ(room.getState(), CellStore::State_Unloaded);
+            EXPECT_FALSE(MWLua::queryCellObjects(room, ESM::REC_GLOB));
+            EXPECT_EQ(room.getState(), CellStore::State_Loaded);
+        }
+
+        class TownWorldLookupTest : public CellLookupTest {};
+
+        TEST_F(TownWorldLookupTest, ColdNegativeLeavesRecordsClosedAndPreservesLiveDuplicates)
+        {
+            CellStore& empty = cell("unrelated indexed room", false);
+            CellStore& live = cell("occupied indexed room");
+            const Ptr a = add(live, "repeated base");
+            const Ptr b = add(live, "repeated base");
+            ESM::Class cls;
+            cls.blank();
+            cls.mId = ESM::RefId::stringRefId("class");
+            mStore.insertStatic(cls);
+            ESM::Race race;
+            race.blank();
+            race.mId = ESM::RefId::stringRefId("race");
+            mStore.insertStatic(race);
+            mStore.setUp();
+            mStore.validateRecords(mReaders);
+            const auto id = ESM::RefId::stringRefId("repeated base");
+            EXPECT_EQ(mWorld.getAll(id, {}, true), (std::vector<Ptr>{ a, b }));
+            const char* indexed = std::getenv("OPENMW_WORLD_CELL_CANDIDATES");
+            if (!indexed || std::string_view(indexed) != "0")
+                EXPECT_EQ(empty.getState(), CellStore::State_Unloaded);
+            EXPECT_EQ(mWorld.getAll(id, live.getCell()->getId(), false), (std::vector<Ptr>{ a, b }));
+            EXPECT_TRUE(mWorld.getAll(id, empty.getCell()->getId(), false).empty());
+        }
+
+        TEST_F(TownWorldLookupTest, UnreducedLeasedPlacementsRemainCandidates)
+        {
+            const auto first = ESM::RefId::stringRefId("first base");
+            const auto second = ESM::RefId::stringRefId("second base");
+            ESM::Cell record;
+            record.blank();
+            record.mName = "leased room";
+            record.mData.mFlags = ESM::Cell::Interior;
+            record.updateId();
+            ESM::CellRef ref;
+            ref.blank();
+            ref.mRefNum = ESM::RefNum{ 15, 0 };
+            ref.mRefID = first;
+            record.mLeasedRefs.emplace_back(ref, false);
+            ref.mRefID = second;
+            record.mLeasedRefs.emplace_back(ref, false);
+            mStore.insert(record);
+            const ESM::Cell& stored = mWorld.getCell(record.mId, false).getCell()->getEsm3();
+            ESM::Class cls;
+            cls.blank();
+            cls.mId = ESM::RefId::stringRefId("class");
+            mStore.insertStatic(cls);
+            ESM::Race race;
+            race.blank();
+            race.mId = ESM::RefId::stringRefId("race");
+            mStore.insertStatic(race);
+            mStore.setUp();
+            mStore.validateRecords(mReaders);
+            EXPECT_TRUE(mStore.cellMayContainRecord(stored, first));
+            EXPECT_TRUE(mStore.cellMayContainRecord(stored, second));
+            EXPECT_FALSE(mStore.cellMayContainRecord(stored, ESM::RefId::stringRefId("absent")));
+            EXPECT_TRUE(mStore.cellMayContainRecord(record, ESM::RefId::stringRefId("unindexed")));
+        }
+
+        TEST_F(CellLookupTest, typedQueryBenchmark)
+        {
+            CellStore& room = cell("query benchmark");
+            for (int i = 0; i < 1024; ++i)
+                add(room, "reference " + std::to_string(i));
+            const auto expected = MWLua::queryCellObjects(room, ESM::REC_STAT, false);
+            std::vector<double> cached, uncached;
+            std::uint64_t checksum = 0;
+            const auto measure = [&](bool cache) {
+                const auto start = std::chrono::steady_clock::now();
+                for (int i = 0; i < 1000; ++i)
+                {
+                    const auto result = MWLua::queryCellObjects(room, ESM::REC_STAT, cache);
+                    checksum += result->size();
+                    std::atomic_signal_fence(std::memory_order_seq_cst);
+                }
+                return std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - start).count()
+                    / 1000;
+            };
+            for (int round = 0; round < 7; ++round)
+            {
+                if (round % 2 == 0)
+                {
+                    uncached.push_back(measure(false));
+                    cached.push_back(measure(true));
+                }
+                else
+                {
+                    cached.push_back(measure(true));
+                    uncached.push_back(measure(false));
+                }
+            }
+            EXPECT_EQ(*MWLua::queryCellObjects(room, ESM::REC_STAT), *expected);
+            EXPECT_EQ(checksum, 14u * 1000u * 1024u);
+            std::sort(cached.begin(), cached.end());
+            std::sort(uncached.begin(), uncached.end());
+            RecordProperty("references", 1024);
+            RecordProperty("rounds", 7);
+            RecordProperty("queries_per_round", 1000);
+            RecordProperty("uncached_median_ns_per_query", std::to_string(uncached[3]));
+            RecordProperty("cached_median_ns_per_query", std::to_string(cached[3]));
+            RecordProperty("scope", "native typed cell query; unchanged membership; no Lua dispatch or game FPS");
+            std::cout << "CELL_QUERY_BENCHMARK references=1024 rounds=7 queries_per_round=1000 uncached_ns="
+                      << uncached[3] << " cached_ns=" << cached[3] << '\n';
+        }
+
+        TEST_F(CellLookupTest, multiTypeQueryMatchesIndividualQueriesInRequestedOrder)
+        {
+            CellStore& room = cell("multi query room");
+            const Ptr firstStatic = add(room, "static one");
+            const Ptr npc = add<ESM::NPC>(room, "npc one");
+            const Ptr door = add<ESM::Door>(room, "door one");
+            const Ptr secondStatic = add(room, "static two");
+
+            const std::vector<std::uint32_t> types{ ESM::REC_NPC_, ESM::REC_STAT, ESM::REC_DOOR };
+            std::vector<ESM::RefNum> expected;
+            for (const std::uint32_t type : types)
+            {
+                const auto values = MWLua::queryCellObjects(room, type);
+                expected.insert(expected.end(), values->begin(), values->end());
+            }
+            std::vector<std::size_t> counts;
+            const auto actual = MWLua::queryCellObjectsOfTypes(room, types, true, &counts);
+            ASSERT_TRUE(actual);
+            EXPECT_EQ(counts, (std::vector<std::size_t>{ 1, 2, 1 }));
+            EXPECT_EQ(*actual, expected);
+            EXPECT_EQ(*actual, (std::vector<ESM::RefNum>{ npc.getCellRef().getRefNum(),
+                                   firstStatic.getCellRef().getRefNum(), secondStatic.getCellRef().getRefNum(),
+                                   door.getCellRef().getRefNum() }));
+        }
+
+        TEST_F(CellLookupTest, multiTypeQueryRefreshesSnapshotsAndPreservesOldResults)
+        {
+            CellStore& room = cell("multi query mutation room");
+            const Ptr firstStatic = add(room, "static one");
+            add<ESM::NPC>(room, "npc one");
+            add<ESM::Door>(room, "door one");
+            const std::vector<std::uint32_t> types{ ESM::REC_STAT, ESM::REC_NPC_, ESM::REC_DOOR };
+
+            const auto before = MWLua::queryCellObjectsOfTypes(room, types);
+            ASSERT_EQ(before->size(), 3u);
+            count(firstStatic, 0);
+            const auto after = MWLua::queryCellObjectsOfTypes(room, types);
+            ASSERT_EQ(after->size(), 2u);
+            EXPECT_EQ(before->size(), 3u);
+            EXPECT_EQ(*after, *MWLua::queryCellObjectsOfTypes(room, types));
+        }
+
+        TEST_F(CellLookupTest, multiTypeQueryPreservesDuplicatesAndRejectsUnsupportedTypes)
+        {
+            CellStore& room = cell("multi query duplicates room");
+            const Ptr npc = add<ESM::NPC>(room, "npc one");
+            const std::vector<std::uint32_t> duplicated{ ESM::REC_NPC_, ESM::REC_NPC_ };
+            std::vector<std::size_t> counts;
+            const auto values = MWLua::queryCellObjectsOfTypes(room, duplicated, true, &counts);
+            EXPECT_EQ(counts, (std::vector<std::size_t>{ 1, 1 }));
+            ASSERT_EQ(values->size(), 2u);
+            EXPECT_EQ((*values)[0], npc.getCellRef().getRefNum());
+            EXPECT_EQ((*values)[1], npc.getCellRef().getRefNum());
+            EXPECT_FALSE(MWLua::queryCellObjectsOfTypes(room, { 0xFFFFFFFFu }));
         }
 
         class WorldCellLookupTest : public CellLookupTest

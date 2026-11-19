@@ -654,7 +654,15 @@ std::vector<MWWorld::Ptr> MWWorld::WorldModel::getAll(ESM::RefId id, ESM::RefId 
         if (!worldSpace.empty() && cellStore.getCell()->getWorldSpace() != worldSpace)
             return;
         if (cellStore.getState() == CellStore::State_Unloaded)
+        {
+            const Cell& cell = *cellStore.getCell();
+            // Preserve the store's enumeration order and loadedOnly semantics. Only skip
+            // opening CELL records when neither live state nor the complete input can match.
+            if (useIndexedInactiveCellCandidates() && !cell.isEsm4() && !cellStore.hasUnloadedLiveReferences()
+                && !mStore.cellMayContainRecord(cell.getEsm3(), id))
+                return;
             cellStore.preload();
+        }
         if (cellStore.getState() == CellStore::State_Preloaded)
         {
             if (!cellStore.hasId(id))

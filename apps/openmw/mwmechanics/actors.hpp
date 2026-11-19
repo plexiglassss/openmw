@@ -6,6 +6,10 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <array>
 
 #include "actor.hpp"
 
@@ -43,6 +47,11 @@ namespace MWMechanics
         std::list<Actor>::const_iterator begin() const { return mActors.begin(); }
         std::list<Actor>::const_iterator end() const { return mActors.end(); }
         std::size_t size() const { return mActors.size(); }
+
+        // Broad phase only: callback must keep its original exact tests. False
+        // ends traversal. Mutation during a callback resumes the original scan.
+        void forEachRangeCandidate(const osg::Vec3f& position, float squaredRadius,
+            const std::function<bool(const Actor&)>& visit) const;
 
         void notifyDied(const MWWorld::Ptr& actor);
 
@@ -169,6 +178,12 @@ namespace MWMechanics
         std::map<ESM::RefId, int> mDeathCount;
         std::list<Actor> mActors;
         std::map<const MWWorld::LiveCellRefBase*, std::list<Actor>::iterator> mIndex;
+        struct QuerySnapshot;
+        mutable std::shared_ptr<const QuerySnapshot> mQuerySnapshot;
+        mutable std::uint64_t mActorQueryRevision = 0;
+        std::uint64_t mActorStorageRevision = 0;
+        mutable std::array<std::uint64_t, 3> mLastQueryRevision{};
+        mutable std::size_t mQueryUses = 0;
         // We should add a delay between summoned creature death and its corpse despawning
         float mTimerDisposeSummonsCorpses = 0.2f;
         float mTimerUpdateHeadTrack = 0;

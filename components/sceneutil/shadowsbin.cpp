@@ -51,6 +51,9 @@ namespace SceneUtil
         mNoTestStateSet = new osg::StateSet;
         mNoTestStateSet->addUniform(new osg::Uniform("useDiffuseMapForShadowAlpha", false));
         mNoTestStateSet->addUniform(new osg::Uniform("alphaTestShadows", false));
+        // Opaque rigs keep the same no-alpha-test behavior while retaining their deformation state.
+        mNoTestRigStateSet = new osg::StateSet(*mNoTestStateSet, osg::CopyOp::SHALLOW_COPY);
+        mNoTestStateSet->addUniform(new osg::Uniform("openmwRigEnabled", false));
 
         mShaderAlphaTestStateSet = new osg::StateSet;
         mShaderAlphaTestStateSet->addUniform(new osg::Uniform("alphaTestShadows", true));
@@ -85,6 +88,11 @@ namespace SceneUtil
             const osg::StateSet* ss = (*itr)->getStateSet();
             if (!ss)
                 continue;
+
+            // Opaque skinned meshes still need their palette. Reparenting them to the minimal
+            // shadow root would discard deformation state even though no texture/alpha test is needed.
+            if (ss->getUniform("openmwRigPalette"))
+                state.mImportantState = true;
 
             accumulateModeState(ss, state.mAlphaBlend, state.mAlphaBlendOverride, GL_BLEND);
 
@@ -125,14 +133,22 @@ namespace SceneUtil
         if (!state.needShadows())
             return nullptr;
 
-        if (!state.needTexture() && !state.mImportantState)
+        if (!state.needTexture())
         {
-            for (RenderLeaf* leaf : sg->_leaves)
+            if (!state.mImportantState)
             {
-                leaf->_parent = root;
-                root->_leaves.push_back(leaf);
+                for (RenderLeaf* leaf : sg->_leaves)
+                {
+                    leaf->_parent = root;
+                    root->_leaves.push_back(leaf);
+                }
+                return nullptr;
             }
-            return nullptr;
+            sgNew = sg->find_or_insert(mNoTestRigStateSet);
+            sgNew->_leaves = std::move(sg->_leaves);
+            for (RenderLeaf* leaf : sgNew->_leaves)
+                leaf->_parent = sgNew;
+            return sgNew;
         }
 
         if (state.mAlphaBlend)

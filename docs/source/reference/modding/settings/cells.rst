@@ -59,6 +59,16 @@ Cells Settings
    due to the adverse effect on memory usage caused by the preloading of all possible destinations.
 
 .. omw-setting::
+   :title: predict exterior exits
+   :type: boolean
+   :range: true, false
+   :default: true
+
+   With preloading enabled, prepare the terrain view for one likely outdoor destination as
+   the player approaches or faces its door indoors. This setting is independent of the
+   broader door resource preloader. Disable it to turn off speculative outdoor views.
+
+.. omw-setting::
    :title: preload doors
    :type: boolean
    :range: true, false

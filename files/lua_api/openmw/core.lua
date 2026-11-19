@@ -529,6 +529,9 @@
 -- @field #number Target Ranged spell
 
 
+--- True when Actor.activeSpells:add supports per-application effectMagnitudeMultipliers.
+-- @field [parent=#Magic] #boolean effectMagnitudeMultipliers
+
 --- Possible @{#MagicEffectId} values
 -- @field [parent=#Magic] #MagicEffectId EFFECT_TYPE
 

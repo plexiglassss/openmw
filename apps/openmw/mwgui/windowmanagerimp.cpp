@@ -1,4 +1,5 @@
 #include "windowmanagerimp.hpp"
+#include <components/lua_ui/input.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -121,6 +122,7 @@
 #include "spellwindow.hpp"
 #include "statswindow.hpp"
 #include "tradewindow.hpp"
+#include "tooltipvisibility.hpp"
 #include "trainingwindow.hpp"
 #include "travelwindow.hpp"
 #include "videowidget.hpp"
@@ -647,10 +649,10 @@ namespace MWGui
         if (!mMap)
             return; // UI not created yet
 
-        mHud->setVisible(mHudEnabled && !loading);
-        mToolTips->setVisible(mHudEnabled && !loading);
-
         bool gameMode = !isGuiMode();
+
+        mHud->setVisible(mHudEnabled && !loading);
+        mToolTips->setVisible(isTooltipRootVisible(mHudEnabled, !gameMode, loading));
 
         MWBase::Environment::get().getInputManager()->changeInputMode(!gameMode);
 
@@ -855,8 +857,8 @@ namespace MWGui
                          std::pair{ "sJournalEntry", Category::Journal },
                          std::pair{ "sNotifyMessage60", Category::Inventory },
                          std::pair{ "sNotifyMessage61", Category::Inventory },
-                         std::pair{ "sNotifyMessage62", Category::Inventory },
-                         std::pair{ "sNotifyMessage63", Category::Inventory },
+                         std::pair{ "sNotifyMessage62", Category::InventoryRemoval },
+                         std::pair{ "sNotifyMessage63", Category::InventoryRemoval },
                          std::pair{ "sNotifyMessage39", Category::Stat },
                          std::pair{ "sNotifyMessage44", Category::Stat } })
                 {
@@ -911,6 +913,7 @@ namespace MWGui
     {
         if (!mLocalMapRender)
             return;
+        mMap->advanceSaveMapRestore(false);
 
         MWWorld::ConstPtr player = MWMechanics::getPlayer();
 
@@ -1166,7 +1169,7 @@ namespace MWGui
 
         std::string name{ MWBase::Environment::get().getWorld()->getCellName(cell) };
 
-        mMap->setCellName(name);
+        mMap->setCellName(name, cell->isExterior() ? ESM::RefId() : cell->getCell()->getId());
         mHud->setCellName(name);
         auto cellCommon = cell->getCell();
 
@@ -1381,8 +1384,11 @@ namespace MWGui
         }
         if (changeDialogueColours && mDialogueWindow)
             mDialogueWindow->refreshTextColours();
-        if (changeLocationIcons && mMap)
-            mMap->refreshLocationIcons();
+        if (changeLocationIcons)
+        {
+            if (mMap) mMap->refreshLocationIcons();
+            if (mHud) mHud->refreshDoorIcons();
+        }
     }
 
     void WindowManager::windowResized(int x, int y)
@@ -2635,6 +2641,25 @@ namespace MWGui
         return mTextColours;
     }
 
+    bool WindowManager::onActivateKey()
+    {
+        if (getMode() != GM_Barter)
+            return false;
+        if (!mCurrentModals.empty())
+        {
+            if (mCurrentModals.back() != mCountDialog)
+                return false;
+            mCountDialog->confirm();
+            return true;
+        }
+        if (LuaUi::dispatchUiAction("Activate"))
+            return true;
+        if (!mTradeWindow->isVisible() || SDL_IsTextInputActive())
+            return false;
+        mTradeWindow->confirmOffer();
+        return true;
+    }
+
     bool WindowManager::injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat)
     {
         // Only the visible, top-level native dialogue owns these shortcuts.
@@ -2713,6 +2738,11 @@ namespace MWGui
     {
         for (const auto& window : mWindows)
             window->onDeleteCustomData(ptr);
+    }
+
+    void WindowManager::advanceSaveMapRestore(bool finish)
+    {
+        mMap->advanceSaveMapRestore(finish);
     }
 
     void WindowManager::asyncPrepareSaveMap()

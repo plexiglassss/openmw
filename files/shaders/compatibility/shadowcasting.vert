@@ -1,6 +1,7 @@
 #version 120
 
 #include "lib/core/vertex.h.glsl"
+#include "lib/core/skinning.glsl"
 #include "lib/material/colormodes.glsl"
 
 varying vec2 diffuseMapUV;
@@ -17,10 +18,11 @@ uniform mat4 texMat0;
 void main(void)
 {
     Material material = getMaterial();
+    vec4 modelPosition = openmwRigMatrix() * gl_Vertex;
 
-    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+    gl_Position = gl_ModelViewProjectionMatrix * modelPosition;
 
-    vec4 viewPos = (gl_ModelViewMatrix * gl_Vertex);
+    vec4 viewPos = (gl_ModelViewMatrix * modelPosition);
     gl_ClipVertex = viewPos;
 
     if (useDiffuseMapForShadowAlpha)

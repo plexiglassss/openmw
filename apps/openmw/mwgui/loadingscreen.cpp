@@ -16,6 +16,7 @@
 #include <components/misc/rng.hpp>
 #include <components/myguiplatform/myguitexture.hpp>
 #include <components/resource/resourcesystem.hpp>
+#include <components/sceneutil/gameplaycompile.hpp>
 #include <components/settings/values.hpp>
 #include <components/vfs/manager.hpp>
 #include <components/vfs/recursivedirectoryiterator.hpp>
@@ -156,8 +157,10 @@ namespace MWGui
         // node masks don't work for computeBound()
         mViewer->getSceneData()->setComputeBoundingSphereCallback(new DontComputeBoundCallback);
 
-        if (const osgUtil::IncrementalCompileOperation* ico = mViewer->getIncrementalCompileOperation())
+        if (osgUtil::IncrementalCompileOperation* ico = mViewer->getIncrementalCompileOperation())
         {
+            if (auto* gameplay = dynamic_cast<SceneUtil::GameplayCompileOperation*>(ico))
+                gameplay->setLoading(true);
             mOldIcoMin = ico->getMinimumTimeAvailableForGLCompileAndDeletePerFrame();
             mOldIcoMax = ico->getMaximumNumOfObjectsToCompilePerFrame();
         }
@@ -185,7 +188,7 @@ namespace MWGui
             // we may still want to show the label if the caller requested it
             if (mImportantLabel)
             {
-                MWBase::Environment::get().getWindowManager()->messageBox(mLoadingText->getCaption());
+                MWBase::Environment::get().getWindowManager()->messageBox(mLoadingText->getCaption().asUTF8());
                 mImportantLabel = false;
             }
         }
@@ -201,6 +204,8 @@ namespace MWGui
         {
             ico->setMinimumTimeAvailableForGLCompileAndDeletePerFrame(mOldIcoMin);
             ico->setMaximumNumOfObjectsToCompilePerFrame(mOldIcoMax);
+            if (auto* gameplay = dynamic_cast<SceneUtil::GameplayCompileOperation*>(ico))
+                gameplay->setLoading(false);
         }
 
         MWBase::Environment::get().getWindowManager()->removeGuiMode(GM_Loading);
@@ -317,9 +322,15 @@ namespace MWGui
         mSceneImage->setVisible(true);
     }
 
-    void LoadingScreen::draw()
+    void LoadingScreen::refresh(bool force)
     {
-        if (!needToDrawLoadingScreen())
+        if (mNestedLoadingCount > 0)
+            draw(force);
+    }
+
+    void LoadingScreen::draw(bool force)
+    {
+        if (!force && !needToDrawLoadingScreen())
             return;
 
         if (mShowWallpaper && mTimer.time_m() > mLastWallpaperChangeTime + 5000 * 1)

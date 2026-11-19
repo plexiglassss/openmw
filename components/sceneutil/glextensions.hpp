@@ -8,6 +8,7 @@ namespace SceneUtil
 {
     bool glExtensionsReady();
     osg::GLExtensions& getGLExtensions();
+    bool supportsGpuSkinning();
 
     class GetGLExtensionsOperation : public osg::GraphicsOperation
     {

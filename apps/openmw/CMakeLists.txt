@@ -19,7 +19,7 @@ set(OPENMW_HEADERS
 source_group(apps/openmw FILES main.cpp androidmain.cpp ${OPENMW_SOURCES} ${OPENMW_HEADERS} ${OPENMW_RESOURCES})
 
 add_openmw_dir (mwrender
-    actors objects renderingmanager animation rotatecontroller sky skyutil npcanimation esm4npcanimation vismask
+    actors objects renderingmanager locationrenderingprofiles animation rotatecontroller sky skyutil npcanimation esm4npcanimation vismask
     creatureanimation effectmanager util renderinginterface pathgrid rendermode weaponanimation screenshotmanager
     bulletdebugdraw globalmap characterpreview camera localmap water terrainstorage ripplesimulation
     renderbin actoranimation landmanager navmesh actorspaths recastmesh fogmanager objectpaging groundcover
@@ -34,7 +34,7 @@ add_openmw_dir (mwinput
 
 add_openmw_dir (mwgui
     layout textinput widgets race class birth review windowmanagerimp console dialogue dialogueformatting dialoguecolourcontrols
-    windowbase statswindow messagebox messagepositioncontrols mapiconcontrols journalwindow charactercreation
+    windowbase statswindow messagebox messagepositioncontrols mapiconcontrols tooltipcontrols traveltooltip traveltooltipdata traveltooltipview journalwindow charactercreation
     mapwindow windowpinnablebase tooltips scrollwindow bookwindow resourceskin
     formatting inventorywindow luapaperdoll container hud countdialog tradewindow settingswindow
     confirmationdialog alchemywindow referenceinterface spellwindow mainmenu mainmenutextbutton quickkeysmenu
@@ -60,7 +60,7 @@ add_openmw_dir (mwscript
     )
 
 add_openmw_dir (mwlua
-    objectcache luamanagerimp object objectlists userdataserializer luaevents engineevents objectvariant loadscripts contentbindings
+    objectcache luamanagerimp object objectlists nativequeryservice userdataserializer luaevents engineevents objectvariant loadscripts contentbindings
     context menuscripts globalscripts localscripts playerscripts luabindings objectbindings cellbindings coremwscriptbindings
     mwscriptbindings camerabindings vfsbindings uibindings soundbindings inputbindings nearbybindings dialoguebindings
     postprocessingbindings stats recordstore debugbindings corebindings worldbindings worker landbindings magicbindings factionbindings

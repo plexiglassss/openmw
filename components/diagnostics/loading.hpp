@@ -21,28 +21,97 @@ namespace Diagnostics::Loading
 
     enum class Stage : std::size_t
     {
-        PlayerWorldSetup, PlayerBaseSetup, PlayerLuaSetup, PlayerRender, PlayerUi, PlayerMechanics, PlayerCamera,
-        ViewReset, QuadTree, ViewSelection, RenderNodes, ProgressReporting, TerrainChunks, ObjectChunks,
-        GroundcoverChunks, ObjectReferences, ObjectReferenceRead, ObjectSelection, ObjectTemplates,
-        ObjectAnalysis, ObjectInstances, ObjectMerge, ObjectCompile, ObjectFinish,
-        TemplateRequest, TemplateCache, TemplatePrepare, TemplateLoad, TemplateFiltering,
-        TemplateShaders, TemplateOptimize, TemplateCompile, TemplatePublish, TemplateWait, Count
+        PlayerWorldSetup,
+        PlayerBaseSetup,
+        PlayerLuaSetup,
+        PlayerRender,
+        PlayerUi,
+        PlayerMechanics,
+        PlayerCamera,
+        ViewReset,
+        QuadTree,
+        ViewSelection,
+        RenderNodes,
+        ProgressReporting,
+        TerrainChunks,
+        ObjectChunks,
+        GroundcoverChunks,
+        ObjectReferences,
+        ObjectReferenceRead,
+        ObjectSelection,
+        ObjectTemplates,
+        ObjectAnalysis,
+        ObjectInstances,
+        ObjectMerge,
+        ObjectCompile,
+        ObjectFinish,
+        TemplateRequest,
+        TemplateCache,
+        TemplatePrepare,
+        TemplateLoad,
+        TemplateFiltering,
+        TemplateShaders,
+        TemplateOptimize,
+        TemplateCompile,
+        TemplatePublish,
+        TemplateWait,
+        TemplateCpu,
+        PagedBatchWall,
+        PagedModelCpu,
+        PagedModelLoadCpu,
+        PagedModelShaderCpu,
+        PlayerInventoryList,
+        PlayerPreviewRebuild,
+        PlayerPreviewUpdate,
+        PlayerSpellWindow,
+        PlayerMagicEffects,
+        PlayerPreviewGeometry,
+        PlayerArmorCaption,
+        PlayerArmorCaptionHidden,
+        LuaContainerStartup,
+        PagedChunkGroup,
+        PagedCandidateSelection,
+        CellModel,
+        CellRendering,
+        CellMechanics,
+        CellPhysics,
+        CellLua,
+        CellProgress,
+        CullPrepare,
+        CullTraverse,
+        SceneryPrepared,
+        SceneryRequired,
+        SceneryAhead,
+        SceneryCancelled,
+        Count
     };
     inline constexpr std::size_t stageCount = static_cast<std::size_t>(Stage::Count);
-    inline constexpr std::array<std::string_view, stageCount> stageNames = {
-        "playerWorldSetup", "playerBaseSetup", "playerLuaSetup", "playerRender", "playerUi", "playerMechanics",
-        "playerCamera", "viewReset", "quadTree", "viewSelection", "renderNodes", "progressReporting",
-        "terrainChunks", "objectChunks", "groundcoverChunks", "objectReferences", "objectReferenceRead",
-        "objectSelection", "objectTemplates", "objectAnalysis", "objectInstances", "objectMerge", "objectCompile",
-        "objectFinish", "templateRequest", "templateCache", "templatePrepare", "templateLoad", "templateFiltering",
-        "templateShaders", "templateOptimize", "templateCompile", "templatePublish", "templateWait"
-    };
+    inline constexpr std::array<std::string_view, stageCount> stageNames = { "playerWorldSetup", "playerBaseSetup",
+        "playerLuaSetup", "playerRender", "playerUi", "playerMechanics", "playerCamera", "viewReset", "quadTree",
+        "viewSelection", "renderNodes", "progressReporting", "terrainChunks", "objectChunks", "groundcoverChunks",
+        "objectReferences", "objectReferenceRead", "objectSelection", "objectTemplates", "objectAnalysis",
+        "objectInstances", "objectMerge", "objectCompile", "objectFinish", "templateRequest", "templateCache",
+        "templatePrepare", "templateLoad", "templateFiltering", "templateShaders", "templateOptimize",
+        "templateCompile", "templatePublish", "templateWait", "templateCpu", "pagedBatchWall", "pagedModelCpu",
+        "pagedModelLoadCpu", "pagedModelShaderCpu", "playerInventoryList", "playerPreviewRebuild",
+        "playerPreviewUpdate", "playerSpellWindow", "playerMagicEffects", "playerPreviewGeometry", "playerArmorCaption",
+        "playerArmorCaptionHidden", "luaContainerStartup", "pagedChunkGroup", "pagedCandidateSelection", "cellModel",
+        "cellRendering", "cellMechanics", "cellPhysics", "cellLua", "cellProgress", "cullPrepare", "cullTraverse",
+        "sceneryPrepared", "sceneryRequired", "sceneryAhead", "sceneryCancelled" };
 
     struct Metrics
     {
         std::array<double, stageCount> elapsedMs{};
         std::array<std::uint64_t, stageCount> calls{};
         std::array<unsigned, stageCount> depth{};
+
+        void accumulate(Stage destination, const Metrics& other, Stage source)
+        {
+            const auto to = static_cast<std::size_t>(destination);
+            const auto from = static_cast<std::size_t>(source);
+            elapsedMs[to] += other.elapsedMs[from];
+            calls[to] += other.calls[from];
+        }
     };
     inline thread_local Metrics* currentMetrics = nullptr;
 

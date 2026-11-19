@@ -88,7 +88,9 @@ def main():
         require(expected.get("reason"), "Missing reviewed change purpose: " + name)
         local = ROOT / name
         require(local.is_file() and not local.is_symlink(), "Missing source: " + name)
-        data = local.read_bytes()
+        # The loading repair independently verifies its exact working output below.
+        # Verify the feature plan against its committed input when both touch the same file.
+        data = git("show", "HEAD:" + name) if args.after_lookup and name in LOOKUP else local.read_bytes()
         require(digest(data) == expected["sha256"] and len(data) == expected["bytes"], "Working source differs: " + name)
         verified[name] = expected
     require((ROOT / PLAN).is_file() and not (ROOT / PLAN).is_symlink(), "Missing source plan")

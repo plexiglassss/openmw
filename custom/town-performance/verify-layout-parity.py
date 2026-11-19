@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 
 
 IMAGE_INHERITANCE_CASE = "ImageTemplatesInheritResourcesAcrossOverridesAndUpdates"
+MOD_KEYBINDINGS_CASE = "ModKeybindingsUsesViewportWidthAndWrappedDescriptions"
+MOD_KEYBINDINGS_SNAPSHOTS = ("mod-controls-340", "mod-controls-700", "mod-controls-1000")
 IMAGE_INHERITANCE_SNAPSHOTS = (
     "image-inherited",
     "image-overridden",
@@ -16,12 +18,21 @@ IMAGE_INHERITANCE_SNAPSHOTS = (
     "image-unchanged",
 )
 EXPECTED = {
+    MOD_KEYBINDINGS_CASE,
     "StableTemplateHierarchyAndSiblingOrderRepair",
+    "RetainedAttachmentsPreserveOwnershipAndDynamicObservations",
     "MutableTemplateSlotsAndReplacementKeepRetainedChild",
     "MovingRetainedElementRelayoutsThePreviousRootImmediately",
+    "ReparentIntoGrowingSiblingUnderTheSameRoot",
     "NestedAutoSizeAndRelativeGrowRespondToASingleRootResize",
     "NestedWrappingTextPaddingVisibilityAndReorderStayConsistent",
     "RepeatedHudUpdatesBenchmark",
+    "LayoutReuseTracksConstraintsAndMutatedRetainedExternalFields",
+    "LayoutReuseFallsBackForLiveMetatableReads",
+    "RetainedTextEditorsKeepCaretSelectionAndScrollPasses",
+    "NestedRetainedHudSparseAndFullUpdatesBenchmark",
+    "SparsePropertyRequestsMergeAndPreserveFullRefresh",
+    "BatchedHudPropertiesBenchmark",
     IMAGE_INHERITANCE_CASE,
 }
 EXPECTED_PROPERTIES = {
@@ -62,6 +73,11 @@ def read_cases(path, expected_mode):
                            if line.startswith("[") and line.endswith("]"))
             if labels != IMAGE_INHERITANCE_SNAPSHOTS:
                 raise ValueError("Missing or reordered native Image inheritance snapshots: " + path.name)
+        if name == MOD_KEYBINDINGS_CASE:
+            labels = tuple(line[1:-1] for line in properties["layout_snapshots"].splitlines()
+                           if line.startswith("[") and line.endswith("]"))
+            if labels != MOD_KEYBINDINGS_SNAPSHOTS:
+                raise ValueError("Missing or reordered native mod keybindings snapshots: " + path.name)
         cases[name] = properties
     if set(cases) != EXPECTED:
         raise ValueError("Layout suite is missing or changed: " + repr(sorted(set(cases) ^ EXPECTED)))
@@ -87,6 +103,9 @@ def compare(optimized, legacy):
     current, previous = read_cases(optimized, "optimized"), read_cases(legacy, "legacy")
     verify_property_cases(optimized, "optimized")
     verify_property_cases(legacy, "legacy")
+    for label, values, expected in (("optimized", current, "reuse"), ("legacy", previous, "legacy")):
+        if any(case.get("native_update_mode") != expected for case in values.values()):
+            raise ValueError("Native geometry reuse mode differs from the requested process mode: " + label)
     cases = {}
     for name in sorted(EXPECTED):
         left, right = current[name]["layout_snapshots"], previous[name]["layout_snapshots"]

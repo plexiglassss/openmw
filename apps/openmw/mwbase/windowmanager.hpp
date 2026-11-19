@@ -373,6 +373,7 @@ namespace MWBase
 
         virtual const MWGui::TextColours& getTextColours() = 0;
 
+        virtual bool onActivateKey() { return false; }
         virtual bool injectKeyPress(MyGUI::KeyCode key, unsigned int text, bool repeat) = 0;
         virtual bool injectKeyRelease(MyGUI::KeyCode key) = 0;
 
@@ -390,6 +391,7 @@ namespace MWBase
         virtual void forceLootMode(const MWWorld::Ptr& ptr) = 0;
 
         virtual void asyncPrepareSaveMap() = 0;
+        virtual void advanceSaveMapRestore(bool /*finish*/) {}
 
         /// Sets the cull masks for all applicable views
         virtual void setCullMask(uint32_t mask) = 0;

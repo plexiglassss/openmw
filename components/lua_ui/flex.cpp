@@ -55,6 +55,8 @@ namespace LuaUi
             }
             primary(childrenSize) = measuredPrimary;
             secondary(childrenSize) = measuredSecondary;
+            if (mChildrenSize != childrenSize)
+                invalidateLayoutMeasurement();
             mChildrenSize = childrenSize;
         }
 
@@ -139,6 +141,8 @@ namespace LuaUi
             currentSecondaryAxisPosition += secondaryAxisSize + mGap;
         }
 
+        if (mChildrenSize != childrenSize)
+            invalidateLayoutMeasurement();
         mChildrenSize = childrenSize;
         WidgetExtension::updateChildren();
     }
@@ -165,8 +169,16 @@ namespace LuaUi
 
     void LuaFlex::updateCoord()
     {
+        if (reuseLayout())
+            return;
+        const auto measurementRevision = layoutMeasurementRevision();
         updateChildren();
         WidgetExtension::updateCoord();
+        // Intrinsic child sizes can still converge while forced geometry is
+        // unchanged. Include the measurement phase, before the base traversal,
+        // when deciding whether a later pass is redundant.
+        if (measurementRevision != layoutMeasurementRevision())
+            invalidateLayout();
     }
 
     const std::vector<std::string_view>& LuaFlex::allUsedProperties() const

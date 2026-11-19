@@ -340,7 +340,7 @@ namespace MWLua
 
             objectT["type"] = sol::readonly_property(
                 [types = getTypeToPackageTable(context.sol())](
-                    const ObjectT& o) -> sol::object { return types[getLiveCellRefType(o.ptr().mRef)]; });
+                    const ObjectT& o) -> sol::object { return types[getLiveCellRefType(o)]; });
 
             objectT["count"] = sol::readonly_property([](const ObjectT& o) { return o.ptr().getCellRef().getCount(); });
             objectT[sol::meta_function::equal_to] = [](const ObjectT& a, const ObjectT& b) { return a.id() == b.id(); };

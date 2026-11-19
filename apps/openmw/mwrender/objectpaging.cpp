@@ -1,6 +1,14 @@
 #include <components/diagnostics/loading.hpp>
 #include "objectpaging.hpp"
 
+#include <optional>
+#include <typeinfo>
+#include <array>
+
+#include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
+#include <components/settings/values.hpp>
+
 #include <components/diagnostics/timing.hpp>
 
 #include <limits>
@@ -9,6 +17,8 @@
 #include <vector>
 
 #include <osg/LOD>
+#include <osg/Geode>
+#include <osg/Geometry>
 #include <osg/MatrixTransform>
 #include <osg/Sequence>
 #include <osg/Switch>
@@ -16,6 +26,7 @@
 #include <osgParticle/ParticleProcessor>
 #include <osgParticle/ParticleSystemUpdater>
 #include <osgUtil/IncrementalCompileOperation>
+#include <components/sceneutil/compilepriority.hpp>
 
 #include <components/esm/path.hpp>
 #include <components/esm3/esmreader.hpp>
@@ -37,7 +48,13 @@
 #include <components/misc/rng.hpp>
 #include <components/nifosg/autotransform.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/shader/shadermanager.hpp>
 #include <components/sceneutil/lightmanager.hpp>
+#include <components/sceneutil/asyncpreparation.hpp>
+#include <components/sceneutil/scenefootprint.hpp>
+#include <components/loadinglistener/reporter.hpp>
+#include <osg/GraphicsContext>
+#include <osg/State>
 #include <components/sceneutil/material.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
 #include <components/sceneutil/optimizer.hpp>
@@ -45,6 +62,7 @@
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/riggeometryosgaextension.hpp>
 #include <components/sceneutil/util.hpp>
+#include <components/terrain/rayfootprint.hpp>
 #include <components/settings/values.hpp>
 #include <components/vfs/manager.hpp>
 
@@ -129,23 +147,948 @@ namespace MWRender
         }
     }
 
+    struct ObjectPaging::Selection
+    {
+        struct Item
+        {
+            ESM::RefNum mNumber;
+            PagedCellRef mRef;
+            VFS::Path::Normalized mModel;
+            float mDistanceSquared;
+        };
+        std::vector<Item> mItems;
+        std::uint64_t mRevision;
+        std::uint64_t mVfsRevision;
+        CacheEpoch mEpoch;
+    };
+
+    struct ObjectPaging::PendingCompile
+    {
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation::CompileSet> mSet;
+    };
+
+    struct ObjectPaging::SceneryBridge : osg::Referenced
+    {
+        osg::ref_ptr<osg::Node> mNode;
+        PendingCompile mCompile;
+        std::size_t mBytes = 0;
+        ~SceneryBridge() override
+        {
+            if (mCompile.mOperation && mCompile.mSet)
+                mCompile.mOperation->remove(mCompile.mSet);
+        }
+    };
+
+    struct ObjectPaging::SceneryState
+    {
+        struct Entry
+        {
+            osg::ref_ptr<SceneryBridge> mNode;
+            std::size_t mBytes;
+            std::uint64_t mUse, mPinned = 0;
+        };
+        // Protected by the manager's tracker mutex, including worker publication.
+        std::map<Terrain::SceneryCell, Entry> mBridges;
+        std::vector<osg::ref_ptr<osg::Referenced>> mRetired;
+        std::size_t mBytes = 0;
+        std::size_t mRetiredBytes = 0;
+        std::size_t mQueuedRetiredBytes = 0;
+        std::uint64_t mUse = 0, mFrame = 1;
+        std::size_t mBridgeDraws = 0, mOptimizedDraws = 0, mRequiredBuilds = 0;
+        double mNextReport = 0;
+        double mAheadTime = -1;
+        std::size_t mAheadVisits = 0;
+        std::uint64_t mCompileGeneration = 0;
+        void erase(std::map<Terrain::SceneryCell, Entry>::iterator it)
+        {
+            mBytes -= it->second.mBytes;
+            mRetiredBytes += it->second.mBytes;
+            mRetired.emplace_back(std::move(it->second.mNode));
+            mBridges.erase(it);
+        }
+        void clear()
+        {
+            while (!mBridges.empty())
+                erase(mBridges.begin());
+        }
+        void trim()
+        {
+            // Visible cover is required rendering memory. Bound additional
+            // retained/speculative cover; never repeatedly rebuild an oversized
+            // required cell on every frame merely to meet a speculative budget.
+            constexpr std::size_t budget = 1024ull * 1024 * 1024;
+            while (mBridges.size() > 128 || mBytes > budget)
+            {
+                auto oldest = mBridges.end();
+                for (auto it = mBridges.begin(); it != mBridges.end(); ++it)
+                    if (it->second.mPinned != mFrame
+                        && (oldest == mBridges.end() || it->second.mUse < oldest->second.mUse))
+                        oldest = it;
+                if (oldest == mBridges.end())
+                    break;
+                erase(oldest);
+            }
+        }
+    };
+
+    struct ObjectPaging::ScenerySnapshot : Terrain::SceneryView
+    {
+        struct Plan
+        {
+            std::vector<ChunkRequest> mRequests;
+            osg::Vec4i mGrid;
+            std::vector<Terrain::SceneryCoverage> mGroups;
+            bool matches(std::span<const ChunkRequest> requests, const osg::Vec4i& grid) const
+            {
+                return grid == mGrid && requests.size() == mRequests.size()
+                    && std::equal(requests.begin(), requests.end(), mRequests.begin(), [](const auto& a, const auto& b) {
+                        return a.mCenter == b.mCenter && a.mSize == b.mSize && a.mActiveGrid == b.mActiveGrid;
+                    });
+            }
+        };
+        std::shared_ptr<const Plan> mPlan;
+        struct Batch
+        {
+            osg::ref_ptr<osg::Node> mNode, mPositioned;
+            bool mCompiled = false;
+            std::size_t mBytes = 0;
+        };
+        std::map<Terrain::SceneryCell, osg::ref_ptr<SceneryBridge>> mBridges;
+        std::map<ChunkId, Batch> mBatches;
+        CacheEpoch mEpoch;
+        std::uint64_t mSelection = 0, mShader = 0, mCompile = 0;
+    };
+
+    struct ObjectPaging::AsyncState
+    {
+        using RequestKey = std::pair<ChunkId, std::uint64_t>;
+        using Requests = SceneUtil::AsyncPreparation<RequestKey, osg::ref_ptr<osg::Node>>;
+        Requests mRequests;
+        using Bridges = SceneUtil::AsyncPreparation<Terrain::SceneryCell, osg::ref_ptr<SceneryBridge>>;
+        Bridges mBridges;
+        struct Retirement : SceneUtil::WorkItem
+        {
+            std::vector<osg::ref_ptr<osg::Referenced>> mNodes;
+            std::size_t mBytes = 0;
+            void doWork() override { mNodes.clear(); }
+        };
+        osg::ref_ptr<Retirement> mRetirement;
+        osg::ref_ptr<SceneUtil::WorkQueue> mQueue;
+        SceneUtil::CompileReadinessCache mCompleted;
+        using Contexts = std::vector<std::pair<const osg::GraphicsContext*, unsigned>>;
+        using ResourceGeneration = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t,
+            const osgUtil::IncrementalCompileOperation*, Contexts>;
+        using Generation = std::pair<std::uint64_t, ResourceGeneration>;
+        Generation mGeneration;
+        bool mInitialized = false;
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> mOperation;
+        osgUtil::IncrementalCompileOperation::ContextSet mContexts;
+        std::vector<osg::ref_ptr<osg::GraphicsContext>> mContextOwners;
+        explicit AsyncState(SceneUtil::WorkQueue* queue)
+            // Keep two queued/running CPU jobs, with room for a bounded number
+            // of completed graphs waiting for graphics preparation.
+            : mRequests(queue, 2, 64, 1024ull * 1024 * 1024, 0.25, 1.0, 8),
+              mBridges(queue, 2, 32, 256ull * 1024 * 1024), mQueue(queue) {}
+        ~AsyncState()
+        {
+            if (mRetirement)
+            {
+                mQueue->cancelWorkItem(mRetirement);
+                mRetirement->waitTillDone();
+            }
+        }
+    };
+
+    void ObjectPaging::setWorkQueue(SceneUtil::WorkQueue* queue)
+    {
+        if (queue && Misc::useAsyncObjectPaging())
+            mAsync = std::make_unique<AsyncState>(queue);
+        Log(Debug::Info) << "Distant object streaming: " << (mAsync ? "enabled" : "disabled")
+                         << "; experimental unmerged cover: " << (usesSceneryCoverage() ? "enabled" : "disabled")
+                         << "; active cells and exact queries retain immediate loading";
+    }
+
+    bool ObjectPaging::updateAsyncState(double referenceTime)
+    {
+        if (!mAsync)
+            return false;
+        auto* operation = mSceneManager->getIncrementalCompileOperation();
+        auto contexts = operation ? operation->getContextSet() : osgUtil::IncrementalCompileOperation::ContextSet{};
+        AsyncState::Contexts contextIds;
+        for (auto it = contexts.begin(); it != contexts.end();)
+        {
+            if (!*it || !(*it)->getState())
+                it = contexts.erase(it);
+            else
+            {
+                contextIds.emplace_back(*it, (*it)->getState()->getContextID());
+                ++it;
+            }
+        }
+        std::uint64_t selectionEpoch;
+        {
+            const std::lock_guard lock(mRefTrackerMutex);
+            // Diagnostic cover retains its conservative whole-snapshot boundary.
+            selectionEpoch = usesSceneryCoverage() ? mSelectionRevision.load() : mSelectionRevisions.global();
+        }
+        AsyncState::Generation generation{ selectionEpoch,
+            { mSceneManager->getVFS()->getIndexRevision(), mSceneManager->modelSettingsRevision(),
+                mGraphicsRevision.load(), mSceneManager->getShaderManager().compileRevision(),
+                operation, std::move(contextIds) } };
+        bool changed = generation != mAsync->mGeneration;
+        if (changed)
+        {
+            if (mAsync->mInitialized && mAsync->mRequests.size())
+                Log(Debug::Info) << "Scenery preparation invalidation: retiredRequests=" << mAsync->mRequests.size()
+                                 << " selection=" << (generation.first != mAsync->mGeneration.first)
+                                 << " resources=" << (generation.second != mAsync->mGeneration.second);
+            mAsync->mRequests.clear();
+            mAsync->mBridges.clear();
+            // Selection edits already remove affected CPU chunks. Receipts for
+            // unchanged cached nodes remain valid across view/grid rebuilds.
+            if (generation.second != mAsync->mGeneration.second)
+            {
+                mAsync->mCompleted.clear();
+                const std::lock_guard lock(mRefTrackerMutex);
+                ++mScenery->mCompileGeneration;
+                if (mAsync->mInitialized)
+                    mScenery->clear();
+            }
+            mAsync->mGeneration = std::move(generation);
+            mAsync->mOperation = operation;
+            mAsync->mContexts = std::move(contexts);
+            mAsync->mContextOwners.assign(mAsync->mContexts.begin(), mAsync->mContexts.end());
+        }
+        mAsync->mRequests.cancelIf([this](const AsyncState::RequestKey& key) {
+            return key.second != selectionRevision(key.first);
+        });
+        mAsync->mRequests.update(referenceTime);
+        mAsync->mBridges.update(referenceTime);
+        if (!mAsync->mRetirement || mAsync->mRetirement->isDone())
+        {
+            mAsync->mRetirement = nullptr;
+            const std::lock_guard lock(mRefTrackerMutex);
+            if (!mScenery->mRetired.empty())
+            {
+                mAsync->mRetirement = new AsyncState::Retirement;
+                mAsync->mRetirement->mNodes.swap(mScenery->mRetired);
+                mAsync->mRetirement->mBytes = mScenery->mRetiredBytes;
+                // One release job at a time, ahead of optional preparation.
+                mAsync->mQueue->addWorkItem(mAsync->mRetirement, true);
+            }
+            mScenery->mRetiredBytes = 0;
+            mScenery->mQueuedRetiredBytes = mAsync->mRetirement ? mAsync->mRetirement->mBytes : 0;
+        }
+        changed = changed && mAsync->mInitialized;
+        mAsync->mInitialized = true;
+        return changed;
+    }
+
+    void ObjectPaging::clearCache()
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        ++mGraphicsRevision;
+        mScenery->clear();
+        Resource::GenericResourceManager<ChunkId>::clearCache();
+    }
+
+    void ObjectPaging::releaseGLObjects(osg::State* state)
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        ++mGraphicsRevision;
+        mScenery->clear();
+        Resource::GenericResourceManager<ChunkId>::releaseGLObjects(state);
+    }
+
+    bool ObjectPaging::canPrepareAsync() const
+    {
+        return mAsync && mAsync->mOperation && !mAsync->mContexts.empty();
+    }
+
+    bool ObjectPaging::usesSceneryCoverage() const
+    {
+        return mAsync && Misc::useSceneryCoverage();
+    }
+
+    ObjectPaging::AsyncResult ObjectPaging::requestChunk(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, double referenceTime, bool queue)
+    {
+        // Active reference ownership and exact intersection semantics stay on the
+        // established synchronous path. Future distant chunks may prepare in advance.
+        if (chunk.mActiveGrid || !canPrepareAsync())
+            return {};
+        const ChunkId key(chunk.mCenter, chunk.mSize, false);
+        const AsyncState::RequestKey requestKey{ key, selectionRevision(key) };
+        auto cached = getCachedChunk(key);
+        if (cached && mAsync->mCompleted.contains(cached))
+            return { true, true, std::move(cached) };
+        if (!queue)
+        {
+            // Required camera coverage never submits a new job and then builds
+            // the same chunk synchronously. Cached CPU preload nodes can use the
+            // normal draw path without claiming an independent GL completion.
+            const auto result = mAsync->mRequests.poll(requestKey, referenceTime);
+            if (result.mReady)
+                mAsync->mCompleted.remember(result.mValue);
+            else if (!cached && mAsync->mRequests.cancel(requestKey))
+            {
+                Diagnostics::Loading::Timer cancelled(Diagnostics::Loading::Stage::SceneryCancelled);
+            }
+            return { true, result.mReady, result.mValue };
+        }
+        const auto result = mAsync->mRequests.request(requestKey, referenceTime,
+            [this, chunk, viewPoint, contexts = mAsync->mContexts, owners = mAsync->mContextOwners,
+                operation = mAsync->mOperation]
+            (const std::atomic_bool& abort) mutable -> AsyncState::Requests::Prepared {
+                Diagnostics::Scope timing("terrain", "worker", "distantObjectPreparation");
+                try
+                {
+                    auto node = fetchChunk(chunk, viewPoint, false, &abort, nullptr, false);
+                    if (abort || !node)
+                        return { std::move(node), {} };
+                    auto prepared = SceneUtil::prepareCompileReadiness(node, contexts);
+                    if (!abort)
+                        operation->add(prepared.mSet, false);
+                    return { std::move(node), std::move(prepared.mReady),
+                        [operation, set = prepared.mSet] { operation->remove(set); }, prepared.mEstimatedBytes };
+                }
+                catch (const std::exception& error)
+                {
+                    Log(Debug::Warning) << "Distant object preparation failed: " << error.what();
+                    throw;
+                }
+            });
+        if (result.mReady)
+            mAsync->mCompleted.remember(result.mValue);
+        return { true, result.mReady, result.mValue };
+    }
+
+    bool ObjectPaging::canPreloadBatches() const
+    {
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        return jobs && jobs->workerCount() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
+    }
+
+    osg::ref_ptr<ObjectPaging::SceneryBridge> ObjectPaging::getSceneryBridge(
+        Terrain::SceneryCell cell, const std::atomic_bool* abort, bool required)
+    {
+        // A bridge is deliberately a conservative superset of ordinary distant
+        // detail: real reference models, without merge-dependent size rejection.
+        // Native LOD nodes still choose their authored distance ranges. It does
+        // not create actors, collision, scripts, or active-reference ownership.
+        const osg::Vec2f center(cell.first + 0.5f, cell.second + 0.5f);
+        const ChunkRequest request{ 1.f, center, 0, false };
+        const osg::Vec3f point(center.x() * getCellSize(mWorldspace), center.y() * getCellSize(mWorldspace), 0);
+        std::vector<osg::ref_ptr<osg::Referenced>> retired;
+        for (;;)
+        {
+            if (abort && *abort)
+                return {};
+            {
+                const std::lock_guard lock(mRefTrackerMutex);
+                refreshCacheEpoch();
+                if (auto it = mScenery->mBridges.find(cell); it != mScenery->mBridges.end())
+                {
+                    it->second.mUse = ++mScenery->mUse;
+                    if (required)
+                        it->second.mPinned = mScenery->mFrame;
+                    return it->second.mNode;
+                }
+            }
+            auto selection = selectChunk(request, point, abort, true);
+            PendingCompile pending;
+            auto node = createChunk(request, point, selection, false, abort, false, pending, true);
+            if (!node || (abort && *abort))
+                return {};
+            osg::ref_ptr<SceneUtil::PositionAttitudeTransform> positioned = new SceneUtil::PositionAttitudeTransform;
+            positioned->setPosition(point);
+            positioned->addChild(node);
+            positioned->getBound();
+            SceneUtil::SceneFootprint footprint;
+            const auto bytes = footprint.measure(*positioned);
+            osg::ref_ptr<SceneryBridge> bridge = new SceneryBridge;
+            bridge->mNode = positioned;
+            bridge->mBytes = bytes;
+            if (auto* operation = mSceneManager->getIncrementalCompileOperation())
+                bridge->mCompile = { operation, SceneUtil::prepareCompileSet(*operation, positioned) };
+            {
+                const std::lock_guard lock(mRefTrackerMutex);
+                refreshCacheEpoch();
+                if (selection.mRevision != selectionRevisionLocked({ request.mCenter, request.mSize, false })
+                    || selection.mEpoch != mCacheEpoch)
+                    continue;
+                if (abort && *abort)
+                    return {};
+                if (auto it = mScenery->mBridges.find(cell); it != mScenery->mBridges.end())
+                {
+                    it->second.mUse = ++mScenery->mUse;
+                    if (required)
+                        it->second.mPinned = mScenery->mFrame;
+                    return it->second.mNode;
+                }
+                // Independent GL readiness is required for replacement, not for
+                // this last-resort normal draw. Queue usual compilation ahead;
+                // a deadline miss can compile on draw but can never show a hole.
+                if (bridge->mCompile.mOperation)
+                    bridge->mCompile.mOperation->add(bridge->mCompile.mSet, false);
+                mScenery->mBridges.emplace(cell, SceneryState::Entry{
+                    bridge, bytes, ++mScenery->mUse, required ? mScenery->mFrame : 0 });
+                mScenery->mBytes += bytes;
+                mScenery->trim();
+                if (!required)
+                {
+                    // A loading worker can release obsolete cover itself. Do
+                    // not accumulate an entire preload in the retirement list
+                    // while the main thread is busy pumping the loading screen.
+                    retired.swap(mScenery->mRetired);
+                    mScenery->mRetiredBytes = 0;
+                }
+                return bridge;
+            }
+        }
+    }
+
+    std::shared_ptr<Terrain::SceneryView> ObjectPaging::preloadScenery(std::span<const ChunkRequest> requests, const osg::Vec3f& point,
+        const osg::Vec4i& grid, const std::atomic_bool& abort, Loading::Reporter& reporter)
+    {
+        auto snapshot = std::make_shared<ScenerySnapshot>();
+        snapshot->mEpoch = cacheEpoch();
+        snapshot->mSelection = mSelectionRevision.load();
+        snapshot->mShader = mSceneManager->getShaderManager().compileRevision();
+        SceneUtil::SceneFootprint footprint;
+        std::set<Terrain::SceneryCell> cells;
+        for (const auto& group : Terrain::sceneryCoverage(requests, grid))
+            cells.insert(group.mCells.begin(), group.mCells.end());
+        std::vector<Terrain::SceneryCell> ordered(cells.begin(), cells.end());
+        const auto distance = [&](const Terrain::SceneryCell& cell) {
+            return (osg::Vec2f(cell.first + 0.5f, cell.second + 0.5f) * getCellSize(mWorldspace)
+                - osg::Vec2f(point.x(), point.y())).length2();
+        };
+        std::stable_sort(ordered.begin(), ordered.end(), [&](const auto& a, const auto& b) {
+            return distance(a) < distance(b);
+        });
+        reporter.addTotal(ordered.size());
+        for (const auto& cell : ordered)
+        {
+            if (abort)
+                return {};
+            if (auto node = getSceneryBridge(cell, &abort, false))
+            {
+                snapshot->mEstimatedBytes += footprint.measure(*node->mNode);
+                snapshot->mBridges.emplace(cell, std::move(node));
+            }
+            reporter.addProgress(1);
+        }
+        return snapshot;
+    }
+
+    void ObjectPaging::prepareScenery(const ChunkRequest& request, const osg::Vec3f& point, double time)
+    {
+        if (!usesSceneryCoverage())
+        {
+            requestChunk(request, point, time, true);
+            return;
+        }
+        {
+            const std::lock_guard lock(mRefTrackerMutex);
+            if (mScenery->mRetiredBytes + mScenery->mQueuedRetiredBytes > 1024ull * 1024 * 1024)
+                return;
+        }
+        const ChunkId optimizedKey(request.mCenter, request.mSize, false);
+        if (auto cached = getCachedChunk(optimizedKey); cached && mAsync->mCompleted.contains(cached))
+            return;
+        if (mScenery->mAheadTime != time)
+        {
+            mScenery->mAheadTime = time;
+            mScenery->mAheadVisits = 0;
+        }
+        // CPU coverage has its own bounded queue. A graphics completion wait for
+        // an optional merged batch cannot occupy both bridge-preparation slots.
+        bool covered = true;
+        const int x0 = static_cast<int>(std::floor(request.mCenter.x() - request.mSize / 2));
+        const int y0 = static_cast<int>(std::floor(request.mCenter.y() - request.mSize / 2));
+        const int x1 = static_cast<int>(std::ceil(request.mCenter.x() + request.mSize / 2));
+        const int y1 = static_cast<int>(std::ceil(request.mCenter.y() + request.mSize / 2));
+        for (int x = x0; x < x1; ++x)
+            for (int y = y0; y < y1; ++y)
+            {
+                if (++mScenery->mAheadVisits > 256)
+                    return;
+                const Terrain::SceneryCell cell{ x, y };
+                {
+                    const std::lock_guard lock(mRefTrackerMutex);
+                    refreshCacheEpoch();
+                    if (auto it = mScenery->mBridges.find(cell); it != mScenery->mBridges.end())
+                    {
+                        it->second.mUse = ++mScenery->mUse;
+                        continue;
+                    }
+                }
+                covered = false;
+                mAsync->mBridges.request(cell, time, [this, cell](const std::atomic_bool& abort) {
+                    auto node = getSceneryBridge(cell, &abort, false);
+                    const auto bytes = node ? node->mBytes : 0;
+                    return AsyncState::Bridges::Prepared{ std::move(node), {}, {}, bytes };
+                });
+            }
+        if (covered)
+        {
+            // Coverage comes first; merged detail may use spare slots only
+            // after the entire predicted batch has a complete bridge.
+            const auto result = requestChunk(request, point, time, true);
+            if (result.mReady)
+                mAsync->mRequests.takeReady({ optimizedKey, selectionRevision(optimizedKey) }, time);
+        }
+    }
+
+    void ObjectPaging::acceptScenery(std::span<const ChunkRequest> requests, const osg::Vec3f& point,
+        const osg::Vec4i& grid, osg::NodeVisitor& visitor, double time,
+        std::shared_ptr<Terrain::SceneryView>& current, const std::shared_ptr<Terrain::SceneryView>& incoming)
+    {
+        auto snapshot = std::make_shared<ScenerySnapshot>();
+        snapshot->mEpoch = cacheEpoch();
+        snapshot->mSelection = mSelectionRevision.load();
+        snapshot->mShader = mSceneManager->getShaderManager().compileRevision();
+        snapshot->mCompile = mScenery->mCompileGeneration;
+        const auto usable = [&](const std::shared_ptr<Terrain::SceneryView>& candidate) {
+            auto result = std::dynamic_pointer_cast<const ScenerySnapshot>(candidate);
+            if (result && (result->mEpoch != snapshot->mEpoch || result->mSelection != snapshot->mSelection
+                    || result->mShader != snapshot->mShader))
+                result.reset();
+            return result;
+        };
+        const auto previous = usable(current);
+        const auto prepared = usable(incoming);
+        if (previous && previous->mPlan && previous->mPlan->matches(requests, grid))
+            snapshot->mPlan = previous->mPlan;
+        else
+        {
+            auto plan = std::make_shared<ScenerySnapshot::Plan>();
+            plan->mRequests.assign(requests.begin(), requests.end());
+            plan->mGrid = grid;
+            plan->mGroups = Terrain::sceneryCoverage(requests, grid);
+            snapshot->mPlan = std::move(plan);
+        }
+        const auto& groups = snapshot->mPlan->mGroups;
+        const auto retainedBatch = [&](const ChunkId& key, const osg::ref_ptr<osg::Node>& node,
+                                       bool compiled) -> const ScenerySnapshot::Batch* {
+            for (const auto* owner : { previous.get(), prepared.get() })
+                if (owner && (!compiled || owner->mCompile == snapshot->mCompile))
+                    if (const auto old = owner->mBatches.find(key); old != owner->mBatches.end()
+                        && old->second.mNode == node && (!compiled || old->second.mCompiled))
+                        return &old->second;
+            return nullptr;
+        };
+        std::vector<osg::ref_ptr<osg::Node>> optimized(requests.size());
+        std::vector<bool> ready(requests.size(), false);
+        const bool asynchronous = canPrepareAsync();
+        {
+            const std::lock_guard lock(mRefTrackerMutex);
+            if (visitor.getFrameStamp())
+                mScenery->mFrame = static_cast<std::uint64_t>(visitor.getFrameStamp()->getFrameNumber()) + 1;
+            else
+                ++mScenery->mFrame;
+        }
+        for (std::size_t i = 0; i < requests.size(); ++i)
+        {
+            const auto& request = requests[i];
+            if (request.mActiveGrid)
+                continue;
+            if (!asynchronous)
+            {
+                optimized[i] = fetchChunk(request, point, false, nullptr, nullptr, false);
+                ready[i] = true;
+                continue;
+            }
+            const ChunkId key(request.mCenter, request.mSize, false);
+            auto cached = getCachedChunk(key);
+            const bool retained = retainedBatch(key, cached, true) != nullptr;
+            if (cached && (retained || mAsync->mCompleted.contains(cached)))
+            {
+                optimized[i] = std::move(cached);
+                ready[i] = true;
+            }
+            else
+            {
+                // Poll without cancelling or admitting detail work. First cover
+                // every required cell, then spend spare worker slots on batching.
+                const auto result = mAsync->mRequests.takeReady({ key, selectionRevision(key) }, time);
+                if (result.mReady)
+                {
+                    optimized[i] = result.mValue;
+                    ready[i] = true;
+                    mAsync->mCompleted.remember(result.mValue);
+                }
+            }
+        }
+        {
+            // Protect the whole required wave before an individual miss can
+            // evict a ready cell that will be needed later in this traversal.
+            const std::lock_guard lock(mRefTrackerMutex);
+            for (const auto& group : groups)
+                if (!Terrain::sceneryReplacementReady(group, [&](std::size_t i) { return ready[i]; }))
+                    for (const auto& cell : group.mCells)
+                        if (auto it = mScenery->mBridges.find(cell); it != mScenery->mBridges.end())
+                            it->second.mPinned = mScenery->mFrame;
+        }
+        std::vector<std::size_t> prepare;
+        for (const auto& group : groups)
+        {
+            if (Terrain::sceneryReplacementReady(group, [&](std::size_t i) { return ready[i]; }))
+            {
+                for (const auto i : group.mRequests)
+                    if (optimized[i])
+                    {
+                        const ChunkId key(requests[i].mCenter, requests[i].mSize, false);
+                        osg::ref_ptr<osg::Node> positioned;
+                        std::size_t bytes = 0;
+                        if (const auto* old = retainedBatch(key, optimized[i], false))
+                        {
+                            positioned = old->mPositioned;
+                            bytes = old->mBytes;
+                        }
+                        if (!positioned)
+                        {
+                            osg::ref_ptr<SceneUtil::PositionAttitudeTransform> transform
+                                = new SceneUtil::PositionAttitudeTransform;
+                            transform->setPosition(osg::Vec3f(requests[i].mCenter.x() * getCellSize(mWorldspace),
+                                requests[i].mCenter.y() * getCellSize(mWorldspace), 0));
+                            transform->addChild(optimized[i]);
+                            positioned = transform;
+                            SceneUtil::SceneFootprint measured;
+                            bytes = measured.measure(*positioned);
+                        }
+                        positioned->accept(visitor);
+                        snapshot->mEstimatedBytes += bytes;
+                        snapshot->mBatches.emplace(key, ScenerySnapshot::Batch{ optimized[i], positioned, asynchronous, bytes });
+                        ++mScenery->mOptimizedDraws;
+                    }
+            }
+            else
+            {
+                for (const auto& cell : group.mCells)
+                {
+                    osg::ref_ptr<SceneryBridge> bridge;
+                    for (const auto* owner : { prepared.get(), previous.get() })
+                        if (owner)
+                            if (auto it = owner->mBridges.find(cell); it != owner->mBridges.end())
+                            {
+                                bridge = it->second;
+                                break;
+                            }
+                    bool cached;
+                    {
+                        const std::lock_guard lock(mRefTrackerMutex);
+                        cached = bridge || mScenery->mBridges.contains(cell);
+                    }
+                    if (!cached)
+                    {
+                        mAsync->mBridges.cancel(cell);
+                        ++mScenery->mRequiredBuilds;
+                    }
+                    std::optional<Diagnostics::Loading::Timer> required;
+                    if (!cached)
+                        required.emplace(Diagnostics::Loading::Stage::SceneryRequired);
+                    if (!bridge)
+                        bridge = getSceneryBridge(cell, nullptr, true);
+                    if (bridge)
+                    {
+                        bridge->mNode->accept(visitor);
+                        snapshot->mEstimatedBytes += bridge->mBytes;
+                        snapshot->mBridges.emplace(cell, std::move(bridge));
+                    }
+                    ++mScenery->mBridgeDraws;
+                }
+                if (group.mCanReplace)
+                {
+                    for (const auto i : group.mRequests)
+                        if (!ready[i])
+                            prepare.push_back(i);
+                        else if (optimized[i])
+                        {
+                            // A ready sibling must survive even if the final
+                            // subcell takes longer than ordinary cache expiry.
+                            // Own it as a candidate without drawing it over cover.
+                            const ChunkId key(requests[i].mCenter, requests[i].mSize, false);
+                            ScenerySnapshot::Batch candidate{ optimized[i], {}, asynchronous, 0 };
+                            if (const auto* old = retainedBatch(key, optimized[i], false))
+                                candidate = *old;
+                            else
+                            {
+                                SceneUtil::SceneFootprint measured;
+                                candidate.mBytes = measured.measure(*optimized[i]);
+                            }
+                            snapshot->mEstimatedBytes += candidate.mBytes;
+                            snapshot->mBatches.emplace(key, std::move(candidate));
+                        }
+                }
+            }
+        }
+        for (const auto i : prepare)
+            requestChunk(requests[i], point, time, true);
+        // Keep selected raw nodes and positioned wrappers owned between frames.
+        // Resource cache expiry can now observe their continuing use.
+        if (current)
+        {
+            struct Retirement : osg::Referenced
+            {
+                std::shared_ptr<Terrain::SceneryView> mView;
+            };
+            osg::ref_ptr<Retirement> retired = new Retirement;
+            std::size_t bytes = sizeof(ScenerySnapshot);
+            if (const auto old = std::dynamic_pointer_cast<const ScenerySnapshot>(current))
+            {
+                // Unchanged graphs are also owned by the new snapshot. Charging
+                // their full estimate once per frame invents unbounded backlog.
+                bytes += (old->mBridges.size() + old->mBatches.size()) * 128;
+                for (const auto& [cell, bridge] : old->mBridges)
+                    if (auto next = snapshot->mBridges.find(cell);
+                        next == snapshot->mBridges.end() || next->second != bridge)
+                        bytes += bridge->mBytes;
+                for (const auto& [key, batch] : old->mBatches)
+                    if (auto next = snapshot->mBatches.find(key);
+                        next == snapshot->mBatches.end() || next->second.mNode != batch.mNode)
+                        bytes += batch.mBytes;
+            }
+            else
+                bytes += current->mEstimatedBytes;
+            retired->mView = std::move(current);
+            const std::lock_guard lock(mRefTrackerMutex);
+            mScenery->mRetiredBytes += bytes;
+            mScenery->mRetired.emplace_back(std::move(retired));
+        }
+        current = std::move(snapshot);
+        {
+            const std::lock_guard lock(mRefTrackerMutex);
+            mScenery->trim();
+            if (time >= mScenery->mNextReport)
+            {
+                Log(Debug::Info) << "Scenery coverage: bridgeSections=" << mScenery->mBridgeDraws
+                    << " optimizedBatches=" << mScenery->mOptimizedDraws
+                    << " requiredBridgeBuilds=" << mScenery->mRequiredBuilds
+                    << " retainedSections=" << mScenery->mBridges.size()
+                    << " estimatedRetainedBytes=" << mScenery->mBytes
+                    << " estimatedRetiredBytes=" << mScenery->mRetiredBytes + mScenery->mQueuedRetiredBytes
+                    << " estimatedSelectedBytes=" << current->mEstimatedBytes;
+                mScenery->mBridgeDraws = mScenery->mOptimizedDraws = mScenery->mRequiredBuilds = 0;
+                mScenery->mNextReport = time + 1;
+            }
+        }
+    }
+
+    void ObjectPaging::preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
+        const std::atomic_bool& abort, const Load& load)
+    {
+        auto& jobs = *MWBase::Environment::get().getNativeJobPoolOrNull();
+        std::vector<std::optional<Selection>> selected(chunks.size());
+        std::vector<std::vector<VFS::Path::NormalizedView>> models(chunks.size());
+        for (std::size_t i = 0; i < chunks.size() && !abort; ++i)
+        {
+            const auto& chunk = chunks[i];
+            if ((!chunk.mActiveGrid && usesSceneryCoverage()) || (chunk.mActiveGrid && !mActiveGrid)
+                || getCachedChunk(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid)))
+                continue;
+            selected[i] = selectChunk(chunk, viewPoint, &abort);
+            for (const auto& item : selected[i]->mItems)
+                models[i].emplace_back(item.mModel);
+        }
+        mSceneManager->withPagedModelGroups(models, jobs, abort, [&](std::size_t i, bool prepared) {
+            load(i, [&] {
+                if (!chunks[i].mActiveGrid && usesSceneryCoverage())
+                    return osg::ref_ptr<osg::Node>{};
+                return fetchChunk(chunks[i], viewPoint, true, &abort, selected[i] ? &*selected[i] : nullptr, prepared);
+            });
+        });
+    }
+
+    namespace
+    {
+        // CopyOp may remove Switch/LOD parents or replace special transforms and
+        // drawables. Bound ordinary geometry itself, across all branches, and refuse
+        // to certify other node classes. Never trust authored LOD centres/radii here.
+        bool addPagingVertices(const osg::Node& node, const osg::Matrixd& parent, double& extent)
+        {
+            if (node.getUpdateCallback() || node.getComputeBoundingSphereCallback()
+                || node.getNumChildrenRequiringUpdateTraversal())
+                return false;
+            if (typeid(node) == typeid(osg::Geometry))
+            {
+                const auto& geometry = static_cast<const osg::Geometry&>(node);
+                const auto* vertices = dynamic_cast<const osg::Vec3Array*>(geometry.getVertexArray());
+                if (!vertices || geometry.getComputeBoundingBoxCallback())
+                    return false;
+                const auto& box = geometry.getBoundingBox();
+                if (!box.valid())
+                    return false;
+                for (unsigned i = 0; i < 8; ++i)
+                {
+                    const auto p = osg::Vec3d(box.corner(i)) * parent;
+                    const double length = p.length();
+                    if (!std::isfinite(length))
+                        return false;
+                    extent = std::max(extent, length);
+                }
+                return true;
+            }
+            const auto* group = node.asGroup();
+            if (!group)
+                return false;
+            osg::Matrixd matrix = parent;
+            if (typeid(node) == typeid(osg::MatrixTransform))
+            {
+                const auto& transform = static_cast<const osg::MatrixTransform&>(node);
+                const auto& local = transform.getMatrix();
+                if (transform.getReferenceFrame() != osg::Transform::RELATIVE_RF
+                    || local(0, 3) != 0 || local(1, 3) != 0 || local(2, 3) != 0 || local(3, 3) != 1)
+                    return false;
+                matrix.preMult(local);
+            }
+            else if (typeid(node) != typeid(osg::Group) && typeid(node) != typeid(osg::Geode)
+                && typeid(node) != typeid(osg::LOD) && typeid(node) != typeid(osg::Switch))
+                return false;
+            for (unsigned i = 0; i < group->getNumChildren(); ++i)
+                if (!addPagingVertices(*group->getChild(i), matrix, extent))
+                    return false;
+            return true;
+        }
+    }
+
+    bool ObjectPaging::mayIntersectOutsideTile(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Terrain::RayFootprint& ray)
+    {
+        if (chunk.mActiveGrid && !mActiveGrid)
+            return false;
+        const osg::Vec2f origin = chunk.mCenter * static_cast<float>(getCellSize(mWorldspace));
+        const auto cached = getCachedChunk(ChunkId(chunk.mCenter, chunk.mSize, chunk.mActiveGrid));
+        if (cached)
+        {
+            const auto* node = static_cast<const osg::Node*>(cached.get());
+            const auto& b = node->getBound();
+            return !node->isCullingActive() || !b.valid()
+                || ray.intersects(origin.x() + double(b.center().x()), origin.y() + double(b.center().y()), b.radius());
+        }
+
+        // Use the same reference, override, scale and LOD selection as the full chunk.
+        // A placement in a neighbouring cell can reach into the segment's cell.
+        const auto modelRevision = mSceneManager->modelSettingsRevision();
+        const auto selected = selectChunk(chunk, viewPoint, nullptr);
+        std::map<VFS::Path::NormalizedView, double> extents;
+        for (const auto& item : selected.mItems)
+        {
+            auto [it, inserted] = extents.try_emplace(item.mModel, 0.);
+            if (inserted)
+            {
+                const auto model = mSceneManager->getCachedTemplate(item.mModel);
+                if (!model || !addPagingVertices(*model, osg::Matrixd::identity(), it->second))
+                    return true;
+            }
+            const auto& ref = item.mRef;
+            const osg::Vec3f local = ref.mPosition - osg::Vec3f(origin.x(), origin.y(), 0);
+            if (ray.intersects(origin.x() + double(local.x()), origin.y() + double(local.y()),
+                    it->second * std::abs(double(ref.mScale))))
+                return true;
+        }
+        return selected.mEpoch != cacheEpoch() || modelRevision != mSceneManager->modelSettingsRevision()
+            || selected.mRevision != selectionRevision({ chunk.mCenter, chunk.mSize, chunk.mActiveGrid })
+            || selected.mVfsRevision != mSceneManager->getVFS()->getIndexRevision();
+    }
+
+    std::uint64_t ObjectPaging::selectionRevision(const ChunkId& id)
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        return selectionRevisionLocked(id);
+    }
+
+    std::uint64_t ObjectPaging::selectionRevisionLocked(const ChunkId& id) const
+    {
+        const auto& [center, size, active] = id;
+        return mSelectionRevisions.get(center.x(), center.y(), size, active);
+    }
+
+    ObjectPaging::CacheEpoch ObjectPaging::cacheEpoch() const
+    {
+        return { mGraphicsRevision.load(), mSceneManager->modelSettingsRevision(),
+            mSceneManager->getVFS()->getIndexRevision() };
+    }
+
+    void ObjectPaging::refreshCacheEpoch()
+    {
+        const auto epoch = cacheEpoch();
+        if (epoch != mCacheEpoch)
+        {
+            mCache->clear();
+            mScenery->clear();
+            mCacheEpoch = epoch;
+        }
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::getCachedChunk(const ChunkId& id)
+    {
+        const std::lock_guard lock(mRefTrackerMutex);
+        refreshCacheEpoch();
+        return static_cast<osg::Node*>(mCache->getRefFromObjectCache(id).get());
+    }
+
     osg::ref_ptr<osg::Node> ObjectPaging::getChunk(float size, const osg::Vec2f& center, unsigned char /*lod*/,
-        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+        unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile, const std::atomic_bool* abort)
+    {
+        return fetchChunk({ size, center, lodFlags, activeGrid }, viewPoint, compile, abort, nullptr, false);
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::fetchChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint,
+        bool compile, const std::atomic_bool* abort, const Selection* selected, bool modelsPrepared)
     {
         Diagnostics::Loading::Timer loadingTimer(Diagnostics::Loading::Stage::ObjectChunks);
         Diagnostics::Scope chunkTiming("terrain", "objects", "getChunk");
-        if (activeGrid && !mActiveGrid)
+        if (chunk.mActiveGrid && !mActiveGrid)
             return nullptr;
+        const ChunkId id(chunk.mCenter, chunk.mSize, chunk.mActiveGrid);
+        for (;;)
+        {
+            if (abort && *abort)
+                return nullptr;
+            CacheEpoch epoch;
+            {
+                const std::lock_guard lock(mRefTrackerMutex);
+                refreshCacheEpoch();
+                epoch = mCacheEpoch;
+                if (auto cached = mCache->getRefFromObjectCache(id))
+                    return static_cast<osg::Node*>(cached.get());
+            }
 
-        const ChunkId id = std::make_tuple(center, size, activeGrid);
-
-        if (const osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(id))
-            return static_cast<osg::Node*>(obj.get());
-
-        const unsigned char lod = static_cast<unsigned char>(lodFlags >> (4 * 4));
-        osg::ref_ptr<osg::Node> node = createChunk(size, center, activeGrid, viewPoint, compile, lod);
-        mCache->addEntryToObjectCache(id, node.get());
-        return node;
+            std::optional<Selection> local;
+            if (!selected || selected->mEpoch != epoch || selected->mRevision != selectionRevision(id)
+                || selected->mVfsRevision != mSceneManager->getVFS()->getIndexRevision())
+            {
+                local.emplace(selectChunk(chunk, viewPoint, abort));
+                selected = &*local;
+                modelsPrepared = false;
+            }
+            if (abort && *abort)
+                return nullptr;
+            PendingCompile pending;
+            auto node = createChunk(chunk, viewPoint, *selected, compile, abort, modelsPrepared, pending);
+            if (!node || (abort && *abort))
+                return nullptr;
+            {
+                // An enable/blacklist change may have evicted an older node during assembly.
+                // Publish against the same tracker revision, or reselect outside the lock.
+                const std::lock_guard lock(mRefTrackerMutex);
+                if (epoch == cacheEpoch() && selected->mRevision == selectionRevisionLocked(id)
+                    && selected->mVfsRevision == mSceneManager->getVFS()->getIndexRevision())
+                {
+                    if (auto cached = mCache->getRefFromObjectCache(id))
+                        return static_cast<osg::Node*>(cached.get());
+                    if (pending.mSet)
+                        pending.mOperation->add(pending.mSet, false);
+                    mCache->addEntryToObjectCache(id, node.get());
+                    return node;
+                }
+            }
+            selected = nullptr;
+            modelsPrepared = false;
+        }
     }
 
     namespace
@@ -481,11 +1424,16 @@ namespace MWRender
         Misc::BoundedCache<std::pair<int, int>, std::map<ESM::RefNum, PagedCellRef>> cells{ 64 };
     };
 
-    ObjectPaging::~ObjectPaging() = default;
+    ObjectPaging::~ObjectPaging()
+    {
+        // Jobs capture this manager. Drain them while all members are alive.
+        mAsync.reset();
+    }
 
     ObjectPaging::ObjectPaging(Resource::SceneManager* sceneManager, ESM::RefId worldspace)
         : GenericResourceManager<ChunkId>(nullptr, Settings::cells().mCacheExpiryDelay)
-        , Terrain::QuadTreeWorld::ChunkManager(worldspace)
+        , Terrain::QuadTreeWorld::BatchChunkManager(worldspace)
+        , mScenery(std::make_unique<SceneryState>())
         , mReferenceCache(std::make_unique<ReferenceCache>())
         , mSceneManager(sceneManager)
         , mActiveGrid(Settings::terrain().mObjectPagingActiveGrid)
@@ -632,10 +1580,16 @@ namespace MWRender
         }
     }
 
-    osg::ref_ptr<osg::Node> ObjectPaging::createChunk(float size, const osg::Vec2f& center, bool activeGrid,
-        const osg::Vec3f& viewPoint, bool compile, unsigned char lod)
+    ObjectPaging::Selection ObjectPaging::selectChunk(
+        const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const std::atomic_bool* abort, bool bridge)
     {
-        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
+        Diagnostics::Loading::Timer selectionTimer(Diagnostics::Loading::Stage::PagedCandidateSelection);
+        Selection result{ {}, selectionRevision({ chunk.mCenter, chunk.mSize, chunk.mActiveGrid }),
+            mSceneManager->getVFS()->getIndexRevision(), cacheEpoch() };
+        const auto& [size, center, flags, activeGrid] = chunk;
+        const auto lod = static_cast<unsigned char>(flags >> (4 * 4));
+        const auto cellSize = getCellSize(mWorldspace);
+        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         const osg::Vec2i startCell(static_cast<int>(std::floor(center.x() - size / 2.f)),
             static_cast<int>(std::floor(center.y() - size / 2.f)));
         const MWBase::World& world = *MWBase::Environment::get().getWorld();
@@ -704,37 +1658,10 @@ namespace MWRender
             static_cast<int>(std::floor(minBound.x())), static_cast<int>(std::floor(minBound.y())));
         const osg::Vec2i ceilMaxBound(
             static_cast<int>(std::ceil(maxBound.x())), static_cast<int>(std::ceil(maxBound.y())));
-        struct InstanceList
-        {
-            std::vector<const PagedCellRef*> mInstances;
-            AnalyzeVisitor::Result mAnalyzeResult;
-            bool mNeedCompile = false;
-        };
-        typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
-        NodeMap nodes;
-        // Only retained while building this chunk; paths include the selected LOD.
-        std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
-        const osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
-
-        // Mask_UpdateVisitor is used in such cases in NIF loader:
-        // 1. For collision nodes, which is not supposed to be rendered.
-        // 2. For nodes masked via Flag_Hidden (VisController can change this flag value at runtime).
-        // Since ObjectPaging does not handle VisController, we can just ignore both types of nodes.
-        constexpr auto copyMask = ~Mask_UpdateVisitor;
-
-        const int cellSize = getCellSize(mWorldspace);
-        const float smallestDistanceToChunk = (size > 1 / 8.f) ? (size * cellSize) : 0.f;
-        const float higherDistanceToChunk
-            = activeGrid ? ((size < 1) ? 5 : 3) * cellSize * size + 1 : smallestDistanceToChunk + 1;
-        const LODRange lodDistances = activeGrid ? LODRange{ 0.f, std::numeric_limits<float>::max() }
-                                                 : LODRange{ smallestDistanceToChunk, higherDistanceToChunk };
-
-        AnalyzeVisitor analyzeVisitor(copyMask);
-        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         for (const auto& [refNum, ref] : refs)
         {
-            // Inclusive of template requests and node analysis below.
-            Diagnostics::Loading::Timer selectionLoading(Diagnostics::Loading::Stage::ObjectSelection);
+            if (abort && abort->load(std::memory_order_relaxed))
+                return result;
             if (size < 1.f)
             {
                 const osg::Vec3f cellPos = ref.mPosition / static_cast<float>(cellSize);
@@ -746,11 +1673,12 @@ namespace MWRender
             }
 
             const float dSqr = (viewPoint - ref.mPosition).length2();
-            if (!activeGrid)
+            if (!activeGrid && !bridge)
             {
                 std::lock_guard<std::mutex> lock(mSizeCacheMutex);
                 SizeCache::iterator found = mSizeCache.find(refNum);
-                if (found != mSizeCache.end() && found->second < dSqr * minSize * minSize)
+                if (found != mSizeCache.end() && found->second.second == result.mEpoch
+                    && found->second.first < dSqr * minSize * minSize)
                     continue;
             }
 
@@ -780,6 +1708,12 @@ namespace MWRender
             if (!activeGrid)
             {
                 std::lock_guard<std::mutex> lock(mLODNameCacheMutex);
+                const auto revision = mSceneManager->getVFS()->getIndexRevision();
+                if (mLODNameCacheRevision != revision)
+                {
+                    mLODNameCache.clear();
+                    mLODNameCacheRevision = revision;
+                }
                 LODNameCacheKey key{ model, lod };
                 LODNameCache::const_iterator found = mLODNameCache.lower_bound(key);
                 if (found != mLODNameCache.end() && found->first == key)
@@ -792,6 +1726,50 @@ namespace MWRender
                                 ->second;
             }
 
+            result.mItems.push_back({ refNum, ref, std::move(model), dSqr });
+        }
+        return result;
+    }
+
+    osg::ref_ptr<osg::Node> ObjectPaging::createChunk(const ChunkRequest& chunk, const osg::Vec3f& viewPoint, const Selection& selected,
+        bool compile, const std::atomic_bool* abort, bool modelsPrepared, PendingCompile& pending, bool bridge)
+    {
+        Diagnostics::Scope createTiming("terrain", "objects", "createChunk");
+        const auto& size = chunk.mSize;
+        const auto& center = chunk.mCenter;
+        const bool activeGrid = chunk.mActiveGrid;
+        struct InstanceList
+        {
+            std::vector<const PagedCellRef*> mInstances;
+            AnalyzeVisitor::Result mAnalyzeResult;
+            bool mNeedCompile = false;
+        };
+        typedef std::map<osg::ref_ptr<const osg::Node>, InstanceList> NodeMap;
+        NodeMap nodes;
+        std::vector<NodeMap::iterator> firstReferenceOrder;
+        // Only retained while building this chunk; paths include the selected LOD.
+        std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
+        const osg::ref_ptr<RefnumSet> refnumSet = activeGrid ? new RefnumSet : nullptr;
+
+        // Mask_UpdateVisitor is used in such cases in NIF loader:
+        // 1. For collision nodes, which is not supposed to be rendered.
+        // 2. For nodes masked via Flag_Hidden (VisController can change this flag value at runtime).
+        // Since ObjectPaging does not handle VisController, we can just ignore both types of nodes.
+        constexpr auto copyMask = ~Mask_UpdateVisitor;
+
+        const int cellSize = getCellSize(mWorldspace);
+        const float smallestDistanceToChunk = (size > 1 / 8.f) ? (size * cellSize) : 0.f;
+        const float higherDistanceToChunk
+            = activeGrid ? ((size < 1) ? 5 : 3) * cellSize * size + 1 : smallestDistanceToChunk + 1;
+        const LODRange lodDistances = (activeGrid || bridge) ? LODRange{ 0.f, std::numeric_limits<float>::max() }
+                                                 : LODRange{ smallestDistanceToChunk, higherDistanceToChunk };
+
+        AnalyzeVisitor analyzeVisitor(copyMask);
+        const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
+        auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
+        const bool prepare = !modelsPrepared && canPreloadBatches();
+        const auto consume = [&](const ESM::RefNum& refNum, const PagedCellRef& ref,
+                                 const VFS::Path::Normalized& model, float dSqr) {
             osg::ref_ptr<const osg::Node> cnode = [&] {
                 Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
                 Diagnostics::Loading::Timer modelLoading(Diagnostics::Loading::Stage::ObjectTemplates);
@@ -809,7 +1787,7 @@ namespace MWRender
                     || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
                     || (cnode->getName() == "Collada visual scene group"
                         && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
-                    continue;
+                    return;
                 else
                     refnumSet->mRefnums.push_back(refNum);
             }
@@ -817,32 +1795,79 @@ namespace MWRender
             {
                 std::lock_guard<std::mutex> lock(mRefTrackerMutex);
                 if (getRefTracker().mDisabled.count(refNum))
-                    continue;
+                    return;
             }
 
             const float radius2 = cnode->getBound().radius2() * ref.mScale * ref.mScale;
-            if (radius2 < dSqr * minSize * minSize && !activeGrid)
+            if (radius2 < dSqr * minSize * minSize && !activeGrid && !bridge)
             {
                 std::lock_guard<std::mutex> lock(mSizeCacheMutex);
-                mSizeCache[refNum] = radius2;
-                continue;
+                mSizeCache[refNum] = { radius2, selected.mEpoch };
+                return;
             }
 
             const auto emplaced = nodes.emplace(std::move(cnode), InstanceList());
             if (emplaced.second)
             {
-                Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
-                analyzeVisitor.mDistances = lodDistances / ref.mScale;
+                firstReferenceOrder.push_back(emplaced.first);
                 const osg::Node* const nodePtr = emplaced.first->first.get();
-                // const-trickery required because there is no const version of NodeVisitor
-                const_cast<osg::Node*>(nodePtr)->accept(analyzeVisitor);
-                emplaced.first->second.mAnalyzeResult = analyzeVisitor.retrieveResult();
+                if (!bridge)
+                {
+                    Diagnostics::Loading::Timer analysisLoading(Diagnostics::Loading::Stage::ObjectAnalysis);
+                    analyzeVisitor.mDistances = lodDistances / ref.mScale;
+                    // OSG has no const visitor. Analysis does not modify the template.
+                    const_cast<osg::Node*>(nodePtr)->accept(analyzeVisitor);
+                    emplaced.first->second.mAnalyzeResult = analyzeVisitor.retrieveResult();
+                }
                 emplaced.first->second.mNeedCompile = compile && nodePtr->referenceCount() <= 2;
             }
-            else
+            else if (!bridge)
                 analyzeVisitor.addInstance(emplaced.first->second.mAnalyzeResult);
             emplaced.first->second.mInstances.push_back(&ref);
+        };
+
+        // First-use order controls scene attachment. Worker completion order and node addresses do not.
+        std::vector<const Selection::Item*> batch;
+        auto flush = [&] {
+            std::vector<VFS::Path::NormalizedView> paths;
+            for (const auto& entry : batch)
+                if (!chunkTemplates.contains(entry->mModel)
+                    && std::find(paths.begin(), paths.end(), entry->mModel) == paths.end())
+                    paths.emplace_back(entry->mModel);
+            const auto consumeBatch = [&] {
+                for (const auto& entry : batch)
+                {
+                    if (abort && abort->load(std::memory_order_relaxed))
+                        return;
+                    consume(entry->mNumber, entry->mRef, entry->mModel, entry->mDistanceSquared);
+                }
+            };
+            if (compile)
+                mSceneManager->withPreparedPagedModels(paths, *jobs, abort, consumeBatch);
+            else
+            {
+                // Foreground traversal keeps its existing, smaller NIF decoding workload.
+                mSceneManager->prepareNifInputs(paths, *jobs, abort);
+                consumeBatch();
+            }
+            batch.clear();
+        };
+        for (const auto& item : selected.mItems)
+        {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return nullptr;
+            Diagnostics::Loading::Timer selectionTiming(Diagnostics::Loading::Stage::ObjectSelection);
+            if (prepare)
+            {
+                batch.push_back(&item);
+                if (batch.size() == 32)
+                    flush();
+            }
+            else
+                consume(item.mNumber, item.mRef, item.mModel, item.mDistanceSquared);
         }
+        if (!batch.empty())
+            flush();
 
         const osg::Vec3f worldCenter
             = osg::Vec3f(center.x(), center.y(), 0) * static_cast<float>(getCellSize(mWorldspace));
@@ -851,8 +1876,11 @@ namespace MWRender
         osg::ref_ptr<Resource::TemplateMultiRef> templateRefs = new Resource::TemplateMultiRef;
         osgUtil::StateToCompile stateToCompile(0, nullptr);
         CopyOp copyop(activeGrid, copyMask);
-        for (const auto& pair : nodes)
+        for (const auto entry : firstReferenceOrder)
         {
+            if (abort && abort->load(std::memory_order_relaxed))
+                return nullptr;
+            const auto& pair = *entry;
             Diagnostics::Loading::Timer instancesLoading(Diagnostics::Loading::Stage::ObjectInstances);
             const osg::Node* cnode = pair.first;
 
@@ -860,7 +1888,7 @@ namespace MWRender
 
             const float mergeCost = analyzeResult.mNumVerts * size;
             const float mergeBenefit = analyzeVisitor.getMergeBenefit(analyzeResult) * mMergeFactor;
-            const bool merge = mergeBenefit > mergeCost;
+            const bool merge = !bridge && mergeBenefit > mergeCost;
 
             const float factor2
                 = mergeBenefit > 0 ? std::min(1.f, mergeCost * mMinSizeCostMultiplier / mergeBenefit) : 1;
@@ -872,7 +1900,7 @@ namespace MWRender
             {
                 const PagedCellRef& ref = *refPtr;
 
-                if (!activeGrid && minSizeMerged != minSize
+                if (!bridge && !activeGrid && minSizeMerged != minSize
                     && cnode->getBound().radius2() * ref.mScale * ref.mScale
                         < (viewPoint - ref.mPosition).length2() * minSizeMerged * minSizeMerged)
                     continue;
@@ -953,6 +1981,8 @@ namespace MWRender
 
         const osg::Vec3f relativeViewPoint = viewPoint - worldCenter;
 
+        if (abort && abort->load(std::memory_order_relaxed))
+            return nullptr;
         if (mergeGroup->getNumChildren())
         {
             SceneUtil::Optimizer optimizer;
@@ -989,9 +2019,9 @@ namespace MWRender
         if (!stateToCompile.empty() && ico)
         {
             Diagnostics::Loading::Timer compileLoading(Diagnostics::Loading::Stage::ObjectCompile);
-            auto compileSet = new osgUtil::IncrementalCompileOperation::CompileSet(group);
-            compileSet->buildCompileMap(ico->getContextSet(), stateToCompile);
-            ico->add(compileSet, false);
+            auto compileSet = SceneUtil::prepareCompileSet(*ico, group, &stateToCompile);
+            pending.mOperation = ico;
+            pending.mSet = std::move(compileSet);
         }
 
         Diagnostics::Loading::Timer finishLoading(Diagnostics::Loading::Stage::ObjectFinish);
@@ -1065,15 +2095,16 @@ namespace MWRender
         if (!typeFilter(type, false))
             return false;
 
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            if (enabled && !getWritableRefTracker().mDisabled.erase(refnum))
-                return false;
-            if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second)
-                return false;
-            if (mRefTrackerLocked)
-                return false;
-        }
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        if (enabled && !getWritableRefTracker().mDisabled.erase(refnum))
+            return false;
+        if (!enabled && !getWritableRefTracker().mDisabled.insert(refnum).second)
+            return false;
+        if (mRefTrackerLocked)
+            return false;
+        ++mSelectionRevision;
+        mSelectionRevisions.invalidate(cell.x(), cell.y(), false);
+        invalidateScenery(pos, cell);
 
         CollectIntersecting ccf(false, pos, cell, mWorldspace);
         mCache->call(ccf);
@@ -1089,13 +2120,14 @@ namespace MWRender
         if (!typeFilter(type, false))
             return false;
 
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            if (!getWritableRefTracker().mBlacklist.insert(refnum).second)
-                return false;
-            if (mRefTrackerLocked)
-                return false;
-        }
+        std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        if (!getWritableRefTracker().mBlacklist.insert(refnum).second)
+            return false;
+        if (mRefTrackerLocked)
+            return false;
+        ++mSelectionRevision;
+        mSelectionRevisions.invalidate(cell.x(), cell.y(), true);
+        invalidateScenery(pos, cell);
 
         CollectIntersecting ccf(true, pos, cell, mWorldspace);
         mCache->call(ccf);
@@ -1110,6 +2142,9 @@ namespace MWRender
     {
         mReferenceCache->cells.clear();
         std::lock_guard<std::mutex> lock(mRefTrackerMutex);
+        ++mSelectionRevision;
+        mSelectionRevisions.clear();
+        mScenery->clear();
         mRefTrackerNew.mDisabled.clear();
         mRefTrackerNew.mBlacklist.clear();
         mRefTrackerLocked = true;
@@ -1117,18 +2152,31 @@ namespace MWRender
 
     bool ObjectPaging::unlockCache()
     {
+        const std::lock_guard lock(mRefTrackerMutex);
         if (!mRefTrackerLocked)
             return false;
-        {
-            std::lock_guard<std::mutex> lock(mRefTrackerMutex);
-            mRefTrackerLocked = false;
-            if (mRefTracker == mRefTrackerNew)
-                return false;
-            else
-                mRefTracker = mRefTrackerNew;
-        }
+        mRefTrackerLocked = false;
+        if (mRefTracker == mRefTrackerNew)
+            return false;
+        mRefTracker = mRefTrackerNew;
+        ++mSelectionRevision;
+        mSelectionRevisions.clear();
         mCache->clear();
+        mScenery->clear();
         return true;
+    }
+
+    void ObjectPaging::invalidateScenery(const osg::Vec3f& position, const osg::Vec2i& cell)
+    {
+        // Caller holds mRefTrackerMutex. The ownership cell, rather than mesh
+        // bounds, controls participation in the far/active handover.
+        if (auto it = mScenery->mBridges.find({ cell.x(), cell.y() }); it != mScenery->mBridges.end())
+            mScenery->erase(it);
+        const auto clamped = clampToCell(position / static_cast<float>(getCellSize(mWorldspace)), cell);
+        const Terrain::SceneryCell edge{ static_cast<int>(std::floor(clamped.x())),
+            static_cast<int>(std::floor(clamped.y())) };
+        if (auto it = mScenery->mBridges.find(edge); it != mScenery->mBridges.end())
+            mScenery->erase(it);
     }
 
     namespace
@@ -1165,6 +2213,8 @@ namespace MWRender
 
     void ObjectPaging::getPagedRefnums(const osg::Vec4i& activeGrid, std::vector<ESM::RefNum>& out)
     {
+        const std::lock_guard lock(mRefTrackerMutex);
+        refreshCacheEpoch();
         GetRefnumsFunctor grf(out);
         grf.mActiveGrid = activeGrid;
         mCache->call(grf);

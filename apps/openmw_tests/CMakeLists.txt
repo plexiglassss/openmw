@@ -11,12 +11,18 @@ file(GLOB UNITTEST_SRC_FILES
     mwworld/testduration.cpp
     mwworld/testtimestamp.cpp
     mwworld/testptr.cpp
+    mwworld/testpostponedphysics.cpp
     mwworld/testweather.cpp
     mwworld/testpositioncellgrid.cpp
+    mwworld/testpreloaddependencies.cpp
 
     mwdialogue/testkeywordsearch.cpp
 
     mwmechanics/testlevelledlist.cpp
+    mwmechanics/testmagiceffectaccounting.cpp
+
+    mwrender/testlocationrenderingprofiles.cpp
+    mwrender/testsavedglobalmap.cpp
 
     mwgui/tooltips.cpp
     mwgui/weightedsearch.cpp
@@ -25,13 +31,21 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testdialoguecolourcontrols.cpp
     mwgui/testmessageboxstate.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
     mwgui/testresttime.cpp
     mwgui/testcontinuegame.cpp
     mwgui/testmainmenubutton.cpp
     mwgui/testluauilayout.cpp
 
+    mwlua/testmodkeybindings.cpp
     mwlua/testobjectcache.cpp
     mwlua/testmagicbindings.cpp
+    mwlua/testnativequeryservice.cpp
+    mwlua/testspatialdistance.cpp
+    mwlua/testpositionsnapshots.cpp
+    mwworld/testarrivalcancellation.cpp
+    mwlua/testparallelqueries.cpp
+    mwlua/testvfsiterators.cpp
 
     mwscript/testscripts.cpp
 
@@ -84,8 +98,12 @@ target_compile_definitions(openmw-tests
 openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
     controls-test-main.cpp
     mwgui/testmessagepositioncontrols.cpp
+    mwgui/testtraveltooltipdata.cpp
     ../openmw/mwgui/mapiconcontrols.cpp
     ../openmw/mwgui/messagepositioncontrols.cpp
+    ../openmw/mwgui/tooltipcontrols.cpp
+    ../openmw/mwgui/traveltooltipdata.cpp
+    ../openmw/mwgui/traveltooltipview.cpp
     ../openmw/mwgui/resourceskin.cpp
     ${PROJECT_SOURCE_DIR}/components/mapmarkers/classification.cpp
 )

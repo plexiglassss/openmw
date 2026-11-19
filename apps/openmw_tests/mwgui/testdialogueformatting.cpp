@@ -234,6 +234,16 @@ namespace MWGui
                 EXPECT_EQ(run.mColour, Settings::gui().mColorDialogueInventory.get());
         }
 
+        TEST_F(DialogueFormattingTest, LocalizedRemovalsUseRemovalColour)
+        {
+            const std::string text = "Un parchemin a été retiré de votre inventaire.";
+            const auto book = render(text, { { 0, text.size(), Category::InventoryRemoval } }, {},
+                getDialoguePalette(theme(), true));
+            ASSERT_FALSE(book->getTextRuns().empty());
+            for (const auto& run : book->getTextRuns())
+                EXPECT_EQ(run.mColour, Settings::gui().mColorDialogueInventoryRemoval.get());
+        }
+
         TEST_F(DialogueFormattingTest, DisabledFeatureRestoresBothOriginalTextColours)
         {
             Settings::gui().mDialogueColouring.set(false);
