@@ -40,6 +40,13 @@ namespace DetourNavigator
             out.setAttribute(frameNumber, "NavMesh Recast Objects", static_cast<double>(stats.mObjects));
             out.setAttribute(frameNumber, "NavMesh Recast Heightfields", static_cast<double>(stats.mHeightfields));
             out.setAttribute(frameNumber, "NavMesh Recast Water", static_cast<double>(stats.mWater));
+            out.setAttribute(
+                frameNumber, "NavMesh Recast Pending Geometry Tiles", static_cast<double>(stats.mPendingMeshTiles));
+            out.setAttribute(frameNumber, "NavMesh Recast Joined Geometry Requests",
+                static_cast<double>(stats.mJoinedMeshRequests));
+            out.setAttribute(frameNumber, "NavMesh Recast Snapshot Objects", static_cast<double>(stats.mSnapshotObjects));
+            out.setAttribute(frameNumber, "NavMesh Recast Snapshot Capacity",
+                static_cast<double>(stats.mSnapshotObjectCapacity));
         }
     }
 

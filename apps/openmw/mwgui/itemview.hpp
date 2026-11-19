@@ -20,7 +20,8 @@ namespace MWGui
         ItemModel* getModel() { return mModel.get(); }
 
         /// Takes ownership of \a model
-        void setModel(std::unique_ptr<ItemModel> model);
+        enum class Refresh { Immediate, OnNextUpdate };
+        void setModel(std::unique_ptr<ItemModel> model, Refresh refresh = Refresh::Immediate);
 
         typedef MyGUI::delegates::MultiDelegate<ItemModel::ModelIndex> EventHandle_ModelIndex;
         typedef MyGUI::delegates::MultiDelegate<> EventHandle_Void;

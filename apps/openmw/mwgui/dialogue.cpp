@@ -557,6 +557,27 @@ namespace MWGui
 
         // The topics list has been regenerated so topic formatting needs to be updated
         updateTopicFormat();
+
+        // Attach to the actual service widget after MWList recreates its children. This
+        // also survives dialogue resizing and avoids interpreting translated captions.
+        const bool hasTravelService = !mPtr.isEmpty()
+            && ((mPtr.getType() == ESM::NPC::sRecordId && !mPtr.get<ESM::NPC>()->mBase->getTransport().empty())
+                || (mPtr.getType() == ESM::Creature::sRecordId
+                    && !mPtr.get<ESM::Creature>()->mBase->getTransport().empty()));
+        if (hasTravelService)
+        {
+            const auto& gmst = MWBase::Environment::get().getESMStore()->get<ESM::GameSetting>();
+            const auto& travelName = gmst.find("sTravel")->mValue.getString();
+            for (std::size_t index = 0; index < mTopicsList->getItemCount(); ++index)
+            {
+                if (mTopicsList->getItemNameAt(index) != travelName)
+                    continue;
+                MyGUI::Button* travel = mTopicsList->getItemWidget(travelName);
+                travel->setUserString("ToolTipType", "TravelOverview");
+                travel->setUserString("TravelProvider", mPtr.getCellRef().getRefId().serializeText());
+                break;
+            }
+        }
     }
 
     void DialogueWindow::updateTopicsPane()

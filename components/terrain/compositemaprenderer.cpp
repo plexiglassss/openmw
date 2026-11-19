@@ -5,6 +5,7 @@
 #include <osg/Texture2D>
 
 #include <algorithm>
+#include <components/diagnostics/timing.hpp>
 
 namespace Terrain
 {
@@ -30,42 +31,43 @@ namespace Terrain
         double conservativeTimeRatio(0.75);
         double availableTime = std::max((targetFrameTime - dt) * conservativeTimeRatio, mMinimumTimeAvailable);
 
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::unique_lock lock(mMutex);
 
         if (mImmediateCompileSet.empty() && mCompileSet.empty())
             return;
 
-        while (!mImmediateCompileSet.empty())
+        using Clock = std::chrono::steady_clock;
+        const auto deadline = Clock::now()
+            + std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(availableTime));
+        std::vector<osg::ref_ptr<CompositeMap>> retry;
+        while (!mImmediateCompileSet.empty() || (!mCompileSet.empty() && Clock::now() < deadline))
         {
-            osg::ref_ptr<CompositeMap> node = *mImmediateCompileSet.begin();
-            mImmediateCompileSet.erase(node);
-
-            mMutex.unlock();
-            compile(*node, renderInfo);
-            mMutex.lock();
-        }
-
-        const auto deadline = std::chrono::steady_clock::now() + std::chrono::duration<double>(availableTime);
-        while (!mCompileSet.empty() && std::chrono::steady_clock::now() < deadline)
-        {
-            osg::ref_ptr<CompositeMap> node = *mCompileSet.begin();
-            mCompileSet.erase(node);
-
-            mMutex.unlock();
-            compile(*node, renderInfo);
-            mMutex.lock();
-
+            const bool immediate = !mImmediateCompileSet.empty();
+            auto& pending = immediate ? mImmediateCompileSet : mCompileSet;
+            osg::ref_ptr<CompositeMap> node = *pending.begin();
+            pending.erase(pending.begin());
+            const size_t before = node->mCompiled;
+            lock.unlock();
+            {
+                Diagnostics::Scope timing("terrain", "composite", immediate ? "visibleLayers" : "backgroundLayers");
+                compile(*node, renderInfo, deadline);
+            }
+            lock.lock();
             if (node->mCompiled < node->mDrawables.size())
             {
-                // We did not compile the map fully.
-                // Place it back to queue to continue work in the next time.
-                mCompileSet.insert(node);
+                if (node->mCompiled == before)
+                    retry.push_back(node); // One attempt per frame while the framebuffer is unavailable.
+                else
+                    (node->mImmediate.load(std::memory_order_relaxed) ? mImmediateCompileSet : mCompileSet).insert(node);
             }
         }
+        for (const auto& node : retry)
+            (node->mImmediate.load(std::memory_order_relaxed) ? mImmediateCompileSet : mCompileSet).insert(node);
         mTimer.setStartTick();
     }
 
-    void CompositeMapRenderer::compile(CompositeMap& compositeMap, osg::RenderInfo& renderInfo) const
+    void CompositeMapRenderer::compile(CompositeMap& compositeMap, osg::RenderInfo& renderInfo,
+        std::chrono::steady_clock::time_point deadline) const
     {
         // if there are no more external references we can assume the texture is no longer required
         if (compositeMap.mTexture->referenceCount() <= 1)
@@ -74,7 +76,6 @@ namespace Terrain
             return;
         }
 
-        osg::Timer timer;
         osg::State& state = *renderInfo.getState();
         osg::GLExtensions* ext = state.get<osg::GLExtensions>();
 
@@ -102,10 +103,8 @@ namespace Terrain
         // should OSG be doing this on its own?
         state.haveAppliedTextureAttribute(state.getActiveTextureUnit(), osg::StateAttribute::TEXTURE);
 
-        for (size_t i = compositeMap.mCompiled; i < compositeMap.mDrawables.size(); ++i)
-        {
-            osg::Drawable* drw = compositeMap.mDrawables[i];
-            osg::StateSet* stateset = drw->getStateSet();
+        compositeMap.drawPendingLayers([&](osg::Drawable& drawable) {
+            osg::StateSet* stateset = drawable.getStateSet();
 
             if (stateset)
                 renderInfo.getState()->pushStateSet(stateset);
@@ -113,17 +112,12 @@ namespace Terrain
             renderInfo.getState()->apply();
 
             glViewport(0, 0, compositeMap.mTexture->getTextureWidth(), compositeMap.mTexture->getTextureHeight());
-            drw->drawImplementation(renderInfo);
+            drawable.drawImplementation(renderInfo);
 
             if (stateset)
                 renderInfo.getState()->popStateSet();
 
-            ++compositeMap.mCompiled;
-
-            compositeMap.mDrawables[i] = nullptr;
-        }
-        if (compositeMap.mCompiled == compositeMap.mDrawables.size())
-            compositeMap.mDrawables = std::vector<osg::ref_ptr<osg::Drawable>>();
+        }, [&] { return std::chrono::steady_clock::now() >= deadline; });
 
         state.haveAppliedAttribute(osg::StateAttribute::VIEWPORT);
 
@@ -145,7 +139,10 @@ namespace Terrain
     {
         std::lock_guard<std::mutex> lock(mMutex);
         if (immediate)
+        {
+            compositeMap->mImmediate.store(true, std::memory_order_relaxed);
             mImmediateCompileSet.insert(compositeMap);
+        }
         else
             mCompileSet.insert(compositeMap);
     }
@@ -153,6 +150,8 @@ namespace Terrain
     void CompositeMapRenderer::setImmediate(CompositeMap* compositeMap)
     {
         std::lock_guard<std::mutex> lock(mMutex);
+        // The draw thread may have temporarily removed a partially prepared map from the queue.
+        compositeMap->mImmediate.store(true, std::memory_order_relaxed);
         CompileSet::iterator found = mCompileSet.find(compositeMap);
         if (found == mCompileSet.end())
             return;

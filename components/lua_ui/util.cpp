@@ -1,4 +1,5 @@
 #include "util.hpp"
+#include "input.hpp"
 
 #include <ranges>
 #include <unordered_set>
@@ -49,6 +50,7 @@ namespace LuaUi
 
     void clearGameInterface()
     {
+        clearUiActionHandlers();
         while (!Element::sGameElements.empty())
             Element::erase(Element::sGameElements.begin()->second.get());
     }

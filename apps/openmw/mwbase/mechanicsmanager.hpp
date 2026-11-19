@@ -69,6 +69,16 @@ namespace MWBase
         virtual void drop(const MWWorld::CellStore* cellStore) = 0;
         ///< Deregister all objects in the given cell.
 
+        /// Observe a fully loaded interior entered by the player. Never loads a cell.
+        virtual void updateDungeonStatus(const MWWorld::CellStore* cell) = 0;
+
+        /// Coalesce actor lifecycle changes into one current-cell observation.
+        virtual void queueDungeonStatusUpdate(const MWWorld::CellStore* cell) = 0;
+
+        /// Saved status lookup only; safe for distant door destination tooltips.
+        virtual bool isDungeonCleared(const ESM::RefId& cellId) const = 0;
+        virtual std::uint64_t getDungeonStatusRevision() const = 0;
+
         virtual void setPlayerName(const std::string& name) = 0;
         ///< Set player name.
 

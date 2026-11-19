@@ -294,7 +294,9 @@ local function renderPage(page, options)
         end
         local groupElement = groupElements[page.key][group.key]
         if not groupElement or not groupElement.layout then
-            groupElement = ui.create(renderGroup(group, pageGroup.global))
+            -- A settings page only needs native widgets when the player first opens it.
+            -- Keep rendering Lua layouts and running custom renderers as usual.
+            groupElement = ui.create(renderGroup(group, pageGroup.global), { deferUntilAttached = true })
         end
         if groupElement.layout == nil then
             error(string.format('Destroyed group element for %s %s', page.key, group.key))
@@ -367,7 +369,7 @@ local function onSettingChanged(global)
 
         if not settingKey then
             if groupElement then
-                groupElement.layout = renderGroup(group)
+                groupElement.layout = renderGroup(group, global)
                 groupElement:update()
             else
                 renderPage(pages[group.page], pageOptions[group.page])

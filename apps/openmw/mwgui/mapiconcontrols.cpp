@@ -47,13 +47,18 @@ namespace MWGui
             for (size_t i = 0; i < controls.mToggles.size(); ++i)
                 y += placeToggle(controls.mToggleLabels[i], controls.mToggles[i], y, width) + gap;
 
-            const int valueWidth = std::max(60, controls.mSizeValue->getTextSize().width + margin);
-            const int labelHeight = placeText(controls.mSizeLabel, margin, y, inner - valueWidth - gap);
-            const int valueHeight = std::max(24, controls.mSizeValue->getFontHeight() + 4);
-            controls.mSizeValue->setCoord(width - margin - valueWidth, y, valueWidth, valueHeight);
-            y += std::max(labelHeight, valueHeight) + 4;
-            controls.mSize->setCoord(margin, y, inner, 14);
-            y += 14 + gap;
+            const auto placeSize = [&](MyGUI::EditBox* label, MyGUI::ScrollBar* bar, MyGUI::TextBox* value) {
+                const int valueWidth = std::max(60, value->getTextSize().width + margin);
+                const int labelHeight = placeText(label, margin, y, inner - valueWidth - gap);
+                const int valueHeight = std::max(24, value->getFontHeight() + 4);
+                value->setCoord(width - margin - valueWidth, y, valueWidth, valueHeight);
+                y += std::max(labelHeight, valueHeight) + 4;
+                bar->setCoord(margin, y, inner, 14);
+                y += 14 + gap;
+            };
+            placeSize(controls.mSizeLabel, controls.mSize, controls.mSizeValue);
+            placeSize(controls.mLocalSizeLabel, controls.mLocalSize, controls.mLocalSizeValue);
+            placeSize(controls.mMaximumLabel, controls.mMaximum, controls.mMaximumValue);
 
             y += placeText(controls.mColourLabel, margin, y, inner) + 4;
             int height = std::max(28, controls.mColours->getFontHeight() + margin);
@@ -104,28 +109,34 @@ namespace MWGui
             return widget;
         };
         controls.mDescription = text("#{OMWEngine:MapIconsDescription}");
-        constexpr std::array<std::string_view, 3> labels{
-            "#{OMWEngine:MapIconsEnabled}", "#{OMWEngine:MapIconsEntrances}", "#{OMWEngine:MapIconsTooltips}"
+        constexpr std::array<std::string_view, 4> labels{
+            "#{OMWEngine:MapIconsEnabled}", "#{OMWEngine:MapIconsEntrances}", "#{OMWEngine:MapIconsTooltips}",
+            "#{OMWEngine:MapIconsLocalDoors}"
         };
         for (size_t i = 0; i < labels.size(); ++i)
         {
             controls.mToggleLabels[i] = text(labels[i]);
             controls.mToggles[i] = button("#{Interface:On}");
         }
-        controls.mSizeLabel = text("#{OMWEngine:MapIconsSize}");
-        controls.mSize = controls.mContent->createWidget<MyGUI::ScrollBar>("MW_HScroll", {}, MyGUI::Align::Default);
-        controls.mSize->setScrollRange(25);
-        controls.mSize->setScrollPage(1);
-        controls.mSize->setScrollViewPage(1);
-        controls.mSize->setScrollWheelPage(1);
-        controls.mSize->setScrollPosition(8);
-        controls.mSizeValue = controls.mContent->createWidget<MyGUI::TextBox>("SandText", {}, MyGUI::Align::Default);
-        controls.mSizeValue->setCaption("24");
-        controls.mSizeValue->setTextAlign(MyGUI::Align::Right | MyGUI::Align::VCenter);
+        const auto makeSize = [&](MyGUI::EditBox*& label, MyGUI::ScrollBar*& bar, MyGUI::TextBox*& value,
+                                  std::string_view caption, int minimum, int maximum, int initial) {
+            label = text(caption);
+            bar = controls.mContent->createWidget<MyGUI::ScrollBar>("MW_HScroll", {}, MyGUI::Align::Default);
+            bar->setScrollRange(maximum - minimum + 1);
+            bar->setScrollPage(1);
+            bar->setScrollViewPage(1);
+            bar->setScrollWheelPage(1);
+            bar->setScrollPosition(initial - minimum);
+            value = controls.mContent->createWidget<MyGUI::TextBox>("SandText", {}, MyGUI::Align::Default);
+            value->setCaption(std::to_string(initial));
+            value->setTextAlign(MyGUI::Align::Right | MyGUI::Align::VCenter);
+        };
+        makeSize(controls.mSizeLabel, controls.mSize, controls.mSizeValue, "#{OMWEngine:MapIconsSize}", 16, 40, 24);
+        makeSize(controls.mLocalSizeLabel, controls.mLocalSize, controls.mLocalSizeValue, "#{OMWEngine:MapIconsLocalSize}", 8, 40, 15);
+        makeSize(controls.mMaximumLabel, controls.mMaximum, controls.mMaximumValue, "#{OMWEngine:MapIconsMaximum}", 8, 64, 24);
         controls.mColourLabel = text("#{OMWEngine:MapIconsColours}");
         controls.mColours = combo();
-        for (std::string_view caption : { "#{OMWEngine:MapIconsMapColours}", "#{OMWEngine:MapIconsWhite}",
-                 "#{OMWEngine:MapIconsCategoryColours}" })
+        for (std::string_view caption : { "#{OMWEngine:MapIconsVanillaColours}", "#{OMWEngine:MapIconsCategoryColours}" })
             controls.mColours->addItem(MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(caption)));
         controls.mColours->setIndexSelected(0);
         controls.mCategoryLabel = text("#{OMWEngine:MapIconsCategory}");

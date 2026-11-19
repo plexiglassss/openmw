@@ -3,6 +3,7 @@
 #include <components/debug/debuglog.hpp>
 
 #include <numeric>
+#include <algorithm>
 
 namespace SceneUtil
 {
@@ -56,14 +57,24 @@ namespace SceneUtil
 
     void WorkQueue::stop()
     {
+        std::deque<osg::ref_ptr<WorkItem>> discarded, maintenance;
         {
             std::unique_lock<std::mutex> lock(mMutex);
-            while (!mQueue.empty())
-                mQueue.pop_back();
             mIsReleased = true;
+            discarded.swap(mQueue);
+            maintenance.swap(mMaintenance);
             mCondition.notify_all();
         }
-
+        // Abort, destruct and notify outside the queue lock. Destructors may
+        // touch other queues, and owners must not wait forever for dropped work.
+        for (auto& items : { &discarded, &maintenance })
+            for (auto& item : *items)
+            {
+                item->abort();
+                item->signalDone();
+            }
+        discarded.clear();
+        maintenance.clear();
         mThreads.clear();
     }
 
@@ -75,25 +86,91 @@ namespace SceneUtil
             return;
         }
 
-        std::unique_lock<std::mutex> lock(mMutex);
-        if (front)
-            mQueue.push_front(std::move(item));
-        else
-            mQueue.push_back(std::move(item));
-        mCondition.notify_one();
+        {
+            std::unique_lock<std::mutex> lock(mMutex);
+            if (!mIsReleased)
+            {
+                auto& queue = item->isMaintenance() ? mMaintenance : mQueue;
+                if (front)
+                    queue.push_front(std::move(item));
+                else
+                    queue.push_back(std::move(item));
+                mCondition.notify_one();
+                return;
+            }
+        }
+        item->abort();
+        item->signalDone();
+    }
+
+    void WorkQueue::continueWorkItem(osg::ref_ptr<WorkItem> item)
+    {
+        // A yielded item is still unfinished. addWorkItem's released-queue
+        // path guarantees completion even when stop races the last slice.
+        addWorkItem(std::move(item));
+    }
+
+    bool WorkQueue::promoteWorkItem(WorkItem* item)
+    {
+        const std::lock_guard lock(mMutex);
+        for (auto* queue : { &mQueue, &mMaintenance })
+        {
+            const auto it = std::find(queue->begin(), queue->end(), item);
+            if (it != queue->end())
+            {
+                std::rotate(queue->begin(), it, std::next(it));
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool WorkQueue::cancelWorkItem(WorkItem* item)
+    {
+        if (!item)
+            return false;
+        item->abort();
+        osg::ref_ptr<WorkItem> removed;
+        {
+            const std::lock_guard lock(mMutex);
+            for (auto* queue : { &mQueue, &mMaintenance })
+            {
+                const auto it = std::find(queue->begin(), queue->end(), item);
+                if (it != queue->end())
+                {
+                    removed = std::move(*it);
+                    queue->erase(it);
+                    break;
+                }
+            }
+        }
+        if (!removed)
+            return false;
+        removed->signalDone();
+        return true;
     }
 
     osg::ref_ptr<WorkItem> WorkQueue::removeWorkItem()
     {
         std::unique_lock<std::mutex> lock(mMutex);
-        while (mQueue.empty() && !mIsReleased)
+        while (mQueue.empty() && mMaintenance.empty() && !mIsReleased)
         {
             mCondition.wait(lock);
+        }
+        // Count actual dispatches, including promoted arrivals. Maintenance
+        // gets one bounded slice after at most eight ordinary jobs.
+        if (!mMaintenance.empty() && (mQueue.empty() || mNormalSinceMaintenance >= 8))
+        {
+            osg::ref_ptr<WorkItem> item = std::move(mMaintenance.front());
+            mMaintenance.pop_front();
+            mNormalSinceMaintenance = 0;
+            return item;
         }
         if (!mQueue.empty())
         {
             osg::ref_ptr<WorkItem> item = std::move(mQueue.front());
             mQueue.pop_front();
+            mNormalSinceMaintenance = std::min<std::size_t>(8, mNormalSinceMaintenance + 1);
             return item;
         }
         return nullptr;
@@ -102,7 +179,7 @@ namespace SceneUtil
     size_t WorkQueue::getNumItems() const
     {
         std::unique_lock<std::mutex> lock(mMutex);
-        return mQueue.size();
+        return mQueue.size() + mMaintenance.size();
     }
 
     size_t WorkQueue::getNumActiveThreads() const
@@ -131,8 +208,10 @@ namespace SceneUtil
             if (!item)
                 return;
             mActive = true;
-            item->doWork();
-            item->signalDone();
+            if (item->doWorkSlice())
+                item->signalDone();
+            else
+                mWorkQueue->continueWorkItem(std::move(item));
             mActive = false;
         }
     }

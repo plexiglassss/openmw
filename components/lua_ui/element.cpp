@@ -2,6 +2,12 @@
 
 #include <MyGUI_Gui.h>
 
+#include <algorithm>
+#include <cstdlib>
+#include <iterator>
+#include <unordered_map>
+
+#include <components/misc/combinedperformance.hpp>
 #include "components/settings/values.hpp"
 #include "content.hpp"
 #include "util.hpp"
@@ -31,12 +37,103 @@ namespace LuaUi
 
         constexpr uint64_t maxDepth = 250;
 
+        // Inspect only fields that the native layout reader uses. Raw reads
+        // cannot invoke a mod's getter during this check. A dynamic getter
+        // may inspect another widget while its parent is being updated.
+        bool plainAttachmentLayout(lua_State* lua, WidgetExtension* owner, unsigned depth, size_t& remaining)
+        {
+            if (depth >= maxDepth || remaining == 0 || !lua_checkstack(lua, 8))
+                return false;
+            --remaining;
+            const Detail::RestoreStack restore(lua);
+            const int layout = lua_gettop(lua);
+            if (!lua_istable(lua, layout) || lua_getmetatable(lua, layout))
+                return false;
+
+            for (const char* field : { "props", "external", "events" })
+            {
+                lua_pushstring(lua, field);
+                lua_rawget(lua, layout);
+                if (!lua_isnil(lua, -1) && (!lua_istable(lua, -1) || lua_getmetatable(lua, -1)))
+                    return false;
+                lua_pop(lua, 1);
+            }
+            lua_pushliteral(lua, "template");
+            lua_rawget(lua, layout);
+            if (!lua_isnil(lua, -1) && !plainAttachmentLayout(lua, owner, depth + 1, remaining))
+                return false;
+            lua_pop(lua, 1);
+
+            lua_pushliteral(lua, "content");
+            lua_rawget(lua, layout);
+            if (lua_isnil(lua, -1))
+                return true;
+            const int content = lua_gettop(lua);
+            if (!lua_istable(lua, content) || !lua_getmetatable(lua, content) || lua_getmetatable(lua, -1))
+                return false;
+            lua_pushliteral(lua, "__Content");
+            lua_rawget(lua, -2);
+            if (!lua_isboolean(lua, -1) || !lua_toboolean(lua, -1))
+                return false;
+            lua_pop(lua, 1);
+            lua_pushliteral(lua, "__len");
+            lua_rawget(lua, -2);
+            if (!lua_isnil(lua, -1))
+                return false;
+            lua_pop(lua, 2);
+
+            const size_t count = lua_rawlen(lua, content);
+            for (size_t i = 0; i < count; ++i)
+            {
+                lua_rawgeti(lua, content, static_cast<int>(i + 1));
+                if (lua_istable(lua, -1))
+                {
+                    if (!plainAttachmentLayout(lua, owner, depth + 1, remaining))
+                        return false;
+                }
+                else
+                {
+                    if (!lua_isuserdata(lua, -1) || !sol::stack::check<Element*>(lua, -1))
+                        return false;
+                    Element* child = sol::stack::get<Element*>(lua, -1);
+                    if (!child || child->mState != Element::Created || child->mRoot == nullptr)
+                        return false;
+                    // Only the existing tree was checked for live external
+                    // properties and native text editors at the start of this action.
+                    auto* root = child->mRoot;
+                    while (root->getParent())
+                        root = root->getParent();
+                    if (root != owner)
+                        return false;
+                }
+                lua_pop(lua, 1);
+            }
+            return true;
+        }
+
+        bool canRetainAttachments(const sol::table& layout, WidgetExtension* owner)
+        {
+            if (!Misc::useTownFrameUpdates() || !layoutReuseInProgress())
+                return false;
+            lua_State* lua = layout.lua_state();
+            const Detail::RestoreStack restore(lua);
+            layout.push(lua);
+            size_t remaining = 8192;
+            while (owner->getParent())
+                owner = owner->getParent();
+            return plainAttachmentLayout(lua, owner, 0, remaining);
+        }
+
         std::string widgetType(const sol::table& layout)
         {
+            preserveDynamicLayoutReads(layout);
             sol::object typeField = LuaUtil::getFieldOrNil(layout, LayoutKeys::type);
             std::string type = LuaUtil::getValueOrDefault(typeField, defaultWidgetType);
-            sol::object templateTypeField
-                = LuaUtil::getFieldOrNil(layout, LayoutKeys::templateLayout, LayoutKeys::type);
+            sol::object templateTypeField = [&] {
+                sol::object templateLayout = LuaUtil::getFieldOrNil(layout, LayoutKeys::templateLayout);
+                preserveDynamicLayoutReads(templateLayout);
+                return LuaUtil::getFieldOrNil(templateLayout, LayoutKeys::type);
+            }();
             if (templateTypeField != sol::nil)
             {
                 std::string templateType = LuaUtil::getValueOrDefault(templateTypeField, defaultWidgetType);
@@ -105,10 +202,10 @@ namespace LuaUi
         }
 
         WidgetExtension* createWidget(const sol::table& layout, bool isRoot, uint64_t depth);
-        void updateWidget(WidgetExtension* ext, const sol::table& layout, uint64_t depth);
+        void updateWidget(WidgetExtension* ext, const sol::table& layout, uint64_t depth, bool retain);
 
         std::vector<WidgetExtension*> updateContent(
-            const std::vector<WidgetExtension*>& children, const sol::object& contentObj, uint64_t depth)
+            const std::vector<WidgetExtension*>& children, const sol::object& contentObj, uint64_t depth, bool retain)
         {
             ++depth;
             std::vector<WidgetExtension*> result;
@@ -138,7 +235,7 @@ namespace LuaUi
                     sol::table newLayout = child.as<sol::table>();
                     if (ext->widget()->getTypeName() == widgetType(newLayout))
                     {
-                        updateWidget(ext, newLayout, depth);
+                        updateWidget(ext, newLayout, depth, retain);
                     }
                     else
                     {
@@ -164,13 +261,14 @@ namespace LuaUi
             return result;
         }
 
-        void setTemplate(WidgetExtension* ext, const sol::object& templateLayout, uint64_t depth)
+        void setTemplate(WidgetExtension* ext, const sol::object& templateLayout, uint64_t depth, bool retain)
         {
             ++depth;
+            preserveDynamicLayoutReads(templateLayout);
             sol::object props = LuaUtil::getFieldOrNil(templateLayout, LayoutKeys::props);
             ext->setTemplateProperties(props);
             sol::object content = LuaUtil::getFieldOrNil(templateLayout, LayoutKeys::content);
-            ext->setTemplateChildren(updateContent(ext->templateChildren(), content, depth));
+            ext->setTemplateChildren(updateContent(ext->templateChildren(), content, depth, retain), retain);
         }
 
         void setEventCallbacks(WidgetExtension* ext, const sol::object& eventsObj)
@@ -208,22 +306,91 @@ namespace LuaUi
                 throw std::runtime_error("Invalid widget!");
             ext->initialize(layout.lua_state(), widget, isRoot);
 
-            updateWidget(ext, layout, depth);
+            updateWidget(ext, layout, depth, false);
             return ext;
         }
 
-        void updateWidget(WidgetExtension* ext, const sol::table& layout, uint64_t depth)
+        void updateWidget(WidgetExtension* ext, const sol::table& layout, uint64_t depth, bool retain)
         {
             if (depth >= maxDepth)
                 throw std::runtime_error("Maximum layout depth exceeded, probably caused by a circular reference");
-            ext->reset();
+            const bool keptAttached = ext->prepareChildrenForUpdate(retain);
             ext->setLayout(layout);
             ext->setExternal(layout.get<sol::object>(LayoutKeys::external));
-            setTemplate(ext, layout.get<sol::object>(LayoutKeys::templateLayout), depth);
+            setTemplate(ext, layout.get<sol::object>(LayoutKeys::templateLayout), depth, retain);
             ext->setProperties(layout.get<sol::object>(LayoutKeys::props));
             setEventCallbacks(ext, layout.get<sol::object>(LayoutKeys::events));
-            ext->setChildren(updateContent(ext->children(), layout.get<sol::object>(LayoutKeys::content), depth));
+            ext->setChildren(updateContent(ext->children(), layout.get<sol::object>(LayoutKeys::content), depth, retain),
+                keptAttached);
             ext->updateCoord();
+        }
+
+        struct PropertyUpdate
+        {
+            WidgetExtension* widget;
+            bool propertiesChanged;
+        };
+
+        // Do not cross a child Element boundary. Its own update action owns its
+        // property tables. The same inline table can appear in multiple places.
+        bool collectPropertyUpdates(WidgetExtension* widget, std::unordered_map<const void*, bool>& requested,
+            std::vector<PropertyUpdate>& updates)
+        {
+            auto match = requested.find(widget->getLayout().pointer());
+            const bool changed = match != requested.end();
+            if (changed)
+                match->second = true;
+            bool updateBranch = changed;
+            for (const auto& children : { &widget->templateChildren(), &widget->children() })
+                for (auto* child : *children)
+                    if (!child->isRoot() && collectPropertyUpdates(child, requested, updates))
+                        updateBranch = true;
+            if (updateBranch)
+                updates.push_back({ widget, changed });
+            return updateBranch;
+        }
+
+        bool updateChangedProperties(WidgetExtension* root, const sol::table& current,
+            const std::vector<sol::main_table>& changedLayouts)
+        {
+            if (current.pointer() != root->getLayout().pointer() || !layoutReuseInProgress())
+                return false;
+            std::unordered_map<const void*, bool> requested;
+            for (const auto& layout : changedLayouts)
+                requested.emplace(layout.pointer(), false);
+            std::vector<PropertyUpdate> updates;
+            collectPropertyUpdates(root, requested, updates);
+            if (std::any_of(requested.begin(), requested.end(), [](const auto& entry) { return !entry.second; }))
+                return false;
+            for (const auto& [widget, changed] : updates)
+            {
+                // A native LuaWindow can supply the caption for a template child.
+                // Keep that ownership and any live property getters on the full path.
+                if (widget->widget()->getTypeName() == "LuaWindow" || (changed && !widget->hasPlainPropertyInputs()))
+                    return false;
+            }
+            // Validate membership first. Recompute intrinsic sizes from leaves
+            // to root so a changed label can resize all enclosing flexes/containers.
+            // Element::update performs the final root layout, including other
+            // branches affected by a sibling changing size.
+            for (const auto& [widget, changed] : updates)
+            {
+                if (changed)
+                    widget->setProperties(widget->getLayout().get<sol::object>(LayoutKeys::props));
+                if (widget != root)
+                    widget->updateCoord();
+            }
+            // A single trace marker lets a gameplay recording confirm that the
+            // optional API actually reached the narrow path on this installation.
+            static const bool capturing = std::getenv("OPENMW_OSG_STATS_FILE") != nullptr;
+            static bool reported = false;
+            if (capturing && !reported)
+            {
+                reported = true;
+                Log(Debug::Info) << "Lua UI sparse property refresh active: changedLayouts=" << requested.size()
+                                 << " affectedLayoutNodes=" << updates.size();
+            }
+            return true;
         }
 
         std::string setLayer(WidgetExtension* ext, const sol::table& layout)
@@ -282,6 +449,7 @@ namespace LuaUi
     {
         if (mState == New)
         {
+            LayoutUpdateScope layoutUpdate(mRoot);
             assert(!mRoot);
             mRoot = createWidget(layout(), true, depth);
             mLayer = setLayer(mRoot, layout());
@@ -291,11 +459,56 @@ namespace LuaUi
         }
     }
 
+    void Element::requestUpdate(const sol::table* changedLayouts, const std::function<void()>& enqueue)
+    {
+        if (mState != Created && mState != Update)
+            return;
+        const bool newRequest = mState == Created;
+        std::vector<sol::main_table> incoming;
+        if (changedLayouts)
+        {
+            lua_State* lua = changedLayouts->lua_state();
+            const Detail::RestoreStack restore(lua);
+            changedLayouts->push(lua);
+            if (!lua_istable(lua, -1))
+                throw std::logic_error("updateProperties expects an array of layout tables");
+            const size_t size = lua_rawlen(lua, -1);
+            if (size == 0)
+                return;
+            incoming.reserve(size);
+            for (size_t i = 1; i <= size; ++i)
+            {
+                auto layout = changedLayouts->raw_get<sol::object>(i);
+                if (layout.get_type() != sol::type::table)
+                    throw std::logic_error("updateProperties expects an array of layout tables");
+                incoming.emplace_back(layout.as<sol::table>());
+            }
+        }
+        // addAction can reject reentrant requests. Only commit the state after
+        // scheduling succeeds, and never promote a queued full refresh to partial.
+        if (newRequest)
+            enqueue();
+        if (!changedLayouts || mRetryFullUpdate || !Misc::useSparseUiUpdates())
+            mChangedLayouts.clear();
+        else if (newRequest)
+            mChangedLayouts.swap(incoming);
+        else if (!mChangedLayouts.empty())
+            mChangedLayouts.insert(mChangedLayouts.end(), std::make_move_iterator(incoming.begin()),
+                std::make_move_iterator(incoming.end()));
+        mState = Update;
+    }
+
     void Element::update()
     {
-        if (mState == Update)
+        if (mState != Update)
+            return;
+        try
         {
+            LayoutUpdateScope layoutUpdate(mRoot);
             assert(mRoot);
+            // Consume the request once, including if updating the layout throws.
+            std::vector<sol::main_table> changedLayouts;
+            changedLayouts.swap(mChangedLayouts);
             if (mRoot->widget()->getTypeName() != widgetType(layout()))
             {
                 // A root element can either be attached to another UI element or directly to a layer. Keep the
@@ -342,12 +555,27 @@ namespace LuaUi
             }
             else
             {
-                updateWidget(mRoot, layout(), 0);
+                const sol::table current = layout();
+                if (changedLayouts.empty() || !updateChangedProperties(mRoot, current, changedLayouts))
+                    updateWidget(mRoot, current, 0, canRetainAttachments(current, mRoot));
             }
             mLayer = setLayer(mRoot, layout());
             updateRootCoord(mRoot);
             mState = Created;
+            mRetryFullUpdate = false;
             checkWarnings();
+        }
+        catch (...)
+        {
+            // A surviving root may already contain earlier writes. Once its
+            // input is repaired the next request must reapply the whole layout.
+            // A failed root replacement has already selected the New state.
+            if (mRoot && mState == Update)
+            {
+                mRetryFullUpdate = true;
+                mState = Created;
+            }
+            throw;
         }
     }
 
@@ -364,6 +592,7 @@ namespace LuaUi
                 destroyRoot(mRoot);
                 mRoot = nullptr;
             }
+            mChangedLayouts.clear();
             mLayout.reset();
         }
         mState = Destroyed;

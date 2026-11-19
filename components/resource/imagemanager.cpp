@@ -5,6 +5,8 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/misc/pathhelpers.hpp>
+#include <components/misc/hash.hpp>
+#include <components/misc/strings/algorithm.hpp>
 #include <components/sceneutil/glextensions.hpp>
 #include <components/vfs/manager.hpp>
 #include <components/vfs/pathutil.hpp>
@@ -81,6 +83,27 @@ namespace Resource
     }
 
     ImageManager::~ImageManager() {}
+
+    std::optional<VFS::Path::Normalized> ImageManager::findCompanion(std::string_view diffuse, std::string_view pattern)
+    {
+        std::size_t hash = std::hash<std::string_view>{}(diffuse);
+        Misc::hashCombine(hash, pattern);
+        auto& bucket = mCompanions[hash % mCompanions.size()];
+        std::lock_guard lock(bucket.mMutex);
+        auto& entry = bucket.mEntries[(hash / mCompanions.size()) % bucket.mEntries.size()];
+        const auto revision = mVFS->getIndexRevision();
+        if (entry.mRevision == revision && entry.mDiffuse == diffuse && entry.mPattern == pattern)
+            return entry.mPath;
+
+        std::string file(diffuse);
+        Misc::StringUtils::replaceLast(file, ".", std::string(pattern) + ".");
+        VFS::Path::Normalized path(file);
+        std::optional<VFS::Path::Normalized> found;
+        if (mVFS->exists(path))
+            found.emplace(std::move(path));
+        entry = { std::string(diffuse), std::string(pattern), std::move(found), revision };
+        return entry.mPath;
+    }
 
     osg::ref_ptr<osg::Image> ImageManager::getImage(VFS::Path::NormalizedView path, bool disableFlip)
     {

@@ -21,13 +21,25 @@ namespace LuaUi
 
     void LuaText::updateProperties()
     {
+        const bool oldAutoSize = mAutoSized;
         mAutoSized = propertyValue("autoSize", true);
-
-        setCaption(propertyValue("text", std::string()));
-        setFontHeight(propertyValue("textSize", 10));
+        const MyGUI::UString caption(propertyValue("text", std::string()));
+        const bool sameText = oldAutoSize == mAutoSized && hasPlainPropertyInputs()
+            && MyGUI::TextBox::getCaption() == caption;
+        if (!sameText)
+            setCaption(caption);
+        const int height = propertyValue("textSize", 10);
+        const bool sameMetrics = sameText && getFontHeight() == height;
+        if (!sameMetrics)
+            setFontHeight(height);
         setTextColour(propertyValue("textColor", MyGUI::Colour(0, 0, 0, 1)));
-        setEditMultiLine(propertyValue("multiline", false));
-        setEditWordWrap(propertyValue("wordWrap", false));
+        const bool multiline = propertyValue("multiline", false);
+        const bool sameLines = sameMetrics && multiline == getEditMultiLine();
+        if (!sameLines)
+            setEditMultiLine(multiline);
+        const bool wrap = propertyValue("wordWrap", false);
+        if (!sameLines || wrap != getEditWordWrap())
+            setEditWordWrap(wrap);
 
         Alignment horizontal(propertyValue("textAlignH", Alignment::Start));
         Alignment vertical(propertyValue("textAlignV", Alignment::Start));
@@ -41,6 +53,7 @@ namespace LuaUi
 
     void LuaText::setCaption(const MyGUI::UString& caption)
     {
+        invalidateLayout();
         MyGUI::TextBox::setCaption(caption);
         if (mAutoSized)
             updateCoord();

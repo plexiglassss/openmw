@@ -289,11 +289,19 @@
                     <Widget type="AutoSizedButton" skin="MW_Button" name="ControllerButton">
                         <Property key="Caption" value="#{OMWEngine:Controller}"/>
                     </Widget>
+                    <Widget type="AutoSizedButton" skin="MW_Button" name="ModControlsButton">
+                        <Property key="Caption" value="#{OMWEngine:ModKeybindings}"/>
+                    </Widget>
                 </Widget>
 
                 <Widget type="Widget" skin="MW_Box" position="4 38 352 154" align="Stretch">
                     <Widget type="ScrollView" skin="MW_ScrollView" position="4 4 344 146" align="Stretch" name="ControlsBox">
                         <Property key="CanvasAlign" value="Left Top"/>
+                    </Widget>
+                    <Widget type="ScrollView" skin="MW_ScrollViewVH" position="4 4 344 146" align="Stretch" name="ModControlsView">
+                        <Property key="Visible" value="false"/>
+                        <Property key="CanvasAlign" value="Left Top"/>
+                        <Widget type="LuaAdapter" name="ModControlsAdapter"/>
                     </Widget>
                 </Widget>
                 <Widget type="AutoSizedButton" skin="MW_Button" position="4 198 137 24" align="Left Bottom" name="ResetControlsButton">
@@ -713,6 +721,23 @@
                                     <UserString key="ToolTipType" value="Layout"/>
                                     <UserString key="ToolTipLayout" value="TextToolTip"/>
                                     <UserString key="Caption_Text" value="#{OMWEngine:ClampLightingTooltip}"/>
+                                </Widget>
+                            </Widget>
+
+                            <!-- Location Rendering Profiles -->
+                            <Widget type="HBox" align="Stretch">
+                                <UserString key="HStretch" value="true"/>
+                                <UserString key="VStretch" value="false"/>
+                                <Widget type="AutoSizedButton" skin="MW_Button">
+                                    <UserString key="SettingCategory" value="Shaders"/>
+                                    <UserString key="SettingName" value="location rendering profiles"/>
+                                    <UserString key="SettingType" value="CheckButton"/>
+                                </Widget>
+                                <Widget type="AutoSizedTextBox" skin="SandText">
+                                    <Property key="Caption" value="#{OMWEngine:LocationRenderingProfiles}"/>
+                                    <UserString key="ToolTipType" value="Layout"/>
+                                    <UserString key="ToolTipLayout" value="TextToolTip"/>
+                                    <UserString key="Caption_Text" value="#{OMWEngine:LocationRenderingProfilesTooltip}"/>
                                 </Widget>
                             </Widget>
 

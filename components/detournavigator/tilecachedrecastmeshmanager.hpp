@@ -121,6 +121,9 @@ namespace DetourNavigator
             std::shared_ptr<RecastMesh> mRecastMesh;
         };
 
+        struct MeshSnapshot;
+        struct PendingMesh;
+
         using IndexPoint = boost::geometry::model::point<int, 2, boost::geometry::cs::cartesian>;
         using IndexBox = boost::geometry::model::box<IndexPoint>;
         using ObjectIndexValue = std::pair<IndexBox, ObjectData*>;
@@ -128,6 +131,7 @@ namespace DetourNavigator
         using HeightfieldIndexValue = std::pair<IndexBox, std::map<osg::Vec2i, HeightfieldData>::const_iterator>;
 
         const RecastSettings& mSettings;
+        const bool mShareGeometry;
         TilesPositionsRange mRange;
         ESM::RefId mWorldspace;
         std::unordered_map<ObjectId, std::unique_ptr<ObjectData>> mObjects;
@@ -142,6 +146,12 @@ namespace DetourNavigator
         std::vector<TilePosition> mReportedTiles;
         std::vector<TilePosition> mReportedTilesBuffer;
         std::map<TilePosition, CachedTile> mCache;
+        // Only current, overlapping requests live here. Invalidation removes the
+        // identity; the producing worker and its followers retain their own owners.
+        std::map<TilePosition, std::shared_ptr<PendingMesh>> mPendingMeshes;
+        std::size_t mJoinedMeshRequests = 0;
+        mutable std::size_t mSnapshotObjects = 0;
+        mutable std::size_t mSnapshotObjectCapacity = 0;
         std::size_t mGeneration = 0;
         std::size_t mRevision = 0;
         mutable std::mutex mMutex;
@@ -162,7 +172,11 @@ namespace DetourNavigator
         inline static auto makeIndexQuery(const TilePosition& tilePosition)
             -> decltype(boost::geometry::index::intersects(IndexBox()));
 
-        inline std::shared_ptr<RecastMesh> makeMesh(const TilePosition& tilePosition) const;
+        // Called with mMutex held. Height data and object ownership are captured
+        // before mutation can resume; triangle extraction runs after unlocking.
+        std::unique_ptr<MeshSnapshot> makeMeshSnapshot(const TilePosition& tilePosition) const;
+
+        static std::shared_ptr<RecastMesh> buildMesh(std::unique_ptr<MeshSnapshot> snapshot);
 
         inline void addChangedTiles(const std::optional<TilesPositionsRange>& range);
     };

@@ -3,7 +3,9 @@
 
 #include <osg/Geometry>
 #include <osg/Matrixf>
+#include <osg/Uniform>
 
+#include <cstdint>
 #include <string_view>
 
 namespace SceneUtil
@@ -62,6 +64,10 @@ namespace SceneUtil
 
         osg::ref_ptr<osg::Geometry> getSourceGeometry() const;
 
+        // Called after shader selection/geometry adjustment. Unsupported source layouts retain CPU skinning.
+        bool setGpuSkinning(bool enabled);
+        bool getGpuSkinning() const { return mGpuGeometry[0].valid(); }
+
         void accept(osg::NodeVisitor& nv) override;
         bool supports(const osg::PrimitiveFunctor&) const override { return true; }
         void accept(osg::PrimitiveFunctor&) const override;
@@ -81,14 +87,24 @@ namespace SceneUtil
         };
 
     private:
+        class GpuDrawCallback;
+        class GpuGeometry;
         void cull(osg::NodeVisitor* nv);
         void updateBounds(osg::NodeVisitor* nv);
+        void skinCpu(osg::Geometry& geometry) const;
+        osg::Geometry* getCpuGeometry() const;
 
-        osg::ref_ptr<osg::Geometry> mGeometry[2];
-        osg::Geometry* getGeometry(unsigned int frame) const;
+        mutable osg::ref_ptr<osg::Geometry> mGeometry[2];
+        osg::ref_ptr<osg::Geometry> createCpuGeometry() const;
+        osg::ref_ptr<osg::Geometry> mGpuGeometry[2];
+        osg::ref_ptr<osg::Uniform> mPaletteUniform[2];
+        osg::ref_ptr<osg::Uniform> mTransformUniform[2];
+        osg::Geometry* getGeometry() const;
+        unsigned int mCurrentBuffer = 0;
 
         osg::ref_ptr<osg::Geometry> mSourceGeometry;
         osg::ref_ptr<const osg::Vec4Array> mSourceTangents;
+        osg::ref_ptr<const osg::Vec4Array> mSourceFallbackTangents;
         Skeleton* mSkeleton{ nullptr };
 
         osg::ref_ptr<osg::RefMatrix> mSkinToSkelMatrix;
@@ -103,6 +119,15 @@ namespace SceneUtil
         };
         osg::ref_ptr<InfluenceData> mData;
         std::vector<Bone*> mNodes;
+
+        // Frozen at cull time. Picking must use the rendered pose, not newly updated skeleton matrices.
+        std::vector<osg::Matrixf> mPoseMatrices;
+        std::vector<bool> mPoseBonePresent;
+        osg::Matrixf mPoseTransform;
+        std::uint64_t mPoseGeneration = 0;
+        mutable std::uint64_t mCpuGeneration[2] = { 0, 0 };
+        bool mGpuPose = false;
+        bool mNeedsPoseUpdate = false;
 
         unsigned int mLastFrameNumber{ 0 };
         bool mBoundsFirstFrame{ true };

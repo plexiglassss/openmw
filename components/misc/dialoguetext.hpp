@@ -14,6 +14,8 @@ namespace Misc::DialogueText
         Stat,
         Narration,
         Journal,
+        InventoryRemoval,
+        Count,
     };
 
     enum class Context

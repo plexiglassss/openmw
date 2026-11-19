@@ -1,3 +1,4 @@
+#include <components/terrain/arrivalview.hpp>
 #include <chrono>
 #include <cmath>
 #include <components/terrain/buffercache.hpp>
@@ -64,4 +65,52 @@ TEST(TerrainRayAcceleration, PreservesStitchedTerrainHits)
         }
     }
     std::cout << compared << " terrain rays match; linear " << linearMs << " ms, indexed " << indexedMs << " ms\n";
+}
+
+namespace
+{
+    TEST(ExteriorArrivalTest, NearbyNodesAreImmediatelyUsableWhileFarAttachmentsAreBoundedPerFrame)
+    {
+        Terrain::ArrivalView view(osg::Vec3f(1, 2, 3), osg::Vec4i(-1, -1, 2, 2), 7, 3, 4);
+        osg::ref_ptr<osg::Group> node = new osg::Group;
+        view.publish({ { { nullptr, 0 }, node, 100 } });
+        EXPECT_EQ(view.find({ nullptr, 0 }), node);
+        std::vector<Terrain::ArrivalView::Entry> distant;
+        for (unsigned i = 1; i <= 10; ++i)
+            distant.push_back({ { nullptr, i }, node, 200 });
+        view.publish(distant);
+        const auto bytes = view.bytes();
+        view.publish(distant);
+        EXPECT_EQ(view.bytes(), bytes);
+        EXPECT_EQ(view.find({ nullptr, 1 }), node);
+        for (unsigned i = 1; i <= 4; ++i)
+            EXPECT_TRUE(view.admitDistant(4, { nullptr, i }));
+        EXPECT_FALSE(view.admitDistant(4, { nullptr, 5 }));
+        EXPECT_TRUE(view.admitDistant(4, { nullptr, 1 }));
+        view.finish(true);
+        EXPECT_TRUE(view.complete());
+        EXPECT_TRUE(view.admitDistant(5, { nullptr, 5 }));
+        view.chargeTraversal(std::chrono::milliseconds(3));
+        EXPECT_FALSE(view.admitDistant(5, { nullptr, 6 }));
+        for (unsigned i = 6; i <= 9; ++i)
+            EXPECT_TRUE(view.admitDistant(6, { nullptr, i }));
+        EXPECT_FALSE(view.admitDistant(6, { nullptr, 10 }));
+        EXPECT_TRUE(view.admitDistant(7, { nullptr, 10 }));
+        EXPECT_FALSE(view.streaming());
+        EXPECT_FALSE(view.find({ nullptr, 11 }));
+    }
+
+    TEST(ExteriorArrivalTest, AFailedPassAllowsNormalLoadingAndCannotBeRetainedAsComplete)
+    {
+        const osg::Vec3f point(20, -10, 1);
+        const osg::Vec4i grid(-3, -7, 0, -4);
+        Terrain::ArrivalView view(point, grid, 12);
+        EXPECT_TRUE(view.matches(point, grid, 1.f, 12));
+        EXPECT_FALSE(view.matches(point, osg::Vec4i(-2, -7, 1, -4), 1.f, 12));
+        EXPECT_FALSE(view.matches(point, grid, 1.f, 13));
+        EXPECT_FALSE(view.matches(point + osg::Vec3f(20, 0, 0), grid, 1.f, 12));
+        view.finish(false);
+        EXPECT_FALSE(view.streaming());
+        EXPECT_FALSE(view.complete());
+    }
 }

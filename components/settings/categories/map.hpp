@@ -29,6 +29,9 @@ namespace Settings
         SettingValue<bool> mLocationEntranceIcons{ mIndex, "Map", "location entrance icons" };
         SettingValue<bool> mLocationIconTooltips{ mIndex, "Map", "location icon tooltips" };
         SettingValue<int> mLocationIconSize{ mIndex, "Map", "location icon size", makeClampSanitizerInt(16, 40) };
+        SettingValue<bool> mLocalDoorIcons{ mIndex, "Map", "location local door icons" };
+        SettingValue<int> mLocalDoorIconSize{ mIndex, "Map", "location local icon size", makeClampSanitizerInt(8, 40) };
+        SettingValue<int> mLocationIconMaximumSize{ mIndex, "Map", "location icon maximum size", makeClampSanitizerInt(8, 64) };
         SettingValue<int> mLocationIconColours{ mIndex, "Map", "location icon colours", makeClampSanitizerInt(0, 2) };
         SettingValue<int> mLocationIconCategories{
             mIndex, "Map", "location icon categories", makeClampSanitizerInt(0, (1 << 19) - 1) };

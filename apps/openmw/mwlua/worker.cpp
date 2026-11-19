@@ -56,6 +56,8 @@ namespace MWLua
         }
         else
             update(frameStart, frameNumber, stats);
+        // Both synchronized and worker callbacks for this frame have finished. GC has not started yet.
+        mManager.reportActiveSpellReads(frameNumber, stats);
     }
 
     void Worker::gc()

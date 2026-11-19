@@ -9,6 +9,7 @@
 #include "dialoguecolourcontrols.hpp"
 #include "messagepositioncontrols.hpp"
 #include "mapiconcontrols.hpp"
+#include "tooltipcontrols.hpp"
 #include "windowbase.hpp"
 
 namespace MWGui
@@ -87,6 +88,10 @@ namespace MWGui
         MapIconControls mMapIconControls;
         bool mUpdatingMapIcons = false;
 
+        MyGUI::TabItem* mTooltipTab = nullptr;
+        TooltipControls mTooltipControls;
+        bool mUpdatingTooltips = false;
+
         MyGUI::Widget* mWindowModeHint;
 
         // controls
@@ -94,6 +99,10 @@ namespace MWGui
         MyGUI::Button* mResetControlsButton;
         MyGUI::Button* mKeyboardSwitch;
         MyGUI::Button* mControllerSwitch;
+        MyGUI::Button* mModControlsSwitch;
+        MyGUI::ScrollView* mModControlsView;
+        LuaUi::LuaAdapter* mModControlsAdapter;
+        bool mModControlsMode = false;
         bool mKeyboardMode; // if true, setting up the keyboard. Otherwise, it's controller
 
         MyGUI::EditBox* mScriptFilter;
@@ -161,6 +170,13 @@ namespace MWGui
         void onMapIconCategoryToggled(MyGUI::Widget* sender);
         void onMapIconReset(MyGUI::Widget* sender);
 
+        void initialiseTooltipControls();
+        void updateTooltipSettings();
+        void onTooltipToggled(MyGUI::Widget* sender);
+        void onTooltipChoiceChanged(MyGUI::ComboBox* sender, size_t pos);
+        void onTooltipScaleChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onTooltipReset(MyGUI::Widget* sender);
+
         void onWindowModeChanged(MyGUI::ComboBox* sender, size_t pos);
         void onVSyncModeChanged(MyGUI::ComboBox* sender, size_t pos);
 
@@ -169,6 +185,8 @@ namespace MWGui
         void onResetDefaultBindings(MyGUI::Widget* sender);
         void onResetDefaultBindingsAccept();
         void onKeyboardSwitchClicked(MyGUI::Widget* sender);
+        void onModControlsSwitchClicked(MyGUI::Widget* sender);
+        void updateControlsVisibility();
         void onControllerSwitchClicked(MyGUI::Widget* sender);
 
         void onWindowResize(MyGUI::Window* sender);

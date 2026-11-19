@@ -38,6 +38,7 @@ namespace MWGui
         void onDeleteCustomData(const MWWorld::Ptr& ptr) override;
 
         void updateItemView();
+        void confirmOffer() { onOfferButtonClicked(nullptr); }
 
         void onInventoryUpdate(const MWWorld::Ptr& ptr) override;
 

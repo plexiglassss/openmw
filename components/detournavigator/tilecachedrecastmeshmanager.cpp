@@ -8,11 +8,15 @@
 #include "updateguard.hpp"
 
 #include <components/bullethelpers/aabb.hpp>
+#include <components/diagnostics/timing.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/convert.hpp>
 
 #include <boost/geometry/geometry.hpp>
 
 #include <algorithm>
+#include <future>
+#include <iterator>
 #include <limits>
 
 namespace DetourNavigator
@@ -23,6 +27,12 @@ namespace DetourNavigator
             .mBegin = TilePosition(std::numeric_limits<int>::min(), std::numeric_limits<int>::min()),
             .mEnd = TilePosition(std::numeric_limits<int>::max(), std::numeric_limits<int>::max()),
         };
+
+        bool shareNavigationGeometry()
+        {
+            return Misc::useCombinedPerformance()
+                && Misc::enabledUnlessZero("OPENMW_SHARED_NAVIGATION_GEOMETRY");
+        }
 
         struct AddHeightfield
         {
@@ -66,14 +76,39 @@ namespace DetourNavigator
         }
     }
 
+    struct TileCachedRecastMeshManager::MeshSnapshot
+    {
+        using Object = std::tuple<osg::ref_ptr<const Resource::BulletShapeInstance>, ObjectTransform,
+            std::reference_wrapper<const btCollisionShape>, btTransform, AreaType>;
+
+        RecastMeshBuilder mBuilder;
+        std::vector<Object> mObjects;
+        Version mVersion;
+
+        explicit MeshSnapshot(const TileBounds& bounds)
+            : mBuilder(bounds)
+        {
+        }
+    };
+
+    struct TileCachedRecastMeshManager::PendingMesh
+    {
+        // The usual single-worker path needs only a publication identity.
+        // Allocate a future's shared state only when another caller joins.
+        std::optional<std::promise<std::shared_ptr<RecastMesh>>> mPromise;
+        std::shared_future<std::shared_ptr<RecastMesh>> mFuture;
+    };
+
     TileCachedRecastMeshManager::TileCachedRecastMeshManager(const RecastSettings& settings)
         : mSettings(settings)
+        , mShareGeometry(shareNavigationGeometry())
         , mRange(infiniteRange)
     {
     }
 
     void TileCachedRecastMeshManager::setRange(const TilesPositionsRange& range, const UpdateGuard* guard)
     {
+        const MaybeLockGuard lock(mMutex, guard);
         if (mRange == range)
             return;
 
@@ -104,11 +139,16 @@ namespace DetourNavigator
 
             getTilesPositions(mRange, [&](const TilePosition& v) {
                 if (!isInTilesPositionsRange(range, v))
+                {
                     mCache.erase(v);
+                    mPendingMeshes.erase(v);
+                }
             });
         }
-
-        const MaybeLockGuard lock(mMutex, guard);
+        // The initial infinite range is not enumerable. It can still have an
+        // in-flight request when a first finite range is selected.
+        std::erase_if(mPendingMeshes,
+            [&](const auto& entry) { return !isInTilesPositionsRange(range, entry.first); });
 
         if (changed)
             ++mRevision;
@@ -152,10 +192,16 @@ namespace DetourNavigator
         ++mRevision;
         mObjectIndex.clear();
         mObjects.clear();
+        mWaterIndex.clear();
         mWater.clear();
+        mInfiniteWater = mWater.end();
+        mHeightfieldIndex.clear();
         mHeightfields.clear();
+        mInfiniteHeightfield = mHeightfields.end();
+        mChangedTiles.clear();
         mReportedTiles.clear();
         mCache.clear();
+        mPendingMeshes.clear();
     }
 
     bool TileCachedRecastMeshManager::addObject(ObjectId id, const CollisionShape& shape, const btTransform& transform,
@@ -347,6 +393,8 @@ namespace DetourNavigator
     std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getMesh(
         ESM::RefId worldspace, const TilePosition& tilePosition)
     {
+        std::shared_ptr<PendingMesh> pending;
+        std::unique_ptr<MeshSnapshot> snapshot;
         {
             const std::lock_guard lock(mMutex);
             if (mWorldspace != worldspace)
@@ -356,18 +404,65 @@ namespace DetourNavigator
             const auto it = mCache.find(tilePosition);
             if (it != mCache.end() && it->second.mRecastMesh->getVersion() == it->second.mVersion)
                 return it->second.mRecastMesh;
+            const auto active = mPendingMeshes.find(tilePosition);
+            if (mShareGeometry && active != mPendingMeshes.end())
+            {
+                pending = active->second;
+                if (!pending->mPromise)
+                {
+                    std::promise<std::shared_ptr<RecastMesh>> promise;
+                    auto future = promise.get_future().share();
+                    pending->mPromise.emplace(std::move(promise));
+                    pending->mFuture = std::move(future);
+                }
+                ++mJoinedMeshRequests;
+            }
+            else
+            {
+                snapshot = makeMeshSnapshot(tilePosition);
+                if (!snapshot)
+                    return nullptr;
+                pending = std::make_shared<PendingMesh>();
+                mPendingMeshes.insert_or_assign(tilePosition, pending);
+            }
         }
-        auto result = makeMesh(tilePosition);
-        if (result != nullptr)
+        if (!snapshot)
         {
-            const std::lock_guard lock(mMutex);
-            mCache.insert_or_assign(tilePosition,
-                CachedTile{
-                    .mVersion = result->getVersion(),
-                    .mRecastMesh = result,
-                });
+            Diagnostics::Scope timing("navigation", "geometry", "shared wait");
+            return pending->mFuture.get(); // Never wait with the manager/update mutex held.
         }
-        return result;
+        try
+        {
+            auto result = buildMesh(std::move(snapshot));
+            {
+                const std::lock_guard lock(mMutex);
+                const auto active = mPendingMeshes.find(tilePosition);
+                if (active != mPendingMeshes.end() && active->second == pending)
+                {
+                    if (mWorldspace == worldspace && mGeneration == result->getVersion().mGeneration
+                        && isInTilesPositionsRange(mRange, tilePosition))
+                        mCache.insert_or_assign(tilePosition, CachedTile{ result->getVersion(), result });
+                    mPendingMeshes.erase(active);
+                }
+            }
+            // An obsolete snapshot still belongs to its original job. Returning
+            // null here would tell the updater to mark that navigation tile empty.
+            if (pending->mPromise)
+                pending->mPromise->set_value(result);
+            return result;
+        }
+        catch (...)
+        {
+            {
+                const std::lock_guard lock(mMutex);
+                const auto active = mPendingMeshes.find(tilePosition);
+                if (active != mPendingMeshes.end() && active->second == pending)
+                    mPendingMeshes.erase(active);
+            }
+            if (pending->mPromise)
+                pending->mPromise->set_exception(std::current_exception());
+            throw;
+        }
     }
 
     std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getCachedMesh(
@@ -387,12 +482,16 @@ namespace DetourNavigator
     std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::getNewMesh(
         ESM::RefId worldspace, const TilePosition& tilePosition) const
     {
+        std::unique_ptr<MeshSnapshot> snapshot;
         {
             const std::lock_guard lock(mMutex);
             if (mWorldspace != worldspace)
                 return nullptr;
+            snapshot = makeMeshSnapshot(tilePosition);
         }
-        return makeMesh(tilePosition);
+        // The offline navmesh tool intentionally requests fresh input outside
+        // the runtime navigation range and does not consume the shared cache.
+        return buildMesh(std::move(snapshot));
     }
 
     void TileCachedRecastMeshManager::reportNavMeshChange(
@@ -440,6 +539,7 @@ namespace DetourNavigator
                     ++reported;
                 if (const auto it = mCache.find(tilePosition); it != mCache.end())
                     ++it->second.mVersion.mRevision;
+                mPendingMeshes.erase(tilePosition);
 
                 ChangeType changeType = ChangeType::remove;
                 bool hasInput = false;
@@ -472,6 +572,10 @@ namespace DetourNavigator
             .mObjects = mObjects.size(),
             .mHeightfields = mHeightfields.size(),
             .mWater = mWater.size(),
+            .mPendingMeshTiles = mPendingMeshes.size(),
+            .mJoinedMeshRequests = mJoinedMeshRequests,
+            .mSnapshotObjects = mSnapshotObjects,
+            .mSnapshotObjectCapacity = mSnapshotObjectCapacity,
         };
     }
 
@@ -512,53 +616,61 @@ namespace DetourNavigator
         return boost::geometry::index::intersects(IndexBox(point, point));
     }
 
-    std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::makeMesh(const TilePosition& tilePosition) const
+    std::unique_ptr<TileCachedRecastMeshManager::MeshSnapshot>
+    TileCachedRecastMeshManager::makeMeshSnapshot(const TilePosition& tilePosition) const
     {
-        RecastMeshBuilder builder(makeRealTileBoundsWithBorder(mSettings, tilePosition));
-        using Object = std::tuple<osg::ref_ptr<const Resource::BulletShapeInstance>, ObjectTransform,
-            std::reference_wrapper<const btCollisionShape>, btTransform, AreaType>;
-        std::vector<Object> objects;
-        Version version;
+        Diagnostics::Scope timing("navigation", "geometry", "snapshot");
+        auto snapshot = std::make_unique<MeshSnapshot>(makeRealTileBoundsWithBorder(mSettings, tilePosition));
+        auto& builder = snapshot->mBuilder;
+        auto& objects = snapshot->mObjects;
         bool hasInput = false;
+        for (auto it = mWaterIndex.qbegin(makeIndexQuery(tilePosition)); it != mWaterIndex.qend(); ++it)
         {
-            const std::lock_guard lock(mMutex);
-            for (auto it = mWaterIndex.qbegin(makeIndexQuery(tilePosition)); it != mWaterIndex.qend(); ++it)
-            {
-                const auto& [cellPosition, data] = *it->second;
-                builder.addWater(cellPosition, data.mWater);
-                hasInput = true;
-            }
-            for (auto it = mHeightfieldIndex.qbegin(makeIndexQuery(tilePosition)); it != mHeightfieldIndex.qend(); ++it)
-            {
-                const auto& [cellPosition, data] = *it->second;
-                std::visit(AddHeightfield{ cellPosition, data.mCellSize, builder }, data.mShape);
-                hasInput = true;
-            }
-            objects.reserve(mObjects.size());
-            for (auto it = mObjectIndex.qbegin(makeIndexQuery(tilePosition)); it != mObjectIndex.qend(); ++it)
-            {
-                const auto& object = it->second->mObject;
-                objects.emplace_back(object.getInstance(), object.getObjectTransform(), object.getShape(),
-                    object.getTransform(), object.getAreaType());
-                hasInput = true;
-            }
-            if (hasInput)
-            {
-                if (mInfiniteWater != mWater.end())
-                    builder.addWater(mInfiniteWater->first, mInfiniteWater->second.mWater);
-                if (mInfiniteHeightfield != mHeightfields.end())
-                    std::visit(
-                        AddHeightfield{ mInfiniteHeightfield->first, mInfiniteHeightfield->second.mCellSize, builder },
-                        mInfiniteHeightfield->second.mShape);
-                version.mGeneration = mGeneration;
-                version.mRevision = mRevision;
-            }
+            const auto& [cellPosition, data] = *it->second;
+            builder.addWater(cellPosition, data.mWater);
+            hasInput = true;
         }
+        for (auto it = mHeightfieldIndex.qbegin(makeIndexQuery(tilePosition)); it != mHeightfieldIndex.qend(); ++it)
+        {
+            const auto& [cellPosition, data] = *it->second;
+            std::visit(AddHeightfield{ cellPosition, data.mCellSize, builder }, data.mShape);
+            hasInput = true;
+        }
+        const auto first = mObjectIndex.qbegin(makeIndexQuery(tilePosition));
+        const auto end = mObjectIndex.qend();
+        objects.reserve(mShareGeometry ? static_cast<std::size_t>(std::distance(first, end)) : mObjects.size());
+        for (auto it = first; it != end; ++it)
+        {
+            const auto& object = it->second->mObject;
+            objects.emplace_back(object.getInstance(), object.getObjectTransform(), object.getShape(),
+                object.getTransform(), object.getAreaType());
+            hasInput = true;
+        }
+        if (hasInput)
+        {
+            if (mInfiniteWater != mWater.end())
+                builder.addWater(mInfiniteWater->first, mInfiniteWater->second.mWater);
+            if (mInfiniteHeightfield != mHeightfields.end())
+                std::visit(
+                    AddHeightfield{ mInfiniteHeightfield->first, mInfiniteHeightfield->second.mCellSize, builder },
+                    mInfiniteHeightfield->second.mShape);
+            snapshot->mVersion = { mGeneration, mRevision };
+        }
+        mSnapshotObjects = objects.size();
+        mSnapshotObjectCapacity = objects.capacity();
         if (!hasInput)
             return nullptr;
-        for (const auto& [instance, objectTransform, shape, transform, areaType] : objects)
-            builder.addObject(shape, transform, areaType, instance->getSource(), objectTransform);
-        return std::move(builder).create(version);
+        return snapshot;
+    }
+
+    std::shared_ptr<RecastMesh> TileCachedRecastMeshManager::buildMesh(std::unique_ptr<MeshSnapshot> snapshot)
+    {
+        if (!snapshot)
+            return nullptr;
+        Diagnostics::Scope timing("navigation", "geometry", "build");
+        for (const auto& [instance, objectTransform, shape, transform, areaType] : snapshot->mObjects)
+            snapshot->mBuilder.addObject(shape, transform, areaType, instance->getSource(), objectTransform);
+        return std::move(snapshot->mBuilder).create(snapshot->mVersion);
     }
 
     void TileCachedRecastMeshManager::addChangedTiles(const std::optional<TilesPositionsRange>& range)

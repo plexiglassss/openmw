@@ -57,6 +57,10 @@ namespace DetourNavigator
         std::size_t mObjects = 0;
         std::size_t mHeightfields = 0;
         std::size_t mWater = 0;
+        std::size_t mPendingMeshTiles = 0;
+        std::size_t mJoinedMeshRequests = 0;
+        std::size_t mSnapshotObjects = 0;
+        std::size_t mSnapshotObjectCapacity = 0;
     };
 
     struct Stats

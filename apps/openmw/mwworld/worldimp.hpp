@@ -404,6 +404,9 @@ namespace MWWorld
             bool ignorePlayer, bool ignoreActors, bool ignoreTerrain,
             std::span<const MWWorld::Ptr> ignoreList) override;
 
+        void castRenderingRays(std::span<MWPhysics::RayCastingResult> out, const osg::Vec3f& origin,
+            std::span<const osg::Vec3f> ends, std::span<const MWWorld::Ptr> ignore) override;
+
         void setActorCollisionMode(const Ptr& ptr, bool internal, bool external) override;
         bool isActorCollisionEnabled(const Ptr& ptr) override;
 

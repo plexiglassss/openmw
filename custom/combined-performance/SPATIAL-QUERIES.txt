@@ -1,0 +1,42 @@
+Spatial actor searches and nearby distance queries
+
+Enabled by default in this complete cumulative engine package.
+
+Actor search improvement: combat discovery, ordinary head tracking and actor
+range queries use a conservative spatial broad phase after repeated queries
+against unchanged positions. Exact range, awareness and gameplay checks still
+run in their original order. Active combat/pursuit head tracking keeps its direct
+target. Movement, membership changes and reference replacement invalidate reuse.
+Synchronous dialogue-result mutations resume the remaining original actor list.
+
+Nearby distance improvement: repeated finite-radius requests on an immutable
+position snapshot (or a shared object list within its safe read phase) can use
+an immutable spatial grid. Mutable Lua arrays retain the original scan. Worker
+jobs retain their own snapshot and index across eviction or reset; session guards
+still reject old public snapshots. The cache owns at most 65,536 targets / 128
+sources. Building waits until eight eligible requests. Dense, small, unbounded
+or non-finite inputs retain the exact existing path.
+
+Both changes are generic. They require no particular mod or new mod patch.
+The actor improvement operates without Lua consumers. The distance improvement
+helps callers of the existing distance API when their query pattern qualifies.
+
+Comparison launchers (same executable, mods and settings):
+  Run-Combined.cmd                  Both enabled, using current environment defaults
+  Run-Without-Actor-Spatial.cmd      Actor search off; spatial distances on
+  Run-Without-Spatial-Distances.cmd  Spatial distances off; actor search on
+  Run-Previous-Spatial-Searches.cmd  Both new search paths off
+
+Each comparison records a capture and restores its process environment on exit.
+The corresponding switches are OPENMW_ACTOR_SPATIAL_QUERIES and
+OPENMW_SPATIAL_DISTANCE_QUERIES; set either to 0 before starting the game to
+disable it. OPENMW_COMBINED_PERFORMANCE=0 disables both; OPENMW_NATIVE_JOBS=0
+also disables spatial distance queries. Other cumulative features remain in
+the package. GPU skinning and additional static instancing are not in this change.
+
+Detailed captures include Lua Distance Indices Built/Reused alongside the prior
+position-read counters. These show eligibility/reuse, not measured FPS gains.
+spatial-query-tests.json records required executed Windows regressions and
+spatial-index-windows.json includes construction-inclusive synthetic timings.
+Those timings are not an in-game FPS prediction. Town FPS, frame pacing and
+installed custom Lua/runtime behavior still require the user's usual game route.

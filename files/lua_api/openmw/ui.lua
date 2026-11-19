@@ -86,6 +86,25 @@
 -- end
 
 ---
+-- True when a live zero-size world-tooltip override intentionally hides the
+-- focused object's native tooltip. Older engines without this capability may
+-- fall back to the native label instead. Available to player scripts.
+-- @field [parent=#ui] #boolean worldTooltipSuppressionSupported
+
+---
+-- Override the tooltip for the current world-focus object with a Lua UI Element.
+-- A live element whose measured width or height is zero suppresses the native
+-- tooltip when worldTooltipSuppressionSupported is true, even if enhanced
+-- world tooltips are disabled. Positive-size overrides still require that
+-- setting. Passing nil clears
+-- the override and restores normal fallback. This does not replace tooltips in
+-- GUI modes or full-help mode, and invalid/destroyed/mismatched overrides still
+-- use the native fallback. Changes are queued for the native UI update.
+-- @function [parent=#ui] setWorldTooltip
+-- @param openmw.core#GameObject object The world object, or nil to clear.
+-- @param #Element element The replacement element, or nil to clear.
+
+---
 -- Predefined colors for console output
 -- @field [parent=#ui] #CONSOLE_COLOR CONSOLE_COLOR
 
@@ -134,6 +153,8 @@
 -- @param #table options Optional table, can take the following options:
 --
 --   * `noWarnUnused` - if set to true this element will never generate warnings about unused properties.
+--   * `deferUntilAttached` - for a child element, build its native widgets on first attachment to a
+--     parent layout. Edits made before attachment are used on that first display.
 --
 -- @return #Element
 
@@ -319,6 +340,15 @@
 -- parent.layout.content[2].props.text = 'parent 2'
 -- parent:update() -- will show 'parent 2', but 'child 1'
 
+
+---
+-- Apply changes to the `props` of existing inline layouts in this Element, then recalculate layout.
+-- Pass the actual layout tables. Multiple requests in the same frame are combined. A full
+-- update takes priority. Use `update()` for changes to content, templates, callbacks, external
+-- properties or layers. Call a nested Element's own method for its internal layouts.
+-- @function [parent=#Element] updateProperties
+-- @param self
+-- @param #list<#Layout> layouts
 
 ---
 -- Destroys the element

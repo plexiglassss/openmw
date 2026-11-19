@@ -50,6 +50,7 @@ namespace MWWorld
             mCellRef.mVariant);
         if (!refNum.isSet())
         {
+            invalidateReferenceQueries();
             // Generated RefNums have negative mContentFile
             assert(lastAssignedRefNum.mContentFile < 0);
             lastAssignedRefNum.mIndex++;
@@ -68,6 +69,8 @@ namespace MWWorld
 
     void CellRef::setRefNum(ESM::RefNum refNum)
     {
+        if (refNum != getRefNum())
+            invalidateReferenceQueries();
         std::visit(ESM::VisitOverload{
                        [&](ESM4::Reference& ref) { ref.mId = refNum; },
                        [&](ESM4::ActorCharacter& ref) { ref.mId = refNum; },
@@ -381,6 +384,8 @@ namespace MWWorld
     {
         if (value != getCount(false))
         {
+            if ((value == 0) != (getCount(false) == 0))
+                invalidateReferenceQueries();
             mChanged = true;
             std::visit(ESM::VisitOverload{
                            [&](ESM4::Reference& ref) { ref.mCount = value; },

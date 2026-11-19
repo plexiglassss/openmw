@@ -4,7 +4,9 @@
 
 #include "scripttracker.hpp"
 
+#include <components/diagnostics/loading.hpp>
 #include <components/esm/luascripts.hpp>
+#include <components/misc/combinedperformance.hpp>
 
 namespace
 {
@@ -64,6 +66,7 @@ namespace LuaUtil
         if (!package.is<sol::userdata>())
             throw std::logic_error("Expected package to be read-only: " + packageName);
         mAPI.insert_or_assign(std::move(packageName), std::move(package));
+        mPreparedPackages = {};
     }
 
     bool ScriptsContainer::addCustomScript(int scriptId, std::string_view initData)
@@ -81,8 +84,10 @@ namespace LuaUtil
 
     void ScriptsContainer::addAutoStartedScripts()
     {
+        if (getAutoStartConf().empty())
+            return;
         mLua.protectedCall([&](LuaView& view) {
-            for (const auto& [scriptId, data] : mAutoStartScripts)
+            for (const auto& [scriptId, data] : getAutoStartConf())
             {
                 std::optional<sol::function> onInit, onLoad;
                 bool ok = addScript(view, scriptId, onInit, onLoad);
@@ -127,7 +132,8 @@ namespace LuaUtil
 
         try
         {
-            sol::object scriptOutput = mLua.runInNewSandbox(path, debugName, mAPI, script.mHiddenData);
+            sol::object scriptOutput
+                = mLua.runInNewSandbox(path, debugName, mAPI, script.mHiddenData, &mPreparedPackages);
             if (scriptOutput == sol::nil)
                 return true;
             sol::object engineHandlers = sol::nil, eventHandlers = sol::nil;
@@ -165,7 +171,13 @@ namespace LuaUtil
                         if (it == mEngineHandlers.end())
                             Log(Debug::Error) << "Not supported handler '" << handlerName << "' in " << debugName;
                         else
-                            insertHandler(it->second->mList, scriptId, std::move(fn));
+                        {
+                            // onUpdate is called once per script per frame. Root its protected call
+                            // on the main Lua state once, using the engine's traceback handler.
+                            lua_State* prepareOn = it->second == &mUpdateHandlers && Misc::useTownFrameUpdates()
+                                ? mLua.unsafeState() : nullptr;
+                            insertHandler(it->second->mList, scriptId, std::move(fn), prepareOn);
+                        }
                     }
                 }
             }
@@ -334,7 +346,7 @@ namespace LuaUtil
             data.mPublicInterfaces[script.mInterfaceName] = sol::nil;
     }
 
-    void ScriptsContainer::insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn)
+    void ScriptsContainer::insertHandler(std::vector<Handler>& list, int scriptId, sol::function fn, lua_State* prepareOnState)
     {
         size_t pos = list.size();
         list.emplace_back();
@@ -344,7 +356,10 @@ namespace LuaUtil
             pos--;
         }
         list[pos].mScriptId = scriptId;
-        list[pos].mFn = std::move(fn);
+        if (prepareOnState)
+            list[pos].mFn.emplace<sol::protected_function>(prepareOnState, fn);
+        else
+            list[pos].mFn.emplace<sol::main_function>(std::move(fn));
     }
 
     void ScriptsContainer::removeHandler(std::vector<Handler>& list, int scriptId)
@@ -378,7 +393,7 @@ namespace LuaUtil
                 try
                 {
                     Diagnostics::Callback timingCallback(eventName);
-                    sol::object res = LuaUtil::call({ this, h.mScriptId }, h.mFn, object);
+                    sol::object res = h.call(this, object);
                     if (res.is<bool>() && !res.as<bool>())
                         break; // Skip other handlers if 'false' was returned.
                 }
@@ -474,7 +489,7 @@ namespace LuaUtil
         const ScriptsConfiguration& cfg = mLua.getConfiguration();
 
         std::map<int, ScriptInfo> scripts;
-        for (const auto& [scriptId, initData] : mAutoStartScripts)
+        for (const auto& [scriptId, initData] : getAutoStartConf())
             scripts[scriptId] = { initData, nullptr };
         for (const ESM::LuaScript& s : data.mScripts)
         {
@@ -542,82 +557,102 @@ namespace LuaUtil
         mRequiredLoading = true;
         if (LoadedData* data = std::get_if<LoadedData>(&mData))
             return *data;
+        Diagnostics::Loading::Timer startup(Diagnostics::Loading::Stage::LuaContainerStartup);
         UnloadedData& unloadedData = std::get<UnloadedData>(mData);
         std::vector<ESM::LuaScript> savedScripts = std::move(unloadedData.mScripts);
         LoadedData& data = mData.emplace<LoadedData>();
 
         const ScriptsConfiguration& cfg = mLua.getConfiguration();
 
-        std::map<int, ScriptInfo> scripts;
-        for (const auto& [scriptId, initData] : mAutoStartScripts)
-            scripts[scriptId] = { initData, nullptr };
-        for (const ESM::LuaScript& s : savedScripts)
+        // Fresh actors start the same immutable, already ordered attachment plan.
+        // Saved objects still merge per-instance script state in its original order.
+        if (savedScripts.empty())
         {
-            auto it = scripts.find(s.mScriptId);
-            if (it != scripts.end())
-                it->second.mSavedData = &s;
-            else if (cfg.isCustomScript(s.mScriptId))
-                scripts[s.mScriptId] = { cfg[s.mScriptId].mInitializationData, &s };
+            mLua.protectedCall([&](LuaView& view) {
+                data.mPublicInterfaces = sol::table(view.sol(), sol::create);
+                addPackage("openmw.interfaces", makeReadOnly(data.mPublicInterfaces));
+                for (const auto& [scriptId, initData] : getAutoStartConf())
+                {
+                    std::optional<sol::function> onInit, onLoad;
+                    if (addScript(view, scriptId, onInit, onLoad) && onInit)
+                        callOnInit(view, scriptId, *onInit, initData);
+                }
+            });
         }
 
-        mLua.protectedCall([&](LuaView& view) {
-            data.mPublicInterfaces = sol::table(view.sol(), sol::create);
-            addPackage("openmw.interfaces", makeReadOnly(data.mPublicInterfaces));
-
-            for (const auto& [scriptId, scriptInfo] : scripts)
+        else
+        {
+            std::map<int, ScriptInfo> scripts;
+            for (const auto& [scriptId, initData] : getAutoStartConf())
+                scripts[scriptId] = { initData, nullptr };
+            for (const ESM::LuaScript& s : savedScripts)
             {
-                std::optional<sol::function> onInit, onLoad;
-                if (!addScript(view, scriptId, onInit, onLoad))
-                    continue;
-                if (scriptInfo.mSavedData == nullptr)
-                {
-                    if (onInit)
-                        callOnInit(view, scriptId, *onInit, scriptInfo.mInitData);
-                    continue;
-                }
-                if (onLoad)
-                {
-                    try
-                    {
-                        sol::object state = deserialize(view.sol(), scriptInfo.mSavedData->mData, mSerializer);
-                        sol::object initializationData = deserialize(view.sol(), scriptInfo.mInitData, mSerializer);
-                        Diagnostics::Callback timingCallback("onLoad");
-                        LuaUtil::call({ this, scriptId }, *onLoad, state, initializationData);
-                    }
-                    catch (std::exception& e)
-                    {
-                        printError(scriptId, "onLoad failed", e);
-                    }
-                }
-                for (const ESM::LuaTimer& savedTimer : scriptInfo.mSavedData->mTimers)
-                {
-                    Timer timer;
-                    timer.mCallback = savedTimer.mCallbackName;
-                    timer.mSerializable = true;
-                    timer.mScriptId = scriptId;
-                    timer.mTime = savedTimer.mTime;
-
-                    try
-                    {
-                        timer.mArg
-                            = sol::main_object(deserialize(view.sol(), savedTimer.mCallbackArgument, mSerializer));
-                        // It is important if the order of content files was changed. The deserialize-serialize
-                        // procedure updates refnums, so timer.mSerializedArg may be not equal to
-                        // savedTimer.mCallbackArgument.
-                        timer.mSerializedArg = serialize(timer.mArg, mSerializer);
-
-                        if (savedTimer.mType == TimerType::GAME_TIME)
-                            data.mGameTimersQueue.push_back(std::move(timer));
-                        else
-                            data.mSimulationTimersQueue.push_back(std::move(timer));
-                    }
-                    catch (std::exception& e)
-                    {
-                        printError(scriptId, "can not load timer", e);
-                    }
-                }
+                auto it = scripts.find(s.mScriptId);
+                if (it != scripts.end())
+                    it->second.mSavedData = &s;
+                else if (cfg.isCustomScript(s.mScriptId))
+                    scripts[s.mScriptId] = { cfg[s.mScriptId].mInitializationData, &s };
             }
-        });
+
+            mLua.protectedCall([&](LuaView& view) {
+                data.mPublicInterfaces = sol::table(view.sol(), sol::create);
+                addPackage("openmw.interfaces", makeReadOnly(data.mPublicInterfaces));
+
+                for (const auto& [scriptId, scriptInfo] : scripts)
+                {
+                    std::optional<sol::function> onInit, onLoad;
+                    if (!addScript(view, scriptId, onInit, onLoad))
+                        continue;
+                    if (scriptInfo.mSavedData == nullptr)
+                    {
+                        if (onInit)
+                            callOnInit(view, scriptId, *onInit, scriptInfo.mInitData);
+                        continue;
+                    }
+                    if (onLoad)
+                    {
+                        try
+                        {
+                            sol::object state = deserialize(view.sol(), scriptInfo.mSavedData->mData, mSerializer);
+                            sol::object initializationData = deserialize(view.sol(), scriptInfo.mInitData, mSerializer);
+                            Diagnostics::Callback timingCallback("onLoad");
+                            LuaUtil::call({ this, scriptId }, *onLoad, state, initializationData);
+                        }
+                        catch (std::exception& e)
+                        {
+                            printError(scriptId, "onLoad failed", e);
+                        }
+                    }
+                    for (const ESM::LuaTimer& savedTimer : scriptInfo.mSavedData->mTimers)
+                    {
+                        Timer timer;
+                        timer.mCallback = savedTimer.mCallbackName;
+                        timer.mSerializable = true;
+                        timer.mScriptId = scriptId;
+                        timer.mTime = savedTimer.mTime;
+
+                        try
+                        {
+                            timer.mArg
+                                = sol::main_object(deserialize(view.sol(), savedTimer.mCallbackArgument, mSerializer));
+                            // It is important if the order of content files was changed. The deserialize-serialize
+                            // procedure updates refnums, so timer.mSerializedArg may be not equal to
+                            // savedTimer.mCallbackArgument.
+                            timer.mSerializedArg = serialize(timer.mArg, mSerializer);
+
+                            if (savedTimer.mType == TimerType::GAME_TIME)
+                                data.mGameTimersQueue.push_back(std::move(timer));
+                            else
+                                data.mSimulationTimersQueue.push_back(std::move(timer));
+                        }
+                        catch (std::exception& e)
+                        {
+                            printError(scriptId, "can not load timer", e);
+                        }
+                    }
+                }
+            });
+        }
 
         std::make_heap(data.mSimulationTimersQueue.begin(), data.mSimulationTimersQueue.end());
         std::make_heap(data.mGameTimersQueue.begin(), data.mGameTimersQueue.end());
@@ -635,6 +670,7 @@ namespace LuaUtil
         UnloadedData data;
         save(view, data);
         mAPI.erase("openmw.interfaces");
+        mPreparedPackages = {};
         UnloadedData& out = mData.emplace<UnloadedData>(std::move(data));
         for (auto& [_, handlers] : mEngineHandlers)
             handlers->mList.clear();

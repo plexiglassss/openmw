@@ -40,18 +40,31 @@ namespace Resource
 
     NifFileManager::~NifFileManager() = default;
 
-    Nif::NIFFilePtr NifFileManager::get(VFS::Path::NormalizedView name)
+    Nif::NIFFilePtr NifFileManager::get(VFS::Path::NormalizedView name, Nif::NIFFilePtr prepared)
     {
         osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(name);
         if (obj != nullptr)
             return static_cast<NifFileHolder*>(obj.get())->mNifFile;
 
-        auto file = std::make_shared<Nif::NIFFile>(name);
-        Nif::Reader reader(*file, mEncoder);
-        reader.parse(mVFS->get(name));
+        auto file = prepared ? std::move(prepared) : read(name);
         obj = new NifFileHolder(file);
         mCache->addEntryToObjectCache(name.value(), obj);
         return file;
+    }
+
+    bool NifFileManager::isCached(VFS::Path::NormalizedView name) const
+    {
+        return mCache->getRefFromObjectCache(name).valid();
+    }
+
+    Nif::NIFFilePtr NifFileManager::read(VFS::Path::NormalizedView name)
+    {
+        return mPendingReads.get(std::string(name.value()), [this, name] {
+            auto file = std::make_shared<Nif::NIFFile>(name);
+            Nif::Reader reader(*file, mEncoder);
+            reader.parse(mVFS->get(name));
+            return file;
+        }, [](const auto& ready) { return ready.get(); });
     }
 
     void NifFileManager::reportStats(unsigned int frameNumber, osg::Stats* stats) const

@@ -4,6 +4,8 @@
 #include "positioncellgrid.hpp"
 
 #include <components/sceneutil/workqueue.hpp>
+#include <components/sceneutil/preparationcost.hpp>
+#include <components/esm/exteriorcelllocation.hpp>
 
 #include <osg/ref_ptr>
 
@@ -25,6 +27,7 @@ namespace Terrain
 {
     class World;
     class View;
+    class ArrivalView;
 }
 
 namespace MWRender
@@ -41,6 +44,7 @@ namespace MWWorld
 {
     class CellStore;
     class TerrainPreloadItem;
+    class ExteriorArrivalJob;
 
     class CellPreloader
     {
@@ -52,6 +56,9 @@ namespace MWWorld
         /// Ask a background thread to preload rendering meshes and collision shapes for objects in this cell.
         /// @note The cell itself must be in State_Loaded or State_Preloaded.
         void preload(MWWorld::CellStore& cell, double timestamp);
+        void prioritize(const MWWorld::CellStore& cell);
+        void preloadStaticExterior(ESM::ExteriorCellLocation cell, double timestamp);
+        double preparationLeadTime(double configured);
 
         void notifyLoaded(MWWorld::CellStore* cell);
 
@@ -81,6 +88,15 @@ namespace MWWorld
         void setTerrainPreloadPositions(std::span<const PositionCellGrid> positions);
 
         void syncTerrainLoad(Loading::Listener& listener);
+        void cancelPrediction() { retireArrival(); }
+        void updateArrivalGrid(Terrain::World*, const osg::Vec4i&);
+        void predictArrival(Terrain::World* world, const PositionCellGrid& target);
+        bool ensureArrival(Terrain::World* world, const PositionCellGrid& target, Loading::Listener& listener,
+            double timestamp);
+        bool keepStreamingArrival(std::span<const PositionCellGrid> targets);
+        void leaveExterior(Terrain::World* world, const PositionCellGrid& current, double timestamp);
+        void clearArrivals();
+
         void abortTerrainPreloadExcept(const PositionCellGrid* exceptPos);
         bool isTerrainLoaded(const PositionCellGrid& position, double referenceTime) const;
         void setTerrain(Terrain::World* terrain);
@@ -89,6 +105,18 @@ namespace MWWorld
 
     private:
         void clearAllTasks();
+        struct StaticPreloads;
+        std::unique_ptr<StaticPreloads> mStaticPreloads;
+        SceneUtil::PreparationCost mPreparationCost;
+        void retireArrival();
+        bool startArrival(Terrain::World* world, const PositionCellGrid& target, bool required);
+        osg::ref_ptr<ExteriorArrivalJob> mArrivalJob;
+        std::vector<osg::ref_ptr<ExteriorArrivalJob>> mRetiredArrivals;
+        Terrain::World* mArrivalWorld = nullptr;
+        Terrain::World* mReturnWorld = nullptr;
+        std::shared_ptr<Terrain::ArrivalView> mReturnView;
+        double mReturnTime = 0;
+
 
         Resource::ResourceSystem* mResourceSystem;
         Resource::BulletShapeManager* mBulletShapeManager;
@@ -104,9 +132,11 @@ namespace MWWorld
 
         struct PreloadEntry
         {
-            PreloadEntry(double timestamp, osg::ref_ptr<SceneUtil::WorkItem> workItem)
+            PreloadEntry(double timestamp, osg::ref_ptr<SceneUtil::WorkItem> workItem,
+                std::shared_ptr<SceneUtil::PreparationSample> timing = {})
                 : mTimeStamp(timestamp)
                 , mWorkItem(std::move(workItem))
+                , mTiming(std::move(timing))
             {
             }
             PreloadEntry()
@@ -116,6 +146,15 @@ namespace MWWorld
 
             double mTimeStamp;
             osg::ref_ptr<SceneUtil::WorkItem> mWorkItem;
+            std::shared_ptr<SceneUtil::PreparationSample> mTiming;
+            double mPreparationSeconds = 0;
+
+            double preparationSeconds() const
+            {
+                if (mTiming && mTiming->mComplete.load(std::memory_order_acquire) && mTiming->mSuccessful)
+                    return mTiming->mWorkSeconds;
+                return mPreparationSeconds;
+            }
         };
         typedef std::map<const MWWorld::CellStore*, PreloadEntry> PreloadMap;
 
@@ -133,6 +172,7 @@ namespace MWWorld
         std::size_t mAdded = 0;
         std::size_t mExpired = 0;
         std::size_t mLoaded = 0;
+        std::size_t mCostRetentions = 0;
     };
 
 }

@@ -125,6 +125,7 @@ namespace MWGui
 
         bool mTrading;
         bool mUpdateNextFrame;
+        bool mArmorCaptionPending = false;
         std::vector<MWWorld::Ptr> mPaperDollEquipment;
         MyGUI::IntSize mPaperDollViewport;
 

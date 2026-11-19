@@ -10,6 +10,7 @@
 #include <BulletCollision/CollisionShapes/btTriangleMesh.h>
 
 #include <components/misc/convert.hpp>
+#include <components/misc/combinedperformance.hpp>
 #include <components/misc/osguservalues.hpp>
 #include <components/misc/pathhelpers.hpp>
 #include <components/sceneutil/visitor.hpp>
@@ -19,7 +20,7 @@
 #include <components/nifbullet/bulletnifloader.hpp>
 
 #include "bulletshape.hpp"
-#include "multiobjectcache.hpp"
+#include "collisioninstancecache.hpp"
 #include "niffilemanager.hpp"
 #include "objectcache.hpp"
 #include "scenemanager.hpp"
@@ -99,7 +100,7 @@ namespace Resource
     BulletShapeManager::BulletShapeManager(
         const VFS::Manager* vfs, SceneManager* sceneMgr, NifFileManager* nifFileManager, double expiryDelay)
         : ResourceManager(vfs, expiryDelay)
-        , mInstanceCache(new MultiObjectCache)
+        , mInstanceCache(new CollisionInstanceCache)
         , mSceneManager(sceneMgr)
         , mNifFileManager(nifFileManager)
     {
@@ -164,18 +165,32 @@ namespace Resource
         return shape;
     }
 
-    osg::ref_ptr<BulletShapeInstance> BulletShapeManager::cacheInstance(VFS::Path::NormalizedView name)
+    osg::ref_ptr<BulletShapeInstance> BulletShapeManager::cacheInstance(VFS::Path::NormalizedView name, float scale)
     {
+        if (!Misc::usePreparedCollisionScale())
+            scale = 1.f;
         osg::ref_ptr<BulletShapeInstance> instance = createInstance(name);
         if (instance != nullptr)
-            mInstanceCache->addEntryToObjectCache(name, instance.get());
+        {
+            if (Misc::usePreparedCollisionScale() && std::isfinite(scale) && instance->mCollisionShape)
+                instance->setLocalScaling(btVector3(scale, scale, scale));
+            // Publish only after scaling: no cached mutable shape is shared by consumers.
+            mInstanceCache->add(name, scale, instance);
+        }
         return instance;
     }
 
-    osg::ref_ptr<BulletShapeInstance> BulletShapeManager::getInstance(VFS::Path::NormalizedView name)
+    osg::ref_ptr<BulletShapeInstance> BulletShapeManager::getInstance(VFS::Path::NormalizedView name, float scale)
     {
-        if (osg::ref_ptr<osg::Object> obj = mInstanceCache->takeFromObjectCache(name))
-            return static_cast<BulletShapeInstance*>(obj.get());
+        if (!Misc::usePreparedCollisionScale())
+            scale = 1.f;
+        if (auto instance = mInstanceCache->take(name, scale))
+            return instance;
+        // An unscaled prepared instance is still useful after a script changes scale.
+        if (scale != 1.f)
+            if (auto instance = mInstanceCache->take(name, 1.f))
+                return instance;
+        // The caller applies its current scale before world registration on a miss.
         return createInstance(name);
     }
 

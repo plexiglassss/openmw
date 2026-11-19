@@ -24,6 +24,8 @@ namespace Loading
         ///  so that the loading is exception safe.
         virtual void loadingOn() {}
         virtual void loadingOff() {}
+        /// Present the current label/progress before a blocking operation.
+        virtual void refresh(bool force = false) {}
 
         /// Set the total range of progress (e.g. the number of objects to load).
         virtual void setProgressRange(size_t range) {}

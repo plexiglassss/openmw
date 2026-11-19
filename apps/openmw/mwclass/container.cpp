@@ -247,11 +247,24 @@ namespace MWClass
         info.caption = MyGUI::TextIterator::toTagsString(MyGUI::UString(name));
 
         std::string text;
+        bool canUseKey = false;
+        if (Settings::gui().mKeyTooltips && ptr.getCellRef().isLocked() && !ptr.getCellRef().getKey().empty())
+        {
+            const MWWorld::Ptr player = MWBase::Environment::get().getWorld()->getPlayerPtr();
+            // Match activation's assigned-key lookup, including RefId case handling.
+            if (!player.isEmpty())
+                canUseKey = !player.getClass().getContainerStore(player).search(ptr.getCellRef().getKey()).isEmpty();
+        }
+
         int lockLevel = ptr.getCellRef().getLockLevel();
-        if (lockLevel)
+        if (lockLevel || canUseKey)
         {
             if (ptr.getCellRef().isLocked())
+            {
                 text += "\n#{sLockLevel}: " + MWGui::ToolTips::toString(lockLevel);
+                if (canUseKey)
+                    text += " #{OMWEngine:KeyTooltipUseKey}";
+            }
             else
                 text += "\n#{sUnlocked}";
         }

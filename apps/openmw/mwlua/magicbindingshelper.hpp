@@ -19,15 +19,19 @@ namespace MWLua
     {
         // Resolve on every call: ObjectVariant retains the actor's local/global/self
         // context, and SafePtr must still observe changes to the world registry.
-        inline MWMechanics::CreatureStats* getActorStats(const ObjectVariant& actor)
+        inline MWMechanics::CreatureStats* getActorStats(const MWWorld::Ptr& ptr)
         {
-            const MWWorld::Ptr& ptr = actor.ptr();
             if (ptr.isEmpty())
                 return nullptr;
             const MWWorld::Class& cls = ptr.getClass();
             if (!cls.isActor())
                 return nullptr;
             return &cls.getCreatureStats(ptr);
+        }
+
+        inline MWMechanics::CreatureStats* getActorStats(const ObjectVariant& actor)
+        {
+            return getActorStats(actor.ptr());
         }
 
         template <class GetEffectKey>

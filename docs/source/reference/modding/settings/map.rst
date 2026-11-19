@@ -89,7 +89,18 @@ Options > Map icons.
     Icon size in logical UI pixels. Interface scaling applies.
 
 ``location icon colours`` (integer, default 0)
-    0 uses map colours; 1 uses white; 2 uses category colours.
+    0 selects the original artwork colours on both maps. 2 selects colours by marker type.
+    Earlier value 1 selects the original artwork colours.
+
+``location local door icons`` (boolean, default true)
+    Use the selected marker skin on teleport doors in the local map and HUD minimap.
+
+``location local icon size`` (integer, 8 to 40, default 15)
+    The local door size at normal zoom, in logical interface pixels.
+
+``location icon maximum size`` (integer, 8 to 64, default 24)
+    Maximum side length after zoom and world marker grouping, in logical interface pixels.
+    World and local map positions continue to follow the zoom. The interface scale still applies.
 
 ``location icon categories`` (integer bit mask, default 524287)
     Categories with their bit clear use square markers. Bits 0 through 18 are:

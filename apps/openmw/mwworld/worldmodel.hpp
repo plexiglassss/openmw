@@ -81,6 +81,12 @@ namespace MWWorld
 
         void registerPtr(const Ptr& ptr);
 
+        template <class Visitor>
+        void forEachPostponedPhysics(Visitor&& visitor)
+        {
+            mPtrRegistry.forEachPostponedPhysics(std::forward<Visitor>(visitor));
+        }
+
         void deregisterLiveCellRef(LiveCellRefBase& ref) noexcept;
 
         // Internal notifications for cells participating in global ID lookup.

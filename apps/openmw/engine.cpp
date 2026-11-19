@@ -7,7 +7,9 @@
 
 #include <cerrno>
 #include <chrono>
+#include <cstdlib>
 #include <future>
+#include <string_view>
 #include <system_error>
 
 #include <osgDB/ReaderWriter>
@@ -50,6 +52,8 @@
 #include <components/loadinglistener/loadinglistener.hpp>
 
 #include <components/misc/frameratelimiter.hpp>
+#include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
 
 #include <components/sceneutil/color.hpp>
 #include <components/sceneutil/depth.hpp>
@@ -178,7 +182,9 @@ namespace
         const float multiplier = 1000;
         const bool average = true;
         const bool averageInInverseSpace = false;
-        const float maxValue = 10000;
+        // GraphUpdateCallback reads raw seconds; the multiplier only formats text.
+        // Match OSG's built-in traversal graphs (16 ms at the top of the graph).
+        const float maxValue = 0.016f;
 
         OMW::forEachUserStatsValue([&](const OMW::UserStats& v) {
             profiler.addUserStatsLine(v.mLabel, textColor, barColor, v.mTaken, multiplier, average,
@@ -425,7 +431,13 @@ bool OMW::Engine::frame(unsigned frameNumber, float frametime)
         const bool reportResource = stats->collectStats("resource");
 
         if (reportResource)
+        {
             stats->setAttribute(frameNumber, "UnrefQueue", static_cast<double>(mUnrefQueue->getSize()));
+            stats->setAttribute(frameNumber, "UnrefQueue Peak Queued Objects",
+                static_cast<double>(mUnrefQueue->getPeakQueuedObjects()));
+            stats->setAttribute(
+                frameNumber, "UnrefQueue Backpressure Waits", static_cast<double>(mUnrefQueue->getBackpressureWaits()));
+        }
 
         mUnrefQueue->flush(*mWorkQueue);
 
@@ -576,6 +588,15 @@ OMW::Engine::~Engine()
     mWorkQueue = nullptr;
     reportShutdownStage("mWorkQueue");
 
+    if (mNativeJobPool)
+    {
+        const Misc::NativeJobPool::Statistics stats = mNativeJobPool->statistics();
+        Log(Debug::Info) << "Native gameplay jobs: " << stats.mParallelCalls << " parallel calls, "
+                         << stats.mSerialCalls << " serial calls, " << stats.mItems << " items, " << stats.mTasks
+                         << " tasks";
+    }
+    mNativeJobPool = nullptr;
+    reportShutdownStage("mNativeJobPool");
     mViewer = nullptr;
     reportShutdownStage("mViewer");
 
@@ -908,6 +929,14 @@ void OMW::Engine::prepareEngine()
     mEnvironment.setResourceSystem(*mResourceSystem);
 
     mWorkQueue = new SceneUtil::WorkQueue(Settings::cells().mPreloadNumThreads);
+    const bool nativeJobsEnabled = Settings::general().mNativeJobsEnabled && Misc::useNativeJobs();
+    const std::size_t nativeJobThreads
+        = nativeJobsEnabled ? static_cast<std::size_t>(Settings::general().mNativeJobsThreads) : 0;
+    mNativeJobPool = std::make_unique<Misc::NativeJobPool>(nativeJobThreads,
+        static_cast<std::size_t>(Settings::general().mNativeJobsMinimumItems));
+    mEnvironment.setNativeJobPool(*mNativeJobPool);
+    Log(Debug::Info) << "Native gameplay jobs: " << mNativeJobPool->workerCount()
+                     << " workers, minimum " << mNativeJobPool->minimumItemsPerTask() << " items per task";
     mUnrefQueue = std::make_unique<SceneUtil::UnrefQueue>();
 
     mScreenCaptureOperation = new SceneUtil::AsyncScreenCaptureOperation(mWorkQueue,

@@ -301,7 +301,7 @@ namespace MWScript
                         msgBox = ::Misc::StringUtils::format(msgBox, itemName);
                     }
                     MWBase::Environment::get().getWindowManager()->messageBox(
-                        msgBox, MWGui::ShowInDialogueMode_Only, Misc::DialogueText::Category::Inventory);
+                        msgBox, MWGui::ShowInDialogueMode_Only, Misc::DialogueText::Category::InventoryRemoval);
                 }
             }
         };

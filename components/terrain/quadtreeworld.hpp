@@ -4,6 +4,8 @@
 #include "terraingrid.hpp"
 
 #include <atomic>
+#include <functional>
+#include <span>
 #include <memory>
 #include <mutex>
 
@@ -24,6 +26,7 @@ namespace Terrain
     struct ViewDataEntry;
 
     class DebugChunkManager;
+    struct RayFootprint;
 
     /// @brief Terrain implementation that loads cells into a Quad Tree, with geometry LOD and texture LOD.
     class QuadTreeWorld
@@ -52,13 +55,34 @@ namespace Terrain
         View* createView() override;
         void preload(View* view, const osg::Vec3f& eyePoint, const osg::Vec4i& cellgrid, std::atomic<bool>& abort,
             Loading::Reporter& reporter) override;
+        std::shared_ptr<ArrivalView> createArrival(const osg::Vec3f&, const osg::Vec4i&) override;
+        std::shared_ptr<ArrivalView> captureArrival(const osg::Vec3f&, const osg::Vec4i&, std::size_t) override;
+        bool validArrival(const ArrivalView&) const override;
+        void showArrival(std::shared_ptr<ArrivalView>) override;
+        void preloadArrival(View*, const std::shared_ptr<ArrivalView>&, std::atomic_bool&,
+            Loading::Reporter&, const ArrivalView::Progress&) override;
+        void clearAssociatedCaches() override;
         void rebuildViews() override;
 
         void reportStats(unsigned int frameNumber, osg::Stats* stats) override;
 
+        struct ChunkRequest
+        {
+            float mSize;
+            osg::Vec2f mCenter;
+            unsigned int mLodFlags;
+            bool mActiveGrid;
+        };
+
         class ChunkManager
         {
         public:
+            struct AsyncResult
+            {
+                bool mSupported = false;
+                bool mReady = false;
+                osg::ref_ptr<osg::Node> mNode;
+            };
             virtual ~ChunkManager() = default;
             ChunkManager() = default;
             ChunkManager(ESM::RefId worldspace)
@@ -67,9 +91,31 @@ namespace Terrain
                 mWorldspace = worldspace;
             }
             virtual osg::ref_ptr<osg::Node> getChunk(float size, const osg::Vec2f& center, unsigned char lod,
-                unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile)
+                unsigned int lodFlags, bool activeGrid, const osg::Vec3f& viewPoint, bool compile,
+                const std::atomic_bool* abort = nullptr)
                 = 0;
             virtual unsigned int getNodeMask() { return 0; }
+            // Main/cull thread only. Pending is distinct from a successfully
+            // empty chunk. Exact queries continue to use getChunk.
+            virtual AsyncResult requestChunk(const ChunkRequest&, const osg::Vec3f&, double, bool = true)
+            { return {}; }
+            virtual bool updateAsyncState(double) { return false; }
+            virtual bool canPrepareAsync() const { return false; }
+            // Camera-only scenery coverage. Exact queries use getChunk and never
+            // consume these temporary, conservatively complete representations.
+            virtual bool usesSceneryCoverage() const { return false; }
+            virtual void acceptScenery(std::span<const ChunkRequest>, const osg::Vec3f&, const osg::Vec4i&,
+                osg::NodeVisitor&, double, std::shared_ptr<SceneryView>&, const std::shared_ptr<SceneryView>&) {}
+            virtual std::shared_ptr<SceneryView> preloadScenery(std::span<const ChunkRequest>, const osg::Vec3f&,
+                const osg::Vec4i&, const std::atomic_bool&, Loading::Reporter&) { return {}; }
+            virtual void prepareScenery(const ChunkRequest& request, const osg::Vec3f& point, double time)
+            { requestChunk(request, point, time, true); }
+            // Called only after the segment misses the landscape tile itself. Other
+            // managers can have meshes extending outside that tile; unknown means keep.
+            virtual bool mayIntersectOutsideTile(const ChunkRequest&, const osg::Vec3f&, const RayFootprint&)
+            {
+                return true;
+            }
 
             void setViewDistance(float viewDistance) { mViewDistance = viewDistance; }
             float getViewDistance() const { return mViewDistance; }
@@ -85,12 +131,39 @@ namespace Terrain
             float mViewDistance = 0.f;
             unsigned int mMaxLodLevel = ~0u;
         };
+
+        // A batch may prepare private resources ahead of use. The loader still requests each
+        // scene node at its original position in the ordered terrain traversal.
+        class BatchChunkManager : public ChunkManager
+        {
+        public:
+            using ChunkManager::ChunkManager;
+            using Fetch = std::function<osg::ref_ptr<osg::Node>()>;
+            using Load = std::function<void(std::size_t, const Fetch&)>;
+            virtual bool canPreloadBatches() const = 0;
+            virtual void preloadChunks(std::span<const ChunkRequest> chunks, const osg::Vec3f& viewPoint,
+                const std::atomic_bool& abort, const Load& load) = 0;
+        };
         void addChunkManager(ChunkManager*);
+        void addBatchChunkManager(BatchChunkManager*);
+
 
     private:
         void ensureQuadTreeBuilt();
-        void loadRenderingNode(
-            ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const osg::Vec4i& gridbounds, bool compile);
+        void prepareView(View*, const osg::Vec3f&, const osg::Vec4i&, std::atomic_bool&, Loading::Reporter&,
+            const std::shared_ptr<ArrivalView>&, const ArrivalView::Progress&);
+        std::atomic_uint64_t mArrivalRevision{ 0 };
+        std::atomic<std::shared_ptr<ArrivalView>> mVisibleArrival;
+        std::atomic<std::shared_ptr<ArrivalView>> mPreloadedScenery;
+        void updateRenderingLod(ViewDataEntry& entry, ViewData* vd);
+        ChunkRequest getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& gridbounds) const;
+        void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
+            bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr,
+            bool asynchronous = false, double referenceTime = 0, bool separateScenery = false);
+        void prepareAhead(ViewData&, const osg::Vec3f&, double referenceTime, float cellWorldSize);
+        BatchChunkManager* mBatchChunkManager = nullptr;
+        std::size_t mSceneryPrepared = 0, mSceneryRequired = 0, mSceneryAhead = 0, mSceneryCancelled = 0;
+        double mSceneryRequiredMs = 0, mSceneryAheadMs = 0, mNextSceneryReport = 0;
 
         osg::ref_ptr<RootNode> mRootNode;
 
@@ -102,7 +175,7 @@ namespace Terrain
         bool mQuadTreeBuilt;
         float mLodFactor;
         int mVertexLodMod;
-        float mViewDistance;
+        std::atomic<float> mViewDistance;
         float mMinSize;
         bool mDebugTerrainChunks;
         std::unique_ptr<DebugChunkManager> mDebugChunkManager;
