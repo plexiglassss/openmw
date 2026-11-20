@@ -12,6 +12,7 @@
 #include "smartmapcontrols.hpp"
 #include "tooltipcontrols.hpp"
 #include "windowbase.hpp"
+#include "settingscategories.hpp"
 
 namespace MWGui
 {
@@ -40,6 +41,7 @@ namespace MWGui
 
     protected:
         MyGUI::TabControl* mSettingsTab;
+        std::unique_ptr<SettingsCategories> mCategories;
         MyGUI::Button* mOkButton;
 
         // graphics

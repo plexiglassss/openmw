@@ -77,6 +77,15 @@ class PackageSources(unittest.TestCase):
             "lua-ui-legacy-updates-tests.xml": interactions,
             "combined-performance-off-tests.xml": interactions,
         }
+        fixtures["components-tests.xml"] += [("WorkQueueSlicing", name) for name in (
+            "LateAbortCannotPublishANonterminalSlice", "RequiredContinuationsFollowNewArrivalsBeforePrediction",
+            "PredictionPromotionYieldsToOrdinaryWorkOnContinuation", "RequiredContinuationsDoNotStarveCleanup",
+            "RunningPredictionYieldsToNewRequiredWork")]
+        fixtures["openmw-tests.xml"] += [("SettingsCategoriesTest", name) for name in (
+            "SixPagesPreserveBindingsDelegatesAndUnknownLayoutControls",
+            "PartialLegacyJournalAndNativeFallbackShareOneReachableSection",
+            "CategorySelectionSurvivesResizeAndReleasesHiddenInputFocus",
+            "WrappedSectionsScrollOverBodyLabelsButtonsAndRevealFocusedControls")]
         for name, cases in fixtures.items():
             content = '<testsuites>' + ''.join(f'<testcase classname="{suite}" name="{case}" status="run" result="completed"/>' for suite, case in cases) + '</testsuites>'
             (self.root / name).write_text(content)

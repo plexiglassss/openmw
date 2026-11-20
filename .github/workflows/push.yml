@@ -173,6 +173,11 @@ jobs:
           if ($LASTEXITCODE) { throw 'Lua adapter test runtime installation failed' }
           python custom/combined-performance/tests/test_sanemagic_adapters.py --output sanemagic-adapter-parity.json
           if ($LASTEXITCODE) { throw 'SaneMagic native/fallback adapter behavior differs from the captured originals' }
+      - name: Verify cooperative AWM v11 rebuilds in both Lua runtimes
+        shell: pwsh
+        run: |
+          python custom/advanced-world-map/tests/test_rebuild.py --output awm-rebuild-tests.json
+          if ($LASTEXITCODE) { throw 'AWM rebuild behavior or session isolation failed' }
       - name: Exercise captured map, quest and proximity adapters
         shell: pwsh
         run: python custom/combined-performance/tests/test_native_adapters.py --output native-job-adapter-parity.json
@@ -414,7 +419,7 @@ jobs:
           ./build/openmw-controls-tests.exe --gtest_output=xml:map-icon-controls-early.xml
           if ($LASTEXITCODE) { throw 'Actual native controls regressions failed' }
           [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
-          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest')) {
+          foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest','SettingsCategoriesTest')) {
             $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
             $expectedCases = if ($suiteName -eq 'MapIconControlsTest') { 6 } else { 4 }
             if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne $expectedCases) {
@@ -1007,6 +1012,7 @@ jobs:
             lua-ui-legacy-updates-tests.xml
             combined-performance-off-tests.xml
             native-job-adapter-parity.json
+            awm-rebuild-tests.json
             native-jobs-tests.json
             town-frame-updates.json
             town-previous-components.xml

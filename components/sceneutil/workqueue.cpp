@@ -92,7 +92,18 @@ namespace SceneUtil
             {
                 auto& queue = item->isMaintenance() ? mMaintenance : mQueue;
                 if (front)
+                {
+                    item->mHighPriority = true;
                     queue.push_front(std::move(item));
+                }
+                else if (item->mHighPriority && !item->isMaintenance())
+                {
+                    // A required continuation follows other required jobs, including
+                    // newly promoted nearer cells, but precedes speculative work.
+                    const auto next = std::find_if(queue.begin(), queue.end(),
+                        [](const auto& value) { return !value->mHighPriority.load(); });
+                    queue.insert(next, std::move(item));
+                }
                 else
                     queue.push_back(std::move(item));
                 mCondition.notify_one();
@@ -110,15 +121,23 @@ namespace SceneUtil
         addWorkItem(std::move(item));
     }
 
-    bool WorkQueue::promoteWorkItem(WorkItem* item)
+    bool WorkQueue::promoteWorkItem(WorkItem* item, bool required)
     {
+        if (!item || item->isDone())
+            return false;
         const std::lock_guard lock(mMutex);
+        if (required)
+            item->mHighPriority = true;
         for (auto* queue : { &mQueue, &mMaintenance })
         {
             const auto it = std::find_if(queue->begin(), queue->end(), [item](const auto& value) { return value.get() == item; });
             if (it != queue->end())
             {
-                std::rotate(queue->begin(), it, std::next(it));
+                // Prediction is a one-off promotion. Only a required arrival
+                // retains priority across slices, and predictions cannot overtake it.
+                const auto first = item->mHighPriority ? queue->begin()
+                    : std::find_if(queue->begin(), it, [](const auto& value) { return !value->mHighPriority.load(); });
+                std::rotate(first, it, std::next(it));
                 return true;
             }
         }

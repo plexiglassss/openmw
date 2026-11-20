@@ -91,6 +91,12 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useSlicedCellPreload()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_SLICED_CELL_PRELOAD");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useSlicedCleanup()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_SLICED_CLEANUP");

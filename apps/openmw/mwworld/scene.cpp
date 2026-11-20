@@ -801,7 +801,7 @@ namespace MWWorld
             // Front promotions are performed farthest first. Activation order is unchanged.
             for (auto it = cellsPositionsToLoad.rbegin(); it != cellsPositionsToLoad.rend(); ++it)
                 mPreloader->prioritize(mWorld.getWorldModel().getExterior(
-                    ESM::ExteriorCellLocation(it->first, it->second, playerCellIndex.mWorldspace)));
+                    ESM::ExteriorCellLocation(it->first, it->second, playerCellIndex.mWorldspace)), true);
         }
         transition.phase("destination resource scheduling");
         Loading::Listener* loadingListener = MWBase::Environment::get().getWindowManager()->getLoadingScreen();

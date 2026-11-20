@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c5dbc12afc163091851082ce8db56af8747aa208"
+        "blob": "6468630f1eed80f4381e4aa2dd2b5acbac05a5ed"
       },
       "status": "adapted_for_rc1"
     },
@@ -440,7 +440,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "46dd4d6105246c1f73a8cbc73f5f319aa181ff14"
+        "blob": "b5dfa5b77df28a22ed6aa14dfd9242c3c60d5792"
       },
       "status": "adapted_for_rc1"
     },
@@ -528,7 +528,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "da7c9c6b39ba4c82fb2001a77dcf27eeda015c5f"
+        "blob": "f03b7a44f17f881ab9f74da406a8f163bf33d772"
       },
       "status": "adapted_for_rc1"
     },
@@ -825,7 +825,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8e1a7a4bed9c9c0a76b5c0d473b33e69dd2779b3"
+        "blob": "221e69ff4d29183b2f4e1cadb05f8987e755bbef"
       },
       "status": "adapted_for_rc1"
     },
@@ -836,7 +836,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3eda4882570ae41eb4e279b5cc372c3770b04176"
+        "blob": "ecefecdb454f355092c7c74c071ee709c9730b25"
       },
       "status": "adapted_for_rc1"
     },
@@ -1782,7 +1782,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5bb310c37c870c36712c7d5929b96d2e680ff107"
+        "blob": "dabdf6a72139cb6f51a3042b497b301001ab80eb"
       },
       "status": "adapted_for_rc1"
     },
@@ -1793,7 +1793,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "10c0b3473c313ccded2c28a8d4eff87152c21ffb"
+        "blob": "0ad5c7780182ffa6b79ea9b587b8ce53335b5a82"
       },
       "status": "adapted_for_rc1"
     },
@@ -1936,7 +1936,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3b8773abfcc21e121730946aee03f4127867f286"
+        "blob": "baa7db517dc4517d5f5161d357407f0265502b11"
       },
       "status": "adapted_for_rc1"
     },
@@ -2002,7 +2002,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "f9537758cfe4cfe5ef50f0305353b9531ac35783"
+        "blob": "7cf8650cc17eb2bc9b2df15608b5da4b677483bb"
       },
       "status": "adapted_for_rc1"
     },
@@ -2046,7 +2046,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "2542af3449f46eb419563b1a45663cb11dede721"
+        "blob": "169bf5c8518b8798df2bf080a147d9b0c61ec83f"
       },
       "status": "adapted_for_rc1"
     },
@@ -2783,9 +2783,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "edc6c37bffafb98a7969191398820818aaf2dcda"
+        "blob": "62868dd21ae661f5366803e338298dee1a27be0f"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/misc/dialoguetext.cpp": {
       "cumulative": {
@@ -3212,9 +3212,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5e46382d271a0fb70b9a787ea12df696d3b18e32"
+        "blob": "cbbebdefde1f60596d8f1d7ef16f01191c7bc379"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/sceneutil/riggeometry.cpp": {
       "cumulative": {
@@ -3377,7 +3377,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d4c2798462ead501dbb27ff9b290172bf93f7486"
+        "blob": "6ad8fbda8f6c7ad79f395e42131136f06195f239"
       },
       "status": "adapted_for_rc1"
     },
@@ -3388,7 +3388,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bbb2cf2b8f666e3ea1e19844a8dff00c84b20ac9"
+        "blob": "9625c6783452a01fbfbe4d22c216dbdda73d04c5"
       },
       "status": "adapted_for_rc1"
     },
@@ -5071,9 +5071,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "6fd45e775e64054301861c254778a6d0837e5c49"
+        "blob": "e96994ee2c0697799c9f56c9b1e8c8f2e7d50fa8"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "cumulative": {
@@ -5093,9 +5093,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "10902042633e8c95e2296db3705a9ec5199f8501"
+        "blob": "3ec06320f39d417c5b03ceafa6ded3e5123720c4"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/performance-tests/test-preload.py": {
       "cumulative": {
@@ -5104,7 +5104,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "88dbc02d652761334eb3d44b4fda853e2ac76dd9"
+        "blob": "661c20d7aa1d06d7623843099f8c68c4b5ba9dcc"
       },
       "status": "adapted_for_rc1"
     },
@@ -5379,7 +5379,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "38d18942e654bd6d7498de8191fdd07bf7da4835"
+        "blob": "04be10384661e00e78edb61f27eb35c9948e4577"
       },
       "status": "adapted_for_rc1"
     },
@@ -5390,7 +5390,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5ce9c415146b6a063204bed67177c56d7b3c6abb"
+        "blob": "bcf489d15701440443287d6b5f14c22bdd8ac1dc"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c5dbc12afc163091851082ce8db56af8747aa208"
+        "blob": "6468630f1eed80f4381e4aa2dd2b5acbac05a5ed"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -6252,9 +6252,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "46dd4d6105246c1f73a8cbc73f5f319aa181ff14"
+        "blob": "b5dfa5b77df28a22ed6aa14dfd9242c3c60d5792"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/components_tests/settings/testvalues.cpp": {
       "upstream": {
@@ -6358,9 +6358,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "da7c9c6b39ba4c82fb2001a77dcf27eeda015c5f"
+        "blob": "f03b7a44f17f881ab9f74da406a8f163bf33d772"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw/engine.cpp": {
       "upstream": {
@@ -6867,6 +6867,22 @@
       },
       "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
     },
+    "apps/openmw/mwgui/settingscategories.cpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "348563c64b6d230f852f08958e932ea88e78d112"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "apps/openmw/mwgui/settingscategories.hpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "96508ee7f41725138f9680b35f46dd66838cdbf1"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
     "apps/openmw/mwgui/settingswindow.cpp": {
       "upstream": {
         "mode": "100644",
@@ -6874,9 +6890,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8e1a7a4bed9c9c0a76b5c0d473b33e69dd2779b3"
+        "blob": "221e69ff4d29183b2f4e1cadb05f8987e755bbef"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw/mwgui/settingswindow.hpp": {
       "upstream": {
@@ -6885,9 +6901,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3eda4882570ae41eb4e279b5cc372c3770b04176"
+        "blob": "ecefecdb454f355092c7c74c071ee709c9730b25"
       },
-      "purpose": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw/mwgui/smartmapcontrols.cpp": {
       "upstream": null,
@@ -7927,9 +7943,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5bb310c37c870c36712c7d5929b96d2e680ff107"
+        "blob": "dabdf6a72139cb6f51a3042b497b301001ab80eb"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "upstream": {
@@ -7938,9 +7954,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "10c0b3473c313ccded2c28a8d4eff87152c21ffb"
+        "blob": "0ad5c7780182ffa6b79ea9b587b8ce53335b5a82"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw/mwworld/cellref.cpp": {
       "upstream": {
@@ -8094,9 +8110,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3b8773abfcc21e121730946aee03f4127867f286"
+        "blob": "baa7db517dc4517d5f5161d357407f0265502b11"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Notify native UI after actual player-cell changes, including already-active exterior crossings; retain scene activation and rendering order."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Notify native UI after actual player-cell changes, including already-active exterior crossings; retain scene activation and rendering order. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "upstream": {
@@ -8176,9 +8192,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "f9537758cfe4cfe5ef50f0305353b9531ac35783"
+        "blob": "7cf8650cc17eb2bc9b2df15608b5da4b677483bb"
       },
-      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "upstream": null,
@@ -8248,9 +8264,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "2542af3449f46eb419563b1a45663cb11dede721"
+        "blob": "169bf5c8518b8798df2bf080a147d9b0c61ec83f"
       },
-      "purpose": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "apps/openmw_tests/mwgui/testresttime.cpp": {
       "upstream": null,
@@ -9150,9 +9166,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "edc6c37bffafb98a7969191398820818aaf2dcda"
+        "blob": "62868dd21ae661f5366803e338298dee1a27be0f"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "components/misc/dialoguetext.cpp": {
       "upstream": null,
@@ -9546,9 +9562,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "5e46382d271a0fb70b9a787ea12df696d3b18e32"
+        "blob": "cbbebdefde1f60596d8f1d7ef16f01191c7bc379"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "components/sceneutil/riggeometry.cpp": {
       "upstream": {
@@ -9696,9 +9712,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d4c2798462ead501dbb27ff9b290172bf93f7486"
+        "blob": "6ad8fbda8f6c7ad79f395e42131136f06195f239"
       },
-      "purpose": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "components/sceneutil/workqueue.hpp": {
       "upstream": {
@@ -9707,9 +9723,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bbb2cf2b8f666e3ea1e19844a8dff00c84b20ac9"
+        "blob": "9625c6783452a01fbfbe4d22c216dbdda73d04c5"
       },
-      "purpose": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "components/sdlutil/sdlinputwrapper.cpp": {
       "upstream": {
@@ -10082,6 +10098,110 @@
         "blob": "3047d8f8c34eb2e057ac69c9a1d5f8a886b8c06d"
       },
       "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/README.txt": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "beff01a6e14f51e3c3457d3f840419833f648e1d"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/dataRebuildService.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "e1d590b71f55288425017dfaa0ee6ec846a5a643"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/global.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "e07fafecff6c1ea96b22ced6403839022d89edc7"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/helpers/cell.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "763f0d47081fa869ccedf6d06a482be818038433"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/mapData/transport.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "27845a1c19fdd28960771ab7ec9fd241311a7da4"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/mapDataHandler.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "326177bad9d7bc8f423db31c0af46e1950ab62b2"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/player.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "f2db3f8ef196254767b3aa88fdf71bade805d7f5"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/Advanced World Map - Rebuild Fix/scripts/advanced_world_map/rebuildJob.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "3ba508026409ecb543b75c6c9b2c6f10e1ff8eb5"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/provenance.json": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "2f13c6b19a861d6797da491ed3c6339eba7d6ced"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/tests/harness.lua": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "54f179c05a8c09026f62ecacd878818c1f1709c1"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/tests/test_rebuild.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "964653914db3f78a8e38038c7ccde639ee2694c7"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/tests/upstream-v1.18.0-manifest.json": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "2f81af6601f8704a8e9713b3f0ef11fdbbb55376"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+    },
+    "custom/advanced-world-map/tests/upstream-v1.18.0.json.gz": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "89bca14328673bacb7dc73b41ff27f8fe07a978d"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/cell-streaming/ACTIVATION-20261118.md": {
       "upstream": null,
@@ -11759,9 +11879,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "6fd45e775e64054301861c254778a6d0837e5c49"
+        "blob": "e96994ee2c0697799c9f56c9b1e8c8f2e7d50fa8"
       },
-      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "upstream": null,
@@ -11791,9 +11911,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "10902042633e8c95e2296db3705a9ec5199f8501"
+        "blob": "3ec06320f39d417c5b03ceafa6ded3e5123720c4"
       },
-      "purpose": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API."
+      "purpose": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/performance-capture/Test-Capture.ps1": {
       "upstream": null,
@@ -11850,6 +11970,14 @@
         "blob": "059be7eca657ec28fc6e6dc59de59e58624a9e92"
       },
       "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1."
+    },
+    "custom/performance-tests/PRELOAD-SLICING-SETTINGS-20261120.md": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "74317bbd570eb5bd05425bae11c9a5dbfdfbc6ca"
+      },
+      "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/performance-tests/README.md": {
       "upstream": null,
@@ -12295,9 +12423,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "88dbc02d652761334eb3d44b4fda853e2ac76dd9"
+        "blob": "661c20d7aa1d06d7623843099f8c68c4b5ba9dcc"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/performance-tests/test-save-metadata.py": {
       "upstream": null,
@@ -12359,9 +12487,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "b6402bc3997a99d9a0b1eb38feb3285c14842721"
+        "blob": "2c4b153be24330753a4688adecb65ec498cd61a5"
       },
-      "purpose": "RC1 provenance, source verification and installation documentation."
+      "purpose": "RC1 provenance, source verification and installation documentation. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/rc1/source-preservation-inventory.json": {
       "upstream": null,
@@ -12375,9 +12503,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "32fbd6597fcbab930120c26f65dd0e42cc4780b5"
+        "blob": "69f2e3277600d3431512cb5f6a9cbce7ff5d4e17"
       },
-      "purpose": "RC1 provenance, source verification and installation documentation."
+      "purpose": "RC1 provenance, source verification and installation documentation. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/rc1/verify-source.py": {
       "upstream": null,
@@ -13069,9 +13197,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "38d18942e654bd6d7498de8191fdd07bf7da4835"
+        "blob": "04be10384661e00e78edb61f27eb35c9948e4577"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "files/data/mygui/openmw_mainmenu.skin.xml": {
       "upstream": {
@@ -13091,9 +13219,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5ce9c415146b6a063204bed67177c56d7b3c6abb"
+        "blob": "bcf489d15701440443287d6b5f14c22bdd8ac1dc"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "files/data/mygui/openmw_wait_dialog.layout": {
       "upstream": {

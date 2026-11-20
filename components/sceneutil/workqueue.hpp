@@ -41,6 +41,9 @@ namespace SceneUtil
         virtual void abort() {}
 
     private:
+        friend class WorkQueue;
+        // Promotion survives a running slice. The queue alone owns priority changes.
+        std::atomic_bool mHighPriority{ false };
         std::atomic_bool mDone{ false };
         std::mutex mMutex;
         std::condition_variable mCondition;
@@ -71,8 +74,9 @@ namespace SceneUtil
         bool cancelWorkItem(WorkItem* item);
         bool cancelWorkItem(const std::shared_ptr<WorkItem>& item) { return cancelWorkItem(item.get()); }
         /// Promote queued prediction to required work without enqueuing it twice.
-        bool promoteWorkItem(WorkItem* item);
-        bool promoteWorkItem(const std::shared_ptr<WorkItem>& item) { return promoteWorkItem(item.get()); }
+        bool promoteWorkItem(WorkItem* item, bool required = false);
+        bool promoteWorkItem(const std::shared_ptr<WorkItem>& item, bool required = false)
+        { return promoteWorkItem(item.get(), required); }
 
         /// Internal continuation; rejects shutdown races and signals completion.
         void continueWorkItem(std::shared_ptr<WorkItem> item);

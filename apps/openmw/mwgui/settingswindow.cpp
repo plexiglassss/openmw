@@ -474,6 +474,11 @@ namespace MWGui
         initialiseSmartMapControls();
         initialiseTooltipControls();
 
+        mSettingsTab->eventTabChangeSelect -= MyGUI::newDelegate(this, &SettingsWindow::onTabChanged);
+        mCategories = std::make_unique<SettingsCategories>(mSettingsTab);
+        mDialogueColourTab = mMessagePositionTab = mMapIconTab = mSmartMapTab = mTooltipTab = nullptr;
+        mSettingsTab->eventTabChangeSelect += MyGUI::newDelegate(this, &SettingsWindow::onTabChanged);
+        onWindowResize(nullptr);
         computeMinimumWindowSize();
 
         center();
@@ -888,6 +893,7 @@ namespace MWGui
             return MyGUI::LanguageManager::getInstance().replaceTags(MyGUI::UString(text));
         };
         MyGUI::TabItem* tab = mSettingsTab->addItem(translated("#{OMWEngine:JournalTypography}"));
+        tab->setUserString("SettingsPage", "Journal");
         int row = 12;
         const auto addControl = [this, tab, &row](
                                     MyGUI::ComboBox*& control, std::string_view caption, const std::string& name) {
@@ -978,6 +984,7 @@ namespace MWGui
         // Build this tab natively so a UI mod's older settings layout cannot omit it.
         mDialogueColourTab = mSettingsTab->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:DialogueColours}"));
+        mDialogueColourTab->setUserString("SettingsPage", "Dialogue");
         mDialogueColourControls = createDialogueColourControls(mDialogueColourTab, mPrefix);
         for (size_t i = 0; i < dialogueColourToggleSettings.size(); ++i)
         {
@@ -1097,6 +1104,7 @@ namespace MWGui
         // A native tab stays available when a mod replaces the settings layout.
         mMessagePositionTab = mSettingsTab->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:MessagePositionTab}"));
+        mMessagePositionTab->setUserString("SettingsPage", "Messages");
         mMessagePositionControls = createMessagePositionControls(mMessagePositionTab, mPrefix);
         mMessagePositionControls.mPosition->eventComboChangePosition
             += MyGUI::newDelegate(this, &SettingsWindow::onMessagePositionChanged);
@@ -1185,6 +1193,7 @@ namespace MWGui
         mMapIconTab = mSettingsTab->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:MapIconsTab}"));
         mMapIconTab->setUserString("AllowTabOverflow", "true");
+        mMapIconTab->setUserString("SettingsPage", "MapIcons");
         mMapIconControls = createMapIconControls(mMapIconTab, mPrefix);
         for (auto* button : mMapIconControls.mToggles)
             button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onMapIconToggled);
@@ -1316,6 +1325,7 @@ namespace MWGui
         mSmartMapTab = mSettingsTab->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:SmartMapTab}"));
         mSmartMapTab->setUserString("AllowTabOverflow", "true");
+        mSmartMapTab->setUserString("SettingsPage", "SmartMap");
         mSmartMapControls = createSmartMapControls(mSmartMapTab, mPrefix);
         for (auto* button : mSmartMapControls.mToggles)
             button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onSmartMapToggled);
@@ -1404,6 +1414,7 @@ namespace MWGui
         mTooltipTab = mSettingsTab->addItem(
             MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:TooltipOptionsTab}"));
         mTooltipTab->setUserString("AllowTabOverflow", "true");
+        mTooltipTab->setUserString("SettingsPage", "Tooltips");
         mTooltipControls = createTooltipControls(mTooltipTab, mPrefix);
         for (auto* button : mTooltipControls.mToggles)
             button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onTooltipToggled);
@@ -1967,6 +1978,8 @@ namespace MWGui
 
     void SettingsWindow::onWindowResize(MyGUI::Window* /*sender*/)
     {
+        if (mCategories)
+            mCategories->layout();
         layoutModControls();
         layoutControlsBox();
         layoutDialogueColourControls();
@@ -1981,15 +1994,11 @@ namespace MWGui
         auto* window = mMainWidget->castType<MyGUI::Window>();
         auto minSize = window->getMinSize();
 
-        // Preserve the existing layout's minimum width. Native colour/message tabs
-        // and layout tabs marked AllowTabOverflow use the tab bar's overflow arrows.
+        // All six main tabs fit without relying on skin-specific overflow arrows.
         int tabBarWidth = 0;
         for (uint32_t i = 0; i < mSettingsTab->getItemCount(); i++)
         {
-            const MyGUI::TabItem* tab = mSettingsTab->getItemAt(i);
-            if (tab != mDialogueColourTab && tab != mMessagePositionTab
-                && tab->getUserString("AllowTabOverflow") != "true")
-                tabBarWidth += mSettingsTab->getButtonWidthAt(i);
+            tabBarWidth += mSettingsTab->getButtonWidthAt(i);
         }
 
         // Need to include window margins

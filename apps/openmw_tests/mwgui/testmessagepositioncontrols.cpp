@@ -1,4 +1,5 @@
 #include "apps/openmw/mwgui/messagepositioncontrols.hpp"
+#include "apps/openmw/mwgui/settingscategories.hpp"
 #include "apps/openmw/mwgui/mapiconcontrols.hpp"
 #include "apps/openmw/mwgui/mapimagemarker.hpp"
 #include "apps/openmw/mwgui/smartmapcontrols.hpp"
@@ -28,6 +29,8 @@
 #include <MyGUI_ScrollBar.h>
 #include <MyGUI_ScrollView.h>
 #include <MyGUI_TextBox.h>
+#include <MyGUI_TabControl.h>
+#include <MyGUI_TabItem.h>
 
 #include <gtest/gtest.h>
 
@@ -1391,6 +1394,168 @@ namespace MWGui
             mGui.destroyWidget(mPanel);
             mPanel = nullptr;
             EXPECT_EQ(mRenderer.textureNames(), persistentTextures);
+        }
+        class SettingsCategoriesTest : public MessagePositionControlsTest
+        {
+        protected:
+            MyGUI::TabControl* mTabs = nullptr;
+            int mClicks = 0;
+            void createTabs()
+            {
+                mTabs = mGui.createWidget<MyGUI::TabControl>(
+                    "TabControl", { 0, 0, 640, 500 }, MyGUI::Align::Default, "Settings");
+            }
+            MyGUI::TabItem* page(const std::string& id)
+            {
+                auto* tab = mTabs->addItem("Translated " + id);
+                if (!id.empty())
+                    tab->setUserString("SettingsPage", id);
+                return tab;
+            }
+            MyGUI::ComboBox* selector(size_t index)
+            {
+                auto* tab = mTabs->getItemAt(index);
+                for (size_t i = 0; i < tab->getChildCount(); ++i)
+                    if (tab->getChildAt(i)->getUserString("SettingsCategorySelector") == "true")
+                        return tab->getChildAt(i)->castType<MyGUI::ComboBox>();
+                return nullptr;
+            }
+            template <class T>
+            static T* ancestor(MyGUI::Widget* child)
+            {
+                for (auto* p = child->getParent(); p; p = p->getParent())
+                    if (auto* result = p->castType<T>(false))
+                        return result;
+                return nullptr;
+            }
+            void clicked(MyGUI::Widget*) { ++mClicks; }
+            void bindClick(MyGUI::Button* button)
+            {
+                button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsCategoriesTest::clicked);
+            }
+        };
+
+        TEST_F(SettingsCategoriesTest, SixPagesPreserveBindingsDelegatesAndUnknownLayoutControls)
+        {
+            createTabs();
+            auto* prefs = page("Preferences");
+            auto* game = prefs->createWidget<MyGUI::ScrollBar>("MW_HScroll", { 4, 4, 300, 14 }, MyGUI::Align::Default);
+            game->setUserString("SettingCategory", "Game");
+            game->setUserString("SettingName", "difficulty");
+            game->setScrollRange(201);
+            game->setScrollPosition(123);
+            auto* hud = prefs->createWidget<MyGUI::Button>("MW_Button", { 4, 40, 200, 28 }, MyGUI::Align::Default);
+            hud->setUserString("SettingCategory", "HUD");
+            hud->setUserString("SettingName", "crosshair");
+            bindClick(hud);
+            std::vector<MyGUI::Widget*> retained;
+            for (const auto* id : { "Gameplay", "Audio", "Controls", "Video", "Mods", "Language", "Journal" })
+                retained.push_back(
+                    page(id)->createWidget<MyGUI::Widget>("", { 0, 0, 100, 100 }, MyGUI::Align::Stretch));
+            auto smartMap = createSmartMapControls(page("SmartMap"), "CategoryTest");
+            smartMap.mSliders[0]->setScrollPosition(5);
+            auto* extra = page("")->createWidget<MyGUI::Button>("MW_Button", { 4, 4, 100, 28 }, MyGUI::Align::Default);
+            SettingsCategories categories(mTabs);
+            ASSERT_EQ(mTabs->getItemCount(), 6u);
+            const std::array<std::string, 6> ids{ "Gameplay", "Interface", "Controls", "Video", "Audio", "Mods" };
+            for (size_t i = 0; i < ids.size(); ++i)
+                EXPECT_EQ(mTabs->getItemAt(i)->getUserString("SettingsPage"), ids[i]);
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(game), mTabs->getItemAt(0));
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(hud), mTabs->getItemAt(1));
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(extra), mTabs->getItemAt(5));
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(retained[2]), mTabs->getItemAt(2));
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(retained[3]), mTabs->getItemAt(3));
+            EXPECT_EQ(game->getScrollPosition(), 123u);
+            EXPECT_EQ(game->getUserString("SettingName"), "difficulty");
+            hud->eventMouseButtonClick(hud);
+            EXPECT_EQ(mClicks, 1);
+            mTabs->setSize(960, 700);
+            categories.layout();
+            layoutSmartMapControls(smartMap);
+            EXPECT_EQ(smartMap.mSliders[0]->getScrollPosition(), 5u);
+            EXPECT_EQ(smartMap.mView->getParent()->getWidth(), mTabs->getItemAt(1)->getWidth());
+        }
+
+        TEST_F(SettingsCategoriesTest, PartialLegacyJournalAndNativeFallbackShareOneReachableSection)
+        {
+            createTabs();
+            auto* legacy = page("");
+            auto* alignment = legacy->createWidget<MyGUI::ComboBox>(
+                "MW_ComboBox", { 4, 4, 240, 28 }, MyGUI::Align::Default, "OldJournalTextAlignment");
+            alignment->addItem("Left");
+            alignment->addItem("Justify");
+            alignment->setIndexSelected(1);
+            auto* fallback = page("Journal");
+            auto* font = fallback->createWidget<MyGUI::ComboBox>(
+                "MW_ComboBox", { 4, 4, 240, 28 }, MyGUI::Align::Default, "NewJournalFontSizeFallback");
+            SettingsCategories categories(mTabs);
+            ASSERT_EQ(selector(1)->getItemCount(), 1u);
+            EXPECT_EQ(ancestor<MyGUI::ScrollView>(font), ancestor<MyGUI::ScrollView>(alignment));
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(font), mTabs->getItemAt(1));
+            EXPECT_GT(font->getTop(), alignment->getBottom());
+            EXPECT_EQ(alignment->getIndexSelected(), 1u);
+        }
+
+        TEST_F(SettingsCategoriesTest, CategorySelectionSurvivesResizeAndReleasesHiddenInputFocus)
+        {
+            createTabs();
+            auto* journal = page("Journal");
+            auto* field
+                = journal->createWidget<MyGUI::EditBox>("MW_TextEdit", { 4, 4, 200, 28 }, MyGUI::Align::Default);
+            page("Language")->createWidget<MyGUI::TextBox>("SandText", { 4, 4, 200, 28 }, MyGUI::Align::Default);
+            SettingsCategories categories(mTabs);
+            mTabs->setIndexSelected(1);
+            auto* pick = selector(1);
+            ASSERT_EQ(pick->getItemCount(), 2u);
+            MyGUI::InputManager::getInstance().setKeyFocusWidget(field);
+            pick->setIndexSelected(1);
+            pick->eventComboChangePosition(pick, 1);
+            EXPECT_EQ(MyGUI::InputManager::getInstance().getKeyFocusWidget(), pick);
+            mTabs->setSize(700, 400);
+            categories.layout();
+            mTabs->setIndexSelected(0);
+            mTabs->setIndexSelected(1);
+            categories.layout();
+            EXPECT_EQ(pick->getIndexSelected(), 1u);
+            EXPECT_FALSE(ancestor<MyGUI::ScrollView>(field)->getParent()->getVisible());
+        }
+
+        TEST_F(SettingsCategoriesTest, WrappedSectionsScrollOverBodyLabelsButtonsAndRevealFocusedControls)
+        {
+            createTabs();
+            auto* journal = page("Journal");
+            auto* label = journal->createWidget<MyGUI::TextBox>("SandText", { 4, 4, 250, 28 }, MyGUI::Align::Default);
+            auto* button = journal->createWidget<MyGUI::Button>("MW_Button", { 4, 50, 250, 28 }, MyGUI::Align::Default);
+            auto* last
+                = journal->createWidget<MyGUI::ComboBox>("MW_ComboBox", { 4, 1000, 250, 28 }, MyGUI::Align::Default);
+            last->addItem("Original");
+            last->setIndexSelected(0);
+            SettingsCategories categories(mTabs);
+            mTabs->setIndexSelected(1);
+            mTabs->setSize(640, 300);
+            categories.layout();
+            auto* view = ancestor<MyGUI::ScrollView>(last);
+            ASSERT_NE(view, nullptr);
+            auto* content = last->getParent();
+            for (auto* target : std::array<MyGUI::Widget*, 3>{ content, label, button })
+            {
+                view->setViewOffset({ 0, 0 });
+                target->_riseMouseWheel(-120);
+                EXPECT_LT(view->getViewOffset().top, 0);
+            }
+            view->setViewOffset({ 0, 0 });
+            MyGUI::InputManager::getInstance().setKeyFocusWidget(last);
+            EXPECT_LT(view->getViewOffset().top, 0);
+            const auto relative
+                = last->getAbsolutePosition() - view->getClientWidget()->getAbsolutePosition() + view->getViewOffset();
+            EXPECT_GE(relative.top, 0);
+            EXPECT_LE(relative.top + last->getHeight(), view->getViewCoord().height);
+            EXPECT_EQ(last->getIndexSelected(), 0u);
+            MyGUI::InputManager::getInstance().setKeyFocusWidget(button);
+            const auto first = button->getAbsolutePosition() - view->getClientWidget()->getAbsolutePosition()
+                + view->getViewOffset();
+            EXPECT_GE(first.top, 0);
+            EXPECT_LE(first.top + button->getHeight(), view->getViewCoord().height);
         }
     }
 }

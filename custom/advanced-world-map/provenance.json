@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "base_mod": "Advanced World Map v1.18.0 / handler v11",
+  "base_engine": "82dcf5a82f442c78affe08f78dac300c8d160f4a",
+  "base_archive_sha256": "3d726498818f44102c70ebf0cd0bfbbefa6c9e8208b0aae6df278bc5d3050fb0",
+  "files": {
+    "player.lua": {
+      "source": "003_player.lua",
+      "source_sha256": "d243300a007f9c0bd3d480c573cfe8fcca35328200ce80de3a69459090030aa8",
+      "candidate_sha256": "a2d9bc15788d6b530197b63119d8d43a9347749e838eda9b40ed92f4ff111bd4"
+    },
+    "global.lua": {
+      "source": "004_global.lua",
+      "source_sha256": "cac875eac9fa7d84c06fbc77bb1e2200cf21016b4d8bd43fce1d7990f54ccdfb",
+      "candidate_sha256": "501d64f36612b5766dd22a92c38a2c1b0cd91444ae5769eab413b9bd857aa1bb"
+    },
+    "dataRebuildService.lua": {
+      "source": "dataRebuildService.lua",
+      "source_sha256": "7435582b9e7fd4f011a32bb785a8fb91c0c0b61db144553c0393e1fc43eb37cb",
+      "candidate_sha256": "43b65295a211bb2b7fafd178f16b733ebadbe23f49745fa5a2e537449392fb7f"
+    },
+    "rebuildJob.lua": {
+      "source": "new cooperative helper",
+      "source_sha256": null,
+      "candidate_sha256": "9a1a7341e91eb6b576dff846ba94be3cdb357a291ba96f16a8210aa2b54de12d"
+    },
+    "mapDataHandler.lua": {
+      "source": "mapDataHandler.lua",
+      "source_sha256": "b520a420b025a86890c7a3071c2cbfb0b87a3715829d0b72829c15215f98ebf4",
+      "candidate_sha256": "8295c3d49dca385edacbcbc5d29aec975888f0ff75aa61d7312b2df023e303b7"
+    },
+    "mapData/transport.lua": {
+      "source": "transport.lua",
+      "source_sha256": "488632e5c833cae05b2a518701de6d50af1ba6100a9516245e860eb353425a57",
+      "candidate_sha256": "d60a6145f74255d1a9dfb66b8d7f072f3591791425f8d23e3d43038b8e3da6ec"
+    },
+    "helpers/cell.lua": {
+      "source": "cell.lua",
+      "source_sha256": "a4ff521f5c952ab441aacff05a5a6bbe8de9bd605a06f9568533b9700fbc39a0",
+      "candidate_sha256": "677bc30b95ffcfb614bbad602048d9c38ece9efade7fdcd81633fc44c688c5b5"
+    }
+  }
+}

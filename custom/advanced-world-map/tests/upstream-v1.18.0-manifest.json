@@ -1,0 +1,13 @@
+{
+  "source": "User-supplied Advanced World Map v1.18.0, data handler v11",
+  "files": {
+    "mapDataHandler.lua": "b520a420b025a86890c7a3071c2cbfb0b87a3715829d0b72829c15215f98ebf4",
+    "mapData/transport.lua": "488632e5c833cae05b2a518701de6d50af1ba6100a9516245e860eb353425a57",
+    "helpers/cell.lua": "a4ff521f5c952ab441aacff05a5a6bbe8de9bd605a06f9568533b9700fbc39a0",
+    "utils/string.lua": "e24ffcbf45fc0a57bf0370fdb6b19fe28647ed8b3911849d37c74d0cbad2715d",
+    "utils/table.lua": "ce190c30742cae05b932a0f3e2d7b64e47c8e41a2e21a544477adababbed7c7d",
+    "utils/levenshtein.lua": "7e694806f2a7911db02e2a662fb18ca6c7281bdf3b8fb83acdc0c55236c86d32"
+  },
+  "original_mod_archive_sha256": "3d726498818f44102c70ebf0cd0bfbbefa6c9e8208b0aae6df278bc5d3050fb0",
+  "fixture_archive_sha256": "d62a060baa5d9bd073c6d8a17f5c76ec3c2cd13500904eea2d5589c27e603a80"
+}

@@ -435,3 +435,13 @@ DialogueColourRemoval: "Items removed"
 DialogueColourSampleRemoval: "A note has been removed from your inventory."
 
 ModKeybindings: "Mod Keybindings"
+
+SettingsGameplay: "Gameplay"
+SettingsInterface: "Interface"
+SettingsControls: "Controls"
+SettingsVideo: "Video"
+SettingsAudio: "Audio"
+SettingsMods: "Mods"
+SettingsGeneral: "General"
+SettingsHud: "HUD and menus"
+SettingsJournal: "Windows and journal"

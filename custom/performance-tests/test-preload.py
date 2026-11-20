@@ -7,11 +7,7 @@ import tempfile
 import os
 source = Path('apps/openmw/mwworld/cellpreloader.cpp').read_text()
 start = source.index('        void doWork() override', source.index('class PreloadItem'))
-start = source.index('{', start)
-end, depth = start + 1, 1
-while depth:
-    depth += (source[end] == '{') - (source[end] == '}')
-    end += 1
+end = source.index('        bool mIsExterior;', start)
 body = source[start:end]
 preamble = r'''
 #include <components/vfs/pathutil.hpp>
@@ -23,6 +19,7 @@ preamble = r'''
 #include <set>
 #include <vector>
 #include <memory>
+#include <optional>
 #include <iostream>
 using VFS::Path::Normalized;
 using VFS::Path::NormalizedView;
@@ -31,19 +28,31 @@ int templatesBeforeFirstKey=-1, renderClones=0, clonesBeforeFirstKey=-1;
 std::vector<float> mCollisionScales, preparedScales;
 bool failOnce=false, abortOnInstance=false, abortOnKey=false, failKeyOnce=false;
 namespace VFS {
+struct RecursiveDirectoryIterator {
+ std::shared_ptr<std::vector<Normalized>> values;std::size_t index=0;
+ const Normalized& operator*()const{return values->at(index);}
+ RecursiveDirectoryIterator& operator++(){++index;return *this;}
+ bool operator==(const RecursiveDirectoryIterator&)const=default;
+};
+struct RecursiveDirectoryRange {
+ std::shared_ptr<std::vector<Normalized>> values;
+ RecursiveDirectoryIterator begin()const{return {values,0};}
+ RecursiveDirectoryIterator end()const{return {values,values->size()};}
+};
 struct Manager {
     std::set<std::string> files;
     mutable int checks=0;
     bool exists(const Normalized& p) const { ++checks; return files.count(p.value()); }
-    std::vector<Normalized> getRecursiveDirectoryIterator(std::string_view prefix) const {
+    RecursiveDirectoryRange getRecursiveDirectoryIterator(std::string_view prefix) const {
         std::vector<Normalized> result;
         for (const auto& file : files) if(file.starts_with(prefix)) result.emplace_back(file);
-        return result;
+        return {std::make_shared<std::vector<Normalized>>(std::move(result))};
     }
 };
 }
 namespace Misc {
 bool useCellRenderPreparation() {return true;}
+bool sliced=true;bool useSlicedCellPreload(){return sliced;}
 std::string_view getFileName(const Normalized& p) { auto v=p.view(); return v.substr(v.find_last_of('/')+1); }
 namespace ResourceHelpers {
 Normalized correctMeshPath(NormalizedView path) { ++corrections; return NormalizedView("meshes")/path; }
@@ -93,10 +102,12 @@ std::vector<NormalizedView> mAnimationMeshes;
 std::vector<int> mInstanceTickets;
 std::set<int> mPreloadedObjects;
 std::set<int> mPreloadedOwnedObjects; // RC1 owns non-OSG resources separately; routing doubles remain integer tokens.
-void work()
+struct BaseWork {virtual ~BaseWork()=default;virtual void doWork(){};virtual bool doWorkSlice(){return true;}};
+struct PreloadWork:BaseWork {
 '''
 tests = r'''
-void run() { mCollisionScales.resize(mMeshes.size(),1.f); work(); }
+};
+void run() { mTiming=std::make_shared<SceneUtil::PreparationSample>();mCollisionScales.resize(mMeshes.size(),1.f); PreloadWork work;work.doWork(); }
 void reset() {
  corrections=actorCorrections=templates=instances=shapes=keys=attempts=0;
  scene.vfs.checks=0; mAbort=false; failOnce=false; abortOnInstance=false; abortOnKey=false; failKeyOnce=false;
@@ -160,6 +171,16 @@ int main() {
  scene.vfs.files.insert({"meshes/a.kf","animations/a/idle.kf"});
  run();assert(templates==1 && instances==1 && keys==2 && requestedKeys.contains("meshes/a.kf"));
  assert(Misc::ResourceHelpers::additionalAnimationPath(NormalizedView("meshes/a.nif"))->value()=="animations/a/");
+ reset();mMeshes.assign(2000,NormalizedView("a.nif"));mCollisionScales.resize(mMeshes.size(),1.f);
+ PreloadWork slicedWork;assert(!slicedWork.doWorkSlice());
+ assert(!mTiming->mComplete.load() && instances<2000);
+ while(!slicedWork.doWorkSlice())assert(!mTiming->mComplete.load());
+ assert(instances==2000 && templates==1 && mTiming->mComplete && mTiming->mSuccessful && mTiming->mSlices>1);
+ reset();mMeshes.assign(2000,NormalizedView("a.nif"));mCollisionScales.resize(mMeshes.size(),1.f);
+ PreloadWork cancelled;assert(!cancelled.doWorkSlice());const int before=instances;mAbort=true;
+ assert(cancelled.doWorkSlice() && instances==before && mTiming->mComplete && !mTiming->mSuccessful);
+ reset();Misc::sliced=false;mMeshes.assign(2000,NormalizedView("a.nif"));mCollisionScales.resize(mMeshes.size(),1.f);
+ PreloadWork unsliced;assert(unsliced.doWorkSlice() && instances==2000 && mTiming->mSlices==1);
  std::cout << "PASS: actual preload body preserves instance counts, aliases, keyframes, missing paths, next-job refresh, retries and aborts; 2000 repeated paths resolve once\n";
 }
 '''

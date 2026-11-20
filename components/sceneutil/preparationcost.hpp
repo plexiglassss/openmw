@@ -22,8 +22,41 @@ namespace SceneUtil
         std::size_t mAssets = 0;
         std::size_t mColdAssets = 0;
         bool mSuccessful = false;
+        std::size_t mSlices = 0;
+        double mMaxSliceSeconds = 0;
+        Clock::time_point mLastSliceEnd = mQueued;
 
         double age() const { return std::chrono::duration<double>(Clock::now() - mQueued).count(); }
+
+        // Unlike Run, intermediate slices never publish fields to the owner.
+        // Queue time includes waits between slices, not only initial dispatch.
+        struct Slice
+        {
+            PreparationSample* mSample;
+            const std::atomic_bool& mAbort;
+            const Clock::time_point mStart = Clock::now();
+            const int mExceptions = std::uncaught_exceptions();
+            bool mFinished = false;
+            Slice(PreparationSample* sample, const std::atomic_bool& abort) : mSample(sample), mAbort(abort) {}
+            ~Slice()
+            {
+                if (!mSample)
+                    return;
+                const auto end = Clock::now();
+                const double elapsed = std::chrono::duration<double>(end - mStart).count();
+                mSample->mQueueSeconds += std::chrono::duration<double>(mStart - mSample->mLastSliceEnd).count();
+                mSample->mWorkSeconds += elapsed;
+                mSample->mMaxSliceSeconds = std::max(mSample->mMaxSliceSeconds, elapsed);
+                mSample->mLastSliceEnd = end;
+                ++mSample->mSlices;
+                const bool failed = std::uncaught_exceptions() != mExceptions;
+                if (mFinished || failed)
+                {
+                    mSample->mSuccessful = mFinished && !failed && !mAbort.load(std::memory_order_relaxed);
+                    mSample->mComplete.store(true, std::memory_order_release);
+                }
+            }
+        };
 
         struct Run
         {

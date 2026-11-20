@@ -11,6 +11,7 @@
 #include <atomic>
 #include <limits>
 #include <map>
+#include <optional>
 #include <span>
 
 #include <components/debug/debuglog.hpp>
@@ -416,183 +417,223 @@ namespace MWWorld
 
         void abort() override { mAbort = true; }
 
-        /// Preload work to be called from the worker thread.
+        // Keep one immutable snapshot and its resources across queue continuations.
+        // No scene attachment or gameplay runs on these workers.
         void doWork() override
         {
-            SceneUtil::PreparationSample::Run measured(mTiming.get(), mAbort);
-            if (mIsExterior)
-            {
-                try
-                {
-                    mTerrain->cacheCell(mTerrainView.get(), mCellLocation.mX, mCellLocation.mY);
-                    mPreloadedOwnedObjects.insert(mLandManager->getLand(mCellLocation));
-                }
-                catch (const std::exception& e)
-                {
-                    Log(Debug::Warning) << "Failed to cache terrain for exterior cell " << mCellLocation << ": "
-                                        << e.what();
-                }
-            }
+            while (!doWorkSlice()) {}
+        }
 
-            // Job-local: paths and the VFS are stable for this preload snapshot.
-            // Preserve one collision instance per occurrence, but resolve each source path once.
-            std::map<VFS::Path::NormalizedView, VFS::Path::Normalized> resolvedMeshes;
-            std::set<VFS::Path::Normalized> loadedMeshes;
-            std::set<VFS::Path::Normalized> animationPaths;
-            VFS::Path::Normalized mesh;
-            VFS::Path::Normalized kfname;
-            const auto meshPath = [](VFS::Path::NormalizedView path) {
-                // Settings use full VFS paths; record models normally omit the prefix.
-                return path.value().starts_with("meshes/") ? VFS::Path::Normalized(path)
-                                                           : Misc::ResourceHelpers::correctMeshPath(path);
-            };
-            for (std::size_t i = 0; i < mMeshes.size(); ++i)
+        bool doWorkSlice() override
+        {
+            SceneUtil::PreparationSample::Slice measured(mTiming.get(), mAbort);
+            const bool sliced = Misc::useSlicedCellPreload();
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(2);
+            std::size_t operations = 0;
+            while (!mAbort && mStage != Stage::Done)
             {
-                if (mAbort)
+                prepareNext();
+                if (sliced && (++operations >= 16 || std::chrono::steady_clock::now() >= deadline))
                     break;
-
-                const VFS::Path::NormalizedView path = mMeshes[i];
-
-                try
-                {
-                    const VFS::Manager& vfs = *mSceneManager->getVFS();
-                    auto resolved = resolvedMeshes.find(path);
-                    if (resolved == resolvedMeshes.end())
-                    {
-                        auto corrected = meshPath(path);
-                        corrected = Misc::ResourceHelpers::correctActorModelPath(corrected, &vfs);
-                        if (!vfs.exists(corrected))
-                            corrected = VFS::Path::Normalized{};
-                        resolved = resolvedMeshes.emplace(path, std::move(corrected)).first;
-                    }
-                    mesh = resolved->second;
-
-                    if (mesh.empty())
-                        continue;
-
-                    if (loadedMeshes.contains(mesh))
-                    {
-                        if (mPreloadInstances)
-                            mPreloadedOwnedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
-                        continue;
-                    }
-
-                    constexpr VFS::Path::ExtensionView nif("nif");
-                    if (Misc::getFileName(mesh).starts_with('x') && mesh.extension() == nif)
-                    {
-                        kfname = mesh;
-                        constexpr VFS::Path::ExtensionView kf("kf");
-                        kfname.changeExtension(kf);
-                        if (vfs.exists(kfname))
-                            mPreloadedOwnedObjects.insert(mKeyframeManager->get(kfname));
-                    }
-
-                    if (mTiming)
-                    {
-                        ++mTiming->mAssets;
-                        mTiming->mColdAssets += !mSceneManager->getCachedTemplate(mesh);
-                    }
-                    mPreloadedObjects.insert(mSceneManager->getTemplate(mesh));
-                    if (mPreloadInstances)
-                        mPreloadedOwnedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
-                    else
-                        mPreloadedOwnedObjects.insert(mBulletShapeManager->getShape(mesh));
-                    loadedMeshes.insert(mesh);
-                }
-                catch (const std::exception& e)
-                {
-                    Log(Debug::Warning) << "Failed to preload mesh \"" << path << "\" from cell " << mCellId << ": "
-                                        << e.what();
-                }
             }
-
-            // Prepare the cell commit resources before scanning optional animations. Clone only detached
-            // resource graphs here; actor assembly, particles and gameplay stay at activation.
-            if (mPreloadInstances && Misc::useCellRenderPreparation())
+            measured.mFinished = mStage == Stage::Done || mAbort;
+            if (measured.mFinished)
             {
-                for (const auto path : mInstanceMeshes)
-                {
-                    if (mAbort)
-                        break;
-                    const auto found = resolvedMeshes.find(path);
-                    if (found == resolvedMeshes.end() || found->second.empty())
-                        continue;
-                    try
-                    {
-                        if (auto ticket = mSceneManager->cacheInstance(found->second, mAbort))
-                            mInstanceTickets.push_back(std::move(ticket));
-                    }
-                    catch (const std::exception& e)
-                    {
-                        Log(Debug::Warning) << "Failed to prepare instance for " << path << ": " << e.what();
-                    }
-                }
+                // Release worker-only indexing state here, not in a future
+                // main-thread cache eviction. Resource references remain pinned.
+                mResolvedMeshes.clear();
+                mLoadedMeshes.clear();
+                mAnimationPaths.clear();
+                mAnimationRoots.clear();
+                mDirectoryCursor.reset();
+                mDirectoryEnd.reset();
+                mAnimationDirectories.clear();
             }
-
-            // Finish all known model/collision requests before optional animation work.
-            // Animation roots are independent of template existence: a valid KF source
-            // does not require a sibling NIF (matching Animation::addAnimSource).
-            const VFS::Manager& vfs = *mSceneManager->getVFS();
-            std::set<VFS::Path::Normalized> animationRoots, animationDirectories;
-            for (const auto& path : mAnimationMeshes)
-            {
-                if (mAbort || animationPaths.size() >= 4096)
-                    break;
-                // Configured common animation sources are used verbatim by the renderer;
-                // model-derived sources use actor correction. Warm their bounded union.
-                const auto requested = meshPath(path);
-                const std::array roots{ requested, Misc::ResourceHelpers::correctActorModelPath(requested, &vfs) };
-                for (const auto& root : roots)
-                {
-                    if (mAbort || animationPaths.size() >= 4096)
-                        break;
-                    if (!animationRoots.insert(root).second)
-                        continue;
-                    if (mPreloadAdditionalAnimations)
-                        if (const auto directory = Misc::ResourceHelpers::additionalAnimationPath(root))
-                            animationDirectories.insert(*directory);
-                    try
-                    {
-                        auto keyframe = root;
-                        if (keyframe.extension() == VFS::Path::ExtensionView("nif"))
-                            keyframe.changeExtension(VFS::Path::ExtensionView("kf"));
-                        if (vfs.exists(keyframe) && animationPaths.insert(keyframe).second)
-                            mPreloadedOwnedObjects.insert(mKeyframeManager->get(keyframe));
-                    }
-                    catch (const std::exception&)
-                    {
-                        // Demand loading retains normal diagnostics and retry behavior.
-                    }
-                }
-            }
-            for (const auto& directory : animationDirectories)
-            {
-                if (mAbort || animationPaths.size() >= 4096)
-                    break;
-                for (const auto& name : vfs.getRecursiveDirectoryIterator(directory.value()))
-                {
-                    if (mAbort || animationPaths.size() >= 4096)
-                        break;
-                    if (!animationPaths.insert(name).second)
-                        continue;
-                    try
-                    {
-                        if (name.extension() == VFS::Path::ExtensionView("kf"))
-                            mPreloadedOwnedObjects.insert(mKeyframeManager->get(name));
-                        else if (name.extension() == VFS::Path::ExtensionView("nif"))
-                            mPreloadedObjects.insert(mSceneManager->getTemplate(name));
-                    }
-                    catch (const std::exception&)
-                    {
-                        // One optional failure must not discard later valid dependencies.
-                    }
-                }
-            }
-
-
+            return measured.mFinished;
         }
 
     private:
+        enum class Stage { Terrain, Meshes, Instances, AnimationRoots, AnimationFiles, Done };
+
+        static VFS::Path::Normalized meshPath(VFS::Path::NormalizedView path)
+        {
+            return path.value().starts_with("meshes/") ? VFS::Path::Normalized(path)
+                                                       : Misc::ResourceHelpers::correctMeshPath(path);
+        }
+
+        void prepareNext()
+        {
+            const VFS::Manager& vfs = *mSceneManager->getVFS();
+            switch (mStage)
+            {
+                case Stage::Terrain:
+                    mStage = Stage::Meshes;
+                    if (mIsExterior)
+                    {
+                        try
+                        {
+                            mTerrain->cacheCell(mTerrainView.get(), mCellLocation.mX, mCellLocation.mY);
+                            mPreloadedOwnedObjects.insert(mLandManager->getLand(mCellLocation));
+                        }
+                        catch (const std::exception& e)
+                        {
+                            Log(Debug::Warning) << "Failed to cache terrain for exterior cell " << mCellLocation
+                                                << ": " << e.what();
+                        }
+                    }
+                    return;
+                case Stage::Meshes:
+                    if (mMeshCursor < mMeshes.size())
+                        prepareMesh(mMeshCursor++);
+                    else
+                        mStage = Stage::Instances;
+                    return;
+                case Stage::Instances:
+                    if (mPreloadInstances && Misc::useCellRenderPreparation()
+                        && mInstanceCursor < mInstanceMeshes.size())
+                    {
+                        const auto& path = mInstanceMeshes[mInstanceCursor++];
+                        const auto found = mResolvedMeshes.find(path);
+                        if (found == mResolvedMeshes.end() || found->second.empty())
+                            return;
+                        try
+                        {
+                            if (auto ticket = mSceneManager->cacheInstance(found->second, mAbort))
+                                mInstanceTickets.push_back(std::move(ticket));
+                        }
+                        catch (const std::exception& e)
+                        {
+                            Log(Debug::Warning) << "Failed to prepare instance for " << path << ": " << e.what();
+                        }
+                    }
+                    else
+                        mStage = Stage::AnimationRoots;
+                    return;
+                case Stage::AnimationRoots:
+                    if (mAnimationCursor < mAnimationMeshes.size() && mAnimationPaths.size() < 4096)
+                    {
+                        const auto requested = meshPath(mAnimationMeshes[mAnimationCursor++]);
+                        const std::array roots{ requested, Misc::ResourceHelpers::correctActorModelPath(requested, &vfs) };
+                        for (const auto& root : roots)
+                        {
+                            if (mAbort || mAnimationPaths.size() >= 4096)
+                                break;
+                            if (!mAnimationRoots.insert(root).second)
+                                continue;
+                            if (mPreloadAdditionalAnimations)
+                                if (const auto directory = Misc::ResourceHelpers::additionalAnimationPath(root))
+                                    mAnimationDirectories.insert(*directory);
+                            try
+                            {
+                                auto keyframe = root;
+                                if (keyframe.extension() == VFS::Path::ExtensionView("nif"))
+                                    keyframe.changeExtension(VFS::Path::ExtensionView("kf"));
+                                if (vfs.exists(keyframe) && mAnimationPaths.insert(keyframe).second)
+                                    mPreloadedOwnedObjects.insert(mKeyframeManager->get(keyframe));
+                            }
+                            catch (const std::exception&) {}
+                        }
+                    }
+                    else
+                    {
+                        mNextDirectory = mAnimationDirectories.begin();
+                        mStage = Stage::AnimationFiles;
+                    }
+                    return;
+                case Stage::AnimationFiles:
+                    if (mAnimationPaths.size() >= 4096 || mNextDirectory == mAnimationDirectories.end())
+                    {
+                        mStage = Stage::Done;
+                        return;
+                    }
+                    if (!mDirectoryCursor)
+                    {
+                        const auto range = vfs.getRecursiveDirectoryIterator(mNextDirectory->value());
+                        mDirectoryCursor = range.begin();
+                        mDirectoryEnd = range.end();
+                    }
+                    if (*mDirectoryCursor == *mDirectoryEnd)
+                    {
+                        mDirectoryCursor.reset();
+                        mDirectoryEnd.reset();
+                        ++mNextDirectory;
+                        return;
+                    }
+                    {
+                        const auto name = **mDirectoryCursor;
+                        ++*mDirectoryCursor;
+                        if (!mAnimationPaths.insert(name).second)
+                            return;
+                        try
+                        {
+                            if (name.extension() == VFS::Path::ExtensionView("kf"))
+                                mPreloadedOwnedObjects.insert(mKeyframeManager->get(name));
+                            else if (name.extension() == VFS::Path::ExtensionView("nif"))
+                                mPreloadedObjects.insert(mSceneManager->getTemplate(name));
+                        }
+                        catch (const std::exception&) {}
+                    }
+                    return;
+                case Stage::Done:
+                    return;
+            }
+        }
+
+        void prepareMesh(std::size_t i)
+        {
+            const VFS::Path::NormalizedView path = mMeshes[i];
+            try
+            {
+                const VFS::Manager& vfs = *mSceneManager->getVFS();
+                auto resolved = mResolvedMeshes.find(path);
+                if (resolved == mResolvedMeshes.end())
+                {
+                    auto corrected = Misc::ResourceHelpers::correctActorModelPath(meshPath(path), &vfs);
+                    if (!vfs.exists(corrected))
+                        corrected = VFS::Path::Normalized{};
+                    resolved = mResolvedMeshes.emplace(path, std::move(corrected)).first;
+                }
+                const auto& mesh = resolved->second;
+                if (mesh.empty())
+                    return;
+                if (mLoadedMeshes.contains(mesh))
+                {
+                    if (mPreloadInstances)
+                        mPreloadedOwnedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
+                    return;
+                }
+                if (Misc::getFileName(mesh).starts_with('x') && mesh.extension() == VFS::Path::ExtensionView("nif"))
+                {
+                    auto keyframe = mesh;
+                    keyframe.changeExtension(VFS::Path::ExtensionView("kf"));
+                    if (vfs.exists(keyframe))
+                        mPreloadedOwnedObjects.insert(mKeyframeManager->get(keyframe));
+                }
+                if (mTiming)
+                {
+                    ++mTiming->mAssets;
+                    mTiming->mColdAssets += !mSceneManager->getCachedTemplate(mesh);
+                }
+                mPreloadedObjects.insert(mSceneManager->getTemplate(mesh));
+                if (mPreloadInstances)
+                    mPreloadedOwnedObjects.insert(mBulletShapeManager->cacheInstance(mesh, mCollisionScales[i]));
+                else
+                    mPreloadedOwnedObjects.insert(mBulletShapeManager->getShape(mesh));
+                mLoadedMeshes.insert(mesh);
+            }
+            catch (const std::exception& e)
+            {
+                Log(Debug::Warning) << "Failed to preload mesh \"" << path << "\" from cell " << mCellId << ": " << e.what();
+            }
+        }
+
+        Stage mStage = Stage::Terrain;
+        std::size_t mMeshCursor = 0, mInstanceCursor = 0, mAnimationCursor = 0;
+        std::map<VFS::Path::NormalizedView, VFS::Path::Normalized> mResolvedMeshes;
+        std::set<VFS::Path::Normalized> mLoadedMeshes, mAnimationPaths, mAnimationRoots, mAnimationDirectories;
+        std::set<VFS::Path::Normalized>::const_iterator mNextDirectory;
+        std::optional<VFS::RecursiveDirectoryIterator> mDirectoryCursor, mDirectoryEnd;
+
         bool mIsExterior;
         ESM::ExteriorCellLocation mCellLocation;
         ESM::RefId mCellId;
@@ -866,11 +907,11 @@ namespace MWWorld
         }
     }
 
-    void CellPreloader::prioritize(const CellStore& cell)
+    void CellPreloader::prioritize(const CellStore& cell, bool required)
     {
         const auto found = mPreloadCells.find(&cell);
         if (mWorkQueue && found != mPreloadCells.end())
-            mWorkQueue->promoteWorkItem(found->second.mWorkItem);
+            mWorkQueue->promoteWorkItem(found->second.mWorkItem, required);
     }
 
     void CellPreloader::clear()
@@ -1010,7 +1051,7 @@ namespace MWWorld
         if (mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance))
         {
             if (required && Misc::useResponsiveArrivalCancellation())
-                mWorkQueue->promoteWorkItem(mArrivalJob.get());
+                mWorkQueue->promoteWorkItem(mArrivalJob.get(), true);
             return true;
         }
         std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });

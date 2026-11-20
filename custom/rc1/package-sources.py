@@ -44,15 +44,32 @@ def require_rc1_cases(evidence_root):
         ("ModControlsInteractionTest", "OverflowingNativeEditorKeepsWheelOwnershipAtItsBounds"),
         ("ModControlsInteractionTest", "HorizontalWheelMovesHostedContentInTheRequestedDirection"),
     }
+    slicing = {
+        ("WorkQueueSlicing", name) for name in (
+            "LateAbortCannotPublishANonterminalSlice",
+            "RequiredContinuationsFollowNewArrivalsBeforePrediction",
+            "PredictionPromotionYieldsToOrdinaryWorkOnContinuation",
+            "RequiredContinuationsDoNotStarveCleanup",
+            "RunningPredictionYieldsToNewRequiredWork",
+        )
+    }
+    categories = {
+        ("SettingsCategoriesTest", name) for name in (
+            "SixPagesPreserveBindingsDelegatesAndUnknownLayoutControls",
+            "PartialLegacyJournalAndNativeFallbackShareOneReachableSection",
+            "CategorySelectionSurvivesResizeAndReleasesHiddenInputFocus",
+            "WrappedSectionsScrollOverBodyLabelsButtonsAndRevealFocusedControls",
+        )
+    }
     required = {
         "components-tests.xml": {
             ("LuaScriptsContainerTest", "RealTimersRemainLiveDuringIdleAndPausedSimulation"),
             ("LuaScriptsContainerTest", "RealTimersRestoreRelativeDeadlinesAndRunWhilePaused"),
-        },
+        } | slicing,
         "openmw-tests.xml": {
             ("LuaUiLayoutTest", "Rc1CursorsAndLegacyPointersPreservePrecedenceAndInheritance"),
             ("ModKeybindings", "RuntimeDiscoveryWritebackConflictSemanticsAndCaptureLifecycle"),
-        } | interactions,
+        } | interactions | categories,
     }
     for name in ("lua-ui-legacy-tests.xml", "lua-ui-legacy-updates-tests.xml", "combined-performance-off-tests.xml"):
         required[name] = interactions

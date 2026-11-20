@@ -107,6 +107,7 @@ openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
     mwgui/testsmartmap.cpp
     ../openmw/mwgui/mapiconcontrols.cpp
     ../openmw/mwgui/smartmapcontrols.cpp
+    ../openmw/mwgui/settingscategories.cpp
     ../openmw/mwgui/messagepositioncontrols.cpp
     ../openmw/mwgui/tooltipcontrols.cpp
     ../openmw/mwgui/traveltooltipdata.cpp
