@@ -1207,7 +1207,7 @@ namespace MWGui
     {
         // Unlike changeCell(), this also runs at boundaries inside the active
         // exterior grid. Keep rendering, discovery and HUD-grid handling above.
-        const auto* world = MWBase::Environment::get().getWorld();
+        const MWBase::World* world = MWBase::Environment::get().getWorld();
         mMap->setCellName(std::string(world->getCellName(cell)), cell->isExterior() ? ESM::RefId() : cell->getCell()->getId());
         mMap->notifyCellChanged(*cell, MWBase::Environment::get().getWorld()->getPlayer().wasTeleported());
     }
