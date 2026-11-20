@@ -1563,6 +1563,27 @@ namespace MWWorld
         }
     }
 
+    void Scene::prepareSavedArrival(const ConstPtr& player)
+    {
+        if (!mPreloadEnabled || !player.isInCell())
+            return;
+        // Called after dynamic records have been validated. Workers receive
+        // resource snapshots, while player setup continues on the scene owner.
+        CellStore& cell = *player.getCell();
+        if (cell.isExterior())
+        {
+            const auto location = cell.getCell()->getExteriorCellLocation();
+            auto* terrain = mRendering.getTerrainForPreload(location.mWorldspace);
+            mPreloader->setTerrain(terrain);
+            const int radius
+                = isEsm4Ext(location.mWorldspace) ? Constants::ESM4CellGridRadius : Constants::CellGridRadius;
+            const osg::Vec4i grid(
+                location.mX - radius, location.mY - radius, location.mX + radius + 1, location.mY + radius + 1);
+            mPreloader->predictArrival(terrain, { player.getRefData().getPosition().asVec3(), grid });
+        }
+        preloadCellWithSurroundings(cell);
+    }
+
     void Scene::preloadCellWithSurroundings(CellStore& cell)
     {
         Diagnostics::Scope measured("preload-plan", "destination", "request");
@@ -1575,12 +1596,13 @@ namespace MWWorld
         const int cellX = cell.getCell()->getGridX();
         const int cellY = cell.getCell()->getGridY();
         const ESM::RefId worldspace = cell.getCell()->getWorldSpace();
+        const int halfGridSize = isEsm4Ext(worldspace) ? Constants::ESM4CellGridRadius : Constants::CellGridRadius;
         const auto makePlan = [&] {
             std::vector<std::pair<int, int>> cells;
-            const std::size_t gridSize = static_cast<std::size_t>(2 * mHalfGridSize + 1);
+            const std::size_t gridSize = static_cast<std::size_t>(2 * halfGridSize + 1);
             cells.reserve(gridSize * gridSize);
 
-            iterateOverCellsAround(cellX, cellY, mHalfGridSize, [&](int x, int y) { cells.emplace_back(x, y); });
+            iterateOverCellsAround(cellX, cellY, halfGridSize, [&](int x, int y) { cells.emplace_back(x, y); });
 
             sortCellsToLoad(cellX, cellY, cells);
 
@@ -1600,7 +1622,7 @@ namespace MWWorld
         const auto uncached = Misc::usePreloadPlanCache() ? std::vector<CellStore*>{} : makePlan();
         const auto& plan = Misc::usePreloadPlanCache()
             ? mDestinationPlans.get(
-                  { { cellX, cellY, worldspace }, mHalfGridSize, mPreloader->getMaxCacheSize() }, 0, makePlan)
+                  { { cellX, cellY, worldspace }, halfGridSize, mPreloader->getMaxCacheSize() }, 0, makePlan)
             : uncached;
         for (CellStore* target : plan)
             mPreloader->preload(*target, mRendering.getReferenceTime());

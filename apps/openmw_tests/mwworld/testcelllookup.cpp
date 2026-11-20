@@ -24,6 +24,7 @@
 #include <components/esm3/loadstat.hpp>
 #include <components/esm3/objectstate.hpp>
 #include <components/esm3/readerscache.hpp>
+#include <components/loadinglistener/loadinglistener.hpp>
 
 #include <gtest/gtest.h>
 
@@ -534,6 +535,91 @@ namespace MWWorld
             EXPECT_EQ(first, second);
             EXPECT_FALSE(mWorld.getPtr(first->front()).getRefData().isEnabled());
             EXPECT_EQ(mWorld.getPtr(first->front()).getRefData().getPosition().pos[0], position.pos[0]);
+        }
+
+        TEST_F(CellLookupTest, untypedQueryReusesOrderAndRefreshesMembershipWithoutMutatingOldResults)
+        {
+            CellStore& room = cell("all types query");
+            const auto first = add(room, "first static");
+            add<ESM::NPC>(room, "npc");
+            const auto before = MWLua::queryCellObjects(room, std::nullopt);
+            EXPECT_EQ(*before, *MWLua::queryCellObjects(room, std::nullopt, false));
+            EXPECT_EQ(before, MWLua::queryCellObjects(room, std::nullopt));
+            add<ESM::Door>(room, "door");
+            const auto added = MWLua::queryCellObjects(room, std::nullopt);
+            EXPECT_NE(before, added);
+            EXPECT_EQ(before->size(), 2u);
+            EXPECT_EQ(added->size(), 3u);
+            EXPECT_EQ(*added, *MWLua::queryCellObjects(room, std::nullopt, false));
+            first.getCellRef().setCount(0);
+            const auto removed = MWLua::queryCellObjects(room, std::nullopt);
+            EXPECT_EQ(removed->size(), 2u);
+            EXPECT_EQ(added->size(), 3u);
+            EXPECT_EQ(*removed, *MWLua::queryCellObjects(room, std::nullopt, false));
+            EXPECT_FALSE(MWLua::queryCellObjects(room, 0xFFFFFFFFu));
+        }
+
+        TEST_F(CellLookupTest, metadataSaveReuseMatchesUncachedBytesAndInvalidatesOnChanges)
+        {
+            ESM::Cell record;
+            record.blank();
+            record.mName = "metadata reuse";
+            record.mData.mFlags = ESM::Cell::Interior | ESM::Cell::HasWater;
+            record.updateId();
+            mStore.insert(record);
+            CellStore& room = mWorld.getCell(record.mId, false);
+            ESM::CellState state{};
+            state.mId = room.getCell()->getId();
+            state.mIsInterior = true;
+            room.loadState(state);
+            const auto serialize = [&](bool optimized, ESM::FormatVersion format = ESM::CurrentSaveGameFormatVersion) {
+                std::ostringstream stream;
+                ESM::ESMWriter writer;
+                writer.setFormatVersion(format);
+                writer.save(stream);
+                if (optimized)
+                {
+                    Loading::Listener listener;
+                    mWorld.write(writer, listener);
+                }
+                else
+                {
+                    ESM::CellState live{};
+                    room.saveState(live);
+                    writer.startRecord(ESM::REC_CSTA);
+                    writer.writeCellId(live.mId);
+                    live.save(writer);
+                    room.writeFog(writer);
+                    room.writeReferences(writer);
+                    writer.endRecord(ESM::REC_CSTA);
+                }
+                writer.close();
+                return stream.str();
+            };
+            const auto before = serialize(false);
+            EXPECT_EQ(serialize(true), before);
+            EXPECT_EQ(serialize(true), before);
+            EXPECT_EQ(room.getState(), CellStore::State_Unloaded);
+            state.mLastRespawn.mDay = 3;
+            state.mLastRespawn.mHour = 7.f;
+            state.mWaterLevel = 23.f;
+            room.loadState(state);
+            EXPECT_NE(serialize(true), before);
+            EXPECT_EQ(serialize(true), serialize(false));
+            state.mWaterLevel = -0.f;
+            room.loadState(state);
+            EXPECT_EQ(serialize(true), serialize(false));
+            state.mWaterLevel = 0.f;
+            room.loadState(state);
+            EXPECT_EQ(serialize(true), serialize(false));
+            EXPECT_EQ(serialize(true, ESM::MaxUseEsmCellIdFormatVersion),
+                serialize(false, ESM::MaxUseEsmCellIdFormatVersion));
+            EXPECT_EQ(serialize(true), serialize(false));
+            add(room, "new live reference");
+            ASSERT_TRUE(room.hasUnloadedLiveReferences());
+            EXPECT_EQ(serialize(true), serialize(false));
+            room.load();
+            EXPECT_EQ(serialize(true), serialize(false));
         }
 
         TEST_F(CellLookupTest, registryAvoidsOnlyExactlyIdempotentRegistration)

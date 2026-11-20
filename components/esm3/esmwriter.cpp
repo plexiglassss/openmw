@@ -1,4 +1,5 @@
 #include "esmwriter.hpp"
+#include <cstring>
 
 #include <cassert>
 #include <fstream>
@@ -80,6 +81,9 @@ namespace ESM
         , mCounting(true)
         , mHeader()
     {
+        // Records are a shallow LIFO stack. Reuse its storage for the many
+        // subrecords in a save instead of allocating a list node for each one.
+        mRecords.reserve(4);
     }
 
     unsigned int ESMWriter::getVersion() const
@@ -130,18 +134,31 @@ namespace ESM
         mHeader.mMaster.push_back(std::move(d));
     }
 
-    void ESMWriter::save(std::ostream& file)
+    void ESMWriter::save(std::ostream& file, bool writeHeader)
     {
         mRecordCount = 0;
         mRecords.clear();
         mCounting = true;
         mStream = &file;
 
-        startRecord("TES3", 0);
+        if (writeHeader)
+        {
+            startRecord("TES3", 0);
+            mHeader.save(*this);
+            endRecord("TES3");
+        }
+    }
 
-        mHeader.save(*this);
-
-        endRecord("TES3");
+    void ESMWriter::writeEncodedRecord(std::string_view record)
+    {
+        if (!mRecords.empty() || record.size() < 16)
+            throw std::logic_error("Invalid encoded record boundary");
+        std::uint32_t size = 0;
+        std::memcpy(&size, record.data() + 4, sizeof(size));
+        if (record.size() - 16 != size)
+            throw std::logic_error("Invalid encoded record length");
+        write(record.data(), record.size());
+        ++mRecordCount;
     }
 
     void ESMWriter::close()
@@ -333,8 +350,8 @@ namespace ESM
     {
         if (mCounting && !mRecords.empty())
         {
-            for (std::list<RecordData>::iterator it = mRecords.begin(); it != mRecords.end(); ++it)
-                it->size += static_cast<uint32_t>(size);
+            for (auto& record : mRecords)
+                record.size += static_cast<uint32_t>(size);
         }
 
         mStream->write(data, size);

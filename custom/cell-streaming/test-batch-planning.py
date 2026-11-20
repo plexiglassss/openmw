@@ -20,6 +20,7 @@ def extract(signature):
 
 code = r'''
 #include <components/sceneutil/preloadplancache.hpp>
+#include <components/misc/constants.hpp>
 #include <components/vfs/pathutil.hpp>
 #include <algorithm>
 #include <cassert>
@@ -53,6 +54,7 @@ namespace Resource {
 namespace Misc::ResourceHelpers {VFS::Path::Normalized correctActorModelPath(VFS::Path::NormalizedView p,const VFS::Manager*){return VFS::Path::Normalized(p);}}
 namespace ESM {using RefId=int;struct ExteriorCellLocation{int mX,mY;RefId mWorldspace=0;auto operator<=>(const ExteriorCellLocation&)const=default;};}
 namespace MWWorld {
+ bool isEsm4Ext(ESM::RefId worldspace){return worldspace != 0;}
  struct CellStore {ESM::ExteriorCellLocation location;bool exterior=true;bool isExterior()const{return exterior;}const CellStore* getCell()const{return this;}int getGridX()const{return location.mX;}int getGridY()const{return location.mY;}int getWorldSpace()const{return location.mWorldspace;}};
  struct WorldModel{std::map<ESM::ExteriorCellLocation,CellStore> cells;int lookups=0;CellStore& getExterior(ESM::ExteriorCellLocation key){++lookups;return cells.try_emplace(key,CellStore{key}).first->second;}};
  struct World{WorldModel model;WorldModel& getWorldModel(){return model;}};
@@ -91,6 +93,11 @@ int main(){using namespace MWWorld;
  target.location.mWorldspace=7;plans.preloadCellWithSurroundings(target);assert(plans.mWorld.model.lookups==16);
  plans.mDestinationPlans.clear();plans.preloadCellWithSurroundings(target);assert(plans.mWorld.model.lookups==22);
  plans.mPreloader->capacity=0;plans.preloadCellWithSurroundings(target);assert(plans.mWorld.model.lookups==22);
+ // A saved destination uses its own grid size even if the previous active world differs.
+ Scene grid;grid.mPreloader->capacity=100;grid.mHalfGridSize=99;
+ CellStore tes3{{0,0,0}},tes4{{0,0,7}};
+ grid.preloadCellWithSurroundings(tes3);assert(grid.mPreloader->requests.size()==9);
+ grid.preloadCellWithSurroundings(tes4);assert(grid.mPreloader->requests.size()==34);
  Misc::enabled=false;Scene previous;previous.preload("meshes/a.nif");previous.preload("meshes/a.nif");assert(previous.mRendering.queue.jobs.size()==2);
  std::cout<<"PASS: pending normalized requests, failure retry, generation changes, full-cache refresh, capacity/worldspace/reset invalidation\n";
 }

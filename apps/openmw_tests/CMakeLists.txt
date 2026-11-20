@@ -5,6 +5,7 @@ file(GLOB UNITTEST_SRC_FILES
     main.cpp
 
     options.cpp
+    mwstate/testsavepublication.cpp
 
     mwworld/teststore.cpp
     mwworld/testcelllookup.cpp

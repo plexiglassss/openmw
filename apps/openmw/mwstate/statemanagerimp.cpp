@@ -2,12 +2,15 @@
 #include <components/diagnostics/postload.hpp>
 #include "statemanagerimp.hpp"
 
+#include <chrono>
+#include <components/files/atomicwrite.hpp>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
-#include <chrono>
+#include <future>
 #include <map>
+#include <sstream>
 #include <string>
+#include <unordered_map>
 
 #include <SDL_clipboard.h>
 
@@ -90,16 +93,13 @@ std::map<int, int> MWState::StateManager::buildContentFileIndexMap(const ESM::ES
     const std::vector<ESM::Header::MasterData>& prev = reader.getGameFiles();
 
     std::map<int, int> map;
-
-    for (int iPrev = 0; iPrev < static_cast<int>(prev.size()); ++iPrev)
-    {
-        for (int iCurrent = 0; iCurrent < static_cast<int>(current.size()); ++iCurrent)
-            if (Misc::StringUtils::ciEqual(prev[iPrev].name, current[iCurrent]))
-            {
-                map.insert(std::make_pair(iPrev, iCurrent));
-                break;
-            }
-    }
+    std::unordered_map<std::string_view, int, Misc::StringUtils::CiHash, Misc::StringUtils::CiEqual> indices;
+    indices.reserve(current.size());
+    for (int i = 0; i < static_cast<int>(current.size()); ++i)
+        indices.emplace(current[i], i); // Preserve the first matching index, including case duplicates.
+    for (int i = 0; i < static_cast<int>(prev.size()); ++i)
+        if (const auto found = indices.find(prev[i].name); found != indices.end())
+            map.emplace(i, found->second);
 
     return map;
 }
@@ -286,8 +286,6 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
 
         if (!slot)
             slot = character->createSlot(profile);
-        else
-            slot = character->updateSlot(slot, profile);
 
         // Make sure the animation state held by references is up to date before saving the game.
         MWBase::Environment::get().getMechanicsManager()->persistAnimationStates();
@@ -326,7 +324,7 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
 
         savePhase("slot, animations, record counts and writer setup");
         writer.startRecord(ESM::REC_SAVE);
-        slot->mProfile.save(writer);
+        profile.save(writer);
         writer.endRecord(ESM::REC_SAVE);
 
         MWBase::Environment::get().getJournal()->write(writer, listener);
@@ -360,17 +358,19 @@ void MWState::StateManager::saveGame(std::string_view description, const Slot* s
         savePhase("finish serialization");
         listener.setProgress(savedCells + finalizationWork / 2);
         listener.refresh(true);
-        // All good, write to file
-        std::ofstream filestream(slot->mPath, std::ios::binary);
-        filestream << stream.rdbuf();
-        filestream.flush();
-
-        if (filestream.fail())
-            throw std::runtime_error("Write operation failed (file stream): " + std::generic_category().message(errno));
+        // Only immutable bytes and the destination cross the thread boundary.
+        // Remain in the save operation until publication succeeds, servicing the
+        // loading UI without running scripts or allowing a second save/load.
+        auto write = std::async(std::launch::async,
+            [path = slot->mPath, bytes = std::move(stream).str()] { Files::writeFileAtomically(path, bytes); });
+        while (write.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready)
+            listener.refresh();
+        write.get();
+        slot = character->updateSlot(slot, profile);
 
         listener.setProgress(progressRange);
         listener.refresh(true);
-        savePhase("file write and stream flush");
+        savePhase("file write, flush and atomic publication");
         Settings::saves().mCharacter.set(Files::pathToUnicodeString(slot->mPath.parent_path().filename()));
         mLastSavegame = slot->mPath;
 
@@ -672,6 +672,8 @@ void MWState::StateManager::loadGame(const Character* character, const std::file
         phase("world saveLoaded");
         actorIdConverter.apply();
         phase("legacy actor IDs");
+        MWBase::Environment::get().getWorldScene()->prepareSavedArrival(MWMechanics::getPlayer());
+        phase("early arrival resource preparation");
         const auto playerStart = LoadClock::now();
         Diagnostics::Loading::Metrics playerMetrics;
         {

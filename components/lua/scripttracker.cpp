@@ -1,4 +1,5 @@
 #include "scripttracker.hpp"
+#include <chrono>
 
 #include <cmath>
 
@@ -38,8 +39,16 @@ namespace LuaUtil
 
         // This code is technically incorrect if mFrame overflows... but at 300fps that takes about half a year
         std::size_t toProcess = std::max(mLoadedScripts.size() / sToProcessDiv, sMinToProcess);
+        // Inactive script eviction is optional housekeeping. Bound a sweep so
+        // a large restored script population does not monopolize the first frames.
+        // Each container operation completes; live event/timer order is untouched.
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+        bool processed = false;
         while (toProcess && !mLoadedScripts.empty())
         {
+            if (processed && std::chrono::steady_clock::now() >= deadline)
+                break;
+            processed = true;
             --toProcess;
             auto [ptr, ttl, retainUntil] = std::move(mLoadedScripts.front());
             mLoadedScripts.pop();

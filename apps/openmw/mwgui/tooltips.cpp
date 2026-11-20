@@ -106,9 +106,13 @@ namespace MWGui
     void ToolTips::update(float frameDuration)
     {
 
-        while (mDynamicToolTipBox->getChildCount())
+        for (size_t i = mDynamicToolTipBox->getChildCount(); i > 0; --i)
         {
-            MyGUI::Gui::getInstance().destroyWidget(mDynamicToolTipBox->getChildAt(0));
+            auto* child = mDynamicToolTipBox->getChildAt(i - 1);
+            if (child == mCaptionWidget || child == mTextWidget)
+                child->setVisible(false);
+            else
+                MyGUI::Gui::getInstance().destroyWidget(child);
         }
 
         // start by hiding everything
@@ -385,6 +389,8 @@ namespace MWGui
 
     void ToolTips::clear()
     {
+        mCaptionWidget = nullptr;
+        mTextWidget = nullptr;
         mTravelTooltip->clear();
         setLuaTooltip({}, nullptr);
         mFocusObject = MWWorld::Ptr();
@@ -531,8 +537,12 @@ namespace MWGui
         const VFS::Path::Normalized realImage = Misc::ResourceHelpers::correctIconPath(
             VFS::Path::toNormalized(image), *MWBase::Environment::get().getResourceSystem()->getVFS());
 
-        Gui::EditBox* captionWidget = mDynamicToolTipBox->createWidget<Gui::EditBox>(
-            "NormalText", MyGUI::IntCoord(0, 0, 300, 300), MyGUI::Align::Left | MyGUI::Align::Top, "ToolTipCaption");
+        if (!mCaptionWidget)
+            mCaptionWidget = mDynamicToolTipBox->createWidget<Gui::EditBox>("NormalText",
+                MyGUI::IntCoord(0, 0, 300, 300), MyGUI::Align::Left | MyGUI::Align::Top, "ToolTipCaption");
+        auto* captionWidget = mCaptionWidget->castType<Gui::EditBox>();
+        captionWidget->setCoord(0, 0, 300, 300);
+        captionWidget->setVisible(true);
         captionWidget->setEditStatic(true);
         captionWidget->setNeedKeyFocus(false);
         captionWidget->setCaptionWithReplacing(caption);
@@ -540,9 +550,12 @@ namespace MWGui
 
         int captionHeight = std::max(!caption.empty() ? captionSize.height : 0, imageSize);
 
-        Gui::EditBox* textWidget = mDynamicToolTipBox->createWidget<Gui::EditBox>("SandText",
-            MyGUI::IntCoord(0, captionHeight + imageCaptionVPadding, 300, 300 - captionHeight - imageCaptionVPadding),
-            MyGUI::Align::Stretch, "ToolTipText");
+        if (!mTextWidget)
+            mTextWidget = mDynamicToolTipBox->createWidget<Gui::EditBox>(
+                "SandText", MyGUI::IntCoord(0, 0, 300, 300), MyGUI::Align::Stretch, "ToolTipText");
+        auto* textWidget = mTextWidget->castType<Gui::EditBox>();
+        textWidget->setCoord(0, captionHeight + imageCaptionVPadding, 300, 300 - captionHeight - imageCaptionVPadding);
+        textWidget->setVisible(true);
         textWidget->setEditStatic(true);
         textWidget->setEditMultiLine(true);
         textWidget->setEditWordWrap(info.wordWrap);

@@ -132,6 +132,36 @@ namespace
         expectSave(second);
     }
 
+    TEST_F(SavedGlobalMapRestoreTest, RepeatedSavesReuseTheCompletedEncoderUntilClear)
+    {
+        mMap.asyncWritePng();
+        mMap.asyncWritePng();
+        ASSERT_EQ(mJobs->getNumItems(), 1u);
+        complete(mJobs->removeWorkItem());
+        ESM::GlobalMap first, second;
+        mMap.write(first);
+        ASSERT_FALSE(first.mImageData.empty());
+        mMap.asyncWritePng();
+        EXPECT_EQ(mJobs->getNumItems(), 0u);
+        mMap.write(second);
+        EXPECT_EQ(first.mImageData, second.mImageData);
+        mMap.clear();
+        mMap.asyncWritePng();
+        ASSERT_EQ(mJobs->getNumItems(), 1u);
+        complete(mJobs->removeWorkItem());
+    }
+
+    TEST_F(SavedGlobalMapRestoreTest, SynchronousEncodingAlsoSeedsTheReusableResult)
+    {
+        ESM::GlobalMap first, second;
+        mMap.write(first);
+        ASSERT_FALSE(first.mImageData.empty());
+        mMap.asyncWritePng();
+        EXPECT_EQ(mJobs->getNumItems(), 0u);
+        mMap.write(second);
+        EXPECT_EQ(first.mImageData, second.mImageData);
+    }
+
     TEST_F(SavedGlobalMapRestoreTest, ChangedBoundsRetainTheirPngUntilGpuReadback)
     {
         const auto original = makeSavedMap({ -1, 0, 0, 0 }, mSize + 1, { 0.3f, 0.7f, 0.9f, 1.f });

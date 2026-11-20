@@ -51,6 +51,52 @@ namespace ESM
             EXPECT_THROW(writer.writeMaybeFixedSizeString(generateRandomString(33), 32), std::runtime_error);
         }
 
+        TEST_F(Esm3EsmWriterTest, encodedRecordsMatchOrdinarySerializationAndRecordCounts)
+        {
+            const auto record = [](ESMWriter& writer) {
+                writer.startRecord(REC_CSTA);
+                writer.writeCellId(RefId::stringRefId("a saved cell"));
+                writer.writeHNT("WLVL", 12.5f);
+                writer.writeHNT("HFOW", 0);
+                writer.endRecord(REC_CSTA);
+            };
+            std::ostringstream fragment;
+            ESMWriter encoder;
+            encoder.setFormatVersion(CurrentSaveGameFormatVersion);
+            encoder.save(fragment, false);
+            record(encoder);
+            encoder.close();
+            EXPECT_EQ(encoder.getRecordCount(), 1);
+            std::ostringstream normal, reused;
+            ESMWriter a, b;
+            a.setFormatVersion(CurrentSaveGameFormatVersion);
+            b.setFormatVersion(CurrentSaveGameFormatVersion);
+            a.save(normal);
+            b.save(reused);
+            for (int i = 0; i != 64; ++i)
+            {
+                record(a);
+                b.writeEncodedRecord(fragment.str());
+            }
+            a.close();
+            b.close();
+            EXPECT_EQ(normal.str(), reused.str());
+            EXPECT_EQ(a.getRecordCount(), b.getRecordCount());
+        }
+
+        TEST_F(Esm3EsmWriterTest, encodedRecordsRejectTruncationAndNestedUse)
+        {
+            std::ostringstream stream;
+            ESMWriter writer;
+            writer.save(stream, false);
+            EXPECT_THROW(writer.writeEncodedRecord("short"), std::logic_error);
+            EXPECT_THROW(writer.writeEncodedRecord(std::string(17, '\0')), std::logic_error);
+            writer.startRecord(REC_CSTA);
+            EXPECT_THROW(writer.writeEncodedRecord(std::string(16, '\0')), std::logic_error);
+            writer.endRecord(REC_CSTA);
+            writer.close();
+        }
+
         struct Esm3EsmWriterRefIdSizeTest : TestWithParam<std::pair<RefId, std::size_t>>
         {
         };

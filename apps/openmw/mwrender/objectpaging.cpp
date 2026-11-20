@@ -1738,7 +1738,13 @@ namespace MWRender
         NodeMap nodes;
         std::vector<NodeMap::iterator> firstReferenceOrder;
         // Only retained while building this chunk; paths include the selected LOD.
-        std::map<VFS::Path::Normalized, osg::ref_ptr<const osg::Node>> chunkTemplates;
+        struct TemplateInfo
+        {
+            osg::ref_ptr<const osg::Node> mNode;
+            float mRadiusSquared;
+            bool mEligibleForActiveGrid;
+        };
+        std::map<VFS::Path::Normalized, TemplateInfo> chunkTemplates;
         std::vector<ESM::RefNum> refnums;
 
         // Mask_UpdateVisitor is used in such cases in NIF loader:
@@ -1758,25 +1764,29 @@ namespace MWRender
         const float minSize = mMinSizeMergeFactor ? mMinSize * mMinSizeMergeFactor : mMinSize;
         auto* jobs = MWBase::Environment::get().getNativeJobPoolOrNull();
         const bool prepare = !modelsPrepared && canPreloadBatches();
-        const auto consume = [&](const ESM::RefNum& refNum, const PagedCellRef& ref,
-                                 const VFS::Path::Normalized& model, float dSqr) {
-            osg::ref_ptr<const osg::Node> cnode = [&] {
+        const auto consume = [&](const ESM::RefNum& refNum, const PagedCellRef& ref, const VFS::Path::Normalized& model,
+                                 float dSqr) {
+            const TemplateInfo& modelInfo = [&]() -> const TemplateInfo& {
                 Diagnostics::Scope modelTiming("terrain", "objects", "getModelTemplate");
                 Diagnostics::Loading::Timer modelLoading(Diagnostics::Loading::Stage::ObjectTemplates);
                 if (auto found = chunkTemplates.find(model); found != chunkTemplates.end())
                     return found->second;
                 auto node = mSceneManager->getTemplate(model, false);
-                chunkTemplates.emplace(model, node);
-                return node;
+                const bool eligible = !activeGrid
+                    || !(node->getNumChildrenRequiringUpdateTraversal() > 0
+                        || SceneUtil::hasUserDescription(node, Constants::NightDayLabel)
+                        || SceneUtil::hasUserDescription(node, Constants::HerbalismLabel)
+                        || (node->getName() == "Collada visual scene group"
+                            && dynamic_cast<const osgAnimation::BasicAnimationManager*>(node->getUpdateCallback())));
+                const float radiusSquared = eligible ? node->getBound().radius2() : 0.f;
+                return chunkTemplates.emplace(model, TemplateInfo{ std::move(node), radiusSquared, eligible })
+                    .first->second;
             }();
+            osg::ref_ptr<const osg::Node> cnode = modelInfo.mNode;
 
             if (activeGrid)
             {
-                if (cnode->getNumChildrenRequiringUpdateTraversal() > 0
-                    || SceneUtil::hasUserDescription(cnode, Constants::NightDayLabel)
-                    || SceneUtil::hasUserDescription(cnode, Constants::HerbalismLabel)
-                    || (cnode->getName() == "Collada visual scene group"
-                        && dynamic_cast<const osgAnimation::BasicAnimationManager*>(cnode->getUpdateCallback())))
+                if (!modelInfo.mEligibleForActiveGrid)
                     return;
                 else
                     refnums.push_back(refNum);
@@ -1788,7 +1798,7 @@ namespace MWRender
                     return;
             }
 
-            const float radius2 = cnode->getBound().radius2() * ref.mScale * ref.mScale;
+            const float radius2 = modelInfo.mRadiusSquared * ref.mScale * ref.mScale;
             if (radius2 < dSqr * minSize * minSize && !activeGrid && !bridge)
             {
                 std::lock_guard<std::mutex> lock(mSizeCacheMutex);

@@ -86,9 +86,12 @@ namespace MWLua
             cell.load();
         auto& world = *MWBase::Environment::get().getWorldModel();
         const bool combined = Misc::useCombinedPerformance();
-        const bool cacheable = combined && useCache && type && *type != ESM::REC_INTERNAL_PLAYER;
+        // Player queries are never cached. Reuse their key for the complete
+        // traversal only when the caller supplied no type.
+        const std::uint32_t cacheType = type.value_or(0);
+        const bool cacheable = combined && useCache && (!type || *type != ESM::REC_INTERNAL_PLAYER);
         if (cacheable)
-            if (auto cached = cell.getObjectIdSnapshot(*type, world.getPtrRegistryRevision()))
+            if (auto cached = cell.getObjectIdSnapshot(cacheType, world.getPtrRegistryRevision()))
                 return cached;
 
         ObjectIdList res = std::make_shared<std::vector<ObjectId>>();
@@ -248,7 +251,7 @@ namespace MWLua
         if (!ok)
             return {};
         if (cacheable)
-            cell.setObjectIdSnapshot(*type, world.getPtrRegistryRevision(), res);
+            cell.setObjectIdSnapshot(cacheType, world.getPtrRegistryRevision(), res);
         return res;
     }
 

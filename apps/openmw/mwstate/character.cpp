@@ -1,4 +1,5 @@
 #include "character.hpp"
+#include <components/files/atomicwrite.hpp>
 
 #include <algorithm>
 #include <cctype>
@@ -41,6 +42,10 @@ std::string_view MWState::getFirstGameFile(const std::vector<std::string>& conte
 
 void MWState::Character::addSlot(const std::filesystem::path& path, const std::string& game)
 {
+    // A terminated save can leave a sibling with a valid header but incomplete
+    // world records. It is never a selectable save, even if its header parses.
+    if (Files::isAtomicWriteTemporary(path))
+        return;
     Slot slot;
     slot.mPath = path;
     slot.mTimeStamp = std::filesystem::last_write_time(path);

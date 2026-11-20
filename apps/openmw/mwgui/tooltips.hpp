@@ -125,6 +125,8 @@ namespace MWGui
         std::shared_ptr<LuaUi::Element> mLuaTooltipElement;
 
         MWWorld::Ptr mFocusObject;
+        MyGUI::Widget* mCaptionWidget = nullptr;
+        MyGUI::Widget* mTextWidget = nullptr;
 
         MyGUI::IntSize getToolTipViaPtr(int count, bool image = true, bool isOwned = false);
         ///< @return requested tooltip size

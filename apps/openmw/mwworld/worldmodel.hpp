@@ -10,6 +10,8 @@
 #include <unordered_set>
 
 #include <components/esm/exteriorcelllocation.hpp>
+#include <components/esm3/cellstate.hpp>
+#include <components/esm3/formatversion.hpp>
 #include <components/misc/algorithm.hpp>
 
 #include "cellstore.hpp"
@@ -142,6 +144,14 @@ namespace MWWorld
         mutable std::unordered_set<CellStore*> mDirtyLookupCells;
         std::unordered_map<ESM::RefId, std::vector<CellStore*>> mRefIdLookupCells;
         std::unordered_map<CellStore*, std::vector<ESM::RefId>> mIndexedCellIds;
+
+        struct CachedCellMetadata
+        {
+            ESM::CellState mState{};
+            ESM::FormatVersion mFormat{};
+            std::string mRecord;
+        };
+        mutable std::unordered_map<ESM::RefId, CachedCellMetadata> mSavedCellMetadata;
 
         struct SaveLoadTimings
         {

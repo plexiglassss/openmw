@@ -2,8 +2,8 @@
 #define OPENMW_ESM_WRITER_H
 
 #include <iosfwd>
-#include <list>
 #include <type_traits>
+#include <vector>
 
 #include "components/esm/decompose.hpp"
 #include "components/esm/esmcommon.hpp"
@@ -56,7 +56,9 @@ namespace ESM
 
         void addMaster(std::string_view name, uint64_t size);
 
-        void save(std::ostream& file);
+        void save(std::ostream& file, bool writeHeader = true);
+        // Append one complete record previously emitted with the same format.
+        void writeEncodedRecord(std::string_view record);
         ///< Start saving a file by writing the TES3 header.
 
         void close();
@@ -198,7 +200,7 @@ namespace ESM
         void writeFormId(const ESM::FormId&, bool wide = false, NAME tag = "FRMR");
 
     private:
-        std::list<RecordData> mRecords;
+        std::vector<RecordData> mRecords;
         std::ostream* mStream;
         std::streampos mHeaderPos;
         ToUTF8::Utf8Encoder* mEncoder;

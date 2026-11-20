@@ -198,6 +198,15 @@ jobs:
           ./custom/gameplay-responsiveness/Test-Settings.ps1
           if ($LASTEXITCODE) { throw 'PowerShell 7 settings tests failed' }
       - uses: ilammy/msvc-dev-cmd@v1
+      - name: Exercise atomic save publication and plugin mapping on Windows
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /O2 /I. custom/save-load-performance/test-atomicwrite.cpp /Fe:atomic-save-tests.exe
+          if ($LASTEXITCODE) { throw 'Atomic save writer test compilation failed' }
+          ./atomic-save-tests.exe | Tee-Object atomic-save-windows.log
+          if ($LASTEXITCODE) { throw 'Atomic save writer failure recovery failed' }
+          python custom/save-load-performance/test-content-mapping.py
+          if ($LASTEXITCODE) { throw 'Plugin mapping regression failed' }
       - name: Test notification placement before compiling the engine
         shell: pwsh
         run: |
@@ -846,6 +855,8 @@ jobs:
           Copy-Item custom/deleveler/README.md install/NATIVE-DELEVELER.md
           Copy-Item town-performance-source-manifest.json,town-performance-build-source-manifest.json install/
           Copy-Item rc1-source-manifest.json,rc1-build-source-manifest.json install/
+          Copy-Item custom/save-load-performance/README.md install/SAVE-LOAD-PERFORMANCE.md
+          Copy-Item atomic-save-windows.log,save-load-content-mapping.json install/
           Copy-Item custom/rc1/README.md install/RC1-PORT.md
           Copy-Item custom/town-performance/README.md install/TOWN-PERFORMANCE.md
           Copy-Item custom/cell-streaming/ACTIVATION-20261118.md install/CELL-ACTIVATION.md
@@ -969,6 +980,8 @@ jobs:
           path: |
             install/verification/WINDOWS-DISTRIBUTION.json
             loading-reporter-windows.log
+            atomic-save-windows.log
+            save-load-content-mapping.json
             loading-progress-windows.json
             loading-quality-preservation.json
             smart-map-native-tests.json

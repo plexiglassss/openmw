@@ -85,13 +85,13 @@ namespace MWLua
 
     void ObjectLists::addToGroup(ObjectGroup& group, const MWWorld::Ptr& ptr)
     {
-        group.mSet.insert(getId(ptr));
-        group.mChanged = true;
+        if (group.mSet.insert(getId(ptr)).second)
+            group.mChanged = true;
     }
 
     void ObjectLists::removeFromGroup(ObjectGroup& group, const MWWorld::Ptr& ptr)
     {
-        group.mSet.erase(getId(ptr));
-        group.mChanged = true;
+        if (group.mSet.erase(getId(ptr)) != 0)
+            group.mChanged = true;
     }
 }

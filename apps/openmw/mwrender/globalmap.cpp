@@ -329,7 +329,13 @@ namespace MWRender
         {
         }
 
-        void doWork() override { mImageData = writePng(*mOverlayImage); }
+        void doWork() override
+        {
+            // The queued copy is only needed during encoding, not for the
+            // lifetime of the reusable compressed result (including failures).
+            auto image = std::move(mOverlayImage);
+            mImageData = writePng(*image);
+        }
     };
 
     GlobalMap::GlobalMap(osg::Group* root, const std::shared_ptr<SceneUtil::WorkQueue>& workQueue)
@@ -375,6 +381,7 @@ namespace MWRender
 
     void GlobalMap::render()
     {
+        mWritePng = nullptr;
         const MWWorld::ESMStore& esmStore = *MWBase::Environment::get().getESMStore();
 
         // get the size of the world
@@ -578,12 +585,18 @@ namespace MWRender
         if (mWritePng != nullptr)
         {
             mWritePng->waitTillDone();
-            map.mImageData = std::move(mWritePng->mImageData);
-            mWritePng = nullptr;
+            map.mImageData = mWritePng->mImageData;
+            if (map.mImageData.empty())
+                mWritePng = nullptr; // Permit retry after an encoder failure.
             return;
         }
 
-        map.mImageData = writePng(*mOverlayImage);
+        auto encoded = std::make_shared<WritePng>(mOverlayImage);
+        encoded->doWork();
+        encoded->signalDone();
+        map.mImageData = encoded->mImageData;
+        if (!map.mImageData.empty())
+            mWritePng = std::move(encoded);
     }
 
     struct Box
@@ -758,6 +771,7 @@ namespace MWRender
             mWorkItem->waitTillDone();
 
             mBaseBuildMs = mWorkItem->mBuildMs;
+            mWritePng = nullptr;
             mOverlayImage = mWorkItem->mOverlayImage;
             mBaseTexture = mWorkItem->mBaseTexture;
             mAlphaTexture = mWorkItem->mAlphaTexture;
@@ -831,7 +845,7 @@ namespace MWRender
 
     void GlobalMap::asyncWritePng()
     {
-        if (mSavedOverlay || !mOverlayImage)
+        if (mSavedOverlay || !mOverlayImage || mWritePng)
             return;
         // Use deep copy to avoid any sychronization
         mWritePng = std::make_shared<WritePng>(new osg::Image(*mOverlayImage, osg::CopyOp::DEEP_COPY_ALL));

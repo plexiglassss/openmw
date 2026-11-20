@@ -1,16 +1,18 @@
-#include <components/lua_ui/content.hpp>
+#include <apps/openmw/mwgui/itemview.hpp>
+#include <apps/openmw/mwgui/itemwidget.hpp>
+#include <apps/openmw/mwgui/resourceskin.hpp>
+#include <components/lua/utilpackage.hpp>
 #include <components/lua_ui/adapter.hpp>
-#include <components/lua_ui/input.hpp>
+#include <components/lua_ui/content.hpp>
 #include <components/lua_ui/element.hpp>
 #include <components/lua_ui/flex.hpp>
 #include <components/lua_ui/image.hpp>
+#include <components/lua_ui/input.hpp>
 #include <components/lua_ui/properties.hpp>
 #include <components/lua_ui/resources.hpp>
 #include <components/lua_ui/util.hpp>
 #include <components/lua_ui/widget.hpp>
 #include <components/misc/combinedperformance.hpp>
-#include <components/lua/utilpackage.hpp>
-#include <apps/openmw/mwgui/resourceskin.hpp>
 
 #include <MyGUI_DataFileStream.h>
 #include <MyGUI_DataManager.h>
@@ -330,6 +332,85 @@ namespace LuaUi
         };
 
         class TownUiPerformanceTest : public LuaUiLayoutTest {};
+
+        class ItemViewReuseTest : public LuaUiLayoutTest
+        {
+        protected:
+            struct Model : MWGui::ItemModel
+            {
+                std::vector<MWGui::ItemStack> items;
+                MWGui::ItemStack getItem(ModelIndex i) override { return items.at(i); }
+                size_t getItemCount() override { return items.size(); }
+                ModelIndex getIndex(const MWGui::ItemStack&) override { return -1; }
+                void update() override {}
+                bool usesContainer(const MWWorld::Ptr&) override { return false; }
+                MWWorld::Ptr addItem(const MWGui::ItemStack&, size_t, bool) override { return {}; }
+                MWWorld::Ptr copyItem(const MWGui::ItemStack&, size_t, bool) override { return {}; }
+                void removeItem(const MWGui::ItemStack&, size_t) override {}
+            };
+            int mClicks = 0;
+            int mClicked = -1;
+            void clicked(int index)
+            {
+                ++mClicks;
+                mClicked = index;
+            }
+            void SetUp() override
+            {
+                LuaUiLayoutTest::SetUp();
+                auto& resources = MyGUI::ResourceManager::getInstance();
+                MyGUI::FactoryManager::getInstance().registerFactory<MWGui::AutoSizedResourceSkin>(
+                    resources.getCategoryName());
+                MWGui::ItemView::registerComponents();
+                MWGui::ItemWidget::registerComponents();
+                for (const auto* file : { "core.skin", "openmw_resources.xml", "openmw_text.skin.xml",
+                         "openmw_windows.skin.xml", "openmw_button.skin.xml", "openmw_list.skin.xml",
+                         "openmw_box.skin.xml", "openmw_scroll.skin.xml" })
+                    ASSERT_TRUE(resources.load(file)) << file;
+            }
+        };
+
+        TEST_F(ItemViewReuseTest, ReusesWidgetsAndRefreshesTooltipOwnersWithoutDuplicatingClicks)
+        {
+            auto* view = mGui.createWidget<MWGui::ItemView>(
+                "MW_ItemView", { 10, 10, 350, 220 }, MyGUI::Align::Default, "LuaUiTest");
+            auto model = std::make_unique<Model>();
+            model->items.resize(3);
+            view->setModel(std::move(model));
+            auto* scroll = view->findWidget("ScrollView")->castType<MyGUI::ScrollView>();
+            ASSERT_EQ(scroll->getChildCount(), 1u);
+            auto* area = scroll->getChildAt(0);
+            ASSERT_EQ(area->getChildCount(), 3u);
+            auto* first = area->getChildAt(0);
+            view->eventItemClicked += MyGUI::newDelegate(this, &ItemViewReuseTest::clicked);
+            for (int i = 0; i != 20; ++i)
+                view->update();
+            EXPECT_EQ(area->getChildAt(0), first);
+            first->eventMouseButtonClick(first);
+            EXPECT_EQ(mClicks, 1);
+            EXPECT_EQ(mClicked, 0);
+
+            auto replacement = std::make_unique<Model>();
+            replacement->items.resize(2);
+            auto* owner = replacement.get();
+            view->setModel(std::move(replacement));
+            EXPECT_EQ(area->getChildAt(0), first);
+            EXPECT_EQ(area->getChildCount(), 2u);
+            EXPECT_EQ(view->getItemCount(), 2);
+            using TooltipData = std::pair<MWGui::ItemModel::ModelIndex, MWGui::ItemModel*>;
+            EXPECT_EQ(first->getUserData<TooltipData>()->second, owner);
+            auto* second = area->getChildAt(1);
+            second->eventMouseButtonClick(second);
+            EXPECT_EQ(mClicks, 2);
+            EXPECT_EQ(mClicked, 1);
+            owner->items.resize(5);
+            view->update();
+            EXPECT_EQ(area->getChildCount(), 5u);
+            EXPECT_EQ(area->getChildAt(0), first);
+            view->setModel(nullptr);
+            EXPECT_EQ(scroll->getChildCount(), 0u);
+            EXPECT_EQ(view->getItemCount(), 0);
+        }
 
         class ModControlsInteractionTest : public LuaUiLayoutTest
         {

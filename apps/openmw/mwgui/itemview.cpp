@@ -101,26 +101,44 @@ namespace MWGui
 
     void ItemView::update()
     {
-        while (mScrollView->getChildCount())
-            MyGUI::Gui::getInstance().destroyWidget(mScrollView->getChildAt(0));
-
         if (!mModel)
+        {
+            while (mScrollView->getChildCount())
+                MyGUI::Gui::getInstance().destroyWidget(mScrollView->getChildAt(0));
+            mItemCount = 0;
+            mControllerFocus = -1;
             return;
+        }
 
         mModel->update();
 
-        MyGUI::Widget* dragArea = mScrollView->createWidget<MyGUI::Widget>(
-            {}, 0, 0, mScrollView->getWidth(), mScrollView->getHeight(), MyGUI::Align::Stretch);
-        dragArea->setNeedMouseFocus(true);
-        dragArea->eventMouseButtonClick += MyGUI::newDelegate(this, &ItemView::onSelectedBackground);
-        dragArea->eventMouseWheel += MyGUI::newDelegate(this, &ItemView::onMouseWheelMoved);
+        MyGUI::Widget* dragArea = mScrollView->getChildCount() ? mScrollView->getChildAt(0) : nullptr;
+        if (!dragArea)
+        {
+            dragArea = mScrollView->createWidget<MyGUI::Widget>(
+                {}, 0, 0, mScrollView->getWidth(), mScrollView->getHeight(), MyGUI::Align::Stretch);
+            dragArea->setNeedMouseFocus(true);
+            dragArea->eventMouseButtonClick += MyGUI::newDelegate(this, &ItemView::onSelectedBackground);
+            dragArea->eventMouseWheel += MyGUI::newDelegate(this, &ItemView::onMouseWheelMoved);
+        }
+        while (dragArea->getChildCount() > mModel->getItemCount())
+            MyGUI::Gui::getInstance().destroyWidget(dragArea->getChildAt(dragArea->getChildCount() - 1));
 
         for (ItemModel::ModelIndex i = 0; i < static_cast<int>(mModel->getItemCount()); ++i)
         {
             const ItemStack& item = mModel->getItem(i);
 
-            ItemWidget* itemWidget = dragArea->createWidget<ItemWidget>(
-                "MW_ItemIcon", MyGUI::IntCoord(0, 0, 42, 42), MyGUI::Align::Default);
+            ItemWidget* itemWidget;
+            if (static_cast<size_t>(i) < dragArea->getChildCount())
+                itemWidget = dragArea->getChildAt(i)->castType<ItemWidget>();
+            else
+            {
+                itemWidget = dragArea->createWidget<ItemWidget>(
+                    "MW_ItemIcon", MyGUI::IntCoord(0, 0, 42, 42), MyGUI::Align::Default);
+                itemWidget->eventMouseButtonClick += MyGUI::newDelegate(this, &ItemView::onSelectedItem);
+                itemWidget->eventMouseWheel += MyGUI::newDelegate(this, &ItemView::onMouseWheelMoved);
+            }
+            itemWidget->setControllerFocus(false);
             itemWidget->setUserString("ToolTipType", "ItemModelIndex");
             itemWidget->setUserData(std::make_pair(i, mModel.get()));
             ItemWidget::ItemState state = ItemWidget::None;
@@ -131,8 +149,6 @@ namespace MWGui
             itemWidget->setItem(item.mBase, state);
             itemWidget->setCount(static_cast<int>(item.mCount));
 
-            itemWidget->eventMouseButtonClick += MyGUI::newDelegate(this, &ItemView::onSelectedItem);
-            itemWidget->eventMouseWheel += MyGUI::newDelegate(this, &ItemView::onMouseWheelMoved);
         }
 
         layoutWidgets();

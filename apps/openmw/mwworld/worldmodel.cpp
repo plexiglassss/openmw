@@ -1,6 +1,8 @@
 #include "worldmodel.hpp"
+#include <sstream>
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <cassert>
 #include <cstdlib>
@@ -203,6 +205,7 @@ MWWorld::CellStore& MWWorld::WorldModel::insertCellStore(const ESM4::Cell& cell)
 void MWWorld::WorldModel::clear()
 {
     mSaveLoadTimings = {};
+    mSavedCellMetadata.clear();
     mDirtyLookupCells.clear();
     mUnindexedLookupCells.clear();
     mUnindexedFallbackCells.clear();
@@ -236,10 +239,42 @@ void MWWorld::WorldModel::writeCell(ESM::ESMWriter& writer, CellStore& cell) con
     // Metadata can change without instantiating any references (for example water
     // levels or restored fog). Unloaded/preloaded cells have no live reference
     // changes to serialize. Loading them here would undo lazy save restoration.
-    ESM::CellState cellState;
-
+    ESM::CellState cellState{};
     cell.saveState(cellState);
 
+    // Only metadata-only cells are eligible: there are no mutable references,
+    // inventories, Lua callbacks, animation states or fog images to miss.
+    if (cell.getState() == CellStore::State_Unloaded && !cell.hasUnloadedLiveReferences() && !cell.getFog()
+        && (mSavedCellMetadata.size() < 65536 || mSavedCellMetadata.contains(cellState.mId)))
+    {
+        auto& cached = mSavedCellMetadata[cellState.mId];
+        const auto& old = cached.mState;
+        if (cached.mRecord.empty() || cached.mFormat != writer.getFormatVersion()
+            || old.mIsInterior != cellState.mIsInterior
+            || std::bit_cast<std::uint32_t>(old.mWaterLevel) != std::bit_cast<std::uint32_t>(cellState.mWaterLevel)
+            || old.mHasFogOfWar != cellState.mHasFogOfWar || old.mLastRespawn.mDay != cellState.mLastRespawn.mDay
+            || std::bit_cast<std::uint32_t>(old.mLastRespawn.mHour)
+                != std::bit_cast<std::uint32_t>(cellState.mLastRespawn.mHour))
+        {
+            std::ostringstream stream;
+            ESM::ESMWriter fragment;
+            fragment.setFormatVersion(writer.getFormatVersion());
+            fragment.save(stream, false);
+            fragment.startRecord(ESM::REC_CSTA);
+            fragment.writeCellId(cellState.mId);
+            cellState.save(fragment);
+            fragment.endRecord(ESM::REC_CSTA);
+            fragment.close();
+            if (!stream)
+                throw std::runtime_error("Failed to serialize cell metadata");
+            cached.mRecord = std::move(stream).str();
+            cached.mState = cellState;
+            cached.mFormat = writer.getFormatVersion();
+        }
+        writer.writeEncodedRecord(cached.mRecord);
+        return;
+    }
+    mSavedCellMetadata.erase(cellState.mId);
     writer.startRecord(ESM::REC_CSTA);
 
     writer.writeCellId(cellState.mId);
