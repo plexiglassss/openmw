@@ -320,6 +320,9 @@ namespace MWBase
         ///< Queues movement for \a ptr (in local space), to be applied in the next call to
         /// doPhysics.
 
+        /// World-space velocity measured during the last physics step, or zero if unavailable.
+        virtual osg::Vec3f getActorVelocity(const MWWorld::ConstPtr& ptr) const = 0;
+
         virtual void updateAnimatedCollisionShape(const MWWorld::Ptr& ptr) = 0;
 
         virtual const MWPhysics::RayCastingInterface* getRayCasting() const = 0;

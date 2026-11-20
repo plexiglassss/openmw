@@ -400,6 +400,8 @@ namespace MWWorld
         ///< Queues movement for \a ptr (in local space), to be applied in the next call to
         /// doPhysics.
 
+        osg::Vec3f getActorVelocity(const ConstPtr& ptr) const override;
+
         void updateAnimatedCollisionShape(const Ptr& ptr) override;
 
         const MWPhysics::RayCastingInterface* getRayCasting() const override;

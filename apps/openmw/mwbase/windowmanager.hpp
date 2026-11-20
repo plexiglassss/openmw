@@ -196,6 +196,9 @@ namespace MWBase
         virtual void changeCell(const MWWorld::CellStore* cell) = 0;
         ///< change the active cell
 
+        /// Actual player cell transition, including movement within the loaded exterior grid.
+        virtual void playerCellChanged(const MWWorld::CellStore* cell) = 0;
+
         virtual void setFocusObject(const MWWorld::Ptr& focus) = 0;
         virtual void setFocusObjectScreenCoords(float x, float y) = 0;
 

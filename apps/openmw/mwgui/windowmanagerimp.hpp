@@ -210,6 +210,7 @@ namespace MWGui
         void setDrowningTimeLeft(float time, float maxTime) override;
 
         void changeCell(const MWWorld::CellStore* cell) override; ///< change the active cell
+        void playerCellChanged(const MWWorld::CellStore* cell) override;
 
         void setFocusObject(const MWWorld::Ptr& focus) override;
         void setFocusObjectScreenCoords(float x, float y) override;

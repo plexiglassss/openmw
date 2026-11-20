@@ -35,6 +35,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwgui/testmessageboxstate.cpp
     mwgui/testmessagepositioncontrols.cpp
     mwgui/testtraveltooltipdata.cpp
+    mwgui/testsmartmap.cpp
     mwgui/testresttime.cpp
     mwgui/testcontinuegame.cpp
     mwgui/testmainmenubutton.cpp
@@ -103,7 +104,9 @@ openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
     controls-test-main.cpp
     mwgui/testmessagepositioncontrols.cpp
     mwgui/testtraveltooltipdata.cpp
+    mwgui/testsmartmap.cpp
     ../openmw/mwgui/mapiconcontrols.cpp
+    ../openmw/mwgui/smartmapcontrols.cpp
     ../openmw/mwgui/messagepositioncontrols.cpp
     ../openmw/mwgui/tooltipcontrols.cpp
     ../openmw/mwgui/traveltooltipdata.cpp

@@ -1027,6 +1027,11 @@ namespace MWWorld
         mWorld.adjustSky();
 
         mLastPlayerPos = player.getRefData().getPosition().asVec3();
+
+        // Grid recentering is a different event: an already-active neighboring
+        // exterior cell still needs player-cell UI rules, without re-rendering
+        // the map or reloading any scenery here.
+        MWBase::Environment::get().getWindowManager()->playerCellChanged(&cell);
     }
 
     Scene::Scene(MWWorld::World& world, MWRender::RenderingManager& rendering, MWPhysics::PhysicsSystem* physics,

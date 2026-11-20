@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5bc7ce1d3061be34afd802565ccf1f625b6cbc68"
+        "blob": "c5dbc12afc163091851082ce8db56af8747aa208"
       },
       "status": "adapted_for_rc1"
     },
@@ -451,9 +451,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "866cd4323a525346dee858e76766f309789af5c5"
+        "blob": "8b559aeee6db33b9a4864e3263fb3fddf38154df"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/components_tests/shader/shadermanager.cpp": {
       "cumulative": {
@@ -528,7 +528,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "cd2661b5e35e60ce43ae280f2c60116d99a3a522"
+        "blob": "da7c9c6b39ba4c82fb2001a77dcf27eeda015c5f"
       },
       "status": "adapted_for_rc1"
     },
@@ -594,7 +594,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dfbc3f9d85eb420386b81bf0daf778ba28d06e27"
+        "blob": "64ab1834160a65a5fe5e7f95af41dd86836c9f3e"
       },
       "status": "adapted_for_rc1"
     },
@@ -605,7 +605,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7a544ceeb5a3b202e07988d6885f9fb9ac8096fd"
+        "blob": "fb685ea275f66750f40d4953f4e7a080c6d43531"
       },
       "status": "adapted_for_rc1"
     },
@@ -803,7 +803,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "61e7edcc9ab00f48352dc2f7d6e2f04b51f93000"
+        "blob": "cf816c8470bbba3d06e2604dacf20277ce98eeaf"
       },
       "status": "adapted_for_rc1"
     },
@@ -814,7 +814,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "326f7997ad04d6f58fa4cab42e26fd79f6afc054"
+        "blob": "1b9897727602b2a82fad5587753c82ae8fa717e2"
       },
       "status": "adapted_for_rc1"
     },
@@ -825,7 +825,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b17ec28149349301c8e64a9472383e9cdb3dc529"
+        "blob": "8e1a7a4bed9c9c0a76b5c0d473b33e69dd2779b3"
       },
       "status": "adapted_for_rc1"
     },
@@ -836,7 +836,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8109f825cf95943533506f2b7a3820ac29bd47ce"
+        "blob": "3eda4882570ae41eb4e279b5cc372c3770b04176"
       },
       "status": "adapted_for_rc1"
     },
@@ -1001,7 +1001,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "506ed0632024972bead169c889cacc1359a3b5fe"
+        "blob": "d33c8e19f72128e3582eec49b3b06660a0a0f0b0"
       },
       "status": "adapted_for_rc1"
     },
@@ -1012,7 +1012,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c94aef879cbb9c9d4e367d06ca3dd27ba5ee04a4"
+        "blob": "3d44704bed52cd03b69c3f4df9d774b1040e33ca"
       },
       "status": "adapted_for_rc1"
     },
@@ -1936,7 +1936,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "cced18a74aec06db8c566871234548e9fe3d40c1"
+        "blob": "3b8773abfcc21e121730946aee03f4127867f286"
       },
       "status": "adapted_for_rc1"
     },
@@ -1958,7 +1958,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5911ab9f0c5f7e17b3ae7e7a52177f57587448e1"
+        "blob": "4574a36f6ad8b2071a872c96bc505d3a7fb9aec1"
       },
       "status": "adapted_for_rc1"
     },
@@ -1969,7 +1969,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "9879cfa6aec7bef1d2801b3e8fb5510e4a8bf55d"
+        "blob": "2e5c770a957bbed4372ba41abbabb22a476d6091"
       },
       "status": "adapted_for_rc1"
     },
@@ -2002,7 +2002,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "07c7f47b2cb22ece81baabe776f60359f7306825"
+        "blob": "f9537758cfe4cfe5ef50f0305353b9531ac35783"
       },
       "status": "adapted_for_rc1"
     },
@@ -2046,9 +2046,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d2371f78590c3968b42599a1166ae3aeda3a8c8a"
+        "blob": "2542af3449f46eb419563b1a45663cb11dede721"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/openmw_tests/mwgui/testtraveltooltipdata.cpp": {
       "cumulative": {
@@ -3432,9 +3432,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7a18916e1269018c4241e935979b1e43e312755e"
+        "blob": "4f71fa256c2d644fdb35129f3370c8d97f725e05"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/settings/categories/shaders.hpp": {
       "cumulative": {
@@ -5335,9 +5335,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "26317684786a12b4e6268d6263aa8194bc3d0922"
+        "blob": "65935d0e538322745f9baed0697617e4babccb5b"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "docs/source/reference/modding/settings/shaders.rst": {
       "cumulative": {
@@ -5379,7 +5379,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1adcf57f3ec939e99d386485963b19d408f2e99f"
+        "blob": "38d18942e654bd6d7498de8191fdd07bf7da4835"
       },
       "status": "adapted_for_rc1"
     },
@@ -5709,7 +5709,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "01d8f5923741eda26788a7a9b3ce26618ca47111"
+        "blob": "ce3ce0042393f4e59892f54e801cd86b00815778"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5bc7ce1d3061be34afd802565ccf1f625b6cbc68"
+        "blob": "c5dbc12afc163091851082ce8db56af8747aa208"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -6263,9 +6263,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "866cd4323a525346dee858e76766f309789af5c5"
+        "blob": "8b559aeee6db33b9a4864e3263fb3fddf38154df"
       },
-      "purpose": "Native world-map icon feature: apps/components_tests/settings/testvalues.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: apps/components_tests/settings/testvalues.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/components_tests/shader/shadermanager.cpp": {
       "upstream": {
@@ -6358,9 +6358,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "cd2661b5e35e60ce43ae280f2c60116d99a3a522"
+        "blob": "da7c9c6b39ba4c82fb2001a77dcf27eeda015c5f"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/engine.cpp": {
       "upstream": {
@@ -6435,9 +6435,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dfbc3f9d85eb420386b81bf0daf778ba28d06e27"
+        "blob": "64ab1834160a65a5fe5e7f95af41dd86836c9f3e"
       },
-      "purpose": "Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwbase/world.hpp": {
       "upstream": {
@@ -6446,9 +6446,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7a544ceeb5a3b202e07988d6885f9fb9ac8096fd"
+        "blob": "fb685ea275f66750f40d4953f4e7a080c6d43531"
       },
-      "purpose": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Retained or adapted to the official RC1 source/API."
+      "purpose": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Retained or adapted to the official RC1 source/API. Expose measured physics-step actor velocity for generic map travel suppression."
     },
     "apps/openmw/mwclass/container.cpp": {
       "upstream": {
@@ -6798,9 +6798,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "61e7edcc9ab00f48352dc2f7d6e2f04b51f93000"
+        "blob": "cf816c8470bbba3d06e2604dacf20277ce98eeaf"
       },
-      "purpose": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Keep visited marker state immediately saveable, build native widgets in batches and reuse running group sums. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Keep visited marker state immediately saveable, build native widgets in batches and reuse running group sums. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwgui/mapwindow.hpp": {
       "upstream": {
@@ -6809,9 +6809,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "326f7997ad04d6f58fa4cab42e26fd79f6afc054"
+        "blob": "1b9897727602b2a82fad5587753c82ae8fa717e2"
       },
-      "purpose": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Keep visited marker state immediately saveable, build native widgets in batches and reuse running group sums. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: apps/openmw/mwgui/mapwindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/mapwindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Keep visited marker state immediately saveable, build native widgets in batches and reuse running group sums. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwgui/messagebox.cpp": {
       "upstream": {
@@ -6874,9 +6874,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b17ec28149349301c8e64a9472383e9cdb3dc529"
+        "blob": "8e1a7a4bed9c9c0a76b5c0d473b33e69dd2779b3"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwgui/settingswindow.hpp": {
       "upstream": {
@@ -6885,9 +6885,33 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8109f825cf95943533506f2b7a3820ac29bd47ce"
+        "blob": "3eda4882570ae41eb4e279b5cc372c3770b04176"
       },
-      "purpose": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: apps/openmw/mwgui/settingswindow.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/settingswindow.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+    },
+    "apps/openmw/mwgui/smartmapcontrols.cpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "bfc32dae442c49545914a94c479e474d474d292c"
+      },
+      "purpose": "Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+    },
+    "apps/openmw/mwgui/smartmapcontrols.hpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "5c926b050e49cf0fc34ae3897b82c6e4097e0964"
+      },
+      "purpose": "Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+    },
+    "apps/openmw/mwgui/smartmappolicy.hpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "87e7a4879a17aaa392766f79d673c9dcdfdb48ea"
+      },
+      "purpose": "Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwgui/tooltipcontrols.cpp": {
       "upstream": null,
@@ -7053,9 +7077,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "506ed0632024972bead169c889cacc1359a3b5fe"
+        "blob": "d33c8e19f72128e3582eec49b3b06660a0a0f0b0"
       },
-      "purpose": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: apps/openmw/mwgui/windowmanagerimp.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw/mwgui/windowmanagerimp.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Apply the reviewed tooltip-root visibility policy independently of the existing HUD flag while retaining loading suppression. Apply full-image native world and local icons, including re-use, hover, zoom, live updates, and the minimap. Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwgui/windowmanagerimp.hpp": {
       "upstream": {
@@ -7064,9 +7088,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c94aef879cbb9c9d4e367d06ca3dd27ba5ee04a4"
+        "blob": "3d44704bed52cd03b69c3f4df9d774b1040e33ca"
       },
-      "purpose": "Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Advance owner-only restoration during loading and finish before returning control or entering game-loaded Lua handlers. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw/mwinput/bindingsmanager.cpp": {
       "upstream": {
@@ -8070,9 +8094,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "cced18a74aec06db8c566871234548e9fe3d40c1"
+        "blob": "3b8773abfcc21e121730946aee03f4127867f286"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Notify native UI after actual player-cell changes, including already-active exterior crossings; retain scene activation and rendering order."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "upstream": {
@@ -8092,9 +8116,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5911ab9f0c5f7e17b3ae7e7a52177f57587448e1"
+        "blob": "4574a36f6ad8b2071a872c96bc505d3a7fb9aec1"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Expose existing measured actor velocity calculation with invalid-step guard; preserve normal spell target velocity calculation."
     },
     "apps/openmw/mwworld/worldimp.hpp": {
       "upstream": {
@@ -8103,9 +8127,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "9879cfa6aec7bef1d2801b3e8fb5510e4a8bf55d"
+        "blob": "2e5c770a957bbed4372ba41abbabb22a476d6091"
       },
-      "purpose": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Retained or adapted to the official RC1 source/API."
+      "purpose": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Retained or adapted to the official RC1 source/API. Declare measured physics-step actor velocity accessor."
     },
     "apps/openmw/mwworld/worldmodel.cpp": {
       "upstream": {
@@ -8152,9 +8176,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "07c7f47b2cb22ece81baabe776f60359f7306825"
+        "blob": "f9537758cfe4cfe5ef50f0305353b9531ac35783"
       },
-      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "upstream": null,
@@ -8224,9 +8248,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "d2371f78590c3968b42599a1166ae3aeda3a8c8a"
+        "blob": "2542af3449f46eb419563b1a45663cb11dede721"
       },
-      "purpose": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Native tooltip integration: apps/openmw_tests/mwgui/testmessagepositioncontrols.cpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Exercise real MyGUI image/text rendering through hidden-HUD menu, gameplay and loading transitions with the shared production visibility policy. Build or exercise rule precedence, fallback textures, zoom caps, recycled images and native settings. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw_tests/mwgui/testresttime.cpp": {
       "upstream": null,
@@ -8235,6 +8259,14 @@
         "blob": "d76a898494b658b4944ca9ebccafb50d7a7832a7"
       },
       "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
+    },
+    "apps/openmw_tests/mwgui/testsmartmap.cpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "19f791838a74263f750089abcb18a2d2825a5977"
+      },
+      "purpose": "Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "apps/openmw_tests/mwgui/testtraveltooltipdata.cpp": {
       "upstream": null,
@@ -9752,9 +9784,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7a18916e1269018c4241e935979b1e43e312755e"
+        "blob": "4f71fa256c2d644fdb35129f3370c8d97f725e05"
       },
-      "purpose": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: components/settings/categories/map.hpp; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "components/settings/categories/shaders.hpp": {
       "upstream": {
@@ -11787,6 +11819,14 @@
       },
       "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1."
     },
+    "custom/performance-tests/LOADING-PROGRESS-20261120.md": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "2adca710f898082708db6e54cbdece5113e4a9e0"
+      },
+      "purpose": "Document bounded loading optimization, unchanged visual behavior and same-configuration testing limits."
+    },
     "custom/performance-tests/LOADING_DETAIL_DIAGNOSTICS.md": {
       "upstream": null,
       "ported": {
@@ -12235,6 +12275,14 @@
       },
       "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1."
     },
+    "custom/performance-tests/test-loading-progress.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "4c62038385e5828204c8874b8a42727bea75827d"
+      },
+      "purpose": "Execute production progress/draw bodies against counted UI/viewer doubles, including forced current progress and unchanged graphics work."
+    },
     "custom/performance-tests/test-postload-integration.py": {
       "upstream": null,
       "ported": {
@@ -12274,6 +12322,14 @@
         "blob": "34d0a5035d7c14aa05a0950e0e09491cb78287e9"
       },
       "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Update counted-boundary fixture for current retention and destination-plan interfaces, extract actual preparationSeconds method and execute both batch modes without dropping existing admission checks. Retained or adapted to the official RC1 source/API."
+    },
+    "custom/performance-tests/verify-loading-quality.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "e60097cd5d3a28d18ef0484f3d14c88e9fcf7605"
+      },
+      "purpose": "Require exact retention of all other production/resources paths and original loading admission/graphics lifecycle. Bind accepted ffca70e5 loading optimization to its original baseline and preserve its three source files exactly in the combined build."
     },
     "custom/performance-tests/vfs.cpp": {
       "upstream": null,
@@ -12362,6 +12418,22 @@
         "blob": "1dea2ff877e0a3797aebb15c320dc69bab10e454"
       },
       "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1."
+    },
+    "custom/smart-map/README.md": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "cfa5c68cc816f425d28486e1a18e1d32f705dd08"
+      },
+      "purpose": "Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+    },
+    "custom/smart-map/verify-tests.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "21b182126a52832a077f249a8c2d0224cd1c417c"
+      },
+      "purpose": "Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "custom/startup-tests/README.md": {
       "upstream": null,
@@ -12942,9 +13014,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "26317684786a12b4e6268d6263aa8194bc3d0922"
+        "blob": "65935d0e538322745f9baed0697617e4babccb5b"
       },
-      "purpose": "Native world-map icon feature: docs/source/reference/modding/settings/map.rst; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Document native marker skin resources, map controls, private art provenance and the zoom limit. Retained or adapted to the official RC1 source/API."
+      "purpose": "Native world-map icon feature: docs/source/reference/modding/settings/map.rst; reviewed bounded rendering/discovery/settings/save integration, verification or assets; preserve earlier cumulative behavior. Document native marker skin resources, map controls, private art provenance and the zoom limit. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "docs/source/reference/modding/settings/shaders.rst": {
       "upstream": {
@@ -12997,9 +13069,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1adcf57f3ec939e99d386485963b19d408f2e99f"
+        "blob": "38d18942e654bd6d7498de8191fdd07bf7da4835"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "files/data/mygui/openmw_mainmenu.skin.xml": {
       "upstream": {
@@ -13283,9 +13355,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "01d8f5923741eda26788a7a9b3ce26618ca47111"
+        "blob": "ce3ce0042393f4e59892f54e801cd86b00815778"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Configure and document targeted exterior prediction independently of broad door scanning. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Configure and document targeted exterior prediction independently of broad door scanning. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
     },
     "files/shaders/CMakeLists.txt": {
       "upstream": {
@@ -13425,30 +13497,6 @@
         "blob": "40d428f159e2c717aaf6726c8e60e1f46ed246a4"
       },
       "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Retained or adapted to the official RC1 source/API."
-    },
-    "custom/performance-tests/verify-loading-quality.py": {
-      "upstream": null,
-      "ported": {
-        "mode": "100644",
-        "blob": "74bb225db6b96db28b1dba71443a6950aab30c49"
-      },
-      "purpose": "Require exact retention of all other production/resources paths and original loading admission/graphics lifecycle."
-    },
-    "custom/performance-tests/LOADING-PROGRESS-20261120.md": {
-      "upstream": null,
-      "ported": {
-        "mode": "100644",
-        "blob": "2adca710f898082708db6e54cbdece5113e4a9e0"
-      },
-      "purpose": "Document bounded loading optimization, unchanged visual behavior and same-configuration testing limits."
-    },
-    "custom/performance-tests/test-loading-progress.py": {
-      "upstream": null,
-      "ported": {
-        "mode": "100644",
-        "blob": "4c62038385e5828204c8874b8a42727bea75827d"
-      },
-      "purpose": "Execute production progress/draw bodies against counted UI/viewer doubles, including forced current progress and unchanged graphics work."
     }
   }
 }

@@ -1,6 +1,7 @@
 #include "apps/openmw/mwgui/messagepositioncontrols.hpp"
 #include "apps/openmw/mwgui/mapiconcontrols.hpp"
 #include "apps/openmw/mwgui/mapimagemarker.hpp"
+#include "apps/openmw/mwgui/smartmapcontrols.hpp"
 #include "apps/openmw/mwgui/tooltipcontrols.hpp"
 #include "apps/openmw/mwgui/tooltipvisibility.hpp"
 #include "apps/openmw/mwgui/traveltooltipview.hpp"
@@ -17,6 +18,7 @@
 #include <MyGUI_FontManager.h>
 #include <MyGUI_Gui.h>
 #include <MyGUI_ImageBox.h>
+#include <MyGUI_InputManager.h>
 #include <MyGUI_IRenderTarget.h>
 #include <MyGUI_LanguageManager.h>
 #include <MyGUI_LayerManager.h>
@@ -272,6 +274,20 @@ namespace MWGui
                 const std::map<std::string, std::string> captions{
                     { "Interface:On", "On" },
                     { "Interface:Off", "Off" },
+                    { "OMWEngine:SmartMapDescription",
+                        "Automatically choose the local or world view of the built-in map when you enter a cell." },
+                    { "OMWEngine:SmartMapEnabled", "Enable Smart Map" },
+                    { "OMWEngine:SmartMapInteriors", "Use the local map in interiors" },
+                    { "OMWEngine:SmartMapExteriors", "Choose the map view outdoors" },
+                    { "OMWEngine:SmartMapHostiles", "Use the local map near hostile actors" },
+                    { "OMWEngine:SmartMapLocationNames", "Replace internal map titles with readable names" },
+                    { "OMWEngine:SmartMapDoorThreshold", "Entrances needed for the local map" },
+                    { "OMWEngine:SmartMapFightThreshold", "Minimum hostile Fight value" },
+                    { "OMWEngine:SmartMapHostileDistance", "Hostile detection distance (game units)" },
+                    { "OMWEngine:SmartMapReset", "Reset Smart Map options" },
+                    { "OMWEngine:SmartMapHint",
+                        "Changes apply immediately and are saved when you close Options. If a mod replaces the "
+                        "built-in map, disable its map replacement to use automatic switching. Reset changes only this page." },
                     { "OMWEngine:TooltipOptionsDescription",
                         "Choose travel previews, matching-key hints and cleared-location labels. Changes apply "
                         "immediately and are saved when you close Options." },
@@ -549,6 +565,170 @@ namespace MWGui
             EXPECT_EQ(mControls.mView->getViewOffset(), MyGUI::IntPoint());
             EXPECT_EQ(mControls.mView->getCanvasSize().width, mControls.mView->getViewCoord().width);
             EXPECT_LE(mControls.mView->getCanvasSize().height, mControls.mView->getViewCoord().height);
+        }
+
+        class SmartMapControlsTest : public MessagePositionControlsTest
+        {
+        protected:
+            SmartMapControls mSmartMap;
+
+            void createForm()
+            {
+                mPanel = mGui.createWidget<MyGUI::Widget>(
+                    "", { 0, 0, 600, 500 }, MyGUI::Align::Default, "SmartMapSettings");
+                mSmartMap = createSmartMapControls(mPanel, "SmartMapTest");
+            }
+
+            void expectReadableRows()
+            {
+                const std::vector<MyGUI::Widget*> rows{ mSmartMap.mDescription,
+                    mSmartMap.mToggleLabels[0], mSmartMap.mToggleLabels[1], mSmartMap.mToggleLabels[2],
+                    mSmartMap.mSliderLabels[0], mSmartMap.mSliders[0], mSmartMap.mToggleLabels[3],
+                    mSmartMap.mSliderLabels[1], mSmartMap.mSliders[1], mSmartMap.mSliderLabels[2],
+                    mSmartMap.mSliders[2], mSmartMap.mToggleLabels[4], mSmartMap.mReset, mSmartMap.mHint };
+                int bottom = 0;
+                for (const auto* row : rows)
+                {
+                    EXPECT_GE(row->getTop(), bottom);
+                    EXPECT_GT(row->getWidth(), 0);
+                    EXPECT_LE(row->getRight(), mSmartMap.mContent->getWidth());
+                    bottom = row->getBottom();
+                }
+                for (size_t i = 0; i < mSmartMap.mToggles.size(); ++i)
+                {
+                    EXPECT_EQ(mSmartMap.mToggles[i]->getTop(), mSmartMap.mToggleLabels[i]->getTop());
+                    EXPECT_LT(mSmartMap.mToggleLabels[i]->getRight(), mSmartMap.mToggles[i]->getLeft());
+                    EXPECT_LE(mSmartMap.mToggles[i]->getRight(), mSmartMap.mContent->getWidth());
+                    EXPECT_LE(mSmartMap.mToggles[i]->getTextSize().width, mSmartMap.mToggles[i]->getTextRegion().width);
+                    expectWrappedTextFits(mSmartMap.mToggleLabels[i]);
+                }
+                for (size_t i = 0; i < mSmartMap.mSliders.size(); ++i)
+                {
+                    EXPECT_LT(mSmartMap.mSliderLabels[i]->getRight(), mSmartMap.mValues[i]->getLeft());
+                    EXPECT_LE(mSmartMap.mValues[i]->getRight(), mSmartMap.mContent->getWidth());
+                    EXPECT_LE(mSmartMap.mValues[i]->getTextSize().width, mSmartMap.mValues[i]->getTextRegion().width);
+                    expectWrappedTextFits(mSmartMap.mSliderLabels[i]);
+                }
+                expectWrappedTextFits(mSmartMap.mDescription);
+                expectWrappedTextFits(mSmartMap.mHint);
+                EXPECT_LE(mSmartMap.mReset->getTextSize().width, mSmartMap.mReset->getTextRegion().width);
+                EXPECT_LE(mSmartMap.mReset->getTextSize().height, mSmartMap.mReset->getTextRegion().height);
+                EXPECT_EQ(mSmartMap.mView->getCanvasSize(), mSmartMap.mContent->getSize());
+            }
+        };
+
+        TEST_F(SmartMapControlsTest, AllOptionsRemainReadableAndReachableAtSmallAndLargeSizes)
+        {
+            createForm();
+            for (const auto size : { MyGUI::IntSize(600, 500), MyGUI::IntSize(280, 220), MyGUI::IntSize(1100, 900) })
+            {
+                SCOPED_TRACE(::testing::Message() << size.width << 'x' << size.height);
+                mPanel->setSize(size);
+                layoutSmartMapControls(mSmartMap);
+                expectReadableRows();
+                const auto view = mSmartMap.mView->getViewCoord();
+                const auto canvas = mSmartMap.mView->getCanvasSize();
+                mSmartMap.mView->setViewOffset({ std::min(0, view.width - canvas.width),
+                    std::min(0, view.height - canvas.height) });
+                const auto offset = mSmartMap.mView->getViewOffset();
+                EXPECT_GE(mSmartMap.mHint->getTop() + offset.top, 0);
+                EXPECT_LE(mSmartMap.mHint->getBottom() + offset.top, view.height);
+                EXPECT_LE(mSmartMap.mHint->getRight() + offset.left, view.width);
+            }
+        }
+
+        TEST_F(SmartMapControlsTest, SupportedThresholdEndpointsSurviveResizingAndScrolling)
+        {
+            createForm();
+            const std::array<size_t, 3> ranges{ 50, 23, 6001 };
+            const std::array<size_t, 3> initial{ 3, 4, 2500 };
+            for (size_t i = 0; i < ranges.size(); ++i)
+            {
+                EXPECT_EQ(mSmartMap.mSliders[i]->getScrollRange(), ranges[i]);
+                EXPECT_EQ(mSmartMap.mSliders[i]->getScrollPosition(), initial[i]);
+                EXPECT_EQ(mSmartMap.mSliders[i]->getUserString("ToolTipLayout"), "TextToolTip");
+                EXPECT_FALSE(mSmartMap.mSliders[i]->getUserString("Caption_Text").empty());
+                for (size_t pos : { size_t(0), ranges[i] - 1 })
+                {
+                    mSmartMap.mSliders[i]->setScrollPosition(pos);
+                    mPanel->setSize(280, 220);
+                    layoutSmartMapControls(mSmartMap);
+                    const auto view = mSmartMap.mView->getViewCoord();
+                    const auto canvas = mSmartMap.mView->getCanvasSize();
+                    mSmartMap.mView->setViewOffset({ view.width - canvas.width, view.height - canvas.height });
+                    layoutSmartMapControls(mSmartMap);
+                    EXPECT_EQ(mSmartMap.mSliders[i]->getScrollPosition(), pos);
+                }
+            }
+            for (auto* button : mSmartMap.mToggles)
+            {
+                EXPECT_EQ(button->getUserString("ToolTipLayout"), "TextToolTip");
+                EXPECT_FALSE(button->getUserString("Caption_Text").empty());
+            }
+        }
+
+        TEST_F(SmartMapControlsTest, LargeFontsAndLongTranslationsDoNotOverlapOrClipControls)
+        {
+            createForm();
+            for (auto* label : mSmartMap.mToggleLabels)
+            {
+                label->setFontHeight(32);
+                label->setCaption("A much longer translated description of this automatic map selection option");
+            }
+            for (auto* button : mSmartMap.mToggles)
+            {
+                button->setFontHeight(32);
+                button->setCaption("This option is enabled");
+            }
+            for (auto* label : mSmartMap.mSliderLabels)
+                label->setFontHeight(32);
+            for (auto* value : mSmartMap.mValues)
+                value->setFontHeight(32);
+            mSmartMap.mDescription->setFontHeight(32);
+            mSmartMap.mHint->setFontHeight(32);
+            mSmartMap.mReset->setFontHeight(32);
+            mSmartMap.mReset->setCaption("Restore the default automatic map options");
+            mPanel->setSize(280, 220);
+            layoutSmartMapControls(mSmartMap);
+            expectReadableRows();
+            EXPECT_GT(mSmartMap.mView->getCanvasSize().width, mSmartMap.mView->getViewCoord().width);
+            EXPECT_GT(mSmartMap.mView->getCanvasSize().height, mSmartMap.mView->getViewCoord().height);
+        }
+
+        TEST_F(SmartMapControlsTest, KeyboardFocusRevealsLastAndFirstControlsInSmallViewport)
+        {
+            createForm();
+            mPanel->setSize(280, 220);
+            layoutSmartMapControls(mSmartMap);
+            mSmartMap.mView->setViewOffset({ 0, 0 });
+            for (auto* button : { mSmartMap.mReset, mSmartMap.mToggles[0], mSmartMap.mToggles[4] })
+            {
+                MyGUI::InputManager::getInstance().setKeyFocusWidget(button);
+                ASSERT_EQ(MyGUI::InputManager::getInstance().getKeyFocusWidget(), button);
+                const auto offset = mSmartMap.mView->getViewOffset();
+                const auto view = mSmartMap.mView->getViewCoord();
+                EXPECT_GE(button->getLeft() + offset.left, 0);
+                EXPECT_GE(button->getTop() + offset.top, 0);
+                EXPECT_LE(button->getRight() + offset.left, view.width);
+                EXPECT_LE(button->getBottom() + offset.top, view.height);
+            }
+            EXPECT_LT(mSmartMap.mView->getViewOffset().top, 0);
+        }
+
+        TEST_F(SmartMapControlsTest, MouseWheelOverLabelsAndButtonsScrollsWithoutChangingThresholds)
+        {
+            createForm();
+            mPanel->setSize(280, 220);
+            layoutSmartMapControls(mSmartMap);
+            mSmartMap.mView->setViewOffset({ 0, 0 });
+            mSmartMap.mToggleLabels[0]->_riseMouseWheel(-120);
+            const int labelOffset = mSmartMap.mView->getViewOffset().top;
+            EXPECT_LT(labelOffset, 0);
+            mSmartMap.mToggles[1]->_riseMouseWheel(-120);
+            EXPECT_LT(mSmartMap.mView->getViewOffset().top, labelOffset);
+            EXPECT_EQ(mSmartMap.mSliders[0]->getScrollPosition(), 3u);
+            EXPECT_EQ(mSmartMap.mSliders[1]->getScrollPosition(), 4u);
+            EXPECT_EQ(mSmartMap.mSliders[2]->getScrollPosition(), 2500u);
         }
 
         using MapIconControlsTest = MessagePositionControlsTest;

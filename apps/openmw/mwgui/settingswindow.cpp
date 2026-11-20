@@ -103,6 +103,20 @@ namespace
         return { &s.mTravelPack, &s.mTravelOverviewMap, &s.mTravelColour, &s.mTravelTitleFont, &s.mTravelTextFont };
     }
 
+    std::array<Settings::SettingValue<bool>*, 5> smartMapToggleSettings()
+    {
+        auto& settings = Settings::map();
+        return { &settings.mSmartMap, &settings.mSmartMapInteriors, &settings.mSmartMapExteriors,
+            &settings.mSmartMapHostiles, &settings.mSmartMapLocationNames };
+    }
+
+    std::array<Settings::SettingValue<int>*, 3> smartMapSliderSettings()
+    {
+        auto& settings = Settings::map();
+        return { &settings.mSmartMapDoorThreshold, &settings.mSmartMapFightThreshold,
+            &settings.mSmartMapHostileDistance };
+    }
+
     size_t colourChannelPosition(float value)
     {
         if (!std::isfinite(value))
@@ -457,6 +471,7 @@ namespace MWGui
         initialiseDialogueColourControls();
         initialiseMessagePositionControls();
         initialiseMapIconControls();
+        initialiseSmartMapControls();
         initialiseTooltipControls();
 
         computeMinimumWindowSize();
@@ -591,6 +606,7 @@ namespace MWGui
         layoutDialogueColourControls();
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutSmartMapControls(mSmartMapControls);
         layoutTooltipControls(mTooltipControls);
         resetScrollbars();
     }
@@ -1295,6 +1311,94 @@ namespace MWGui
         apply();
     }
 
+    void SettingsWindow::initialiseSmartMapControls()
+    {
+        mSmartMapTab = mSettingsTab->addItem(
+            MyGUI::LanguageManager::getInstance().replaceTags("#{OMWEngine:SmartMapTab}"));
+        mSmartMapTab->setUserString("AllowTabOverflow", "true");
+        mSmartMapControls = createSmartMapControls(mSmartMapTab, mPrefix);
+        for (auto* button : mSmartMapControls.mToggles)
+            button->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onSmartMapToggled);
+        for (auto* slider : mSmartMapControls.mSliders)
+            slider->eventScrollChangePosition += MyGUI::newDelegate(this, &SettingsWindow::onSmartMapSliderChanged);
+        mSmartMapControls.mReset->eventMouseButtonClick += MyGUI::newDelegate(this, &SettingsWindow::onSmartMapReset);
+        updateSmartMapSettings();
+    }
+
+    void SettingsWindow::updateSmartMapSettings()
+    {
+        if (!mSmartMapControls.mContent)
+            return;
+        mUpdatingSmartMap = true;
+        const auto toggles = smartMapToggleSettings();
+        const bool enabled = toggles[0]->get();
+        const bool exteriors = enabled && toggles[2]->get();
+        const bool hostiles = exteriors && toggles[3]->get();
+        for (size_t i = 0; i < toggles.size(); ++i)
+        {
+            mSmartMapControls.mToggles[i]->setCaptionWithReplacing(
+                toggles[i]->get() ? "#{Interface:On}" : "#{Interface:Off}");
+            const bool active = i == 0 || (i == 3 ? exteriors : enabled);
+            mSmartMapControls.mToggles[i]->setEnabled(active);
+            mSmartMapControls.mToggleLabels[i]->setEnabled(active);
+        }
+        const auto sliders = smartMapSliderSettings();
+        for (size_t i = 0; i < sliders.size(); ++i)
+        {
+            const int value = sliders[i]->get();
+            mSmartMapControls.mSliders[i]->setScrollPosition(value - SmartMapControls::sliderMinimum[i]);
+            mSmartMapControls.mValues[i]->setCaption(std::to_string(value));
+            const bool active = i == 0 ? exteriors : hostiles;
+            mSmartMapControls.mSliders[i]->setEnabled(active);
+            mSmartMapControls.mSliderLabels[i]->setEnabled(active);
+            mSmartMapControls.mValues[i]->setEnabled(active);
+        }
+        mUpdatingSmartMap = false;
+        layoutSmartMapControls(mSmartMapControls);
+    }
+
+    void SettingsWindow::onSmartMapToggled(MyGUI::Widget* sender)
+    {
+        if (mUpdatingSmartMap)
+            return;
+        const auto settings = smartMapToggleSettings();
+        for (size_t i = 0; i < settings.size(); ++i)
+        {
+            if (sender != mSmartMapControls.mToggles[i])
+                continue;
+            settings[i]->set(!settings[i]->get());
+            updateSmartMapSettings();
+            apply();
+            return;
+        }
+    }
+
+    void SettingsWindow::onSmartMapSliderChanged(MyGUI::ScrollBar* sender, size_t pos)
+    {
+        if (mUpdatingSmartMap)
+            return;
+        const auto settings = smartMapSliderSettings();
+        for (size_t i = 0; i < settings.size(); ++i)
+        {
+            if (sender != mSmartMapControls.mSliders[i])
+                continue;
+            settings[i]->set(SmartMapControls::sliderMinimum[i] + static_cast<int>(pos));
+            updateSmartMapSettings();
+            apply();
+            return;
+        }
+    }
+
+    void SettingsWindow::onSmartMapReset(MyGUI::Widget* /*sender*/)
+    {
+        for (auto* setting : smartMapToggleSettings())
+            setting->reset();
+        for (auto* setting : smartMapSliderSettings())
+            setting->reset();
+        updateSmartMapSettings();
+        apply();
+    }
+
     void SettingsWindow::initialiseTooltipControls()
     {
         mTooltipTab = mSettingsTab->addItem(
@@ -1458,6 +1562,7 @@ namespace MWGui
         layoutDialogueColourControls();
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutSmartMapControls(mSmartMapControls);
         layoutTooltipControls(mTooltipControls);
         highlightCurrentResolution();
     }
@@ -1844,6 +1949,7 @@ namespace MWGui
         updateMessagePositionSettings();
         resetScrollbars();
         updateMapIconSettings();
+        updateSmartMapSettings();
         updateTooltipSettings();
         renderScriptSettings();
         MWBase::Environment::get().getWindowManager()->setKeyFocusWidget(mOkButton);
@@ -1866,6 +1972,7 @@ namespace MWGui
         layoutDialogueColourControls();
         layoutMessagePositionControls();
         layoutMapIconControls(mMapIconControls);
+        layoutSmartMapControls(mSmartMapControls);
         layoutTooltipControls(mTooltipControls);
     }
 
@@ -1909,6 +2016,8 @@ namespace MWGui
             mMessagePositionControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mMapIconControls.mView)
             mMapIconControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
+        if (mSmartMapControls.mView)
+            mSmartMapControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
         if (mTooltipControls.mView)
             mTooltipControls.mView->setViewOffset(MyGUI::IntPoint(0, 0));
     }

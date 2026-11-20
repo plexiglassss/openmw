@@ -67,6 +67,60 @@ Map Settings
    Increasing this may increase cell load times.
 
 
+Smart Map
+---------
+
+Smart Map selects the local or world view of the built-in map when the player
+enters a cell. Configure it under **Options > Smart Map**. The page scrolls to
+keep all controls accessible in a small window, and includes a reset button
+that changes only its own options. Settings apply immediately and are saved
+when Options closes.
+
+Manual view changes remain available and last until the next cell transition.
+Outdoor switching is skipped during fast movement. The feature does not change
+map resolution, exploration, actor behaviour or any game records. A mod that
+replaces the built-in map supplies its own view; turn off that mod's map
+replacement to use the native automatic selection.
+
+``smart map`` (boolean, default true)
+    Enable automatic native map selection and the optional display-name cleanup.
+    Disable this to retain ordinary manual map selection.
+
+``smart map interiors`` (boolean, default true)
+    Prefer the local map on entering an interior, including an interior that
+    behaves like an exterior.
+
+``smart map exteriors`` (boolean, default true)
+    Choose the view when entering an exterior cell. Enough enabled teleport
+    doors, or a nearby hostile actor when the corresponding option is enabled,
+    select the local map. Otherwise select the world map.
+
+``smart map door threshold`` (integer, 1 to 50, default 4)
+    Minimum number of enabled, undeleted doors with a destination in the current
+    cell's reference list needed to select the local map.
+
+``smart map hostiles`` (boolean, default true)
+    Also prefer the local map if a living, enabled actor meets the Fight and
+    distance thresholds. The player is excluded. This check is skipped in cells
+    where resting is illegal, so ordinary town guards do not select the local
+    map through this rule.
+
+``smart map fight threshold`` (integer, 78 to 100, default 82)
+    Minimum Fight value for the hostile-actor map preference, inclusive. This
+    controls map selection; it does not change an actor's Fight value or require
+    the actor to already be in combat.
+
+``smart map hostile distance`` (integer, 1000 to 7000, default 3500)
+    Maximum distance from the player in game units for the hostile-actor map
+    preference, inclusive. This does not change the actor processing distance.
+
+``smart map location names`` (boolean, default true)
+    Replace an internal-looking map title with a readable exterior name or
+    region when one is available. The last readable exterior is used for an
+    interior; ordinary interiors receive a localized interior suffix. This
+    changes the map title only, leaving cell names and records intact.
+
+
 Location icons
 --------------
 

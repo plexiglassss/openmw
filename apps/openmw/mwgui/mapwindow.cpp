@@ -20,6 +20,8 @@
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/globalmap.hpp>
 #include <components/esm3/loaddoor.hpp>
+#include <components/esm3/loadregn.hpp>
+#include <components/esm4/loaddoor.hpp>
 #include <components/myguiplatform/myguitexture.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/settings/values.hpp>
@@ -31,12 +33,15 @@
 #include "../mwbase/world.hpp"
 
 #include "../mwworld/cellstore.hpp"
+#include "../mwworld/class.hpp"
 #include "../mwworld/esmstore.hpp"
 #include "../mwworld/player.hpp"
 #include "../mwworld/worldmodel.hpp"
 
 #include "../mwrender/globalmap.hpp"
 #include "../mwrender/localmap.hpp"
+
+#include "../mwmechanics/creaturestats.hpp"
 
 #include "confirmationdialog.hpp"
 
@@ -59,6 +64,19 @@ namespace
     {
         return { static_cast<int>(std::floor(static_cast<double>(x) / cellSize)),
             static_cast<int>(std::floor(static_cast<double>(y) / cellSize)) };
+    }
+
+    std::string readableLocationName(std::string_view name, const ESM::RefId& regionId)
+    {
+        if (!name.empty() && !MWGui::SmartMap::isInternalLocationName(name))
+            return std::string(name);
+        if (!regionId.empty())
+        {
+            const auto* region = MWBase::Environment::get().getESMStore()->get<ESM::Region>().search(regionId);
+            if (region && !region->mName.empty() && !MWGui::SmartMap::isInternalLocationName(region->mName))
+                return region->mName;
+        }
+        return {};
     }
 
     enum LocalMapWidgetDepth
@@ -1132,6 +1150,115 @@ namespace MWGui
         refreshDungeonTitle(true);
     }
 
+    void MapWindow::notifyCellChanged(const MWWorld::CellStore& cell, bool teleported)
+    {
+        if (mSmartMapCell == &cell)
+            return;
+        mSmartMapCell = &cell;
+        mSmartMapTeleported = teleported;
+        mSmartMapUpdate.queue();
+        refreshSmartMapLocationName();
+        refreshDungeonTitle(true);
+    }
+
+    void MapWindow::refreshSmartMapLocationName()
+    {
+        mSmartMapLocationName.clear();
+        mSmartMapInteriorSuffix = false;
+        if (!mSmartMapCell)
+            return;
+        const MWWorld::Cell& cell = *mSmartMapCell->getCell();
+        if (cell.isExterior())
+            mSmartMapExteriorName = readableLocationName(mCellName, cell.getRegion());
+        else if (mSmartMapExteriorName.empty() && !cell.isEsm4())
+        {
+            // An interior save has no earlier cell event in this session.
+            // Read only exterior metadata at the player's saved world position;
+            // never load a cell's references just to format the map title.
+            const osg::Vec3f pos = MWBase::Environment::get().getWorld()->getPlayer().getLastKnownExteriorPosition();
+            if (validLocationPosition(pos.x(), pos.y()))
+            {
+                const auto [x, y] = locationBucket(pos.x(), pos.y());
+                const auto* exterior = MWBase::Environment::get().getESMStore()->get<ESM::Cell>().search(x, y);
+                if (exterior)
+                    mSmartMapExteriorName = readableLocationName(exterior->mName, exterior->mRegion);
+            }
+        }
+        if (SmartMap::isInternalLocationName(mCellName) && !mSmartMapExteriorName.empty())
+        {
+            mSmartMapLocationName = mSmartMapExteriorName;
+            mSmartMapInteriorSuffix = !cell.isExterior() && !cell.isQuasiExterior();
+        }
+    }
+
+    void MapWindow::refreshSmartMapSettings()
+    {
+        refreshDungeonTitle(true);
+        if (mSmartMapCell)
+        {
+            // An explicit Options change should apply where the player is now.
+            // It is not a fast-travel cell crossing.
+            mSmartMapTeleported = true;
+            mSmartMapUpdate.queue();
+        }
+    }
+
+    void MapWindow::updateSmartMap()
+    {
+        if (!mSmartMapUpdate.nextFrame())
+            return;
+        MWBase::World* world = MWBase::Environment::get().getWorld();
+        const MWWorld::Ptr player = world->getPlayerPtr();
+        if (!mSmartMapCell || player.isEmpty() || !player.isInCell() || player.getCell() != mSmartMapCell)
+            return;
+
+        const auto& settings = Settings::map();
+        const SmartMap::Options options{ settings.mSmartMap, settings.mSmartMapInteriors, settings.mSmartMapExteriors,
+            settings.mSmartMapDoorThreshold, settings.mSmartMapHostiles };
+        const MWWorld::Cell& cell = *mSmartMapCell->getCell();
+        const float speedSquared = options.mEnabled && options.mExteriors && cell.isExterior() && !mSmartMapTeleported
+            ? world->getActorVelocity(player).length2()
+            : 0.f;
+        const SmartMap::Entry entry{ cell.isExterior(), mSmartMapTeleported, speedSquared, cell.noSleep() };
+        const SmartMap::View view = SmartMap::chooseView(options, entry,
+            [&](int threshold) {
+                int doors = 0;
+                const auto visit = [&](const MWWorld::ConstPtr& ptr) {
+                    if (ptr.getRefData().isEnabled() && !ptr.getBase()->isDeleted() && ptr.getCellRef().getTeleport())
+                        ++doors;
+                    return doors < threshold;
+                };
+                // The live const lists include moved references, do not mark
+                // cells changed, and stop as soon as enough doors are found.
+                mSmartMapCell->forEachTypeConst<ESM::Door>(visit);
+                if (doors < threshold)
+                    mSmartMapCell->forEachTypeConst<ESM4::Door>(visit);
+                return doors;
+            },
+            [&] {
+                const osg::Vec3f position = player.getRefData().getPosition().asVec3();
+                const int distance = settings.mSmartMapHostileDistance;
+                std::vector<MWWorld::Ptr> actors;
+                MWBase::Environment::get().getMechanicsManager()->getActorsInRange(position, distance, actors);
+                for (const auto& actor : actors)
+                {
+                    if (actor == player || !actor.isInCell() || !actor.getRefData().isEnabled()
+                        || actor.getBase()->isDeleted() || !actor.getCell()->isExterior()
+                        || actor.getCell()->getCell()->getWorldSpace() != cell.getWorldSpace())
+                        continue;
+                    const auto& stats = actor.getClass().getCreatureStats(actor);
+                    if (!stats.isDead()
+                        && SmartMap::withinHostileThreshold(stats.getAiSetting(MWMechanics::AiSetting::Fight).getModified(),
+                            settings.mSmartMapFightThreshold,
+                            (actor.getRefData().getPosition().asVec3() - position).length2(), distance))
+                        return true;
+                }
+                return false;
+            });
+        if (view != SmartMap::View::Unchanged)
+            setGlobalMapVisible(view == SmartMap::View::World);
+    }
+
     void MapWindow::refreshDungeonTitle(bool force)
     {
         if (mCellName.empty())
@@ -1143,7 +1270,11 @@ namespace MWGui
             return;
         mDungeonTitleEnabled = enabled;
         mDungeonStatusRevision = revision;
-        std::string title = "#{sCell=" + mCellName + "}";
+        const bool readableName
+            = Settings::map().mSmartMap && Settings::map().mSmartMapLocationNames && !mSmartMapLocationName.empty();
+        std::string title = "#{sCell=" + (readableName ? mSmartMapLocationName : mCellName) + "}";
+        if (readableName && mSmartMapInteriorSuffix)
+            title += " #{OMWEngine:SmartMapInteriorSuffix}";
         if (enabled && !mCellNameId.empty() && mechanics->isDungeonCleared(mCellNameId))
             title += " #{OMWEngine:ClearedDungeonSuffix}";
         setTitle(title);
@@ -1628,8 +1759,16 @@ namespace MWGui
 
     void MapWindow::onWorldButtonClicked(MyGUI::Widget* /*sender*/)
     {
-        const bool global = !Settings::map().mGlobal;
+        // A click made during the deferred cell update wins until the next
+        // cell change. Automation never continuously fights a manual choice.
+        mSmartMapUpdate.cancel();
+        setGlobalMapVisible(!Settings::map().mGlobal);
+    }
 
+    void MapWindow::setGlobalMapVisible(bool global)
+    {
+        if (global == Settings::map().mGlobal)
+            return;
         Settings::map().mGlobal.set(global);
 
         mGlobalMap->setVisible(global);
@@ -1736,6 +1875,12 @@ namespace MWGui
 
     void MapWindow::clear()
     {
+        mSmartMapCell = nullptr;
+        mSmartMapUpdate.cancel();
+        mSmartMapTeleported = false;
+        mSmartMapExteriorName.clear();
+        mSmartMapLocationName.clear();
+        mSmartMapInteriorSuffix = false;
         mCellName.clear();
         mCellNameId = ESM::RefId();
         mDungeonStatusRevision = 0;

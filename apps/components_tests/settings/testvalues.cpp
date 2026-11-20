@@ -492,5 +492,75 @@ namespace Settings
             EXPECT_FALSE(values.mGame.mDelevelCreatures.get());
             EXPECT_FALSE(values.mGame.mDelevelItems.get());
         }
+
+        TEST_F(SettingsValuesTest, smartMapDefaultsAndExternalValuesUseSupportedRanges)
+        {
+            Index index;
+            Values defaults(index);
+            EXPECT_TRUE(defaults.mMap.mSmartMap.get());
+            EXPECT_TRUE(defaults.mMap.mSmartMapInteriors.get());
+            EXPECT_TRUE(defaults.mMap.mSmartMapExteriors.get());
+            EXPECT_TRUE(defaults.mMap.mSmartMapHostiles.get());
+            EXPECT_TRUE(defaults.mMap.mSmartMapLocationNames.get());
+            EXPECT_EQ(defaults.mMap.mSmartMapDoorThreshold.get(), 4);
+            EXPECT_EQ(defaults.mMap.mSmartMapFightThreshold.get(), 82);
+            EXPECT_EQ(defaults.mMap.mSmartMapHostileDistance.get(), 3500);
+            Manager::mUserSettings[{ "Map", "smart map door threshold" }] = "-12";
+            Manager::mUserSettings[{ "Map", "smart map fight threshold" }] = "999";
+            Manager::mUserSettings[{ "Map", "smart map hostile distance" }] = "0";
+            Values values(std::move(defaults));
+            EXPECT_EQ(values.mMap.mSmartMapDoorThreshold.get(), 1);
+            EXPECT_EQ(values.mMap.mSmartMapFightThreshold.get(), 100);
+            EXPECT_EQ(values.mMap.mSmartMapHostileDistance.get(), 1000);
+            values.mMap.mSmartMapDoorThreshold.set(999);
+            values.mMap.mSmartMapFightThreshold.set(0);
+            values.mMap.mSmartMapHostileDistance.set(99999);
+            EXPECT_EQ(values.mMap.mSmartMapDoorThreshold.get(), 50);
+            EXPECT_EQ(values.mMap.mSmartMapFightThreshold.get(), 78);
+            EXPECT_EQ(values.mMap.mSmartMapHostileDistance.get(), 7000);
+            values.mMap.mSmartMapDoorThreshold.reset();
+            values.mMap.mSmartMapFightThreshold.reset();
+            values.mMap.mSmartMapHostileDistance.reset();
+            EXPECT_EQ(values.mMap.mSmartMapDoorThreshold.get(), 4);
+            EXPECT_EQ(values.mMap.mSmartMapFightThreshold.get(), 82);
+            EXPECT_EQ(values.mMap.mSmartMapHostileDistance.get(), 3500);
+        }
+
+        TEST_F(SettingsValuesTest, smartMapSettingsPersistIndependentlyOfMapAppearance)
+        {
+            const auto path = TestingOpenMW::outputFilePath("smart-map-settings.cfg");
+            {
+                Index index;
+                Values values(index);
+                values.mMap.mSmartMap.set(false);
+                values.mMap.mSmartMapInteriors.set(false);
+                values.mMap.mSmartMapExteriors.set(false);
+                values.mMap.mSmartMapHostiles.set(false);
+                values.mMap.mSmartMapLocationNames.set(false);
+                values.mMap.mSmartMapDoorThreshold.set(12);
+                values.mMap.mSmartMapFightThreshold.set(95);
+                values.mMap.mSmartMapHostileDistance.set(6700);
+                SettingsFileParser parser;
+                parser.saveSettingsFile(path, Manager::mUserSettings);
+            }
+            Manager::mUserSettings.clear();
+            SettingsFileParser parser;
+            parser.loadSettingsFile(path, Manager::mUserSettings);
+            Index index;
+            Values values(index);
+            EXPECT_FALSE(values.mMap.mSmartMap.get());
+            EXPECT_FALSE(values.mMap.mSmartMapInteriors.get());
+            EXPECT_FALSE(values.mMap.mSmartMapExteriors.get());
+            EXPECT_FALSE(values.mMap.mSmartMapHostiles.get());
+            EXPECT_FALSE(values.mMap.mSmartMapLocationNames.get());
+            EXPECT_EQ(values.mMap.mSmartMapDoorThreshold.get(), 12);
+            EXPECT_EQ(values.mMap.mSmartMapFightThreshold.get(), 95);
+            EXPECT_EQ(values.mMap.mSmartMapHostileDistance.get(), 6700);
+            EXPECT_EQ(values.mMap.mGlobalMapCellSize.get(), 18);
+            EXPECT_EQ(values.mMap.mLocalMapResolution.get(), 256);
+            EXPECT_EQ(values.mMap.mLocationIconSize.get(), 24);
+            EXPECT_EQ(values.mMap.mLocalDoorIconSize.get(), 15);
+            EXPECT_TRUE(values.mMap.mLocationIcons.get());
+        }
     }
 }

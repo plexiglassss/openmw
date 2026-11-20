@@ -11,6 +11,7 @@
 #include <MyGUI_ITexture.h>
 
 #include "windowpinnablebase.hpp"
+#include "smartmappolicy.hpp"
 
 #include <components/esm3/custommarkerstate.hpp>
 #include <components/esm3/globalmap.hpp>
@@ -246,6 +247,12 @@ namespace MWGui
 
         void setCellName(const std::string& cellName, const ESM::RefId& interiorCellId);
 
+        /// Native map automation; a Lua replacement remains responsible for its own views.
+        void notifyCellChanged(const MWWorld::CellStore& cell, bool teleported);
+        void updateSmartMap();
+        void refreshSmartMapSettings();
+        void setGlobalMapVisible(bool global);
+
         void setAlpha(float alpha) override;
         void setVisible(bool visible) override;
 
@@ -357,10 +364,18 @@ namespace MWGui
         void eraseEntrance(const ESM::RefId& destination);
 
         void refreshDungeonTitle(bool force = false);
+        void refreshSmartMapLocationName();
         std::string mCellName;
         ESM::RefId mCellNameId;
         std::uint64_t mDungeonStatusRevision = 0;
         bool mDungeonTitleEnabled = false;
+
+        const MWWorld::CellStore* mSmartMapCell = nullptr;
+        SmartMap::PendingUpdate mSmartMapUpdate;
+        bool mSmartMapTeleported = false;
+        std::string mSmartMapExteriorName;
+        std::string mSmartMapLocationName;
+        bool mSmartMapInteriorSuffix = false;
 
         MyGUI::ScrollView* mGlobalMap;
         std::unique_ptr<MyGUI::ITexture> mGlobalMapTexture;

@@ -25,6 +25,17 @@ namespace Settings
         SettingValue<int> mLocalMapWidgetSize{ mIndex, "Map", "local map widget size", makeMaxSanitizerInt(1) };
         SettingValue<bool> mGlobal{ mIndex, "Map", "global" };
         SettingValue<bool> mAllowZooming{ mIndex, "Map", "allow zooming" };
+        SettingValue<bool> mSmartMap{ mIndex, "Map", "smart map" };
+        SettingValue<bool> mSmartMapInteriors{ mIndex, "Map", "smart map interiors" };
+        SettingValue<bool> mSmartMapExteriors{ mIndex, "Map", "smart map exteriors" };
+        SettingValue<int> mSmartMapDoorThreshold{
+            mIndex, "Map", "smart map door threshold", makeClampSanitizerInt(1, 50) };
+        SettingValue<bool> mSmartMapHostiles{ mIndex, "Map", "smart map hostiles" };
+        SettingValue<int> mSmartMapFightThreshold{
+            mIndex, "Map", "smart map fight threshold", makeClampSanitizerInt(78, 100) };
+        SettingValue<int> mSmartMapHostileDistance{
+            mIndex, "Map", "smart map hostile distance", makeClampSanitizerInt(1000, 7000) };
+        SettingValue<bool> mSmartMapLocationNames{ mIndex, "Map", "smart map location names" };
         SettingValue<bool> mLocationIcons{ mIndex, "Map", "location icons" };
         SettingValue<bool> mLocationEntranceIcons{ mIndex, "Map", "location entrance icons" };
         SettingValue<bool> mLocationIconTooltips{ mIndex, "Map", "location icon tooltips" };

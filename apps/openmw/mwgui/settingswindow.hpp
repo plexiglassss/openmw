@@ -9,6 +9,7 @@
 #include "dialoguecolourcontrols.hpp"
 #include "messagepositioncontrols.hpp"
 #include "mapiconcontrols.hpp"
+#include "smartmapcontrols.hpp"
 #include "tooltipcontrols.hpp"
 #include "windowbase.hpp"
 
@@ -89,6 +90,10 @@ namespace MWGui
         MyGUI::TabItem* mMapIconTab = nullptr;
         MapIconControls mMapIconControls;
         bool mUpdatingMapIcons = false;
+
+        MyGUI::TabItem* mSmartMapTab = nullptr;
+        SmartMapControls mSmartMapControls;
+        bool mUpdatingSmartMap = false;
 
         MyGUI::TabItem* mTooltipTab = nullptr;
         TooltipControls mTooltipControls;
@@ -177,6 +182,12 @@ namespace MWGui
         void onMapIconCategoryChanged(MyGUI::ComboBox* sender, size_t pos);
         void onMapIconCategoryToggled(MyGUI::Widget* sender);
         void onMapIconReset(MyGUI::Widget* sender);
+
+        void initialiseSmartMapControls();
+        void updateSmartMapSettings();
+        void onSmartMapToggled(MyGUI::Widget* sender);
+        void onSmartMapSliderChanged(MyGUI::ScrollBar* sender, size_t pos);
+        void onSmartMapReset(MyGUI::Widget* sender);
 
         void initialiseTooltipControls();
         void updateTooltipSettings();

@@ -369,8 +369,10 @@ jobs:
           components/CMakeFiles/components.dir/mapmarkers/icons.cpp.obj
           apps/components_tests/CMakeFiles/components-tests.dir/mapmarkers/testicons.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/mapwindow.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/smartmapcontrols.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/settingswindow.cpp.obj
           apps/openmw/CMakeFiles/openmw-lib.dir/mwgui/windowmanagerimp.cpp.obj
+          apps/openmw/CMakeFiles/openmw-lib.dir/mwworld/worldimp.cpp.obj
           components/CMakeFiles/components.dir/shader/shadervisitor.cpp.obj
           components/CMakeFiles/components.dir/shader/shadermanager.cpp.obj
           components/CMakeFiles/components.dir/sceneutil/riggeometry.cpp.obj
@@ -795,7 +797,13 @@ jobs:
         run: |
           python custom/native-tooltips/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Required tooltip forms, selection or save regressions did not execute successfully' }
-      - name: Package only after test success
+      - name: Require executed native Smart Map tests
+        if: steps.existing_engine.outputs.reused != 'true'
+        shell: pwsh
+        run: |
+          python custom/smart-map/verify-tests.py --controls map-icon-controls-early.xml --components components-tests.xml --engine openmw-tests.xml
+          if ($LASTEXITCODE) { throw 'Required native Smart Map policy, options or persistence tests did not pass' }
+      - name: Package only after Smart Map and cumulative test success
         if: steps.existing_engine.outputs.reused != 'true'
         id: package
         shell: pwsh
@@ -816,6 +824,8 @@ jobs:
           Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
           Copy-Item custom/performance-tests/LOADING-PROGRESS-20261120.md install/LOADING-PROGRESS.md
           Copy-Item loading-reporter-windows.log,loading-progress-windows.json,loading-quality-preservation.json install/
+          Copy-Item custom/smart-map/README.md install/SMART-MAP.md
+          Copy-Item smart-map-native-tests.json install/
           Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
           Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
@@ -956,6 +966,7 @@ jobs:
             loading-reporter-windows.log
             loading-progress-windows.json
             loading-quality-preservation.json
+            smart-map-native-tests.json
             native-adapter-installer-tests.json
             distribution-startup/
             gameplay-installer-tests.json

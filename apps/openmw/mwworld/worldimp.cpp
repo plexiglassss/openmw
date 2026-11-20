@@ -4,6 +4,7 @@
 #include <components/diagnostics/mwscript.hpp>
 
 #include <charconv>
+#include <cmath>
 #include <vector>
 
 #include <osg/Group>
@@ -136,14 +137,15 @@ namespace MWWorld
         }
 
         // Estimate an actor's velocity from its last physics step
-        osg::Vec3f getActorVelocity(const MWPhysics::PhysicsSystem& physics, const ConstPtr& actor)
+        osg::Vec3f estimateActorVelocity(const MWPhysics::PhysicsSystem& physics, const ConstPtr& actor)
         {
             const MWPhysics::Actor* physicsActor = physics.getActor(actor);
-            if (physicsActor == nullptr)
+            const float duration = physics.getPhysicsDt();
+            if (physicsActor == nullptr || !std::isfinite(duration) || duration <= 0.f)
                 return osg::Vec3f();
 
             const osg::Vec3f displacement = physicsActor->getPosition() - physicsActor->getPreviousPosition();
-            return displacement / physics.getPhysicsDt();
+            return displacement / duration;
         }
     }
 
@@ -1389,6 +1391,11 @@ namespace MWWorld
         mPhysics->queueObjectMovement(ptr, velocity);
         if (ptr == MWMechanics::getPlayer())
             MWBase::Environment::get().getSoundManager()->setListenerVel(velocity);
+    }
+
+    osg::Vec3f World::getActorVelocity(const ConstPtr& ptr) const
+    {
+        return estimateActorVelocity(*mPhysics, ptr);
     }
 
     void World::updateAnimatedCollisionShape(const Ptr& ptr)
@@ -3016,7 +3023,7 @@ namespace MWWorld
             // We need to check that we have a target, that it is an actor with physics to prevent aiming at (0, 0, 0)
             if (!boltTarget.isEmpty() && boltTarget.getClass().isActor() && mPhysics->getActor(boltTarget) != nullptr)
                 cast.mMovingTarget = MWMechanics::MovingTarget{ mPhysics->getCollisionObjectPosition(boltTarget),
-                    getActorVelocity(*mPhysics, boltTarget) };
+                    estimateActorVelocity(*mPhysics, boltTarget) };
         }
 
         if (!selectedSpell.empty())

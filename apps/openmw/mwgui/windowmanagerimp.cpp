@@ -1053,7 +1053,12 @@ namespace MWGui
             = MWBase::Environment::get().getStateManager()->getState() != MWBase::StateManager::State_NoGame;
 
         if (gameRunning)
+        {
             updateMap();
+            // Consume a cell-triggered decision even when Map is unpinned or
+            // hidden. Its deferred update performs no repeated actor scans.
+            mMap->updateSmartMap();
+        }
 
         if (!mGuiModes.empty())
         {
@@ -1196,6 +1201,15 @@ namespace MWGui
             mMap->setGlobalMapPlayerPosition(worldPos.x(), worldPos.y());
         }
         setActiveMap(*cellCommon);
+    }
+
+    void WindowManager::playerCellChanged(const MWWorld::CellStore* cell)
+    {
+        // Unlike changeCell(), this also runs at boundaries inside the active
+        // exterior grid. Keep rendering, discovery and HUD-grid handling above.
+        const auto* world = MWBase::Environment::get().getWorld();
+        mMap->setCellName(std::string(world->getCellName(cell)), cell->isExterior() ? ESM::RefId() : cell->getCell()->getId());
+        mMap->notifyCellChanged(*cell, MWBase::Environment::get().getWorld()->getPlayer().wasTeleported());
     }
 
     void WindowManager::setActiveMap(const MWWorld::Cell& cell)
@@ -1369,6 +1383,7 @@ namespace MWGui
         bool changeRes = false;
         bool changeDialogueColours = false;
         bool changeLocationIcons = false;
+        bool changeSmartMap = false;
         for (const auto& setting : changed)
         {
             if (setting.first == "GUI" && setting.second == "menu transparency")
@@ -1378,6 +1393,8 @@ namespace MWGui
                 changeDialogueColours = true;
             else if (setting.first == "Map" && setting.second.starts_with("location "))
                 changeLocationIcons = true;
+            else if (setting.first == "Map" && setting.second.starts_with("smart map"))
+                changeSmartMap = true;
             else if (setting.first == "Video"
                 && (setting.second == "resolution x" || setting.second == "resolution y"
                     || setting.second == "window mode" || setting.second == "window border"))
@@ -1401,6 +1418,8 @@ namespace MWGui
             if (mMap) mMap->refreshLocationIcons();
             if (mHud) mHud->refreshDoorIcons();
         }
+        if (changeSmartMap && mMap)
+            mMap->refreshSmartMapSettings();
     }
 
     void WindowManager::windowResized(int x, int y)
