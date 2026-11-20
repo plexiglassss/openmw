@@ -217,6 +217,7 @@ function Complete-Capture {
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'file-manifest.json') -Value $entries
     $zipPath = $script:CaptureRoot + '.zip'
     # ZipFile handles ZIP64; Compress-Archive on Windows PowerShell has a 2 GiB file limit.
+    Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     # A failed/incomplete session may leave redirected logs open for writing.
     # Zip a shared-read snapshot instead of failing to return all evidence.

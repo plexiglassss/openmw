@@ -99,6 +99,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Could not grant the disposable test account read access to the tool.' }
     $standardRoot = Join-Path $Output ('standard account ' + [char]0x00E9)
     New-Item -ItemType Directory -Path $standardRoot -Force | Out-Null
+    $standardTool = Join-Path $Output ('tool [literal] ' + [char]0x00E9)
+    New-Item -ItemType Directory -Path $standardTool -Force | Out-Null
+    foreach ($name in @('OpenMW-CrashCapture.ps1','Manage-WER.ps1','Passive-Capture.ps1','Capture-Probe.exe','Capture-Probe.sha256')) {
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot $name) -Destination (Join-Path $standardTool $name)
+    }
     $childScript = Join-Path $Output 'standard-account-check.ps1'
     $childText = @'
 param([string]$Tool, [string]$Destination, [string]$Dumps)
@@ -117,7 +122,7 @@ try {
     $childText | Set-Content -LiteralPath $childScript -Encoding UTF8
     $credential = New-Object Management.Automation.PSCredential ('.\' + $testUser), $testPassword
     $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-    $argsLine = (@('-NoProfile','-ExecutionPolicy','Bypass','-File',$childScript,'-Tool',(Join-Path $PSScriptRoot 'OpenMW-CrashCapture.ps1'),'-Destination',$standardRoot,'-Dumps',$folder) | ForEach-Object { Quote-NativeArgument $_ }) -join ' '
+    $argsLine = (@('-NoProfile','-ExecutionPolicy','Bypass','-File',$childScript,'-Tool',(Join-Path $standardTool 'OpenMW-CrashCapture.ps1'),'-Destination',$standardRoot,'-Dumps',$folder) | ForEach-Object { Quote-NativeArgument $_ }) -join ' '
     $child = Start-Process -FilePath $psExe -ArgumentList $argsLine -Credential $credential -LoadUserProfile -PassThru -WorkingDirectory $Output
     try {
         $null = $child.Handle
@@ -126,6 +131,7 @@ try {
         $standardResult = Get-Content (Join-Path $standardRoot 'standard-account-result.json') -Raw | ConvertFrom-Json
         Check 'Production preflight confirms non-elevated process' ($standardResult.passed -and -not $standardResult.elevated) $standardResult
         Check 'Probe executable removed after validation' (-not (Test-Path (Join-Path $standardRoot 'synthetic-probe\openmw.exe'))) $null
+        Add-Type -AssemblyName System.IO.Compression
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $zip = [IO.Compression.ZipFile]::OpenRead($standardRoot + '.zip')
         try { Check 'Production ZIP contains validated synthetic dump and manifest' ('synthetic-probe/synthetic-fastfail.dmp' -in $zip.Entries.FullName -and 'file-manifest.json' -in $zip.Entries.FullName) @($zip.Entries.FullName) }

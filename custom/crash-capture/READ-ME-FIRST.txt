@@ -1,0 +1,80 @@
+OpenMW Crash Capture v1.4 - passive Windows collection
+
+The v1.3 launcher kept ProcDump attached during play. Your session produced
+45,108 debugger exception notifications. This replacement runs the game
+without a debugger and asks Windows to collect a dump only after a crash.
+It does not change your engine, mods, save files or graphics settings.
+
+HOW TO USE
+1. Extract this entire ZIP to a NEW folder. Do not copy it into the engine or
+   mod directories, and stop using the old capture launcher's shortcut.
+2. Double-click 2-Start-OpenMW-with-capture.cmd normally (not as administrator).
+   Choose the openmw.exe you are currently testing. Close other OpenMW sessions.
+3. The FIRST run requests Windows administrator permission to enable crash
+   collection for openmw.exe. Accept that setup prompt. Only setup is elevated;
+   the launcher refuses to run the game as administrator.
+4. A small synthetic program checks crash collection before the game starts.
+   This may take several seconds. It deliberately crashes and is clearly
+   labelled synthetic-probe in the evidence. It is not a game crash.
+5. Play normally. Leave the console open. After OpenMW exits or crashes, it
+   packages evidence and selects the ZIP in Explorer. Send that ZIP to the chat.
+
+The pre-launch check runs each session because Windows permissions or crash
+settings can change. It does not run during gameplay. Normal exit produces no
+crash dump; that is expected. Existing-evidence collection remains available
+through 1-Collect-existing-evidence.cmd and does not change crash settings.
+
+PERFORMANCE AND VALIDATION
+The continuous debugger and its exception-notification overhead are removed.
+No per-frame polling, periodic memory dumps or module scans run during play.
+Initial file collection and the final ZIP can still take time outside gameplay.
+Actual OpenMW FPS on your installation still needs your test. This tool does
+not claim to fix the underlying game crash or prove which mod caused it.
+
+WHAT IS CONFIGURED
+Windows LocalDumps receives four values under the 64-bit per-application key:
+HKLM\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\openmw.exe
+DumpFolder: your resolved local AppData\OpenMW Crash Captures\Dumps folder
+DumpCount: 3; DumpType: 0; CustomDumpFlags: 0x1965
+
+The rule applies to programs named openmw.exe on this PC, including other
+installed builds, until you restore it. It writes local files; this tool never
+uploads evidence. Dumps can contain game memory and local paths.
+The custom dump includes stacks, module/thread metadata and stack-referenced
+memory. It is not a full-memory dump and does not guarantee every object exists
+in the captured memory. Windows keeps three dumps in its dedicated folder;
+the launcher preserves existing ones before starting its check. Evidence ZIPs
+and session folders are not automatically deleted.
+
+Only the launched game's environment gets OPENMW_DISABLE_CRASH_CATCHER=1.
+This allows Windows to receive crashes instead of OpenMW's custom handler.
+It also disables OpenMW's freeze monitor for this capture session. Hanging,
+manually killed and normally exiting games generally do not produce WER dumps.
+If the game hangs, describe that explicitly; a missing dump is not proof that
+there was no problem. Future ordinary launches keep their normal environment.
+
+RESTORE / UNINSTALL
+After the game and capture console finish, run
+3-Restore-previous-crash-settings.cmd and accept the Windows permission prompt.
+It restores the exact previous four registry values (including absent values)
+and leaves unrelated settings and all evidence files alone. It refuses to run
+while a capture session or OpenMW is running. It also refuses to overwrite a
+conflicting later change from another tool; the original backup is retained.
+Once restored, the extracted tool folder may be removed. Nothing is installed
+in OpenMW itself. Removing the folder alone does not restore Windows settings.
+
+IF SETUP OR THE LOCAL CHECK FAILS
+The game will not start under an unverified capture setup. Read the error and
+send the resulting evidence ZIP. An existing automatic postmortem debugger,
+Windows policy, denied permissions or file access can block WER. The tool does
+not uninstall debuggers or change machine-wide error-reporting policy.
+Use normal OpenMW launch if you need to play while that failure is investigated.
+
+Leave at least 4 GiB free on both the evidence and Windows dump drives.
+That is a minimum headroom check, not a maximum dump size. Existing very large
+dumps may be indexed instead of copied; omissions are explicitly recorded.
+The newly captured game dump is copied in full. Originals are never moved.
+
+See OpenMW_Crash_Investigation_2026-11-20.html for findings, verification and the
+remaining original-crash investigation. The native probe source is included;
+no compiler or Microsoft ProcDump download is required on your PC.

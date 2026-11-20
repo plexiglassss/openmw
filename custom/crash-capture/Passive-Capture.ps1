@@ -138,7 +138,7 @@ function Test-PassiveCapture {
     $hashFile = Join-Path $PSScriptRoot 'Capture-Probe.sha256'
     if (-not (Test-Path -LiteralPath $probeSource) -or -not (Test-Path -LiteralPath $hashFile)) { throw 'The capture tool is incomplete. Extract the whole v1.4 ZIP before running it.' }
     $expected = (Get-Content -LiteralPath $hashFile -Raw).Trim()
-    if ($expected -notmatch '^[0-9a-fA-F]{64}$' -or (Get-FileHash $probeSource -Algorithm SHA256).Hash -ine $expected) { throw 'Capture test executable hash did not match. Re-extract the complete tool.' }
+    if ($expected -notmatch '^[0-9a-fA-F]{64}$' -or (Get-FileHash -LiteralPath $probeSource -Algorithm SHA256).Hash -ine $expected) { throw 'Capture test executable hash did not match. Re-extract the complete tool.' }
     $probeRoot = Join-Path $script:CaptureRoot 'synthetic-probe'
     New-Item -ItemType Directory -Path $probeRoot -Force | Out-Null
     $probeExe = Join-Path $probeRoot 'openmw.exe'
