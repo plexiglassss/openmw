@@ -2200,7 +2200,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "280235855ab74ff761fc24055610fbc4a7cb7bcb"
+        "blob": "a8cc71b4e6ed471bcadcb5a689d6df04eda574c4"
       },
       "status": "adapted_for_rc1"
     },
@@ -8419,7 +8419,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "280235855ab74ff761fc24055610fbc4a7cb7bcb"
+        "blob": "a8cc71b4e6ed471bcadcb5a689d6df04eda574c4"
       },
       "purpose": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },

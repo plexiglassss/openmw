@@ -552,7 +552,7 @@ namespace MWWorld
             EXPECT_EQ(before->size(), 2u);
             EXPECT_EQ(added->size(), 3u);
             EXPECT_EQ(*added, *MWLua::queryCellObjects(room, std::nullopt, false));
-            first.getCellRef().setCount(0);
+            count(first, 0); // This fixture has no World service for removeRefScript.
             const auto removed = MWLua::queryCellObjects(room, std::nullopt);
             EXPECT_EQ(removed->size(), 2u);
             EXPECT_EQ(added->size(), 3u);
