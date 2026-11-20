@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d9f348f80ed72c6ac94662ede8ee157a5cd15dc1"
+        "blob": "5bc7ce1d3061be34afd802565ccf1f625b6cbc68"
       },
       "status": "adapted_for_rc1"
     },
@@ -748,9 +748,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b6300c34ef08ced463e411b5865df07ac1c1a55e"
+        "blob": "4bfb8a1fbdcd94a2b66bdb408c13efc3105bd240"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/openmw/mwgui/loadingscreen.hpp": {
       "cumulative": {
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d9f348f80ed72c6ac94662ede8ee157a5cd15dc1"
+        "blob": "5bc7ce1d3061be34afd802565ccf1f625b6cbc68"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -6706,9 +6706,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b6300c34ef08ced463e411b5865df07ac1c1a55e"
+        "blob": "4bfb8a1fbdcd94a2b66bdb408c13efc3105bd240"
       },
-      "purpose": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API.; 2026-11-20: Coalesce per-object progress widget writes at admitted loading frames; preserve draw admission, graphics service and forced refresh."
     },
     "apps/openmw/mwgui/loadingscreen.hpp": {
       "upstream": {
@@ -8673,9 +8673,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e0e97e7756ba6debc9bac96bafe1bdb1bbff4a82"
+        "blob": "0c051286b591a7f65c6a7561c1908f5f0c985d2a"
       },
-      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
+      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts.; 2026-11-20: Release resource progress mutex during listener rendering; use coherent snapshots and revision predicates to preserve notifications."
     },
     "components/loadinglistener/reporter.hpp": {
       "upstream": {
@@ -8684,9 +8684,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bd49664f2737f0d11d596068ee3273a6fdcbea07"
+        "blob": "1ce8b1b5f2b48fc5e4a44ad710a51970360899fd"
       },
-      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
+      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts.; 2026-11-20: Track notification revision for unlocked progress callbacks; no completion/readiness relaxation."
     },
     "components/lua/configuration.cpp": {
       "upstream": {
@@ -12047,9 +12047,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "c41c56cc9a2940f778e4712bd13de908435bc24d"
+        "blob": "e91ba242eec403b2aa525da66915c8134c5114c2"
       },
-      "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1."
+      "purpose": "Preserve cumulative assets, build integration or supporting tests on RC1.; 2026-11-20: Execute worker progress/completion during both callbacks, coherent snapshot and missed-notification/exception regressions."
     },
     "custom/performance-tests/loading.cpp": {
       "upstream": null,
@@ -13425,6 +13425,30 @@
         "blob": "40d428f159e2c717aaf6726c8e60e1f46ed246a4"
       },
       "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Retained or adapted to the official RC1 source/API."
+    },
+    "custom/performance-tests/verify-loading-quality.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "74bb225db6b96db28b1dba71443a6950aab30c49"
+      },
+      "purpose": "Require exact retention of all other production/resources paths and original loading admission/graphics lifecycle."
+    },
+    "custom/performance-tests/LOADING-PROGRESS-20261120.md": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "2adca710f898082708db6e54cbdece5113e4a9e0"
+      },
+      "purpose": "Document bounded loading optimization, unchanged visual behavior and same-configuration testing limits."
+    },
+    "custom/performance-tests/test-loading-progress.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "4c62038385e5828204c8874b8a42727bea75827d"
+      },
+      "purpose": "Execute production progress/draw bodies against counted UI/viewer doubles, including forced current progress and unchanged graphics work."
     }
   }
 }

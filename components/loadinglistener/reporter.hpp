@@ -30,12 +30,13 @@ namespace Loading
 
         void wait(Listener& listener) const;
 
-        // Diagnostic variant; retains the same callback and synchronization order.
+        // Diagnostic variant; retains the same progress snapshots and completion condition.
         void waitWithStats(Listener& listener, WaitStats& stats) const;
 
     private:
         std::size_t mProgress = 0;
         std::size_t mTotal = 0;
+        std::size_t mRevision = 0;
         bool mDone = false;
         mutable std::mutex mMutex;
         mutable std::condition_variable mUpdated;

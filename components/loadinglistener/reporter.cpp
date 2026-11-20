@@ -10,22 +10,30 @@ namespace Loading
 {
     void Reporter::addTotal(std::size_t value)
     {
-        const std::lock_guard lock(mMutex);
-        mTotal += value;
+        {
+            const std::lock_guard lock(mMutex);
+            mTotal += value;
+            ++mRevision;
+        }
         mUpdated.notify_all();
     }
 
     void Reporter::addProgress(std::size_t value)
     {
-        const std::lock_guard lock(mMutex);
-        mProgress += value;
+        {
+            const std::lock_guard lock(mMutex);
+            mProgress += value;
+            ++mRevision;
+        }
         mUpdated.notify_all();
     }
 
     void Reporter::complete()
     {
-        const std::lock_guard lock(mMutex);
-        mDone = true;
+        {
+            const std::lock_guard lock(mMutex);
+            mDone = true;
+        }
         mUpdated.notify_all();
     }
 
@@ -34,9 +42,18 @@ namespace Loading
         std::unique_lock lock(mMutex);
         while (!mDone)
         {
-            listener.setProgressRange(mTotal);
-            listener.setProgress(mProgress);
-            mUpdated.wait(lock);
+            const auto total = mTotal;
+            const auto progress = mProgress;
+            const auto revision = mRevision;
+            // A listener can render, compile graphics resources, or handle input.
+            // Do not stop the resource workers while the main thread does that work.
+            lock.unlock();
+            listener.setProgressRange(total);
+            listener.setProgress(progress);
+            lock.lock();
+            // Updates can arrive during either callback. A predicate avoids losing
+            // those notifications before entering the condition-variable wait.
+            mUpdated.wait(lock, [&] { return mDone || mRevision != revision; });
         }
     }
 
@@ -52,13 +69,18 @@ namespace Loading
         stats.initialLockMs = milliseconds(Clock::now() - start);
         while (!mDone)
         {
+            const auto total = mTotal;
+            const auto progress = mProgress;
+            const auto revision = mRevision;
+            lock.unlock();
             const auto listenerStart = Clock::now();
-            listener.setProgressRange(mTotal);
-            listener.setProgress(mProgress);
+            listener.setProgressRange(total);
+            listener.setProgress(progress);
             stats.listenerMs += milliseconds(Clock::now() - listenerStart);
             ++stats.progressUpdates;
             const auto conditionStart = Clock::now();
-            mUpdated.wait(lock);
+            lock.lock();
+            mUpdated.wait(lock, [&] { return mDone || mRevision != revision; });
             stats.conditionMs += milliseconds(Clock::now() - conditionStart);
             ++stats.conditionWaits;
         }

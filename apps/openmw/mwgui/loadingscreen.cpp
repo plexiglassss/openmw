@@ -231,8 +231,6 @@ namespace MWGui
     void LoadingScreen::setProgressRange(size_t range)
     {
         mProgressBar->setScrollRange(range + 1);
-        mProgressBar->setScrollPosition(0);
-        mProgressBar->setTrackSize(0);
         mProgress = 0;
     }
 
@@ -244,20 +242,14 @@ namespace MWGui
             return;
         value = std::min(value, mProgressBar->getScrollRange() - 1);
         mProgress = value;
-        mProgressBar->setScrollPosition(0);
-        mProgressBar->setTrackSize(
-            static_cast<int>(value / (float)(mProgressBar->getScrollRange()) * mProgressBar->getLineSize()));
         draw();
     }
 
     void LoadingScreen::increaseProgress(size_t increase)
     {
-        mProgressBar->setScrollPosition(0);
         size_t value = mProgress + increase;
         value = std::min(value, mProgressBar->getScrollRange() - 1);
         mProgress = value;
-        mProgressBar->setTrackSize(
-            static_cast<int>(value / (float)(mProgressBar->getScrollRange()) * mProgressBar->getLineSize()));
         draw();
     }
 
@@ -332,6 +324,14 @@ namespace MWGui
     {
         if (!force && !needToDrawLoadingScreen())
             return;
+
+        // Object insertion can report thousands of increments between two draws.
+        // Keep the counter current, but change the widgets only for a frame that
+        // will actually be presented. Graphics compilation and draw admission are
+        // unchanged, including forced progress before blocking save/load work.
+        mProgressBar->setScrollPosition(0);
+        mProgressBar->setTrackSize(static_cast<int>(
+            mProgress / static_cast<float>(mProgressBar->getScrollRange()) * mProgressBar->getLineSize()));
 
         if (mShowWallpaper && mTimer.time_m() > mLastWallpaperChangeTime + 5000 * 1)
         {

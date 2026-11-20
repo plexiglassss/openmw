@@ -214,6 +214,18 @@ jobs:
           if ($LASTEXITCODE) { throw 'Actual actor preload body regressions failed' }
           python custom/performance-tests/test-streaming-paths.py 2>&1 | Tee-Object streaming-paths-windows.log
           if ($LASTEXITCODE) { throw 'Production streaming traversal/publication regressions failed' }
+      - name: Verify loading workers remain independent of progress rendering
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          cl /nologo /std:c++20 /EHsc /O2 /W4 /WX /wd4100 /I. custom/performance-tests/loading-reporter.cpp components/loadinglistener/reporter.cpp /Fe:loading-reporter-test.exe
+          if ($LASTEXITCODE) { throw 'Loading Reporter regression compilation failed' }
+          ./loading-reporter-test.exe | Tee-Object loading-reporter-windows.log
+          if ($LASTEXITCODE) { throw 'Loading Reporter worker, notification or exception regression failed' }
+          python custom/performance-tests/test-loading-progress.py --output loading-progress-windows.json
+          if ($LASTEXITCODE) { throw 'Loading progress presentation or graphics-service regression failed' }
+          python custom/performance-tests/verify-loading-quality.py --output loading-quality-preservation.json
+          if ($LASTEXITCODE) { throw 'Loading optimization changed scenery, visibility or readiness behavior' }
       - name: Verify Ninja supplied with the Visual Studio build tools
         shell: pwsh
         run: |
@@ -802,6 +814,8 @@ jobs:
           Get-ChildItem install -Filter *.pdb -Recurse | Remove-Item -Force
           Copy-Item loading-repair-source-manifest.json,loading-repair-applied.patch install/
           Copy-Item custom/loading-repair/README.md install/LOADING-REPAIR.md
+          Copy-Item custom/performance-tests/LOADING-PROGRESS-20261120.md install/LOADING-PROGRESS.md
+          Copy-Item loading-reporter-windows.log,loading-progress-windows.json,loading-quality-preservation.json install/
           Copy-Item custom/journal-typography/README.md install/JOURNAL-TYPOGRAPHY.md
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
           Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
@@ -939,6 +953,9 @@ jobs:
           name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
             install/verification/WINDOWS-DISTRIBUTION.json
+            loading-reporter-windows.log
+            loading-progress-windows.json
+            loading-quality-preservation.json
             native-adapter-installer-tests.json
             distribution-startup/
             gameplay-installer-tests.json
