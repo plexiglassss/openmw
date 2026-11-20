@@ -2035,7 +2035,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "740f935aace86af007244ba6c78f973278385376"
+        "blob": "45d39e3372d589611e4308a0d4b8bf3b51fc295c"
       },
       "status": "adapted_for_rc1"
     },
@@ -5126,9 +5126,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "34d0a5035d7c14aa05a0950e0e09491cb78287e9"
+        "blob": "da20a89a37b63ac3666f45bae5536580aecd14cf"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/review-tests/lua-arrival-benchmark.cpp": {
       "cumulative": {
@@ -8240,7 +8240,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "740f935aace86af007244ba6c78f973278385376"
+        "blob": "45d39e3372d589611e4308a0d4b8bf3b51fc295c"
       },
       "purpose": "Bind same-executable parity, performance measurements, packaging and existing features. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },
@@ -12447,9 +12447,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "34d0a5035d7c14aa05a0950e0e09491cb78287e9"
+        "blob": "da20a89a37b63ac3666f45bae5536580aecd14cf"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Update counted-boundary fixture for current retention and destination-plan interfaces, extract actual preparationSeconds method and execute both batch modes without dropping existing admission checks. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Update counted-boundary fixture for current retention and destination-plan interfaces, extract actual preparationSeconds method and execute both batch modes without dropping existing admission checks. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },
     "custom/performance-tests/verify-loading-quality.py": {
       "upstream": null,

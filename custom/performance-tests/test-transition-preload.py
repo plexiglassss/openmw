@@ -21,6 +21,7 @@ code=r'''
 #include <components/sceneutil/preparationcost.hpp>
 #include <components/sceneutil/preloadplancache.hpp>
 #include <components/sceneutil/preloadretention.hpp>
+#include <components/misc/constants.hpp>
 #include <string>
 #include <tuple>
 #include <algorithm>
@@ -36,6 +37,7 @@ namespace Misc {bool batch=true;bool useCostAwarePreload(){return true;}bool use
 std::ostream& Log(int) {return std::cerr;}
 namespace osg {template<class T> using ref_ptr=std::shared_ptr<T>;}
 namespace ESM {using RefId=int; struct ExteriorCellLocation {int x,y,world; ExteriorCellLocation(int a,int b,int c):x(a),y(b),world(c) {}auto operator<=>(const ExteriorCellLocation&)const=default;};}
+bool isEsm4Ext(ESM::RefId worldspace){return worldspace != 0;}
 struct Cell {int x=0,y=0;int getGridX(){return x;}int getGridY(){return y;}int getWorldSpace(){return 0;}};
 struct CellStore {enum State {State_Unloaded,State_Preloaded,State_Loaded};State state=State_Loaded;bool exterior=true;Cell info;
  State getState(){return state;}bool isExterior(){return exterior;}Cell* getCell(){return &info;}};

@@ -355,9 +355,14 @@ namespace LuaUi
                 ++mClicks;
                 mClicked = index;
             }
+            void attach(MWGui::ItemView& view)
+            {
+                view.eventItemClicked += MyGUI::newDelegate(this, &ItemViewReuseTest::clicked);
+            }
             void SetUp() override
             {
                 LuaUiLayoutTest::SetUp();
+                MyGUI::LayerManager::getInstance().getByName("LuaUiTest")->castType<MyGUI::OverlappedLayer>()->setPick(true);
                 auto& resources = MyGUI::ResourceManager::getInstance();
                 MyGUI::FactoryManager::getInstance().registerFactory<MWGui::AutoSizedResourceSkin>(
                     resources.getCategoryName());
@@ -377,12 +382,19 @@ namespace LuaUi
             auto model = std::make_unique<Model>();
             model->items.resize(3);
             view->setModel(std::move(model));
-            auto* scroll = view->findWidget("ScrollView")->castType<MyGUI::ScrollView>();
+            MyGUI::InputManager::getInstance().injectMouseMove(20, 20, 0);
+            auto* first = dynamic_cast<MWGui::ItemWidget*>(MyGUI::InputManager::getInstance().getMouseFocusWidget());
+            ASSERT_NE(first, nullptr);
+            auto* area = first->getParent();
+            MyGUI::Widget* ancestor = area->getParent();
+            while (ancestor && !dynamic_cast<MyGUI::ScrollView*>(ancestor))
+                ancestor = ancestor->getParent();
+            auto* scroll = dynamic_cast<MyGUI::ScrollView*>(ancestor);
+            ASSERT_NE(scroll, nullptr);
             ASSERT_EQ(scroll->getChildCount(), 1u);
-            auto* area = scroll->getChildAt(0);
             ASSERT_EQ(area->getChildCount(), 3u);
-            auto* first = area->getChildAt(0);
-            view->eventItemClicked += MyGUI::newDelegate(this, &ItemViewReuseTest::clicked);
+            EXPECT_EQ(area->getChildAt(0), first);
+            attach(*view);
             for (int i = 0; i != 20; ++i)
                 view->update();
             EXPECT_EQ(area->getChildAt(0), first);
