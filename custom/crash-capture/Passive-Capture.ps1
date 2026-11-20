@@ -28,7 +28,7 @@ function Assert-WerDumpsPreserved {
     }
 }
 function Read-CaptureMinidump {
-    param([string]$Path, [ulong]$MemoryAddress = 0, [int]$MemoryBytes = 0)
+    param([string]$Path, [uint64]$MemoryAddress = 0, [int]$MemoryBytes = 0)
     $stream = $null; $reader = $null
     try {
         $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)

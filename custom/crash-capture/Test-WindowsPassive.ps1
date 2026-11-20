@@ -126,6 +126,7 @@ try {
         $standardResult = Get-Content (Join-Path $standardRoot 'standard-account-result.json') -Raw | ConvertFrom-Json
         Check 'Production preflight confirms non-elevated process' ($standardResult.passed -and -not $standardResult.elevated) $standardResult
         Check 'Probe executable removed after validation' (-not (Test-Path (Join-Path $standardRoot 'synthetic-probe\openmw.exe'))) $null
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
         $zip = [IO.Compression.ZipFile]::OpenRead($standardRoot + '.zip')
         try { Check 'Production ZIP contains validated synthetic dump and manifest' ('synthetic-probe/synthetic-fastfail.dmp' -in $zip.Entries.FullName -and 'file-manifest.json' -in $zip.Entries.FullName) @($zip.Entries.FullName) }
         finally { $zip.Dispose() }

@@ -34,8 +34,8 @@ __declspec(noinline) static int run(const wchar_t* mode, const wchar_t* report)
     }
     FILE* file = nullptr;
     if (_wfopen_s(&file, report, L"wb") != 0) return 21;
-    fprintf(file, "{\"pid\":%lu,\"debugger_present\":%s,\"elevated\":%s,\"catcher_environment\":\"%s\",\"heap_address\":%llu,\"handled_count\":%u,\"loop_seconds\":%.9f}",
-        GetCurrentProcessId(), IsDebuggerPresent() ? "true" : "false", elevation.TokenIsElevated ? "true" : "false",
+    fprintf(file, "{\"pid\":%lu,\"debugger_present\":%s,\"error_mode\":%u,\"elevated\":%s,\"catcher_environment\":\"%s\",\"heap_address\":%llu,\"handled_count\":%u,\"loop_seconds\":%.9f}",
+        GetCurrentProcessId(), IsDebuggerPresent() ? "true" : "false", GetErrorMode(), elevation.TokenIsElevated ? "true" : "false",
         catcher, static_cast<unsigned long long>(reinterpret_cast<ULONG_PTR>(stackReference)), handled,
         static_cast<double>(end.QuadPart - start.QuadPart) / frequency.QuadPart);
     fclose(file);
