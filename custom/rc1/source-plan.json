@@ -5082,9 +5082,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "055eb1252062294e6bdf183ea7f434f2733180d2"
+        "blob": "60069fbe1fa887740d8b17790158a3a94cdb8c2d"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/performance-capture/Start-Capture.ps1": {
       "cumulative": {
@@ -11887,9 +11887,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "055eb1252062294e6bdf183ea7f434f2733180d2"
+        "blob": "60069fbe1fa887740d8b17790158a3a94cdb8c2d"
       },
-      "purpose": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum. Retained or adapted to the official RC1 source/API."
+      "purpose": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
     "custom/performance-capture/README.txt": {
       "upstream": null,

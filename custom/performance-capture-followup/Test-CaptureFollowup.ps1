@@ -109,7 +109,9 @@ Check 'Removing only additions exactly reconstructs released v1.0 collector' {
     Assert-True ([regex]::Matches($text,[regex]::Escape($streamingObservationBlock)).Count -eq 1) 'Expected exactly one streaming mode observation block.'
     $navigationObservationBlock="        'OPENMW_SHARED_NAVIGATION_GEOMETRY',`n"
     Assert-True ([regex]::Matches($text,[regex]::Escape($navigationObservationBlock)).Count -eq 1) 'Expected exactly one navigation mode observation block.'
-    $original=$text.Replace($performanceObservationBlock,'').Replace($streamingObservationBlock,'').Replace($navigationObservationBlock,'')
+    $slicingObservationBlock="        'OPENMW_SLICED_CELL_PRELOAD',`n"
+    Assert-True ([regex]::Matches($text,[regex]::Escape($slicingObservationBlock)).Count -eq 1) 'Expected exactly one sliced-preload mode observation block.'
+    $original=$text.Replace($performanceObservationBlock,'').Replace($streamingObservationBlock,'').Replace($navigationObservationBlock,'').Replace($slicingObservationBlock,'')
     $original=[regex]::Replace($original,'(?s)#region Fixed follow-up evidence\n.*?#endregion Fixed follow-up evidence\n\n','')
     $original=$original.Replace("    Invoke-OptionalCaptureStage 'Fixed follow-up Lua source collection' { Get-FixedFollowupSources `$newContext `$runDir }`n",'')
     $original=$original.Replace("Invoke-OptionalCaptureStage 'Optional install receipt collection' { Get-FixedInstallReceipts `$runDir }`n",'')
