@@ -14,7 +14,7 @@ function Check([string]$Name, [bool]$Condition, $Detail) {
 $initialEnvironment = [Environment]::GetEnvironmentVariable('OPENMW_DISABLE_CRASH_CATCHER','Process')
 $folder = Join-Path $Output 'dumps'
 New-Item -ItemType Directory -Path $folder -Force | Out-Null
-$base = $null; $app = $null; $configured = $false
+$base = $null; $app = $null; $configured = $false; $testUser = $null
 try {
     foreach ($scriptFile in @(Get-ChildItem $PSScriptRoot -Filter '*.ps1')) {
         $tokens = $null; $parseErrors = $null
@@ -85,6 +85,59 @@ try {
     $timings += [pscustomobject]@{ mode='direct'; seconds=$direct.loop_seconds }
     Write-JsonFile (Join-Path $Output 'handled-exception-timings.json') $timings
     Check 'Parent environment untouched' ([Environment]::GetEnvironmentVariable('OPENMW_DISABLE_CRASH_CATCHER','Process') -ceq $initialEnvironment) $initialEnvironment
+    # Exercise the exact shipped preflight with a real non-administrator token, including
+    # binary hash verification, no-debugger/privilege checks, dump validation and cleanup.
+    Copy-Item $probe (Join-Path $PSScriptRoot 'Capture-Probe.exe')
+    Copy-Item (Join-Path $Output 'Capture-Probe.sha256') (Join-Path $PSScriptRoot 'Capture-Probe.sha256')
+    $testUser = 'OMWCapture_' + [guid]::NewGuid().ToString('N').Substring(0,8)
+    $testPassword = ConvertTo-SecureString ('Cpt!7' + [guid]::NewGuid().ToString('N') + 'zQ') -AsPlainText -Force
+    $account = New-LocalUser -Name $testUser -Password $testPassword -AccountNeverExpires -PasswordNeverExpires
+    $sid = $account.SID.Value
+    & icacls.exe $Output /grant ('*' + $sid + ':(OI)(CI)M') /T /Q | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Could not grant the disposable test account access to its evidence folder.' }
+    & icacls.exe $PSScriptRoot /grant ('*' + $sid + ':(OI)(CI)RX') /T /Q | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Could not grant the disposable test account read access to the tool.' }
+    $standardRoot = Join-Path $Output ('standard account ' + [char]0x00E9)
+    New-Item -ItemType Directory -Path $standardRoot -Force | Out-Null
+    $childScript = Join-Path $Output 'standard-account-check.ps1'
+    $childText = @'
+param([string]$Tool, [string]$Destination, [string]$Dumps)
+$ErrorActionPreference = 'Stop'
+. $Tool -DefinitionsOnly
+$script:CaptureRoot = $Destination
+$script:Copied = New-Object 'System.Collections.Generic.List[object]'
+$script:Omitted = New-Object 'System.Collections.Generic.List[object]'
+$script:CopiedDumpBytes = 0L
+try {
+    Test-PassiveCapture -Folder $Dumps
+    Complete-Capture
+    Write-JsonFile (Join-Path $Destination 'standard-account-result.json') @{ passed=$true; elevated=(Test-CaptureAdministrator) }
+} catch { $_ | Out-String | Set-Content (Join-Path $Destination 'standard-account-failure.txt'); exit 1 }
+'@
+    $childText | Set-Content -LiteralPath $childScript -Encoding UTF8
+    $credential = New-Object Management.Automation.PSCredential ('.\' + $testUser), $testPassword
+    $psExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $argsLine = (@('-NoProfile','-ExecutionPolicy','Bypass','-File',$childScript,'-Tool',(Join-Path $PSScriptRoot 'OpenMW-CrashCapture.ps1'),'-Destination',$standardRoot,'-Dumps',$folder) | ForEach-Object { Quote-NativeArgument $_ }) -join ' '
+    $child = Start-Process -FilePath $psExe -ArgumentList $argsLine -Credential $credential -LoadUserProfile -PassThru -WorkingDirectory $Output
+    try {
+        $null = $child.Handle
+        if (-not $child.WaitForExit(120000)) { $child.Kill(); throw 'Standard-account preflight timed out.' }
+        Check 'Production preflight succeeds as standard user' ($child.ExitCode -eq 0) $child.ExitCode
+        $standardResult = Get-Content (Join-Path $standardRoot 'standard-account-result.json') -Raw | ConvertFrom-Json
+        Check 'Production preflight confirms non-elevated process' ($standardResult.passed -and -not $standardResult.elevated) $standardResult
+        Check 'Probe executable removed after validation' (-not (Test-Path (Join-Path $standardRoot 'synthetic-probe\openmw.exe'))) $null
+        $zip = [IO.Compression.ZipFile]::OpenRead($standardRoot + '.zip')
+        try { Check 'Production ZIP contains validated synthetic dump and manifest' ('synthetic-probe/synthetic-fastfail.dmp' -in $zip.Entries.FullName -and 'file-manifest.json' -in $zip.Entries.FullName) @($zip.Entries.FullName) }
+        finally { $zip.Dispose() }
+    } finally { $child.Dispose() }
+    $guard = New-Object Threading.Mutex($false, 'Global\OpenMWCrashCapture-Session-v1')
+    $null = $guard.WaitOne(0)
+    try {
+        $helperArgs = (@('-NoProfile','-ExecutionPolicy','Bypass','-File',(Join-Path $PSScriptRoot 'Manage-WER.ps1'),'-SetupMode','Restore') | ForEach-Object { Quote-NativeArgument $_ }) -join ' '
+        $helper = Start-Process -FilePath $psExe -ArgumentList $helperArgs -PassThru -RedirectStandardOutput (Join-Path $Output 'restore-session-guard.txt')
+        try { $null = $helper.Handle; $helper.WaitForExit(); Check 'Separate restore process refuses active capture session' ($helper.ExitCode -ne 0 -and (Test-WerConfigured $folder)) $helper.ExitCode }
+        finally { $helper.Dispose() }
+    } finally { $guard.ReleaseMutex(); $guard.Dispose() }
     $app = $base.OpenSubKey($script:WerAppKey, $true)
     $app.SetValue('DumpCount', 77, [Microsoft.Win32.RegistryValueKind]::DWord)
     $conflict = $false
@@ -112,13 +165,49 @@ try {
     $app = $base.OpenSubKey($script:WerAppKey, $false)
     Check 'Originally absent empty key removed after restore' ($null -eq $app) $null
     Check 'Restore without backup is safe' $true (Invoke-WerConfiguration -Action Restore)
+    $roundTrips = @(
+        [pscustomobject]@{ name='DumpFolder'; exists=$true; kind='String'; data='literal %TEMP%' },
+        [pscustomobject]@{ name='DumpCount'; exists=$true; kind='QWord'; data=9223372036854775000L },
+        [pscustomobject]@{ name='DumpType'; exists=$true; kind='Binary'; data=[byte[]]@(0,128,255) },
+        [pscustomobject]@{ name='CustomDumpFlags'; exists=$true; kind='MultiString'; data=[string[]]@('one','two') }
+    )
+    $app = $base.CreateSubKey($script:WerAppKey)
+    foreach ($value in $roundTrips) { Set-WerValueState $app $value }
+    $app.Dispose(); $app = $null
+    Invoke-WerConfiguration -Action Enable -Folder $folder; $configured = $true
+    Invoke-WerConfiguration -Action Restore; $configured = $false
+    $app = $base.OpenSubKey($script:WerAppKey, $true)
+    foreach ($value in $roundTrips) { Check ('Raw registry kind roundtrip: ' + $value.kind) (Test-WerValueEqual (Get-WerValueState $app $value.name) $value) (Get-WerValueState $app $value.name) }
+    $noneValue = [pscustomobject]@{ name='DumpType'; exists=$true; kind='None'; data=[byte[]]@(17,18) }
+    Set-WerValueState $app $noneValue
+    $app.Dispose(); $app = $null
+    Invoke-WerConfiguration -Action Enable -Folder $folder; $configured = $true
+    Invoke-WerConfiguration -Action Restore; $configured = $false
+    $app = $base.OpenSubKey($script:WerAppKey, $false)
+    Check 'Raw registry kind roundtrip: None' (Test-WerValueEqual (Get-WerValueState $app 'DumpType') $noneValue) (Get-WerValueState $app 'DumpType')
+    $app.Dispose(); $app = $null
+    $base.DeleteSubKeyTree($script:WerAppKey, $false)
 } catch {
     $_ | Out-String | Set-Content (Join-Path $Output 'failure.txt') -Encoding UTF8
+    $diagnosticDumps = @()
+    foreach ($file in @(Get-ChildItem $folder -Filter '*.dmp' -File)) {
+        try { $diagnosticDumps += Read-CaptureMinidump $file.FullName }
+        catch { $diagnosticDumps += [pscustomobject]@{ path=$file.FullName; bytes=$file.Length; error=$_.Exception.ToString() } }
+    }
+    Write-JsonFile (Join-Path $Output 'passive-debug.json') ([pscustomobject]@{
+        dumps=$diagnosticDumps
+        wer=@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting' -ErrorAction SilentlyContinue | Select-Object Disabled,DontShowUI)
+        policy=@(Get-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting' -ErrorAction SilentlyContinue | Select-Object Disabled,DontShowUI)
+        debugger=@(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AeDebug' -ErrorAction SilentlyContinue | Select-Object Auto,Debugger)
+        service=@(Get-Service WerSvc -ErrorAction SilentlyContinue | Select-Object Status,StartType)
+        events=@(Get-WinEvent -FilterHashtable @{LogName='Application';Id=@(1000,1001);StartTime=(Get-Date).AddMinutes(-10)} -ErrorAction SilentlyContinue | Where-Object { $_.Message -match 'openmw.exe' } | Select-Object TimeCreated,Id,Message)
+    })
     throw
 } finally {
     if ($null -ne $app) { $app.Dispose() }
     if ($configured) { try { Invoke-WerConfiguration -Action Restore } catch { $_ | Out-String | Set-Content (Join-Path $Output 'restore-failure.txt') } }
     if ($null -ne $base) { $base.Dispose() }
+    if ($testUser) { Remove-LocalUser -Name $testUser -ErrorAction SilentlyContinue }
     $sources = @(Get-ChildItem $PSScriptRoot -File | ForEach-Object { [pscustomobject]@{ name=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
     Write-JsonFile (Join-Path $Output 'windows-results.json') ([pscustomobject]@{ powershell=$PSVersionTable.PSVersion.ToString(); os=[Environment]::OSVersion.VersionString; elevated_host=(Test-CaptureAdministrator); checks=@($checks.ToArray()); source_hashes=$sources; limitation='CI tests run in an elevated disposable host; user-facing launcher refuses elevated game launch. Interactive UAC and OpenMW FPS require user-PC validation.' })
 }

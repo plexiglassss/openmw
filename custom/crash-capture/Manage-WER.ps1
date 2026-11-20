@@ -106,12 +106,21 @@ function Invoke-WerConfiguration {
         # The unelevated launcher creates the directory. Do not create/chmod user paths as administrator.
         if (-not [IO.Directory]::Exists($Folder)) { throw 'The unelevated launcher must create the dump folder first.' }
     }
+    $sessionGuard = $null; $sessionOwned = $false
     $mutex = New-Object Threading.Mutex($false, 'Global\OpenMWCrashCapture-WER-v1')
     $owned = $false
     $base = $null; $app = $null; $backupKey = $null
     try {
         try { $owned = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $owned = $true }
         if (-not $owned) { throw 'Another capture setup or restore is in progress.' }
+        if ($Action -eq 'Restore') {
+            $sessionGuard = New-Object Threading.Mutex($false, 'Global\OpenMWCrashCapture-Session-v1')
+            try { $sessionOwned = $sessionGuard.WaitOne(0) } catch [Threading.AbandonedMutexException] { $sessionOwned = $true }
+            if (-not $sessionOwned) { throw 'A capture session is still running. Close OpenMW and let collection finish before restoring settings.' }
+        }
+        $games = @([Diagnostics.Process]::GetProcessesByName('openmw'))
+        try { if ($games.Count -gt 0) { throw 'OpenMW or its crash monitor is still running. Close it before changing crash settings.' } }
+        finally { foreach ($game in $games) { $game.Dispose() } }
         $base = Open-WerRegistry
         $state = Read-WerBackup $base
         $app = $base.OpenSubKey($script:WerAppKey, $true)
@@ -162,6 +171,8 @@ function Invoke-WerConfiguration {
         if ($null -ne $backupKey) { $backupKey.Dispose() }
         if ($null -ne $app) { $app.Dispose() }
         if ($null -ne $base) { $base.Dispose() }
+        if ($sessionOwned) { $sessionGuard.ReleaseMutex() }
+        if ($null -ne $sessionGuard) { $sessionGuard.Dispose() }
         if ($owned) { $mutex.ReleaseMutex() }
         $mutex.Dispose()
     }

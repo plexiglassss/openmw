@@ -253,7 +253,7 @@ if ($Mode -eq 'Restore') {
     try { Invoke-WerPermissionHelper -Action Restore; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }
 }
 if ($Mode -eq 'Run' -and (Test-CaptureAdministrator)) { throw 'Run the capture launcher normally, not as administrator. Only the separate setup prompt needs administrator permission.' }
-$sessionMutex = New-Object Threading.Mutex($false, 'Local\OpenMWCrashCapture-Session-v1')
+$sessionMutex = New-Object Threading.Mutex($false, 'Global\OpenMWCrashCapture-Session-v1')
 $sessionOwned = $false
 try { $sessionOwned = $sessionMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $sessionOwned = $true }
 if (-not $sessionOwned) { $sessionMutex.Dispose(); throw 'Another OpenMW capture session is already running.' }

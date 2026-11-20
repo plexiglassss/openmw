@@ -32,6 +32,7 @@ jobs:
           path: |
             capture-test-evidence/**/*.json
             capture-test-evidence/**/*.txt
+            capture-test-evidence/dumps/*.dmp
             capture-test-evidence/Capture-Probe.exe
             capture-test-evidence/Capture-Probe.sha256
           if-no-files-found: error
