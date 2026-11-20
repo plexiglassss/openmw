@@ -391,6 +391,7 @@ namespace MWGui
     {
         mCaptionWidget = nullptr;
         mTextWidget = nullptr;
+        mDynamicToolTipSkin.clear();
         mTravelTooltip->clear();
         setLuaTooltip({}, nullptr);
         mFocusObject = MWWorld::Ptr();
@@ -486,13 +487,22 @@ namespace MWGui
         mDynamicToolTipBox->setVisible(true);
 
         const int showOwned = Settings::game().mShowOwned;
-        if ((showOwned == 1 || showOwned == 3) && isOwned)
-            mDynamicToolTipBox->changeWidgetSkin(MWBase::Environment::get().getWindowManager()->isGuiMode()
-                    ? "HUD_Box_NoTransp_Owned"
-                    : "HUD_Box_Owned");
-        else
-            mDynamicToolTipBox->changeWidgetSkin(
-                MWBase::Environment::get().getWindowManager()->isGuiMode() ? "HUD_Box_NoTransp" : "HUD_Box");
+        const bool owned = (showOwned == 1 || showOwned == 3) && isOwned;
+        const bool gui = MWBase::Environment::get().getWindowManager()->isGuiMode();
+        const std::string_view skin = owned ? (gui ? "HUD_Box_NoTransp_Owned" : "HUD_Box_Owned")
+                                           : (gui ? "HUD_Box_NoTransp" : "HUD_Box");
+        if (mDynamicToolTipSkin != skin)
+        {
+            // A custom skin can own a client widget, which skin replacement
+            // destroys together with its children. Retain no child pointers
+            // across that boundary, and avoid replacing an unchanged skin.
+            mCaptionWidget = nullptr;
+            mTextWidget = nullptr;
+            while (mDynamicToolTipBox->getChildCount())
+                MyGUI::Gui::getInstance().destroyWidget(mDynamicToolTipBox->getChildAt(0));
+            mDynamicToolTipBox->changeWidgetSkin(skin);
+            mDynamicToolTipSkin = skin;
+        }
 
         const std::string& caption = info.caption;
         const std::string& image = info.icon;

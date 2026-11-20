@@ -869,7 +869,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3dd3f6eb18eae907f2f4e91401011ab0c2f5a0d9"
+        "blob": "33330ff73e3011955dbbcafa4cc635819c8e8105"
       },
       "status": "adapted_for_rc1"
     },
@@ -880,7 +880,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5356c3a65050b4089c6c7646d2d7e4ec560bb327"
+        "blob": "6d43f1232eb937a2c71155d9f8443b3e60c99d34"
       },
       "status": "adapted_for_rc1"
     },
@@ -2200,7 +2200,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "4043c859fac6f2246ba83d8f72080e2f315c862a"
+        "blob": "280235855ab74ff761fc24055610fbc4a7cb7bcb"
       },
       "status": "adapted_for_rc1"
     },
@@ -6952,7 +6952,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3dd3f6eb18eae907f2f4e91401011ab0c2f5a0d9"
+        "blob": "33330ff73e3011955dbbcafa4cc635819c8e8105"
       },
       "purpose": "Generic explicit empty world-tooltip override suppression, with legacy fallback and capability detection. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },
@@ -6963,7 +6963,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5356c3a65050b4089c6c7646d2d7e4ec560bb327"
+        "blob": "6d43f1232eb937a2c71155d9f8443b3e60c99d34"
       },
       "purpose": "Native tooltip integration: apps/openmw/mwgui/tooltips.hpp; native configurable travel/key/cleared-cell behavior, integration tests, build wiring or user documentation; preserve cumulative baseline behavior. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },
@@ -8419,7 +8419,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "4043c859fac6f2246ba83d8f72080e2f315c862a"
+        "blob": "280235855ab74ff761fc24055610fbc4a7cb7bcb"
       },
       "purpose": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Regression coverage for lazy widget attachment, material decisions, ordered composite work or whole-world lookups. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },

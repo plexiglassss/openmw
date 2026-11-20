@@ -16,6 +16,7 @@
 #include <components/esm3/esmreader.hpp>
 #include <components/esm3/esmwriter.hpp>
 #include <components/esm3/formatversion.hpp>
+#include <components/esm3/fogstate.hpp>
 #include <components/esm3/loadcell.hpp>
 #include <components/esm3/loadclas.hpp>
 #include <components/esm3/loaddoor.hpp>
@@ -614,6 +615,16 @@ namespace MWWorld
             EXPECT_EQ(serialize(true), serialize(false));
             EXPECT_EQ(serialize(true, ESM::MaxUseEsmCellIdFormatVersion),
                 serialize(false, ESM::MaxUseEsmCellIdFormatVersion));
+            EXPECT_EQ(serialize(true), serialize(false));
+            auto fog = std::make_unique<ESM::FogState>();
+            fog->mFogTextures.push_back({ 0, 0, { 'a' } });
+            room.setFog(std::move(fog));
+            EXPECT_EQ(serialize(true), serialize(false));
+            const auto withFog = serialize(true);
+            room.getFog()->mFogTextures.front().mImageData.push_back('b');
+            EXPECT_NE(serialize(true), withFog);
+            EXPECT_EQ(serialize(true), serialize(false));
+            room.setFog(nullptr);
             EXPECT_EQ(serialize(true), serialize(false));
             add(room, "new live reference");
             ASSERT_TRUE(room.hasUnloadedLiveReferences());
