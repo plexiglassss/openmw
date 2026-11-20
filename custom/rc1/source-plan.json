@@ -1936,7 +1936,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "25138d6fa14758dd67759e49445c2d1ba29445e8"
+        "blob": "31964784897f0b782f3da871fb8855c8a4dabb8c"
       },
       "status": "adapted_for_rc1"
     },
@@ -1947,7 +1947,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1621bd65a45c6e60027313f21ab25f1da6711614"
+        "blob": "1400e8cd2351f258618cfc3616e96138fd60ceb1"
       },
       "status": "adapted_for_rc1"
     },
@@ -8110,7 +8110,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "25138d6fa14758dd67759e49445c2d1ba29445e8"
+        "blob": "31964784897f0b782f3da871fb8855c8a4dabb8c"
       },
       "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Notify native UI after actual player-cell changes, including already-active exterior crossings; retain scene activation and rendering order. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },
@@ -8121,7 +8121,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1621bd65a45c6e60027313f21ab25f1da6711614"
+        "blob": "1400e8cd2351f258618cfc3616e96138fd60ceb1"
       },
       "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
     },

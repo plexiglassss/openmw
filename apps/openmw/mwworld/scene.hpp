@@ -167,7 +167,7 @@ namespace MWWorld
         ~Scene();
 
         void reloadTerrain();
-        void prepareSavedArrival(const ConstPtr& player);
+        void prepareSavedArrival(const Ptr& player);
 
         void playerMoved(const osg::Vec3f& pos);
 

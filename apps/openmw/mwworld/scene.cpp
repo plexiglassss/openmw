@@ -1563,7 +1563,7 @@ namespace MWWorld
         }
     }
 
-    void Scene::prepareSavedArrival(const ConstPtr& player)
+    void Scene::prepareSavedArrival(const Ptr& player)
     {
         if (!mPreloadEnabled || !player.isInCell())
             return;
