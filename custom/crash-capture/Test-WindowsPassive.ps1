@@ -46,28 +46,28 @@ try {
     Copy-Item $probe $exe
     (Get-FileHash $probe -Algorithm SHA256).Hash.ToLowerInvariant() | Set-Content (Join-Path $Output 'Capture-Probe.sha256') -Encoding ASCII
     $timings = @()
-    foreach ($mode in @('normal','nonzero','handled','fastfail','access')) {
-        $reportPath = Join-Path $Output ($mode + '-process.json')
+    foreach ($caseName in @('normal','nonzero','handled','fastfail','access')) {
+        $reportPath = Join-Path $Output ($caseName + '-process.json')
         $started = [DateTime]::UtcNow
-        $process = Start-PassiveProcess -Exe $exe -Arguments @($mode, $reportPath)
+        $process = Start-PassiveProcess -Exe $exe -Arguments @($caseName, $reportPath)
         try {
             $result = Wait-PassiveResult -Process $process -Folder $folder -StartedUtc $started -TimeoutSeconds 60
-            Write-JsonFile (Join-Path $Output ($mode + '-result.json')) $result
+            Write-JsonFile (Join-Path $Output ($caseName + '-result.json')) $result
             $report = Get-Content $reportPath -Raw | ConvertFrom-Json
-            Check ($mode + ': no debugger and correct child environment') (-not $report.debugger_present -and $report.catcher_environment -ceq '1') $report
-            if ($mode -in @('normal','handled')) { Check ($mode + ': zero exit without dump succeeds') ($result.game_exit_code -eq 0 -and $null -eq $result.dump -and $result.capture_status -eq 'normal_exit_no_dump') $result }
-            if ($mode -eq 'nonzero') { Check 'Handled failure is not called a native crash' ($result.game_exit_code -eq 17 -and $null -eq $result.dump -and $result.capture_status -eq 'abnormal_exit_no_dump') $result }
-            if ($mode -eq 'handled') {
+            Check ($caseName + ': no debugger and correct child environment') (-not $report.debugger_present -and $report.catcher_environment -ceq '1') $report
+            if ($caseName -in @('normal','handled')) { Check ($caseName + ': zero exit without dump succeeds') ($result.game_exit_code -eq 0 -and $null -eq $result.dump -and $result.capture_status -eq 'normal_exit_no_dump') $result }
+            if ($caseName -eq 'nonzero') { Check 'Handled failure is not called a native crash' ($result.game_exit_code -eq 17 -and $null -eq $result.dump -and $result.capture_status -eq 'abnormal_exit_no_dump') $result }
+            if ($caseName -eq 'handled') {
                 Check '100000 handled exceptions cause no dump' ($report.handled_count -eq 100000 -and $null -eq $result.dump) $report
                 $timings += [pscustomobject]@{ mode='passive'; seconds=$report.loop_seconds }
             }
-            if ($mode -in @('fastfail','access')) {
-                Check ($mode + ': WER dump matches process') ($null -ne $result.dump -and $result.dump.process_id -eq $report.pid) $result
+            if ($caseName -in @('fastfail','access')) {
+                Check ($caseName + ': WER dump matches process') ($null -ne $result.dump -and $result.dump.process_id -eq $report.pid) $result
                 $marker = 'OpenMW-passive-capture-probe-stack-reference-v1.4'
                 $details = Read-CaptureMinidump $result.dump.path -MemoryAddress $report.heap_address -MemoryBytes $marker.Length
-                Write-JsonFile (Join-Path $Output ($mode + '-dump-check.json')) $details
-                Check ($mode + ': requested dump flags and stack-referenced heap') (($details.flags -band 0x1965) -eq 0x1965 -and $details.memory_text -ceq $marker) $details
-                if ($mode -eq 'fastfail') { Check 'Original-crash exception class and subcode' ($details.exception_code -eq 0xC0000409L -and $details.exception_parameter -eq 7) $details }
+                Write-JsonFile (Join-Path $Output ($caseName + '-dump-check.json')) $details
+                Check ($caseName + ': requested dump flags and stack-referenced heap') (($details.flags -band 0x1965) -eq 0x1965 -and $details.memory_text -ceq $marker) $details
+                if ($caseName -eq 'fastfail') { Check 'Original-crash exception class and subcode' ($details.exception_code -eq 0xC0000409L -and $details.exception_parameter -eq 7) $details }
                 else { Check 'Access violation captured' ($details.exception_code -eq 0xC0000005L) $details }
                 Check 'Stale timestamp dump rejected' ($null -eq (Find-PassiveDump -Folder $folder -ProcessId $report.pid -StartedUtc ([DateTime]::UtcNow.AddMinutes(1)))) $null
                 Check 'Wrong PID dump rejected' ($null -eq (Find-PassiveDump -Folder $folder -ProcessId ($report.pid + 1) -StartedUtc $started)) $null
