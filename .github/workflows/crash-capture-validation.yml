@@ -1,4 +1,4 @@
-name: OpenMW crash capture Windows integration
+name: OpenMW passive crash capture Windows integration
 on:
   push:
     branches: [diagnostics/crash-capture-validation-20261119]
@@ -21,15 +21,17 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Run signed ProcDump against real synthetic processes with Windows PowerShell 5.1
+      - name: Test real WER native crashes without a debugger on Windows PowerShell 5.1
         shell: powershell
         run: |
-          & ./custom/crash-capture/Test-WindowsProcDump.ps1 -CaptureScript ./custom/crash-capture/OpenMW-CrashCapture.ps1 -Output "$env:GITHUB_WORKSPACE\capture-test-evidence"
+          & ./custom/crash-capture/Test-WindowsPassive.ps1 -Output "$env:GITHUB_WORKSPACE\capture-test-evidence"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: crash-capture-windows-evidence
+          name: passive-crash-capture-windows-evidence
           path: |
             capture-test-evidence/**/*.json
             capture-test-evidence/**/*.txt
+            capture-test-evidence/Capture-Probe.exe
+            capture-test-evidence/Capture-Probe.sha256
           if-no-files-found: error

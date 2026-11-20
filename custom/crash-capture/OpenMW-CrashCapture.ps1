@@ -1,7 +1,7 @@
 #requires -Version 5.1
 [CmdletBinding()]
 param(
-    [ValidateSet('Collect', 'Run')][string]$Mode = 'Collect',
+    [ValidateSet('Collect', 'Run', 'Restore')][string]$Mode = 'Collect',
     [string]$EnginePath,
     [string]$OutputRoot,
     [switch]$DefinitionsOnly
@@ -70,7 +70,7 @@ function Get-OpenMWLocations {
     }
     if ($env:TEMP) { $dirs.Add($env:TEMP) }
     if ($Exe) { $dirs.Add((Split-Path -Parent $Exe)) }
-    if ($env:LOCALAPPDATA) { $dirs.Add((Join-Path $env:LOCALAPPDATA 'CrashDumps')) }
+    if ($env:LOCALAPPDATA) { $dirs.Add((Join-Path $env:LOCALAPPDATA 'CrashDumps')); $dirs.Add((Get-PassiveDumpFolder)) }
     return @($dirs | Select-Object -Unique)
 }
 
@@ -186,7 +186,7 @@ function Assert-CaptureFreeSpace {
     $free = $drive.AvailableFreeSpace
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'free-space.json') -Value ([pscustomobject]@{
         free_bytes = $free; minimum_before_capture = $RequiredBytes;
-        note = 'A minimum headroom check, not an upper bound on dump or ZIP size. New ProcDump dumps are retained in full.'
+        note = 'A minimum headroom check, not an upper bound on dump or ZIP size. New Windows crash dumps are retained in full.'
     })
     if ($free -lt $RequiredBytes) { throw 'Less than 4 GiB is available on the evidence drive. OpenMW was not launched; free some space or choose another local output folder.' }
 }
@@ -200,239 +200,7 @@ function Quote-NativeArgument {
     return '"' + $escaped + '"'
 }
 
-function Get-ProcDumpArguments {
-    param([string]$DumpFolder, [string]$Exe)
-    # -x starts precisely this executable under observation; never attach by openmw.exe name
-    # because OpenMW also starts an openmw.exe --crash-monitor child.
-    return @('-mm','-e','-t','-n','2','-x',$DumpFolder,$Exe)
-}
-
-function Test-MicrosoftProcDump {
-    param([string]$Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
-    $signature = Get-AuthenticodeSignature -LiteralPath $Path
-    if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) { return $false }
-    if ($signature.SignerCertificate.Subject -notmatch '(?:^|,\s*)O=Microsoft Corporation(?:,|$)') { return $false }
-    $info = (Get-Item -LiteralPath $Path).VersionInfo
-    return ($info.FileDescription -match '(?i)ProcDump' -or $info.ProductName -match '(?i)ProcDump')
-}
-
-function Get-ProcDump {
-    $toolDir = Join-Path $PSScriptRoot 'Microsoft-ProcDump'
-    $exe = Join-Path $toolDir 'procdump64.exe'
-    if (-not (Test-MicrosoftProcDump -Path $exe)) {
-        Write-Host 'Downloading Microsoft ProcDump from download.sysinternals.com...'
-        New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
-        $archive = Join-Path $toolDir 'Procdump.zip'
-        $temp = Join-Path $toolDir ('download-' + [guid]::NewGuid().ToString('N'))
-        $oldTls = [Net.ServicePointManager]::SecurityProtocol
-        try {
-            [Net.ServicePointManager]::SecurityProtocol = $oldTls -bor [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest -UseBasicParsing -Uri 'https://download.sysinternals.com/files/Procdump.zip' -OutFile $archive -TimeoutSec 90
-            Expand-Archive -LiteralPath $archive -DestinationPath $temp
-            $downloaded = Join-Path $temp 'procdump64.exe'
-            if (-not (Test-MicrosoftProcDump -Path $downloaded)) { throw 'ProcDump signature or product identity did not validate. Nothing was executed.' }
-            Copy-Item -LiteralPath $downloaded -Destination $exe -Force
-            if (Test-Path -LiteralPath (Join-Path $temp 'Eula.txt')) { Copy-Item -LiteralPath (Join-Path $temp 'Eula.txt') -Destination $toolDir -Force }
-        } finally {
-            [Net.ServicePointManager]::SecurityProtocol = $oldTls
-            if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force }
-        }
-    }
-    if (-not (Test-MicrosoftProcDump -Path $exe)) { throw 'Microsoft ProcDump could not be verified.' }
-    Write-JsonFile -Path (Join-Path $script:CaptureRoot 'procdump-identity.json') -Value (Get-FileIdentity -Path $exe -Hash)
-    return $exe
-}
-
-function Test-MinidumpHeader {
-    param([string]$Path)
-    $stream = $null
-    try {
-        $stream = [IO.File]::OpenRead($Path)
-        if ($stream.Length -lt 32) { return $false }
-        $magic = New-Object byte[] 4
-        if ($stream.Read($magic,0,4) -ne 4) { return $false }
-        return ([Text.Encoding]::ASCII.GetString($magic) -ceq 'MDMP')
-    } catch { return $false } finally { if ($null -ne $stream) { $stream.Dispose() } }
-}
-
-function Read-ProcDumpText {
-    param([string]$Path)
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return '' }
-    # ProcDump or its child may still hold the redirected output handle after exit.
-    # Read a shared snapshot; dump/completion counts and game lifetime are verified separately.
-    $stream = $null
-    $copy = $null
-    try {
-        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
-        $copy = New-Object IO.MemoryStream
-        $stream.CopyTo($copy)
-        $bytes = $copy.ToArray()
-    } finally {
-        if ($null -ne $copy) { $copy.Dispose() }
-        if ($null -ne $stream) { $stream.Dispose() }
-    }
-    if ($bytes.Length -ge 2 -and $bytes[0] -eq 255 -and $bytes[1] -eq 254) {
-        return [Text.Encoding]::Unicode.GetString($bytes).TrimStart([char]0xFEFF)
-    }
-    if ($bytes.Length -ge 2 -and $bytes[0] -eq 254 -and $bytes[1] -eq 255) {
-        return [Text.Encoding]::BigEndianUnicode.GetString($bytes).TrimStart([char]0xFEFF)
-    }
-    # Redirected ProcDump output can be UTF-16 without a byte-order mark.
-    if ($bytes.Length -ge 4 -and $bytes[1] -eq 0 -and $bytes[3] -eq 0) {
-        return [Text.Encoding]::Unicode.GetString($bytes)
-    }
-    if ($bytes.Length -ge 4 -and $bytes[0] -eq 0 -and $bytes[2] -eq 0) {
-        return [Text.Encoding]::BigEndianUnicode.GetString($bytes)
-    }
-    return [Text.Encoding]::UTF8.GetString($bytes).TrimStart([char]0xFEFF)
-}
-
-function Get-ProcDumpCaptureResult {
-    param($ExitCode, [string]$DumpFolder, [string]$OutputPath, [string]$ErrorPath, [int]$MaximumDumps)
-    $stdout = Read-ProcDumpText -Path $OutputPath
-    $stderr = Read-ProcDumpText -Path $ErrorPath
-    $dumpFiles = @(Get-ChildItem -LiteralPath $DumpFolder -Filter '*.dmp' -File)
-    $valid = @($dumpFiles | Where-Object { Test-MinidumpHeader -Path $_.FullName })
-    $completed = @([regex]::Matches($stdout, '(?m)^\s*\[[^\]\r\n]+\]\s*Dump\s+([1-9][0-9]*)\s+complete:') | ForEach-Object { [int]$_.Groups[1].Value })
-    $distinctCompleted = @($completed | Sort-Object -Unique)
-    $logError = [regex]::IsMatch(($stdout + "`n" + $stderr), '(?im)^\s*(?:\[\d{2}:\d{2}:\d{2}\]\s*(?:Dump\s+\d+\s+(?:error|failed)\b|Error\s+(?:writing|creating|opening)\b|Failed\s+(?:to\s+)?(?:write|create|open)\b|Access is denied\b)|Error\s+(?:(?:creating (?:process|dump file)|writing dump|opening process|debugging process)\b|(?:opening [^\r\n]+ \(\d+\)|launching [^\r\n]+):)|Exception in MiniDumpWriteDump Callback:)')
-    $ordinalSequence = (($distinctCompleted -join ',') -ceq ((1..([Math]::Max(1,$distinctCompleted.Count))) -join ','))
-    # ProcDump's successful return is the number of dumps written, not conventional zero.
-    # Require independent file and completed-write evidence; a positive exit alone is insufficient.
-    $verified = ($null -ne $ExitCode -and $ExitCode -ge 1 -and $ExitCode -le $MaximumDumps -and
-        $ExitCode -eq $valid.Count -and $ExitCode -eq $completed.Count -and
-        $completed.Count -eq $distinctCompleted.Count -and $ordinalSequence -and
-        $dumpFiles.Count -eq $valid.Count -and -not $logError)
-    return [pscustomobject]@{
-        verified = $verified; procdump_exit_code = $ExitCode; maximum_dumps = $MaximumDumps;
-        dump_files = $dumpFiles.Count; dumps_with_mdmp_header = $valid.Count; completed_dump_count = $completed.Count;
-        completed_dump_numbers = $completed; explicit_log_error = $logError;
-        note = 'Success requires matching positive exit/dump/completed-write counts. The exit code belongs to ProcDump, not the game. MDMP header checks are not full dump-integrity validation.'
-    }
-}
-
-function Test-ProcDumpCapture {
-    param([string]$ProcDump)
-    $dest = Join-Path $script:CaptureRoot 'procdump-self-test'
-    New-Item -ItemType Directory -Path $dest -Force | Out-Null
-    $cmdExe = Join-Path $env:SystemRoot 'System32\cmd.exe'
-    # Microsoft's current support page lists Windows 11+ clients. Do not infer Windows 10
-    # compatibility from a valid signature: first exercise this exact binary on this PC.
-    # This short-lived, empty cmd process does not run or change the game.
-    $argv = @('-mm','-e','-t','-n','1','-x',$dest,$cmdExe,'/d','/c','exit','0')
-    $command = ($argv | ForEach-Object { Quote-NativeArgument -Value $_ }) -join ' '
-    Write-Host 'Checking ProcDump capture on this PC first. Accept Microsoft''s license if shown.'
-    $probe = Start-Process -FilePath $ProcDump -ArgumentList $command -WorkingDirectory $dest -NoNewWindow -PassThru -RedirectStandardOutput (Join-Path $dest 'output.txt') -RedirectStandardError (Join-Path $dest 'errors.txt')
-    # Windows PowerShell can otherwise lose ExitCode after a redirected child exits.
-    # Retain the native handle immediately, before waiting (PowerShell issue #20400).
-    $probeHandle = $probe.Handle
-    if ($null -eq $probeHandle -or $probeHandle -eq [IntPtr]::Zero) {
-        throw 'Could not retain the ProcDump test process handle. OpenMW was not launched; partial evidence was kept.'
-    }
-    $probe.WaitForExit()
-    $probeExit = $probe.ExitCode
-    $capture = Get-ProcDumpCaptureResult -ExitCode $probeExit -DumpFolder $dest -OutputPath (Join-Path $dest 'output.txt') -ErrorPath (Join-Path $dest 'errors.txt') -MaximumDumps 1
-    $testExitObserved = (Read-ProcDumpText -Path (Join-Path $dest 'output.txt')) -match 'Process Exit:\s*PID\s+\d+,\s*Exit Code\s+0x00000000\b'
-    $ok = ($capture.verified -and $testExitObserved)
-    Write-JsonFile -Path (Join-Path $dest 'result.json') -Value ([pscustomobject]@{
-        arguments = $argv; procdump_exit_code = $probeExit; dumps_with_mdmp_header = $capture.dumps_with_mdmp_header; passed = $ok; test_process_exit_zero_observed = $testExitObserved; capture_evidence = $capture;
-        scope = 'Local native-process launch and termination-dump smoke test, with minimum size/MDMP-header checks only. This does not establish operating-system vendor support, complete dump integrity or every game-crash path.'
-    })
-    if ($null -eq $probeExit) { throw 'The ProcDump test exit code was unavailable. OpenMW was not launched; send the evidence ZIP so capture status can be checked.' }
-    if (-not $ok) { throw 'ProcDump could not pass its capture check on this PC. OpenMW was not launched. Send the evidence ZIP, which includes the failure details.' }
-}
-
-function Save-ProcessDetails {
-    param($ProcessRow, [System.Diagnostics.Process]$Process)
-    Write-JsonFile -Path (Join-Path $script:CaptureRoot 'game-process.json') -Value ([pscustomobject]@{
-        pid = $ProcessRow.ProcessId; parent_pid = $ProcessRow.ParentProcessId; executable = $ProcessRow.ExecutablePath; command_line = $ProcessRow.CommandLine
-    })
-    try {
-        $modules = @($Process.Modules | ForEach-Object {
-            [pscustomobject]@{ name = $_.ModuleName; path = $_.FileName; base_address = ('0x{0:X}' -f $_.BaseAddress.ToInt64()); bytes = $_.ModuleMemorySize; version = $_.FileVersionInfo.FileVersion }
-        })
-        Write-JsonFile -Path (Join-Path $script:CaptureRoot 'loaded-modules-snapshot.json') -Value $modules
-    } catch { Add-CaptureNote ('Module snapshot unavailable: ' + $_.Exception.Message) }
-}
-
-function Start-MonitoredOpenMW {
-    param([string]$Exe, [string]$ProcDump)
-    $dumps = Join-Path $script:CaptureRoot 'new-dumps'
-    New-Item -ItemType Directory -Path $dumps -Force | Out-Null
-    $argv = @(Get-ProcDumpArguments -DumpFolder $dumps -Exe $Exe)
-    Write-JsonFile -Path (Join-Path $script:CaptureRoot 'capture-command.json') -Value ([pscustomobject]@{ executable = $ProcDump; arguments = $argv; working_directory = (Split-Path -Parent $Exe) })
-    $command = ($argv | ForEach-Object { Quote-NativeArgument -Value $_ }) -join ' '
-    Write-Host 'Starting OpenMW through ProcDump. Accept Microsoft''s license if it appears.'
-    Write-Host 'Leave this window open. After the game closes, evidence will be packaged here.'
-    Write-Host 'The ProcDump log records whether it successfully started monitoring.'
-    $monitor = Start-Process -FilePath $ProcDump -ArgumentList $command -WorkingDirectory (Split-Path -Parent $Exe) -NoNewWindow -PassThru -RedirectStandardOutput (Join-Path $script:CaptureRoot 'procdump-output.txt') -RedirectStandardError (Join-Path $script:CaptureRoot 'procdump-errors.txt')
-    # Keep this handle through termination too; the game process is tracked separately.
-    $monitorHandle = $monitor.Handle
-    if ($null -eq $monitorHandle -or $monitorHandle -eq [IntPtr]::Zero) {
-        throw 'Could not retain the ProcDump monitor handle. The game may have started; monitoring is unconfirmed and partial evidence was kept.'
-    }
-    $game = $null
-    $row = $null
-    $started = Get-Date
-    $lastCheck = $started.AddMinutes(-1)
-    $moduleRecorded = $false
-    while (-not $monitor.WaitForExit(1000)) {
-        if (((Get-Date) - $lastCheck).TotalSeconds -ge 5) {
-            $lastCheck = Get-Date
-            if ($null -eq $game) {
-                try {
-                    $children = @(Get-CimInstance Win32_Process -Filter ('ParentProcessId = ' + $monitor.Id) | Where-Object {
-                        $_.Name -ieq 'openmw.exe' -and $_.CommandLine -notmatch '(?i)--crash-monitor'
-                    })
-                    if ($children.Count -eq 1) {
-                        $row = $children[0]
-                        $game = Get-Process -Id $row.ProcessId -ErrorAction Stop
-                        $null = $game.Handle # Retain a handle so ExitCode can be queried after termination.
-                        Save-ProcessDetails -ProcessRow $row -Process $game
-                        Write-Host ('Game process observed: ' + $game.Id + '. Play until the crash or exit normally.')
-                    }
-                } catch { Add-CaptureNote ('Process discovery: ' + $_.Exception.Message) }
-            } elseif (-not $moduleRecorded -and ((Get-Date) - $started).TotalSeconds -ge 30) {
-                Save-ProcessDetails -ProcessRow $row -Process $game
-                $moduleRecorded = $true
-            }
-        }
-    }
-    $monitor.WaitForExit()
-    # A dump cap can end ProcDump just before a crashing child finishes terminating.
-    # Wait briefly for that independently tracked process; never kill it or assume exit.
-    if ($null -ne $game) {
-        try { $null = $game.WaitForExit(10000) }
-        catch { Add-CaptureNote ('Final game-exit wait: ' + $_.Exception.Message) }
-    }
-    $gameExit = $null
-    if ($null -ne $game) {
-        try { if ($game.HasExited) { $gameExit = $game.ExitCode } } catch { Add-CaptureNote ('Game exit-code read: ' + $_.Exception.Message) }
-    }
-    $gameStillAlive = $null
-    if ($null -ne $game) {
-        try { $gameStillAlive = -not $game.HasExited } catch { Add-CaptureNote ('Final game-state read: ' + $_.Exception.Message) }
-    }
-    $monitorExit = $monitor.ExitCode
-    $capture = Get-ProcDumpCaptureResult -ExitCode $monitorExit -DumpFolder $dumps -OutputPath (Join-Path $script:CaptureRoot 'procdump-output.txt') -ErrorPath (Join-Path $script:CaptureRoot 'procdump-errors.txt') -MaximumDumps 2
-    $captureProduced = $capture.verified
-    $gameExitConfirmed = ($gameStillAlive -eq $false)
-    $status = 'capture_failed'
-    if ($captureProduced) {
-        if ($gameExitConfirmed) { $status = 'dump_captured_game_exit_confirmed' }
-        else { $status = 'dump_captured_game_exit_unconfirmed' }
-    }
-    if ($gameStillAlive -eq $true) { $status = 'monitor_ended_game_alive' }
-    Write-JsonFile -Path (Join-Path $script:CaptureRoot 'process-result.json') -Value ([pscustomobject]@{
-        procdump_exit_code = $monitorExit; game_exit_code = $gameExit; started_local = $started.ToString('o'); ended_local = (Get-Date).ToString('o');
-        dumps_with_mdmp_header = $capture.dumps_with_mdmp_header; capture_evidence = $capture; capture_status = $status; capture_completed = ($captureProduced -and $gameExitConfirmed); game_still_alive = $gameStillAlive;
-        note = 'ProcDump exit code is not the game exit code. A termination dump is also generated after a normal exit and is not by itself proof of a crash.'
-    })
-    if ($gameStillAlive -eq $true) { Add-CaptureNote 'ProcDump ended while the game was still alive. Monitoring did not cover the rest of the session.' }
-    if (-not $captureProduced -or $gameStillAlive -eq $true) { throw 'Monitoring was incomplete or produced no game dump with a recognizable header. Partial evidence was retained; see process-result.json and the ProcDump logs.' }
-    if (-not $gameExitConfirmed) { Add-CaptureNote 'A dump was produced, but the game lifetime could not be independently observed. Consult the ProcDump logs; game state is unknown, not assumed exited.' }
-}
+. (Join-Path $PSScriptRoot 'Passive-Capture.ps1')
 
 function Complete-Capture {
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'copied-evidence.json') -Value @($script:Copied.ToArray())
@@ -481,6 +249,14 @@ function Complete-Capture {
 if ($DefinitionsOnly) { return }
 if ($env:OS -ne 'Windows_NT') { throw 'This capture launcher must run on the Windows PC running OpenMW.' }
 if (-not [Environment]::Is64BitProcess) { throw 'Run this tool using 64-bit Windows PowerShell.' }
+if ($Mode -eq 'Restore') {
+    try { Invoke-WerPermissionHelper -Action Restore; exit 0 } catch { Write-Host $_.Exception.Message -ForegroundColor Red; exit 1 }
+}
+if ($Mode -eq 'Run' -and (Test-CaptureAdministrator)) { throw 'Run the capture launcher normally, not as administrator. Only the separate setup prompt needs administrator permission.' }
+$sessionMutex = New-Object Threading.Mutex($false, 'Local\OpenMWCrashCapture-Session-v1')
+$sessionOwned = $false
+try { $sessionOwned = $sessionMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $sessionOwned = $true }
+if (-not $sessionOwned) { $sessionMutex.Dispose(); throw 'Another OpenMW capture session is already running.' }
 if (-not $OutputRoot) { $OutputRoot = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'OpenMW Crash Captures' }
 $OutputRoot = [IO.Path]::GetFullPath($OutputRoot)
 $script:CaptureRoot = Join-Path $OutputRoot ('OpenMW-' + $Mode + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,6))
@@ -510,12 +286,12 @@ try {
         foreach ($scope in @('Process','User','Machine')) { $environmentRows[$name][$scope] = [Environment]::GetEnvironmentVariable($name,$scope) }
     }
     Write-JsonFile -Path (Join-Path $script:CaptureRoot 'session.json') -Value ([pscustomobject]@{
-        tool_version = '1.3'; mode = $Mode; local_time = (Get-Date).ToString('o'); utc_time = [DateTime]::UtcNow.ToString('o');
+        tool_version = '1.4'; mode = $Mode; local_time = (Get-Date).ToString('o'); utc_time = [DateTime]::UtcNow.ToString('o');
         timezone = [TimeZoneInfo]::Local.Id; os = [Environment]::OSVersion.VersionString; powershell = $PSVersionTable.PSVersion.ToString();
         engine_selected = $EnginePath; environment = $environmentRows;
         limitations = 'Only documented OpenMW locations and relevant Windows events are searched. No mod conflict diagnosis or live gameplay acceptance is implied. DMPs may contain game memory and local paths; nothing is uploaded automatically.'
     })
-    Write-Host 'OpenMW Crash Capture v1.3'
+    Write-Host 'OpenMW Crash Capture v1.4 - passive Windows collection'
     Write-Host 'Collecting existing OpenMW logs, crash dumps and Windows crash events...'
     Save-OpenMWSnapshot -Label 'before' -Exe $EnginePath
     Export-RelevantEvents -Label 'events-before'
@@ -523,9 +299,16 @@ try {
     if ($Mode -eq 'Run') {
         Assert-OriginalEvidencePreserved
         Assert-CaptureFreeSpace
-        $procDump = Get-ProcDump
-        Test-ProcDumpCapture -ProcDump $procDump
-        try { Start-MonitoredOpenMW -Exe $EnginePath -ProcDump $procDump } finally {
+        $dumpFolder = Get-PassiveDumpFolder
+        New-Item -ItemType Directory -Path $dumpFolder -Force | Out-Null
+        Assert-WerDumpsPreserved -Folder $dumpFolder
+        $dumpDrive = New-Object IO.DriveInfo ([IO.Path]::GetPathRoot($dumpFolder))
+        if ($dumpDrive.AvailableFreeSpace -lt 4GB) { throw 'Less than 4 GiB is available on the Windows dump drive. Free some space before capture.' }
+        if (-not (Test-WerConfigured -Folder $dumpFolder)) { Invoke-WerPermissionHelper -Action Enable -Folder $dumpFolder }
+        if (-not (Test-WerConfigured -Folder $dumpFolder)) { throw 'Windows capture configuration read-back failed. OpenMW was not launched.' }
+        Write-Host 'Checking crash-only collection with a small synthetic test (the game has not started yet)...'
+        Test-PassiveCapture -Folder $dumpFolder
+        try { Start-PassiveOpenMW -Exe $EnginePath -Folder $dumpFolder } finally {
             $script:CopiedDumpBytes = 0L
             Save-OpenMWSnapshot -Label 'after' -Exe $EnginePath
             Export-RelevantEvents -Label 'events-after'
@@ -542,4 +325,5 @@ try {
         Write-Host ('Unpacked evidence is still here: ' + $script:CaptureRoot)
     }
 }
+if ($sessionOwned) { $sessionMutex.ReleaseMutex() }; $sessionMutex.Dispose()
 if ($failed) { exit 1 }
