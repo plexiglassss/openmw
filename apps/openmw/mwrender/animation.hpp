@@ -520,6 +520,11 @@ namespace MWRender
         ObjectAnimation(const MWWorld::Ptr& ptr, const std::string& model, Resource::ResourceSystem* resourceSystem,
             bool animated, bool allowLight);
 
+        // Static records only. The parent is private and has no live Ptr or scene parent.
+        ObjectAnimation(osg::ref_ptr<osg::Group> parent, const std::string& model,
+            Resource::ResourceSystem* resourceSystem, bool dayNightSwitches);
+        osg::Group* getInsertNode() const { return mInsert.get(); }
+
         bool canBeHarvested() const override;
         void harvest(const MWWorld::Ptr& ptr) override;
     };

@@ -26,7 +26,8 @@ namespace SceneUtil
 
         /// Adds a WorkItem to the given WorkQueue that will clear the list of objects in a worker thread,
         /// thus unreferencing them. Call from the main thread.
-        void flush(SceneUtil::WorkQueue& workQueue);
+        // A speculative caller can leave excess references here instead of waiting for capacity.
+        void flush(SceneUtil::WorkQueue& workQueue, bool waitForCapacity = true);
 
         std::size_t getSize() const { return mObjects.size() + mQueuedObjects; }
         std::size_t getPeakQueuedObjects() const { return mPeakQueuedObjects; }

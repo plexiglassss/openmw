@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "367ebbb4d8463097c8f58032df5e4c2dd20273cc"
+        "blob": "5a9dbf402300b274cce973069d8abd047afb4524"
       },
       "status": "adapted_for_rc1"
     },
@@ -363,7 +363,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "72c6f7ed5fe60697eac416f98732219527b2b258"
+        "blob": "74c3e9762ae078eee565f9a3c4cbeb65d64dfa4e"
       },
       "status": "adapted_for_rc1"
     },
@@ -528,7 +528,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "f03b7a44f17f881ab9f74da406a8f163bf33d772"
+        "blob": "aaaf08b7ae7dcdf085f674d6f1d9fdd727d43255"
       },
       "status": "adapted_for_rc1"
     },
@@ -1529,7 +1529,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c2267b33a601648c69b605b7956f8cb9479ccbbc"
+        "blob": "270e65f0e3420299f242518b83fa1b6505e30fe9"
       },
       "status": "adapted_for_rc1"
     },
@@ -1540,7 +1540,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b01655d2130d6a8e1e80e6d88a8eb0b0edced993"
+        "blob": "bd18f0c9121ec1c9c6dcae7b35416c875a80924a"
       },
       "status": "adapted_for_rc1"
     },
@@ -1683,7 +1683,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ade785a24958a83d5231e9faba5076beed5ab0af"
+        "blob": "ddef1ba41b2a884d31bc230f2ace9155c0b54d31"
       },
       "status": "adapted_for_rc1"
     },
@@ -1694,7 +1694,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d0609f6d0ab6b9a09a34d11d9a970ba6135751d8"
+        "blob": "ad1bfec9be55a56481432ac3b35a3371d9404600"
       },
       "status": "adapted_for_rc1"
     },
@@ -1782,7 +1782,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dabdf6a72139cb6f51a3042b497b301001ab80eb"
+        "blob": "cbfabfe2ec86f2ebc6bd5b90e80916be63b26e54"
       },
       "status": "adapted_for_rc1"
     },
@@ -1793,7 +1793,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "0ad5c7780182ffa6b79ea9b587b8ce53335b5a82"
+        "blob": "3a4ad1555a5e8c164b3e2bc586bef7ec0476efe4"
       },
       "status": "adapted_for_rc1"
     },
@@ -1936,7 +1936,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "31964784897f0b782f3da871fb8855c8a4dabb8c"
+        "blob": "f0aeabd78bedaf25ddfe5a658a79b2e43b24c0b9"
       },
       "status": "adapted_for_rc1"
     },
@@ -2002,7 +2002,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "967b026bf134905873d4201ef47289d22a4be72b"
+        "blob": "4535834e0da449ae3d523747512010e86f2503fc"
       },
       "status": "adapted_for_rc1"
     },
@@ -2783,7 +2783,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "a48d2bc8fdcf2d754e4c38f87f166ae46c7e98a6"
+        "blob": "079ed061d622a7d6e61fc7f35c0ab310de15a115"
       },
       "status": "adapted_for_rc1"
     },
@@ -3003,7 +3003,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "a07f7483485641145f29dc63e3401ac1badbb5f3"
+        "blob": "65b01a2847cf7fcc1631c872129e65bc281bb0b2"
       },
       "status": "adapted_for_rc1"
     },
@@ -3014,7 +3014,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "44a77f418e51f133679429401dffcb9cbd78cafe"
+        "blob": "56bf569599b82ac53685caaed58cf6360d2eb835"
       },
       "status": "adapted_for_rc1"
     },
@@ -3036,7 +3036,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "13ac3ee459f91b191199068c8ff5d911683e963c"
+        "blob": "69ded5a0f5694dd3ec2f00a5554b1e4c5f735883"
       },
       "status": "adapted_for_rc1"
     },
@@ -3322,7 +3322,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7288debdd794cbd2af688674d2e4f3175bb8afc0"
+        "blob": "9d48c9717321f8ec41362b60e4c6ca71d1425c7c"
       },
       "status": "adapted_for_rc1"
     },
@@ -3333,7 +3333,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d6c889b2253c1e2479e6f8f9602dcbac23aee35a"
+        "blob": "41a10f5f7fd2362906ebc1050314a572d04123b4"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "367ebbb4d8463097c8f58032df5e4c2dd20273cc"
+        "blob": "5a9dbf402300b274cce973069d8abd047afb4524"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -6223,9 +6223,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "72c6f7ed5fe60697eac416f98732219527b2b258"
+        "blob": "74c3e9762ae078eee565f9a3c4cbeb65d64dfa4e"
       },
-      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/components_tests/sceneutil/testcompilepriority.cpp": {
       "upstream": null,
@@ -6401,9 +6401,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "f03b7a44f17f881ab9f74da406a8f163bf33d772"
+        "blob": "aaaf08b7ae7dcdf085f674d6f1d9fdd727d43255"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/engine.cpp": {
       "upstream": {
@@ -7687,9 +7687,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "c2267b33a601648c69b605b7956f8cb9479ccbbc"
+        "blob": "270e65f0e3420299f242518b83fa1b6505e30fe9"
       },
-      "purpose": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwrender/animation.cpp": {
       "upstream": {
@@ -7698,9 +7698,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b01655d2130d6a8e1e80e6d88a8eb0b0edced993"
+        "blob": "bd18f0c9121ec1c9c6dcae7b35416c875a80924a"
       },
-      "purpose": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
+      "purpose": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwrender/animation.hpp": {
       "upstream": {
@@ -7709,9 +7709,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ee2d786eaeb7ecec7bdeee64758e3e44ed8fb03b"
+        "blob": "bdecf724fcd14efdd92c66f94f6a35e393dd2163"
       },
-      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
+      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwrender/characterpreview.cpp": {
       "upstream": {
@@ -7846,9 +7846,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ade785a24958a83d5231e9faba5076beed5ab0af"
+        "blob": "ddef1ba41b2a884d31bc230f2ace9155c0b54d31"
       },
-      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwrender/objects.hpp": {
       "upstream": {
@@ -7857,9 +7857,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d0609f6d0ab6b9a09a34d11d9a970ba6135751d8"
+        "blob": "ad1bfec9be55a56481432ac3b35a3371d9404600"
       },
-      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwrender/precipitationocclusion.cpp": {
       "upstream": {
@@ -8008,9 +8008,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dabdf6a72139cb6f51a3042b497b301001ab80eb"
+        "blob": "cbfabfe2ec86f2ebc6bd5b90e80916be63b26e54"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwworld/cellpreloader.hpp": {
       "upstream": {
@@ -8019,9 +8019,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "0ad5c7780182ffa6b79ea9b587b8ce53335b5a82"
+        "blob": "3a4ad1555a5e8c164b3e2bc586bef7ec0476efe4"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwworld/cellref.cpp": {
       "upstream": {
@@ -8175,9 +8175,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "31964784897f0b782f3da871fb8855c8a4dabb8c"
+        "blob": "f0aeabd78bedaf25ddfe5a658a79b2e43b24c0b9"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Notify native UI after actual player-cell changes, including already-active exterior crossings; retain scene activation and rendering order. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Notify native UI after actual player-cell changes, including already-active exterior crossings; retain scene activation and rendering order. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw/mwworld/scene.hpp": {
       "upstream": {
@@ -8257,9 +8257,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "967b026bf134905873d4201ef47289d22a4be72b"
+        "blob": "4535834e0da449ae3d523747512010e86f2503fc"
       },
-      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates."
+      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "upstream": null,
@@ -9269,9 +9269,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "a48d2bc8fdcf2d754e4c38f87f166ae46c7e98a6"
+        "blob": "079ed061d622a7d6e61fc7f35c0ab310de15a115"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "components/misc/dialoguetext.cpp": {
       "upstream": null,
@@ -9494,9 +9494,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "a07f7483485641145f29dc63e3401ac1badbb5f3"
+        "blob": "65b01a2847cf7fcc1631c872129e65bc281bb0b2"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "components/resource/scenemanager.hpp": {
       "upstream": {
@@ -9505,9 +9505,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "44a77f418e51f133679429401dffcb9cbd78cafe"
+        "blob": "56bf569599b82ac53685caaed58cf6360d2eb835"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "components/resource/stats.cpp": {
       "upstream": {
@@ -9524,9 +9524,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "13ac3ee459f91b191199068c8ff5d911683e963c"
+        "blob": "69ded5a0f5694dd3ec2f00a5554b1e4c5f735883"
       },
-      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Reduce repeated Lua script construction and allocation using isolated LuaJIT closures promoted on reuse, with bounded pending source, unchanged event order and bytecode fallback; keep scenery CPU preparation moving while bounding unresolved graphics work and preserving all cumulative b9fd7797 features. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "components/sceneutil/attach.cpp": {
       "upstream": {
@@ -9807,9 +9807,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7288debdd794cbd2af688674d2e4f3175bb8afc0"
+        "blob": "9d48c9717321f8ec41362b60e4c6ca71d1425c7c"
       },
-      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "components/sceneutil/unrefqueue.hpp": {
       "upstream": {
@@ -9818,9 +9818,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d6c889b2253c1e2479e6f8f9602dcbac23aee35a"
+        "blob": "41a10f5f7fd2362906ebc1050314a572d04123b4"
       },
-      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
     },
     "components/sceneutil/vertexattributes.hpp": {
       "upstream": null,
@@ -13996,6 +13996,144 @@
         "blob": "40d428f159e2c717aaf6726c8e60e1f46ed246a4"
       },
       "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Retained or adapted to the official RC1 source/API."
+    },
+    "apps/openmw/mwphysics/mtphysics.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "2b55bd233f94ab8ef74f9798873b6e76672deffe"
+      },
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "278c5b06556ef69a35156c8e48f4c0c4257d65ff"
+      }
+    },
+    "apps/openmw/mwphysics/mtphysics.hpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "08147a1ebf7b547f527befd4d0453c4d06620fc6"
+      },
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "f5c8cdf3c0e7cbf5322b0c33e53eede7cdd3b145"
+      }
+    },
+    "apps/openmw/mwphysics/object.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "594c0f4f01c0194317a7899ce18e9f64ac2f137e"
+      },
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "e774b573c315cb74c785ea050864e5fb3b9f2c42"
+      }
+    },
+    "apps/openmw/mwphysics/object.hpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "5ef5239fc9719790e2382784b4abdf76ae64734f"
+      },
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "b28e65ad82929d735d39a412ffedf2e25289cb0f"
+      }
+    },
+    "apps/openmw/mwphysics/physicssystem.hpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "80c272294b8cb647852f767989797ed10ee3acf8"
+      },
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "f3e22d7e247cbf5403e5ce56731cadbaf8ea4edb"
+      }
+    },
+    "apps/openmw/mwphysics/ptrholder.hpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "fc8fd94c30b9e59794659d0b0f3e6d1c424b3d7f"
+      },
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "ba4178bc7413b90a877be9a9ad434fc162913b16"
+      }
+    },
+    "apps/openmw/mwworld/preparedcell.cpp": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "46d2da035800a8a3bd7a7747375fd3f9344a5259"
+      }
+    },
+    "apps/openmw/mwworld/preparedcell.hpp": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "60f49b7b522d5dbbf1039ff4b62e3f5e9faafafc"
+      }
+    },
+    "apps/openmw_tests/mwworld/preparedcellgl.hpp": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "10ab9056e3f7ef32f3ed7bcd4485bcd9b78f31b7"
+      }
+    },
+    "apps/openmw_tests/mwworld/testpreparedcell.cpp": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "d1480af971bdf6db0ce5ba90132caed390fb09e4"
+      }
+    },
+    "custom/prepared-cells/README.md": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "38aa0bdb4607ca64216372a2227626f457274b36"
+      }
+    },
+    "custom/prepared-cells/Run-Prepared-Cells-Baseline.cmd": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "ec2cc0ce1ab2b1eb6d2e4f4da2fbb0f94a71e5c4"
+      }
+    },
+    "custom/prepared-cells/Run-Prepared-Cells-Experiment.cmd": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "e8637fac8c2ba8cbc2a3498ef9b8c49d41aa707b"
+      }
+    },
+    "custom/prepared-cells/test-verifier.py": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "08cbadda7f0758632ccf56b2ef1bfeb04525f73b"
+      }
+    },
+    "custom/prepared-cells/verify-tests.py": {
+      "upstream": null,
+      "purpose": " Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim.",
+      "ported": {
+        "mode": "100644",
+        "blob": "b844df6a270c755221e44d79a43ab7dafad5e5de"
+      }
     }
   }
 }

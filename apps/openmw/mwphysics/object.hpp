@@ -32,6 +32,15 @@ namespace MWPhysics
     public:
         Object(const MWWorld::Ptr& ptr, std::shared_ptr<Resource::BulletShapeInstance> shapeInstance,
             osg::Quat rotation, int collisionType, PhysicsTaskScheduler* scheduler);
+        // Private, detached construction: no live reference or Bullet-world registration.
+        Object(std::shared_ptr<Resource::BulletShapeInstance> shapeInstance, const osg::Vec3f& position,
+            osg::Quat rotation, float scale);
+        void activate(const MWWorld::Ptr& ptr, int collisionType, PhysicsTaskScheduler* scheduler);
+        bool stage(PhysicsTaskScheduler* scheduler);
+        bool unstage(bool wait = true);
+        void retainPreparationCharge(std::shared_ptr<void> charge) { mResourceLifetime = std::move(charge); }
+        bool isActive() const { return mTaskScheduler != nullptr && !mStaged; }
+        bool isStaged() const { return mStaged; }
         ~Object() override;
 
         const std::shared_ptr<Resource::BulletShapeInstance>& getShapeInstance() const;
@@ -61,7 +70,8 @@ namespace MWPhysics
         bool mScaleUpdatePending = false;
         bool mTransformUpdatePending = false;
         mutable std::mutex mPositionMutex;
-        PhysicsTaskScheduler* mTaskScheduler;
+        PhysicsTaskScheduler* mTaskScheduler = nullptr;
+        bool mStaged = false;
         char mCollidedWith;
     };
 }

@@ -61,6 +61,16 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    // Isolated feasibility experiment. Explicit opt-in; baseline behavior is the default.
+    inline bool usePreparedCells()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_PREPARED_CELLS");
+            return value && std::string_view(value) == "1";
+        }();
+        return enabled;
+    }
+
     inline bool useActorPreparation()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_PREPARATION");

@@ -1551,7 +1551,7 @@ namespace MWRender
         std::string defaultSkeleton;
         bool inject = false;
 
-        if (Settings::game().mUseAdditionalAnimSources && mPtr.getClass().isActor())
+        if (!mPtr.isEmpty() && Settings::game().mUseAdditionalAnimSources && mPtr.getClass().isActor())
         {
             if (isCreature)
             {
@@ -2110,6 +2110,20 @@ namespace MWRender
             && ObjectAnimation::canBeHarvested())
         {
             harvest(ptr);
+        }
+    }
+
+    ObjectAnimation::ObjectAnimation(osg::ref_ptr<osg::Group> parent, const std::string& model,
+        Resource::ResourceSystem* resourceSystem, bool dayNightSwitches)
+        : Animation(MWWorld::Ptr{}, std::move(parent), resourceSystem)
+    {
+        // ESM3 STAT has no inventory, enchantment, attached light or class animation source.
+        // No live Class calls, world queries, respawn, PRNG or script execution here.
+        setObjectRoot(model, false, false, false);
+        if (dayNightSwitches && SceneUtil::hasUserDescription(mObjectRoot, Constants::NightDayLabel))
+        {
+            AddSwitchCallbacksVisitor visitor;
+            mObjectRoot->accept(visitor);
         }
     }
 

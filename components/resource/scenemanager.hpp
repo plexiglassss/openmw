@@ -124,6 +124,7 @@ namespace Resource
         void setShaderPath(const std::filesystem::path& path);
 
         std::uint64_t modelSettingsRevision() const { return mModelSettingsRevision.load(); }
+        std::uint64_t graphicsRevision() const { return mGraphicsRevision.load(); }
 
         /// Check if a given scene is loaded and if so, update its usage timestamp to prevent it from being unloaded
         bool checkLoaded(VFS::Path::NormalizedView name, double referenceTime);
@@ -241,6 +242,7 @@ namespace Resource
         std::unique_ptr<ModelDrafts> mModelDrafts;
         mutable std::shared_mutex mModelSettingsMutex;
         std::atomic_uint64_t mModelSettingsRevision{ 0 };
+        std::atomic_uint64_t mGraphicsRevision{ 0 };
         SceneInstanceCache mInstanceCache;
         using ModelRevision = SceneInstanceCache::Revision;
         struct TemplateKey

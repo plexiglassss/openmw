@@ -34,10 +34,12 @@
 #include <components/resource/keyframemanager.hpp>
 #include <components/resource/resourcesystem.hpp>
 #include <components/resource/scenemanager.hpp>
+#include <components/shader/shadermanager.hpp>
 #include <components/sceneutil/asyncpreparation.hpp>
 #include <components/sceneutil/preloadretention.hpp>
 #include <components/sceneutil/preparationcost.hpp>
 #include <components/sceneutil/scenefootprint.hpp>
+#include <components/sceneutil/compilepriority.hpp>
 #include <components/settings/values.hpp>
 #include <components/terrain/view.hpp>
 #include <components/terrain/world.hpp>
@@ -48,11 +50,13 @@
 #include "../mwbase/world.hpp"
 #include "../mwmechanics/creaturestats.hpp"
 #include "../mwrender/landmanager.hpp"
+#include "../mwphysics/physicssystem.hpp"
 
 #include "cellstore.hpp"
 #include "class.hpp"
 #include "manualref.hpp"
 #include "preloaddependencies.hpp"
+#include "preparedcell.hpp"
 
 namespace MWWorld
 {
@@ -210,6 +214,155 @@ namespace MWWorld
             return oldest;
         }
     };
+
+    struct CellPreloader::PreparedCells
+    {
+        using Jobs = SceneUtil::AsyncPreparation<ESM::RefId, std::shared_ptr<PreparedCell>>;
+        Jobs mJobs;
+        struct Revision
+        {
+            std::uint64_t mModels, mVfs, mGraphics, mShaders;
+            bool mDayNight, mRendering;
+            osgUtil::IncrementalCompileOperation* mCompile;
+            osgUtil::IncrementalCompileOperation::ContextSet mContexts;
+            std::vector<osg::ref_ptr<osg::GraphicsContext>> mContextOwners;
+            bool operator==(const Revision&) const = default;
+        };
+        std::optional<Revision> mRevision;
+        std::size_t mTaken = 0, mMissed = 0;
+        std::size_t mRenderedUses = 0, mCollisionOnlyUses = 0, mUnused = 0;
+        explicit PreparedCells(std::shared_ptr<SceneUtil::WorkQueue> queue)
+            : mJobs(queue, 2, 8, 256ull * 1024 * 1024, 30.0, 30.0, 4) {}
+
+        bool synchronize(Resource::SceneManager& scene, bool preloadInstances)
+        {
+            auto* compile = scene.getIncrementalCompileOperation();
+            Revision revision{ scene.modelSettingsRevision(), scene.getVFS()->getIndexRevision(), scene.graphicsRevision(),
+                scene.getShaderManager().compileRevision(),
+                Settings::game().mDayNightSwitches,
+                preloadInstances && !(Settings::terrain().mDistantTerrain && Settings::terrain().mObjectPaging
+                    && Settings::terrain().mObjectPagingActiveGrid), compile,
+                compile ? compile->getContextSet() : osgUtil::IncrementalCompileOperation::ContextSet{}, {} };
+            for (auto* context : revision.mContexts)
+                revision.mContextOwners.emplace_back(context);
+            if (!mRevision || *mRevision != revision)
+            {
+                mJobs.clear();
+                mRevision = revision;
+            }
+            return !revision.mRendering || (compile && !revision.mContexts.empty());
+        }
+    };
+
+    void CellPreloader::prepareCell(CellStore& cell, double timestamp)
+    {
+        if (!Misc::usePreparedCells() || !Settings::cells().mPreloadEnabled || !mWorkQueue || !mMaxCacheSize || !cell.isExterior()
+            || cell.getState() != CellStore::State_Loaded)
+            return;
+        if (!mPreparedCells)
+            mPreparedCells = std::make_unique<PreparedCells>(mPreparedWorkQueue ? mPreparedWorkQueue : mWorkQueue);
+        auto& prepared = *mPreparedCells;
+        auto* scene = mResourceSystem->getSceneManager();
+        if (!prepared.synchronize(*scene, mPreloadInstances))
+            return; // Render instances require initialized graphics contexts; collision has no GPU work.
+        const auto key = cell.getCell()->getId();
+        if (prepared.mJobs.contains(key))
+        {
+            prepared.mJobs.poll(key, timestamp);
+            return;
+        }
+        if (!prepared.mJobs.canRequest())
+            return;
+        std::vector<StaticPreparationInput> inputs;
+        cell.forEachConst([&](const ConstPtr& ptr) {
+            if (StaticPreparationInput::eligible(ptr))
+                inputs.push_back(StaticPreparationInput::capture(ptr));
+            return inputs.size() < 2048;
+        });
+        if (inputs.empty())
+            return;
+        const auto revision = *prepared.mRevision;
+        osg::ref_ptr<osgUtil::IncrementalCompileOperation> compile = revision.mCompile;
+        prepared.mJobs.request(key, timestamp,
+            [inputs = std::move(inputs), resources = mResourceSystem, shapes = mBulletShapeManager,
+                revision, compile](const std::atomic_bool& abort) -> PreparedCells::Jobs::Prepared {
+                // With active-grid paging, avoid constructing duplicate individual render graphs.
+                // A static excluded by paging still uses ordinary rendering plus prepared collision.
+                auto packet = PreparedCell::prepare(inputs, *resources, *shapes, revision.mDayNight, abort,
+                    revision.mRendering);
+                if (abort || packet->size() == 0)
+                    return {};
+                if (!revision.mRendering)
+                {
+                    auto complete = std::make_shared<std::atomic_bool>(true);
+                    packet->setCompileCompletion(complete);
+                    return { packet, complete, {}, packet->bytes(),
+                        [packet](std::shared_ptr<void> charge) { packet->retainPreparationCharge(std::move(charge)); } };
+                }
+                auto ready = SceneUtil::prepareCompileReadiness(packet->compileRoot(), revision.mContexts);
+                packet->setCompileCompletion(ready.mReady);
+                compile->add(ready.mSet, false);
+                return { packet, ready.mReady,
+                    [compile, set = ready.mSet] { compile->remove(set); },
+                    packet->bytes() + ready.mEstimatedBytes,
+                    [packet](std::shared_ptr<void> charge) { packet->retainPreparationCharge(std::move(charge)); } };
+            });
+    }
+
+    std::shared_ptr<PreparedCell> CellPreloader::takePreparedCell(CellStore& cell, double timestamp)
+    {
+        if (!Misc::usePreparedCells() || !mPreparedCells
+            || !mPreparedCells->synchronize(*mResourceSystem->getSceneManager(), mPreloadInstances))
+            return {};
+        const auto key = cell.getCell()->getId();
+        if (mPhysics)
+        {
+            const auto candidate = mPreparedCells->mJobs.peek(key);
+            if (!candidate.mReady || !candidate.mValue || !candidate.mValue->physicsStaged())
+            {
+                ++mPreparedCells->mMissed;
+                return {};
+            }
+        }
+        auto result = mPreparedCells->mJobs.takeReady(key, timestamp);
+        if (!result.mReady || !result.mValue)
+        {
+            ++mPreparedCells->mMissed;
+            return {};
+        }
+        result.mValue->detachCompileRoot();
+        ++mPreparedCells->mTaken;
+        return std::move(result.mValue);
+    }
+
+    void CellPreloader::recordPreparedCellUsage(const PreparedCell& cell)
+    {
+        if (!mPreparedCells)
+            return;
+        mPreparedCells->mRenderedUses += cell.renderedUses();
+        mPreparedCells->mCollisionOnlyUses += cell.collisionOnlyUses();
+        mPreparedCells->mUnused += cell.unused();
+        Log(Debug::Info) << "Prepared cell consumption: rendering=" << cell.renderedUses()
+            << " collisionOnly=" << cell.collisionOnlyUses() << " unconsumed=" << cell.unused();
+    }
+
+    void CellPreloader::stagePreparedCells()
+    {
+        if (!mPhysics || !mWorkQueue || !Misc::usePreparedCells()) return;
+        Diagnostics::Scope measured("prepared-cell", "dormant-collision", "stageSlice");
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1);
+        mPhysics->retirePreparedObjects(mPreparedWorkQueue ? *mPreparedWorkQueue : *mWorkQueue, deadline);
+        if (!mPreparedCells) return;
+        if (!mPreparedCells->synchronize(*mResourceSystem->getSceneManager(), mPreloadInstances)) return;
+        std::size_t left = 64;
+        std::vector<ESM::RefId> failed;
+        mPreparedCells->mJobs.forEachReady([&](const auto& key, const auto& packet) {
+            if (!packet || !left) return;
+            left -= packet->stagePhysics(*mPhysics, deadline, left);
+            if (packet->stagingFailed()) failed.push_back(key);
+        });
+        for (const auto& key : failed) mPreparedCells->mJobs.cancel(key);
+    }
 
     double CellPreloader::preparationLeadTime(double configured)
     {
@@ -814,9 +967,11 @@ namespace MWWorld
     };
 
     CellPreloader::CellPreloader(Resource::ResourceSystem* resourceSystem,
-        Resource::BulletShapeManager* bulletShapeManager, Terrain::World* terrain, MWRender::LandManager* landManager)
+        Resource::BulletShapeManager* bulletShapeManager, Terrain::World* terrain, MWRender::LandManager* landManager,
+        MWPhysics::PhysicsSystem* physics)
         : mResourceSystem(resourceSystem)
         , mBulletShapeManager(bulletShapeManager)
+        , mPhysics(physics)
         , mTerrain(terrain)
         , mLandManager(landManager)
         , mExpiryDelay(0.0)
@@ -834,6 +989,7 @@ namespace MWWorld
 
     void CellPreloader::preload(CellStore& cell, double timestamp)
     {
+        prepareCell(cell, timestamp);
         if (!mWorkQueue)
         {
             Log(Debug::Error) << "Error: can't preload, no work queue set";
@@ -891,6 +1047,8 @@ namespace MWWorld
 
     void CellPreloader::notifyLoaded(CellStore* cell)
     {
+        if (mPreparedCells)
+            mPreparedCells->mJobs.cancel(cell->getCell()->getId());
         if (mStaticPreloads && cell->isExterior())
             mStaticPreloads->mJobs.cancel(cell->getCell()->getExteriorCellLocation());
         PreloadMap::iterator found = mPreloadCells.find(cell);
@@ -916,6 +1074,9 @@ namespace MWWorld
 
     void CellPreloader::clear()
     {
+        if (mPhysics) mPhysics->discardPreparedObjects(mPreparedWorkQueue ? mPreparedWorkQueue.get() : mWorkQueue.get());
+        if (mPreparedCells)
+            mPreparedCells->mJobs.clear();
         clearArrivals();
         mPreparationCost = {};
         if (mStaticPreloads)
@@ -938,6 +1099,9 @@ namespace MWWorld
 
     void CellPreloader::updateCache(double timestamp)
     {
+        if (mPreparedCells)
+            mPreparedCells->mJobs.update(timestamp);
+        stagePreparedCells();
         if (mStaticPreloads)
             mStaticPreloads->mJobs.update(timestamp);
         std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
@@ -988,8 +1152,17 @@ namespace MWWorld
         mPreloadInstances = preload;
     }
 
+    void CellPreloader::setPreparedWorkQueue(std::shared_ptr<SceneUtil::WorkQueue> workQueue)
+    {
+        if (mPhysics) mPhysics->discardPreparedObjects(mPreparedWorkQueue ? mPreparedWorkQueue.get() : mWorkQueue.get());
+        mPreparedCells.reset();
+        mPreparedWorkQueue = std::move(workQueue);
+    }
+
     void CellPreloader::setWorkQueue(std::shared_ptr<SceneUtil::WorkQueue> workQueue)
     {
+        if (mPhysics) mPhysics->discardPreparedObjects(mPreparedWorkQueue ? mPreparedWorkQueue.get() : mWorkQueue.get());
+        mPreparedCells.reset();
         mStaticPreloads.reset();
         mWorkQueue = std::move(workQueue);
     }
@@ -1230,6 +1403,8 @@ namespace MWWorld
 
     void CellPreloader::clearAllTasks()
     {
+        if (mPhysics) mPhysics->discardPreparedObjects(mPreparedWorkQueue ? mPreparedWorkQueue.get() : mWorkQueue.get());
+        mPreparedCells.reset(); // Join detached instances before queue/terrain/resource ownership changes.
         mPreparationCost = {};
         mStaticPreloads.reset(); // joins detached readers before their resource/store owners disappear
         if (mTerrainPreloadItem)
@@ -1264,5 +1439,15 @@ namespace MWWorld
         stats.setAttribute(frameNumber, "CellPreloader Cost Retentions", static_cast<double>(mCostRetentions));
         stats.setAttribute(frameNumber, "CellPreloader Static Jobs",
             mStaticPreloads ? static_cast<double>(mStaticPreloads->mJobs.size()) : 0.0);
+        stats.setAttribute(frameNumber, "PreparedCell Jobs",
+            mPreparedCells ? static_cast<double>(mPreparedCells->mJobs.size()) : 0.0);
+        stats.setAttribute(frameNumber, "PreparedCell Estimated Bytes Including Retirement",
+            mPreparedCells ? static_cast<double>(mPreparedCells->mJobs.estimatedBytes()) : 0.0);
+        stats.setAttribute(frameNumber, "PreparedCell Hits", mPreparedCells ? mPreparedCells->mTaken : 0);
+        stats.setAttribute(frameNumber, "PreparedCell Misses", mPreparedCells ? mPreparedCells->mMissed : 0);
+        stats.setAttribute(frameNumber, "PreparedCell Rendering Consumed", mPreparedCells ? mPreparedCells->mRenderedUses : 0);
+        stats.setAttribute(frameNumber, "PreparedCell Collision Only Consumed",
+            mPreparedCells ? mPreparedCells->mCollisionOnlyUses : 0);
+        stats.setAttribute(frameNumber, "PreparedCell Unconsumed", mPreparedCells ? mPreparedCells->mUnused : 0);
     }
 }

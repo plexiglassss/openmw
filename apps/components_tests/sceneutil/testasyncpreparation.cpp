@@ -72,6 +72,17 @@ namespace
         EXPECT_EQ(queue->getNumItems(), 2u);
     }
 
+    TEST(AsyncPreparation, AdmissionPreflightRejectsSaturatedQueueBeforeSnapshotConstruction)
+    {
+        auto queue = std::make_shared<SceneUtil::WorkQueue>(0);
+        Cache cache(queue, 1, 1);
+        EXPECT_TRUE(cache.canRequest());
+        cache.request(1, 0, value(1));
+        EXPECT_FALSE(cache.canRequest());
+        cache.clear();
+        EXPECT_TRUE(cache.canRequest());
+    }
+
     TEST(AsyncPreparation, GraphicsWaitingGraphsStillConsumeTheByteBudget)
     {
         std::shared_ptr<SceneUtil::WorkQueue> queue = std::make_shared<SceneUtil::WorkQueue>(1);
@@ -84,6 +95,100 @@ namespace
         cache.request(2, 0, value(2));
         EXPECT_EQ(cache.submitted(), 1u);
         EXPECT_FALSE(cache.poll(1, 0).mReady);
+    }
+
+    TEST(AsyncPreparation, CancelledAndRetiringGraphsRemainChargedUntilWorkerRelease)
+    {
+        auto queue = std::make_shared<SceneUtil::WorkQueue>(0);
+        constexpr std::size_t budget = 128ull * 1024 * 1024;
+        Cache cache(queue, 2, 8, budget);
+        cache.request(1, 0, [](const std::atomic_bool&) {
+            return Cache::Prepared{ std::make_shared<int>(1), {}, {}, budget };
+        });
+        {
+            auto item = queue->removeWorkItem();
+            ASSERT_TRUE(item);
+            item->doWork();
+            item->signalDone();
+        }
+        EXPECT_EQ(cache.estimatedBytes(), budget);
+        EXPECT_TRUE(cache.cancel(1));
+        EXPECT_FALSE(cache.canRequest());
+        cache.update(1); // Ownership moves to the unref queue, not out of the budget.
+        EXPECT_EQ(cache.estimatedBytes(), budget);
+        EXPECT_FALSE(cache.canRequest());
+        while (queue->getNumItems())
+        {
+            auto item = queue->removeWorkItem();
+            item->doWork();
+            item->signalDone();
+        }
+        EXPECT_EQ(cache.estimatedBytes(), 0u);
+        EXPECT_TRUE(cache.canRequest());
+    }
+
+    TEST(AsyncPreparation, SpeculativeRetirementNeverWaitsForAFullCleanupQueue)
+    {
+        SceneUtil::WorkQueue queue(0);
+        SceneUtil::UnrefQueue retirement;
+        for (std::size_t i=0; i<SceneUtil::UnrefQueue::MaxQueuedObjects+1; ++i)
+            retirement.push(std::make_shared<int>(1));
+        // No worker can free capacity; a blocking flush would deadlock this test.
+        retirement.flush(queue,false);
+        EXPECT_EQ(retirement.getBackpressureWaits(),0u);
+        EXPECT_EQ(retirement.getSize(),SceneUtil::UnrefQueue::MaxQueuedObjects+1);
+        while (queue.getNumItems())
+        {
+            auto item = queue.removeWorkItem(); item->doWork(); item->signalDone();
+        }
+        retirement.flush(queue,false);
+        while (queue.getNumItems())
+        {
+            auto item = queue.removeWorkItem(); item->doWork(); item->signalDone();
+        }
+        retirement.flush(queue,false);
+        EXPECT_EQ(retirement.getSize(),0u);
+    }
+
+    TEST(AsyncPreparation, ExternalStagedOwnershipRetainsChargeAfterJobRetirement)
+    {
+        auto queue = std::make_shared<SceneUtil::WorkQueue>(0);
+        constexpr std::size_t budget = 128ull * 1024 * 1024;
+        Cache cache(queue,2,8,budget);
+        std::shared_ptr<void> external;
+        cache.request(1,0,[&](const std::atomic_bool&) {
+            return Cache::Prepared{ std::make_shared<int>(1), {}, {}, budget,
+                [&](std::shared_ptr<void> charge) { external = std::move(charge); } };
+        });
+        const auto drain = [&] {
+            while (queue->getNumItems())
+            {
+                auto item = queue->removeWorkItem(); item->doWork(); item->signalDone();
+            }
+        };
+        drain(); cache.cancel(1); cache.update(1); drain();
+        EXPECT_EQ(cache.estimatedBytes(),budget);
+        EXPECT_FALSE(cache.canRequest());
+        external.reset();
+        EXPECT_EQ(cache.estimatedBytes(),0u);
+        EXPECT_TRUE(cache.canRequest());
+    }
+
+    TEST(AsyncPreparation, ChargeCallbackFailureCompletesAsFailureAndCancelsReceipt)
+    {
+        auto queue = std::make_shared<SceneUtil::WorkQueue>(1);
+        Cache cache(queue);
+        std::atomic_int cancellations = 0;
+        cache.request(1,0,[&](const std::atomic_bool&) {
+            return Cache::Prepared{ std::make_shared<int>(1), {}, [&] { ++cancellations; }, 1024,
+                [](std::shared_ptr<void>) { throw std::runtime_error("injected retention failure"); } };
+        });
+        finishCpuQueue(*queue);
+        EXPECT_TRUE(cache.poll(1,0).mFailed);
+        EXPECT_FALSE(cache.poll(1,0).mReady);
+        EXPECT_EQ(cancellations,1);
+        cache.clear();
+        EXPECT_EQ(cancellations,1);
     }
 
     TEST(AsyncPreparation, CancelledCpuWorkStillConsumesSeparateCpuCapacity)

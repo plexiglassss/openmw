@@ -657,6 +657,20 @@ jobs:
           Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT,Env:OPENMW_LUA_UI_LEGACY_UPDATES,Env:OPENMW_COMBINED_PERFORMANCE,Env:OPENMW_LUA_CELL_QUERY_CACHE -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
+          Remove-Item Env:OPENMW_PREPARED_CELLS -ErrorAction SilentlyContinue
+          ./build/openmw-tests.exe --gtest_filter=PreparedCellTest.*:RenderModes/PreparedCellBenchmark.* --gtest_output=xml:prepared-off.xml
+          if ($LASTEXITCODE) { throw 'Prepared-cell default-off regressions failed' }
+          try {
+            $env:OPENMW_PREPARED_CELLS = '1'
+            ./build/openmw-tests.exe --gtest_filter=PreparedCellTest.*:RenderModes/PreparedCellBenchmark.* --gtest_output=xml:prepared-on.xml
+            if ($LASTEXITCODE) { throw 'Prepared-cell opt-in regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_PREPARED_CELLS -ErrorAction SilentlyContinue
+          }
+          python custom/prepared-cells/verify-tests.py --off prepared-off.xml --on prepared-on.xml --components components-tests.xml --output prepared-cell-verification.json
+          if ($LASTEXITCODE) { throw 'Prepared-cell required executed evidence failed' }
+          python custom/prepared-cells/test-verifier.py --off prepared-off.xml --on prepared-on.xml --components components-tests.xml --output prepared-verifier-tests.json
+          if ($LASTEXITCODE) { throw 'Prepared-cell evidence verifier negative tests failed' }
           try {
             $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
             ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:ModControlsInteractionTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
@@ -916,6 +930,9 @@ jobs:
           Copy-Item shrine-tooltips-source-manifest.json install/
           Copy-Item dialogue-colours-source-manifest.json,components-tests.xml,openmw-tests.xml install/
           Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
+          Copy-Item custom/prepared-cells/README.md install/PREPARED-CELLS-EXPERIMENT.md
+          Copy-Item custom/prepared-cells/*.cmd install/
+          Copy-Item prepared-off.xml,prepared-on.xml,prepared-cell-verification.json,prepared-verifier-tests.json install/verification/
           Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
           Copy-Item custom/cell-streaming/NAVIGATION-PREPARATION.md install/NAVIGATION-PREPARATION.md
           Copy-Item navigation-geometry-tests.json,navigation-previous.xml,navigation-master-off.xml install/
@@ -958,7 +975,7 @@ jobs:
           if ($LASTEXITCODE) { throw 'Final Windows distribution inventory validation failed' }
       - uses: actions/upload-artifact@v6
         with:
-          name: openmw-0.52-rc1-custom-windows-complete-${{ env.CUMULATIVE_COMMIT }}
+          name: ${{ startsWith(github.head_ref || github.ref_name, 'experimental/prepared-cell') && 'EXPERIMENTAL-prepared-cells-windows' || 'openmw-0.52-rc1-custom-windows-complete' }}-${{ env.CUMULATIVE_COMMIT }}
           path: install/*
           if-no-files-found: error
       - name: Retain compiled companion tools if later packaging verification fails
@@ -1023,6 +1040,10 @@ jobs:
           path: |
             install/verification/WINDOWS-DISTRIBUTION.json
             stock-menu-layout.json
+            prepared-off.xml
+            prepared-on.xml
+            prepared-cell-verification.json
+            prepared-verifier-tests.json
             loading-reporter-windows.log
             atomic-save-windows.log
             save-load-content-mapping.json
