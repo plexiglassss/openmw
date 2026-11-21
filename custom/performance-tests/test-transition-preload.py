@@ -54,7 +54,9 @@ struct CellPreloader {
  WorkQueue queue;WorkQueue* mWorkQueue=&queue;Resource resource;Resource* mResourceSystem=&resource;
  int mBulletShapeManager=0,mTerrain=0,mLandManager=0;bool mPreloadInstances=true;
  using PreloadMap=std::map<const CellStore*,PreloadEntry>;PreloadMap mPreloadCells;
- std::size_t mMaxCacheSize=9;int mAdded=0,mEvicted=0,mCostRetentions=0;
+ std::size_t mMaxCacheSize=9;int mAdded=0,mEvicted=0,mCostRetentions=0,mPreparedRequests=0;
+ // This admission fixture counts the hook; PreparedCellTest exercises its actual engine behavior.
+ void prepareCell(CellStore&,double){++mPreparedRequests;}
  std::size_t getMaxCacheSize(){return mMaxCacheSize;}std::size_t getCacheSize(){return mPreloadCells.size();}
  void preload(CellStore& cell,double timestamp);
 };
@@ -78,15 +80,15 @@ code+=r'''
 int main(int argc,char** argv){
  assert(argc==2);Misc::batch=std::string(argv[1])=="1";
  CellPreloader p;Scene scene;scene.mPreloader=&p;CellStore center;
- scene.preloadCellWithSurroundings(center);assert(p.queue.jobs==9 && p.getCacheSize()==9);
+ scene.preloadCellWithSurroundings(center);assert(p.queue.jobs==9 && p.getCacheSize()==9 && p.mPreparedRequests==9);
  for(auto& [cell,e]:p.mPreloadCells){(void)cell;assert(e.mTiming && e.mTiming==e.mWorkItem->mTiming);}
  scene.mRendering.time=11;scene.preloadCellWithSurroundings(center);
- assert(p.queue.jobs==9);for(auto& [cell,e]:p.mPreloadCells){(void)cell;assert(e.mTimeStamp==11);}
+ assert(p.queue.jobs==9 && p.mPreparedRequests==18);for(auto& [cell,e]:p.mPreloadCells){(void)cell;assert(e.mTimeStamp==11);}
  // Full cache still refreshes hits; no duplicate jobs. A recent cache refuses new destinations.
  CellStore another; p.preload(another,11.5);assert(p.queue.jobs==9 && p.getCacheSize()==9);
  // Old entries are evicted only through the established preloader policy.
  p.preload(another,13);assert(p.queue.jobs==10 && p.mEvicted==1 && p.getCacheSize()==9);
- p.preload(another,14);assert(p.queue.jobs==10 && p.mPreloadCells.at(&another).mTimeStamp==14);
+ p.preload(another,14);assert(p.queue.jobs==10 && p.mPreloadCells.at(&another).mTimeStamp==14 && p.mPreparedRequests==21);
  CellPreloader zero;zero.mMaxCacheSize=0;zero.preload(center,10);assert(zero.queue.jobs==0);
  Scene zeroScene;zeroScene.mPreloader=&zero;zeroScene.preloadCellWithSurroundings(center);assert(zeroScene.mWorld.model.lookups==0);
  CellPreloader limited;limited.mMaxCacheSize=2;Scene small;small.mPreloader=&limited;

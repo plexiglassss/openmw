@@ -5126,7 +5126,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "da20a89a37b63ac3666f45bae5536580aecd14cf"
+        "blob": "aed300c3b69e99acea6a756aec1c9578039c518c"
       },
       "status": "adapted_for_rc1"
     },
@@ -12634,9 +12634,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "da20a89a37b63ac3666f45bae5536580aecd14cf"
+        "blob": "aed300c3b69e99acea6a756aec1c9578039c518c"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Update counted-boundary fixture for current retention and destination-plan interfaces, extract actual preparationSeconds method and execute both batch modes without dropping existing admission checks. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Update counted-boundary fixture for current retention and destination-plan interfaces, extract actual preparationSeconds method and execute both batch modes without dropping existing admission checks. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. Count the detached preparation hook in the standalone admission fixture while preserving original scheduling/cache assertions; real preparation remains covered by native engine fixtures."
     },
     "custom/performance-tests/verify-loading-quality.py": {
       "upstream": null,
