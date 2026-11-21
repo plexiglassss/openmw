@@ -1,0 +1,15 @@
+{
+  "baseline": "User-supplied QuestGuiderLite.zip, 17 November; Parallel Quest Sorting winning main and both ranking helpers retained",
+  "base_main_sha256": "969200fdd5553215e226f032881608eb3fb4daabb5c80cd998b4e98cb19229ee",
+  "queue_sha256": "c2d1547a6204fd0adc7c7587f14510910a5c53950b1cdbce9ad639ca81e79303",
+  "modified": [
+    "main.lua",
+    "storage/nearbyQueries.lua"
+  ],
+  "unchanged": "Parallel sorting initialization/update/clear/cancellation and both helpers; indexed queue, data files, actor activation, quest tracking and player reply handler",
+  "timing": "Nearby-list UI response arrives after a complete queued scan. Native queries remain indivisible; no same-frame completion guarantee.",
+  "retained_helpers": {
+    "parallelPositionRanking.lua": "f059fc82d4a6747cd5982f2d4adf8ab201b1a3afafb75450a430dacc6ac65828",
+    "rankQuestPositions.lua": "acbb933a8d82dd9b3cf722151fe7aa610c4a15c6e05aa23dc04dac74360f13ef"
+  }
+}

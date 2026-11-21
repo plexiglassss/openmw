@@ -84,6 +84,10 @@ namespace Resource
             constexpr std::string_view caches[] = {
                 "Node",
                 "NodeInstance",
+                "RigPlan",
+                "ActorTemplate",
+                "RecentModel",
+                "RetentionEstimate",
                 "Shape",
                 "Shape Instance",
                 "Image",
@@ -140,6 +144,12 @@ namespace Resource
                 Resource::addCacheStatsAttibutes(caches[i], statNames);
                 if ((i + 1) % 5 != 0)
                     statNames.emplace_back();
+            }
+
+            for (const std::string_view name : { "RigPlan", "ActorTemplate", "RecentModel", "RetentionEstimate" })
+            {
+                statNames.emplace_back(std::string(name) + " EstimatedBytes");
+                statNames.emplace_back(std::string(name) + " BudgetBytes");
             }
 
             for (std::string_view name : cellPreloader)

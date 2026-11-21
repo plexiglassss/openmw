@@ -59,6 +59,7 @@
 #include <components/sceneutil/lightmanager.hpp>
 #include <components/sceneutil/optimizer.hpp>
 #include <components/sceneutil/riggeometryosgaextension.hpp>
+#include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/templateref.hpp>
 #include <components/sceneutil/util.hpp>
 #include <components/sceneutil/visitor.hpp>
@@ -619,6 +620,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mAutoUseNormalMaps = use;
     }
 
@@ -627,6 +629,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mNormalMapPattern = pattern;
     }
 
@@ -635,6 +638,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mNormalHeightMapPattern = pattern;
     }
 
@@ -643,6 +647,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mAutoUseSpecularMaps = use;
     }
 
@@ -651,6 +656,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mSpecularMapPattern = pattern;
     }
 
@@ -659,6 +665,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mSupportsNormalsRT = supports;
     }
 
@@ -667,6 +674,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mWeatherParticleOcclusion = value;
     }
 
@@ -685,6 +693,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mConvertAlphaTestToAlphaToCoverage = convert;
     }
 
@@ -693,6 +702,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mAdjustCoverageForAlphaTest = adjustCoverage;
     }
 
@@ -731,6 +741,7 @@ namespace Resource
         const std::unique_lock lock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mShaderManager->setShaderPath(path);
     }
 
@@ -1401,7 +1412,98 @@ namespace Resource
 
     osg::ref_ptr<osg::Node> SceneManager::getInstance(VFS::Path::NormalizedView path)
     {
-        return getInstance(getTemplate(path));
+        const auto base = getTemplate(path);
+        {
+            const std::shared_lock settingsLock(mModelSettingsMutex);
+            retainConsumedModel(base);
+        }
+        return getInstance(base);
+    }
+
+    void SceneManager::clearPreparedModels()
+    {
+        mRetentionEstimates.clear();
+        mRigPlans.clear();
+        mActorTemplates.clear();
+        mRecentModels.clear();
+    }
+
+    std::optional<std::size_t> SceneManager::retainedModelBytes(const osg::Node& source)
+    {
+        // The caller holds the settings read lock and owns source. A weak reference
+        // avoids pinning rejected oversized graphs and distinguishes reused addresses.
+        const TemplateKey key{ &source, { modelSettingsRevision(), mVFS->getIndexRevision() }, {} };
+        const auto generation = mRetentionEstimates.generation();
+        if (const auto estimate = mRetentionEstimates.get(key))
+            if (estimate->mSource.get() == &source)
+                return estimate->mBytes;
+        const auto bytes = SceneUtil::estimateRetainedSceneBytes(source);
+        auto estimate = std::make_shared<const RetentionEstimate>(RetentionEstimate{ &source, bytes });
+        mRetentionEstimates.put(key, std::move(estimate), sizeof(RetentionEstimate) + sizeof(TemplateKey) + 128,
+            generation);
+        return bytes;
+    }
+
+    void SceneManager::retainConsumedModel(const osg::Node* base)
+    {
+        if (!Misc::useRecentModelReuse())
+            return;
+        const TemplateKey key{ base, { modelSettingsRevision(), mVFS->getIndexRevision() }, {} };
+        const auto generation = mRecentModels.generation();
+        if (mRecentModels.get(key))
+            return;
+        if (const auto bytes = retainedModelBytes(*base))
+            mRecentModels.put(key, base, *bytes, generation);
+    }
+
+    std::shared_ptr<const SceneUtil::RigAttachmentPlan> SceneManager::getRigAttachmentPlan(
+        const osg::Node& source, std::string_view filter)
+    {
+        const std::shared_lock settingsLock(mModelSettingsMutex);
+        const TemplateKey key{ &source, { modelSettingsRevision(), mVFS->getIndexRevision() },
+            Misc::StringUtils::lowerCase(filter) };
+        const auto generation = mRigPlans.generation();
+        if (Misc::useActorPreparation())
+            if (auto plan = mRigPlans.get(key))
+                return plan;
+        auto plan = std::make_shared<const SceneUtil::RigAttachmentPlan>(
+            SceneUtil::planRigAttachment(source, filter, [](const osg::Drawable& drawable) {
+                return dynamic_cast<const SceneUtil::RigGeometry*>(&drawable) != nullptr
+                    || dynamic_cast<const SceneUtil::RigGeometryHolder*>(&drawable) != nullptr;
+            }));
+        if (Misc::useActorPreparation())
+            if (const auto bytes = retainedModelBytes(source))
+                mRigPlans.put(key, plan, *bytes + sizeof(*plan)
+                    + plan->mNodes.size() * sizeof(osg::ref_ptr<const osg::Node>), generation);
+        return plan;
+    }
+
+    osg::ref_ptr<const osg::Node> SceneManager::getActorTemplate(std::string model,
+        std::string defaultSkeleton, bool inject, const std::function<osg::ref_ptr<osg::Node>()>& create)
+    {
+        if (!Misc::useActorPreparation())
+            return create();
+        // The factory uses public scene methods. Never call it under the settings
+        // lock: getInstance/getTemplate acquire that non-recursive lock themselves.
+        for (;;)
+        {
+            std::uint64_t settings, vfs, generation;
+            {
+                const std::shared_lock settingsLock(mModelSettingsMutex);
+                settings = modelSettingsRevision();
+                vfs = mVFS->getIndexRevision();
+                generation = mActorTemplates.generation();
+                if (auto prepared = mActorTemplates.get({ model, defaultSkeleton, inject, settings, vfs }))
+                    return prepared;
+            }
+            auto created = create();
+            const std::shared_lock settingsLock(mModelSettingsMutex);
+            if (settings != modelSettingsRevision() || vfs != mVFS->getIndexRevision())
+                continue;
+            if (const auto bytes = retainedModelBytes(*created))
+                mActorTemplates.put({ model, defaultSkeleton, inject, settings, vfs }, created, *bytes, generation);
+            return created;
+        }
     }
 
     SceneInstanceCache::TicketPtr SceneManager::cacheInstance(
@@ -1484,6 +1586,12 @@ namespace Resource
     void SceneManager::releaseGLObjects(osg::State* state)
     {
         mInstanceCache.releaseGLObjects(state);
+        for (const auto& plan : mRigPlans.values())
+            plan->mTemplate->releaseGLObjects(state);
+        for (const auto& node : mActorTemplates.values())
+            node->releaseGLObjects(state);
+        for (const auto& node : mRecentModels.values())
+            node->releaseGLObjects(state);
         mCache->releaseGLObjects(state);
 
         mShaderManager->releaseGLObjects(state);
@@ -1549,6 +1657,7 @@ namespace Resource
         const std::unique_lock settingsLock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         mMinFilter = min;
         mMagFilter = mag;
         mMaxAnisotropy = std::max(1.f, maxAnisotropy);
@@ -1574,6 +1683,10 @@ namespace Resource
 
     void SceneManager::updateCache(double referenceTime)
     {
+        mRetentionEstimates.prune();
+        mRigPlans.prune();
+        mActorTemplates.prune();
+        mRecentModels.prune();
         mInstanceCache.prune();
         NodeResourceManager<std::string>::updateCache(referenceTime);
 
@@ -1606,6 +1719,7 @@ namespace Resource
         const std::unique_lock settingsLock(mModelSettingsMutex);
         ++mModelSettingsRevision;
         mInstanceCache.clear();
+        clearPreparedModels();
         NodeResourceManager<std::string>::clearCache();
 
         std::lock_guard<std::mutex> lock(mSharedStateMutex);
@@ -1631,6 +1745,16 @@ namespace Resource
 
         Resource::reportStats("Node", frameNumber, mCache->getStats(), *stats);
         Resource::reportStats("NodeInstance", frameNumber, mInstanceCache.getStats(), *stats);
+        const auto reportPrepared = [&](std::string_view name, const auto& cache) {
+            const auto data = cache.stats();
+            Resource::reportStats(name, frameNumber, data.mCache, *stats);
+            stats->setAttribute(frameNumber, std::string(name) + " EstimatedBytes", static_cast<double>(data.mBytes));
+            stats->setAttribute(frameNumber, std::string(name) + " BudgetBytes", static_cast<double>(data.mBudget));
+        };
+        reportPrepared("RigPlan", mRigPlans);
+        reportPrepared("ActorTemplate", mActorTemplates);
+        reportPrepared("RecentModel", mRecentModels);
+        reportPrepared("RetentionEstimate", mRetentionEstimates);
     }
 
     osg::ref_ptr<Shader::ShaderVisitor> SceneManager::createShaderVisitor(const std::string& shaderPrefix)

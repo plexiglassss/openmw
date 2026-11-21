@@ -20,69 +20,6 @@
 namespace SceneUtil
 {
 
-    class CopyRigVisitor : public osg::NodeVisitor
-    {
-    public:
-        CopyRigVisitor(osg::ref_ptr<osg::Group> parent, std::string_view filter)
-            : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN)
-            , mParent(std::move(parent))
-            , mFilter(filter)
-        {
-        }
-
-        void apply(osg::MatrixTransform& node) override { traverse(node); }
-        void apply(osg::Node& node) override { traverse(node); }
-        void apply(osg::Group& node) override { traverse(node); }
-
-        void apply(osg::Drawable& drawable) override
-        {
-            if (!filterMatches(drawable.getName()))
-                return;
-
-            const osg::Node* node = &drawable;
-            bool isRig = dynamic_cast<const SceneUtil::RigGeometry*>(node) != nullptr;
-            if (!isRig)
-                isRig = dynamic_cast<const SceneUtil::RigGeometryHolder*>(node) != nullptr;
-            if (!isRig)
-                return;
-
-            for (auto it = getNodePath().rbegin() + 1; it != getNodePath().rend(); ++it)
-            {
-                const osg::Node* parent = *it;
-                if (!filterMatches(parent->getName()))
-                    break;
-                node = parent;
-            }
-            mToCopy.emplace(node);
-        }
-
-        void doCopy(Resource::SceneManager* sceneManager)
-        {
-            for (const osg::ref_ptr<const osg::Node>& node : mToCopy)
-            {
-                mParent->addChild(sceneManager->getInstance(node));
-            }
-            mToCopy.clear();
-        }
-
-    private:
-        bool filterMatches(std::string_view name) const
-        {
-            if (Misc::StringUtils::ciStartsWith(name, mFilter))
-                return true;
-            constexpr std::string_view prefix = "tri ";
-            if (Misc::StringUtils::ciStartsWith(name, prefix))
-                return Misc::StringUtils::ciStartsWith(name.substr(prefix.size()), mFilter);
-            return false;
-        }
-
-        using NodeSet = std::set<osg::ref_ptr<const osg::Node>>;
-        NodeSet mToCopy;
-
-        osg::ref_ptr<osg::Group> mParent;
-        std::string_view mFilter;
-    };
-
     namespace
     {
 
@@ -119,9 +56,9 @@ namespace SceneUtil
         {
             osg::ref_ptr<osg::Group> handle = new osg::Group;
 
-            CopyRigVisitor copyVisitor(handle, filter);
-            const_cast<osg::Node*>(toAttach.get())->accept(copyVisitor);
-            copyVisitor.doCopy(sceneManager);
+            const auto plan = sceneManager->getRigAttachmentPlan(*toAttach, filter);
+            for (const auto& node : plan->mNodes)
+                handle->addChild(sceneManager->getInstance(node));
             // add a ref to the original template to hint to the cache that it is still being used and should be kept in
             // cache.
             SceneUtil::addTemplateRef(*handle, toAttach.get());

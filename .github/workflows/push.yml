@@ -178,6 +178,13 @@ jobs:
         run: |
           python custom/advanced-world-map/tests/test_rebuild.py --output awm-rebuild-tests.json
           if ($LASTEXITCODE) { throw 'AWM rebuild behavior or session isolation failed' }
+      - name: Verify incremental nearby quests and retained parallel sorting
+        shell: pwsh
+        run: |
+          python custom/quest-guider-incremental/tests/test_nearby.py --output quest-nearby-tests.json
+          if ($LASTEXITCODE) { throw 'Nearby quest parity, cancellation or retained sorting failed' }
+          python custom/quest-guider-incremental/package.py --evidence quest-nearby-tests.json --output Quest_Guider_Lite_Incremental_Nearby_Queries_v1.0.zip
+          if ($LASTEXITCODE) { throw 'Nearby quest override package readback failed' }
       - name: Exercise captured map, quest and proximity adapters
         shell: pwsh
         run: python custom/combined-performance/tests/test_native_adapters.py --output native-job-adapter-parity.json
@@ -619,6 +626,29 @@ jobs:
           if ($LASTEXITCODE) { throw 'Component regression tests failed' }
           python custom/terrain-preparation/verify-tests.py --native components-tests.xml --output terrain-native-verification.json
           if ($LASTEXITCODE) { throw 'Required terrain native tests did not pass' }
+          try {
+            $env:OPENMW_COMBINED_PERFORMANCE = '1'
+            $env:OPENMW_ACTOR_PREPARATION = '0'
+            $env:OPENMW_RECENT_MODEL_REUSE = '1'
+            ./build/components-tests.exe --gtest_filter=ActorPreparation.* --gtest_output=xml:actor-preparation-off.xml
+            if ($LASTEXITCODE) { throw 'Actor preparation disabled-mode regression failed' }
+            $env:OPENMW_ACTOR_PREPARATION = '1'
+            $env:OPENMW_RECENT_MODEL_REUSE = '0'
+            ./build/components-tests.exe --gtest_filter=ActorPreparation.* --gtest_output=xml:recent-model-reuse-off.xml
+            if ($LASTEXITCODE) { throw 'Recent model reuse disabled-mode regression failed' }
+            $env:OPENMW_RECENT_MODEL_REUSE = '1'
+            $env:OPENMW_COMBINED_PERFORMANCE = '0'
+            ./build/components-tests.exe --gtest_filter=ActorPreparation.* --gtest_output=xml:actor-preparation-master-off.xml
+            if ($LASTEXITCODE) { throw 'Actor/revisit master-off regression failed' }
+          } finally {
+            Remove-Item Env:OPENMW_ACTOR_PREPARATION,Env:OPENMW_RECENT_MODEL_REUSE,Env:OPENMW_COMBINED_PERFORMANCE -ErrorAction SilentlyContinue
+          }
+          python custom/town-activation/verify-tests.py --native components-tests.xml --actor-off actor-preparation-off.xml --reuse-off recent-model-reuse-off.xml --master-off actor-preparation-master-off.xml --output town-activation-native-verification.json
+          if ($LASTEXITCODE) { throw 'Required actor/revisit tests were not executed successfully' }
+          cl /nologo /std:c++20 /EHsc /I. custom/town-activation/cache-exception.cpp /Fe:cache-exception.exe
+          if ($LASTEXITCODE) { throw 'Cache exception regression did not compile' }
+          ./cache-exception.exe *> cache-exception.log
+          if ($LASTEXITCODE) { throw 'Cache allocation failure corrupted state' }
           Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT,Env:OPENMW_LUA_UI_LEGACY_UPDATES,Env:OPENMW_COMBINED_PERFORMANCE,Env:OPENMW_LUA_CELL_QUERY_CACHE -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
@@ -884,6 +914,9 @@ jobs:
           Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
           Copy-Item custom/cell-streaming/NAVIGATION-PREPARATION.md install/NAVIGATION-PREPARATION.md
           Copy-Item navigation-geometry-tests.json,navigation-previous.xml,navigation-master-off.xml install/
+          Copy-Item custom/town-activation/README.md install/TOWN-ACTIVATION.md
+          Copy-Item town-activation-native-verification.json,actor-preparation-off.xml,recent-model-reuse-off.xml,actor-preparation-master-off.xml,quest-nearby-tests.json,cache-exception.log install/
+          Copy-Item Quest_Guider_Lite_Incremental_Nearby_Queries_v1.0.zip install/
           Copy-Item custom/cell-streaming/SCENERY-CONTINUITY.md install/SCENERY-CONTINUITY.md
           Copy-Item cell-streaming-tests.json,cell-packages-legacy.xml install/
           "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nOfficial OpenMW 0.52 RC1 baseline 4ff261bf7c0d42a6cc06dd1ebc5d451802cff055`nRC1 source: rc1-source-manifest.json`nCompiled source: rc1-build-source-manifest.json; lookup optimization is committed`nHistorical cumulative source: town-performance-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
@@ -1018,6 +1051,13 @@ jobs:
             dialogue-colours-source-manifest.json
             components-tests.xml
             terrain-native-verification.json
+            town-activation-native-verification.json
+            actor-preparation-off.xml
+            recent-model-reuse-off.xml
+            actor-preparation-master-off.xml
+            quest-nearby-tests.json
+            Quest_Guider_Lite_Incremental_Nearby_Queries_v1.0.zip
+            cache-exception.log
             terrain-planning-tests.json
             openmw-tests.xml
             lua-ui-legacy-tests.xml

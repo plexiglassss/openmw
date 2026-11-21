@@ -1,5 +1,7 @@
 #include "clone.hpp"
 
+#include <set>
+
 #include <osg/StateSet>
 
 #include <osgAnimation/MorphGeometry>
@@ -13,6 +15,8 @@
 #include <components/sceneutil/morphgeometry.hpp>
 #include <components/sceneutil/riggeometry.hpp>
 #include <components/sceneutil/riggeometryosgaextension.hpp>
+#include <components/sceneutil/scenefootprint.hpp>
+#include <components/sceneutil/templateref.hpp>
 
 namespace SceneUtil
 {
@@ -96,6 +100,57 @@ namespace SceneUtil
         if (!estimate.mSupported)
             return {};
         return estimate.mBytes;
+    }
+
+    std::optional<std::size_t> estimateRetainedSceneBytes(const osg::Node& root)
+    {
+        // Each source root is charged once, even when many derived nodes hold the
+        // same TemplateRef. Internal drawable geometry also carries texture state.
+        class Sources : public osg::NodeVisitor
+        {
+        public:
+            std::set<const osg::Node*> mSeen;
+            std::vector<const osg::Node*> mPending;
+            SceneFootprint mFootprint;
+            Sources() : osg::NodeVisitor(TRAVERSE_ALL_CHILDREN) { setNodeMaskOverride(~0u); }
+            void apply(osg::Node& node) override
+            {
+                if (!mSeen.insert(&node).second)
+                    return;
+                if (const auto* data = node.getUserDataContainer())
+                    for (unsigned i = 0; i < data->getNumUserObjects(); ++i)
+                        if (const auto* ref = dynamic_cast<const TemplateRef*>(data->getUserObject(i)))
+                            if (const auto* source = dynamic_cast<const osg::Node*>(ref->getTemplate()))
+                                mPending.push_back(source);
+                if (const auto* rig = dynamic_cast<const RigGeometry*>(&node))
+                {
+                    if (const auto source = rig->getSourceGeometry())
+                        mPending.push_back(source.get());
+                }
+                else if (const auto* morph = dynamic_cast<const MorphGeometry*>(&node))
+                {
+                    if (const auto source = morph->getSourceGeometry())
+                        mPending.push_back(source.get());
+                }
+                traverse(node);
+            }
+        } sources;
+        sources.mPending.push_back(&root);
+        std::set<const osg::Node*> roots;
+        std::size_t bytes = 0;
+        while (!sources.mPending.empty())
+        {
+            const auto* node = sources.mPending.back();
+            sources.mPending.pop_back();
+            if (!roots.insert(node).second)
+                continue;
+            const auto instance = estimateInstanceBytes(*node);
+            if (!instance)
+                return {};
+            bytes += *instance + sources.mFootprint.measure(*const_cast<osg::Node*>(node));
+            const_cast<osg::Node*>(node)->accept(sources);
+        }
+        return bytes;
     }
 
     CopyOp::CopyOp()

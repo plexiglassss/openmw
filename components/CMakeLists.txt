@@ -128,7 +128,7 @@ add_component_dir (vfs
     )
 
 add_component_dir (resource
-    scenemanager sceneinstancecache keyframemanager imagemanager animblendrulesmanager bulletshapemanager bulletshape niffilemanager objectcache resourcesystem
+    scenemanager sceneinstancecache boundedcache keyframemanager imagemanager animblendrulesmanager bulletshapemanager bulletshape niffilemanager objectcache resourcesystem
     resourcemanager stats animation foreachbulletobject errormarker selectionmarker cachestats bgsmfilemanager collisioninstancecache
     )
 
@@ -138,7 +138,7 @@ add_component_dir (shader
 
 add_component_dir (sceneutil
     visualraybatch
-    clone attach visitor util statesetupdater stateupdater controller skeleton riggeometry morphgeometry lightcontroller
+    clone attach rigattachment visitor util statesetupdater stateupdater controller skeleton riggeometry morphgeometry lightcontroller
     lightmanager lightutil positionattitudetransform workqueue compilepriority gameplaycompile pathgridutil waterutil writescene serialize optimizer
     detourdebugdraw navmesh agentpath animblendrules shadow mwshadowtechnique recastmesh shadowsbin osgacontroller rtt
     screencapture depth color riggeometryosgaextension extradata unrefqueue lightcommon clearcolor

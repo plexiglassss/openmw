@@ -113,7 +113,9 @@ Check 'Removing only additions exactly reconstructs released v1.0 collector' {
     Assert-True ([regex]::Matches($text,[regex]::Escape($slicingObservationBlock)).Count -eq 1) 'Expected exactly one sliced-preload mode observation block.'
     $terrainObservationBlock="        'OPENMW_TERRAIN_PREPARATION',`n"
     Assert-True ([regex]::Matches($text,[regex]::Escape($terrainObservationBlock)).Count -eq 1) 'Expected exactly one terrain-preparation mode observation block.'
-    $original=$text.Replace($performanceObservationBlock,'').Replace($streamingObservationBlock,'').Replace($navigationObservationBlock,'').Replace($slicingObservationBlock,'').Replace($terrainObservationBlock,'')
+    $activationObservationBlock="        'OPENMW_ACTOR_PREPARATION','OPENMW_RECENT_MODEL_REUSE',`n"
+    Assert-True ([regex]::Matches($text,[regex]::Escape($activationObservationBlock)).Count -eq 1) 'Expected exactly one actor/revisit mode observation block.'
+    $original=$text.Replace($performanceObservationBlock,'').Replace($streamingObservationBlock,'').Replace($navigationObservationBlock,'').Replace($slicingObservationBlock,'').Replace($terrainObservationBlock,'').Replace($activationObservationBlock,'')
     $original=[regex]::Replace($original,'(?s)#region Fixed follow-up evidence\n.*?#endregion Fixed follow-up evidence\n\n','')
     $original=$original.Replace("    Invoke-OptionalCaptureStage 'Fixed follow-up Lua source collection' { Get-FixedFollowupSources `$newContext `$runDir }`n",'')
     $original=$original.Replace("Invoke-OptionalCaptureStage 'Optional install receipt collection' { Get-FixedInstallReceipts `$runDir }`n",'')

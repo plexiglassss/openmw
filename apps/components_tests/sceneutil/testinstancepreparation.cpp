@@ -2,6 +2,8 @@
 #include <components/sceneutil/clone.hpp>
 #include <components/sceneutil/morphgeometry.hpp>
 #include <components/sceneutil/riggeometry.hpp>
+#include <components/sceneutil/templateref.hpp>
+#include <components/resource/boundedcache.hpp>
 
 #include <osg/Group>
 #include <osg/ValueObject>
@@ -14,6 +16,48 @@
 
 namespace
 {
+    TEST(ActorRetainedMemory, IncludesHiddenRigMorphAndRetainedSourceArrays)
+    {
+        osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+        geometry->setVertexArray(new osg::Vec3Array(65536));
+        osg::ref_ptr<SceneUtil::RigGeometry> rig = new SceneUtil::RigGeometry;
+        rig->setSourceGeometry(geometry);
+        osg::ref_ptr<SceneUtil::MorphGeometry> morph = new SceneUtil::MorphGeometry;
+        morph->setSourceGeometry(geometry);
+        osg::ref_ptr<osg::Group> source = new osg::Group;
+        source->addChild(rig); source->addChild(morph);
+        osg::ref_ptr<osg::Group> cleaned = new osg::Group;
+        SceneUtil::addTemplateRef(*cleaned, source);
+        const auto bytes = SceneUtil::estimateRetainedSceneBytes(*cleaned);
+        ASSERT_TRUE(bytes);
+        EXPECT_GT(*bytes, 65536u * (64u + 6u * 12u));
+        Resource::BoundedCache<int, osg::ref_ptr<const osg::Node>> cache(10, 1024 * 1024, 30);
+        EXPECT_FALSE(cache.put(1, cleaned, *bytes, cache.generation(), 0));
+        source->addChild(new osgParticle::ParticleSystem);
+        EXPECT_FALSE(SceneUtil::estimateRetainedSceneBytes(*cleaned));
+    }
+
+    TEST(ActorRetainedMemory, ReusedRecipeStillProducesIndependentRigAndMorphInstances)
+    {
+        osg::ref_ptr<osg::Geometry> geometry = new osg::Geometry;
+        geometry->setVertexArray(new osg::Vec3Array(4));
+        osg::ref_ptr<SceneUtil::RigGeometry> rig = new SceneUtil::RigGeometry;
+        rig->setSourceGeometry(geometry);
+        osg::ref_ptr<SceneUtil::MorphGeometry> morph = new SceneUtil::MorphGeometry;
+        morph->setSourceGeometry(geometry);
+        osg::ref_ptr<osg::Group> source = new osg::Group;
+        source->addChild(rig); source->addChild(morph);
+        SceneUtil::CopyOp aCopy, bCopy;
+        osg::ref_ptr<osg::Group> a = static_cast<osg::Group*>(source->clone(aCopy));
+        osg::ref_ptr<osg::Group> b = static_cast<osg::Group*>(source->clone(bCopy));
+        EXPECT_NE(a->getChild(0), b->getChild(0));
+        EXPECT_NE(a->getChild(1), b->getChild(1));
+        EXPECT_NE(a->getChild(0), rig.get());
+        a->getChild(1)->setNodeMask(0);
+        EXPECT_NE(b->getChild(1)->getNodeMask(), 0);
+        EXPECT_NE(source->getChild(1)->getNodeMask(), 0);
+    }
+
     TEST(InstancePreparation, BudgetIncludesRigPrivateAttributesAndHiddenGeometry)
     {
         osg::ref_ptr<osg::Geometry> source = new osg::Geometry;

@@ -22,6 +22,10 @@ namespace SceneUtil
     /// Unknown dynamic drawables retain the ordinary demand path.
     std::optional<std::size_t> estimateInstanceBytes(const osg::Node& node);
 
+    // Includes retained source templates, internal rig/morph arrays and a texture
+    // allowance. Unknown drawable layouts are not admitted to additional caches.
+    std::optional<std::size_t> estimateRetainedSceneBytes(const osg::Node& node);
+
     /// @par Defines the cloning behaviour we need:
     /// * Assigns updated ParticleSystem pointers on cloned emitters and programs.
     /// * Deep copies RigGeometry and MorphGeometry so they can animate without affecting clones.

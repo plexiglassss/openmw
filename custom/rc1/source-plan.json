@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1bcdd916ede0b1f997923809bba975f642846c74"
+        "blob": "6ca780006e24ee54df8b7775a28daf35a1220e16"
       },
       "status": "adapted_for_rc1"
     },
@@ -99,7 +99,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "74101332aa7a7e385482bdc64e67abc0ab62cb64"
+        "blob": "ccc0f3ba8eb4730d365a1482da709f7f3bb72503"
       },
       "status": "adapted_for_rc1"
     },
@@ -396,9 +396,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "69e151b7e4063b2b610fedc3743075c201a43543"
+        "blob": "2781917dae2f1bc21bf67814d9b317074ca96c3d"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/components_tests/sceneutil/testselectionrevision.cpp": {
       "cumulative": {
@@ -1540,7 +1540,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dcdc3b0965a5710744c11e3fdb3bb6a5e753c782"
+        "blob": "b01655d2130d6a8e1e80e6d88a8eb0b0edced993"
       },
       "status": "adapted_for_rc1"
     },
@@ -2244,7 +2244,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1b0675ff0e8afb3def817275b4fdf801305d6249"
+        "blob": "a86f16a2e0aca156f0704d8ed60203d94f9599e8"
       },
       "status": "adapted_for_rc1"
     },
@@ -2783,7 +2783,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7439d90649194e8c2cca68c052993e5a4bdbc60b"
+        "blob": "a48d2bc8fdcf2d754e4c38f87f166ae46c7e98a6"
       },
       "status": "adapted_for_rc1"
     },
@@ -3003,7 +3003,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7094c9b3ba0a6cfe6e4f032437864aa716fd2353"
+        "blob": "a07f7483485641145f29dc63e3401ac1badbb5f3"
       },
       "status": "adapted_for_rc1"
     },
@@ -3014,7 +3014,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "86bf6b9303ed393ab548c10e5ae77d2350156b53"
+        "blob": "44a77f418e51f133679429401dffcb9cbd78cafe"
       },
       "status": "adapted_for_rc1"
     },
@@ -3025,7 +3025,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8242d0016c8f98d5dab7d35f6383fdc27bd3a113"
+        "blob": "c070a764f932fa2e919de6e578e29af0646d6703"
       },
       "status": "adapted_for_rc1"
     },
@@ -3058,9 +3058,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8474465be4da26209a69770e47a51717d384890d"
+        "blob": "74efa6358f35ea719439d5e34d37b16a28e52a28"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/sceneutil/clone.hpp": {
       "cumulative": {
@@ -3069,9 +3069,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bb5eb1a576d00aba81667888802cd65c977d0926"
+        "blob": "b67c063cf31405f9d0a5578a46932acfc7f9efcf"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/sceneutil/compilepriority.cpp": {
       "cumulative": {
@@ -5071,7 +5071,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e6e8b6c149f472cd99f0229f7a5d36ec3a9c4e0a"
+        "blob": "476da5e0426332b488eba1513454f03d65d414b5"
       },
       "status": "adapted_for_rc1"
     },
@@ -5082,7 +5082,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "eb71682e204e9b6cd6a94e90d934503dc112f258"
+        "blob": "2d36b6377ce1c648377de30264714e87e45e4cc5"
       },
       "status": "adapted_for_rc1"
     },
@@ -5093,7 +5093,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "10cb4b425dc2ddca63c51d11747d6afa78f68bcc"
+        "blob": "8965d7071ebeaf448b2af440bb4adc2c0a181026"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1bcdd916ede0b1f997923809bba975f642846c74"
+        "blob": "6ca780006e24ee54df8b7775a28daf35a1220e16"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -5981,9 +5981,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "74101332aa7a7e385482bdc64e67abc0ab62cb64"
+        "blob": "ccc0f3ba8eb4730d365a1482da709f7f3bb72503"
       },
-      "purpose": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "apps/components_tests/contentselector/testcontentmodel.cpp": {
       "upstream": null,
@@ -6220,9 +6220,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "69e151b7e4063b2b610fedc3743075c201a43543"
+        "blob": "2781917dae2f1bc21bf67814d9b317074ca96c3d"
       },
-      "purpose": "Exercise actual NIF instance preparation independently of process-wide test serializers; preserve consumption/invalidation assertions and cover ordinary geometry budgeting. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exercise actual NIF instance preparation independently of process-wide test serializers; preserve consumption/invalidation assertions and cover ordinary geometry budgeting. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "apps/components_tests/sceneutil/testselectionrevision.cpp": {
       "upstream": null,
@@ -7644,9 +7644,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dcdc3b0965a5710744c11e3fdb3bb6a5e753c782"
+        "blob": "b01655d2130d6a8e1e80e6d88a8eb0b0edced993"
       },
-      "purpose": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API."
+      "purpose": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "apps/openmw/mwrender/animation.hpp": {
       "upstream": {
@@ -8454,9 +8454,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1b0675ff0e8afb3def817275b4fdf801305d6249"
+        "blob": "a86f16a2e0aca156f0704d8ed60203d94f9599e8"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/compiler/locals.cpp": {
       "upstream": {
@@ -9166,9 +9166,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "7439d90649194e8c2cca68c052993e5a4bdbc60b"
+        "blob": "a48d2bc8fdcf2d754e4c38f87f166ae46c7e98a6"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/misc/dialoguetext.cpp": {
       "upstream": null,
@@ -9383,9 +9383,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "7094c9b3ba0a6cfe6e4f032437864aa716fd2353"
+        "blob": "a07f7483485641145f29dc63e3401ac1badbb5f3"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/resource/scenemanager.hpp": {
       "upstream": {
@@ -9394,9 +9394,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "86bf6b9303ed393ab548c10e5ae77d2350156b53"
+        "blob": "44a77f418e51f133679429401dffcb9cbd78cafe"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/resource/stats.cpp": {
       "upstream": {
@@ -9405,9 +9405,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8242d0016c8f98d5dab7d35f6383fdc27bd3a113"
+        "blob": "c070a764f932fa2e919de6e578e29af0646d6703"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/sceneutil/asyncpreparation.hpp": {
       "upstream": null,
@@ -9432,9 +9432,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8474465be4da26209a69770e47a51717d384890d"
+        "blob": "74efa6358f35ea719439d5e34d37b16a28e52a28"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/sceneutil/clone.hpp": {
       "upstream": {
@@ -9443,9 +9443,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bb5eb1a576d00aba81667888802cd65c977d0926"
+        "blob": "b67c063cf31405f9d0a5578a46932acfc7f9efcf"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "components/sceneutil/compilepriority.cpp": {
       "upstream": null,
@@ -11879,17 +11879,17 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "e6e8b6c149f472cd99f0229f7a5d36ec3a9c4e0a"
+        "blob": "476da5e0426332b488eba1513454f03d65d414b5"
       },
-      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "eb71682e204e9b6cd6a94e90d934503dc112f258"
+        "blob": "2d36b6377ce1c648377de30264714e87e45e4cc5"
       },
-      "purpose": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "custom/performance-capture/README.txt": {
       "upstream": null,
@@ -11911,9 +11911,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "10cb4b425dc2ddca63c51d11747d6afa78f68bcc"
+        "blob": "8965d7071ebeaf448b2af440bb4adc2c0a181026"
       },
-      "purpose": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
     },
     "custom/performance-capture/Test-Capture.ps1": {
       "upstream": null,
@@ -13805,6 +13805,180 @@
       "ported": {
         "mode": "100644",
         "blob": "285f1a3b86b1badcc24b03b83b074609134fe364"
+      }
+    },
+    "apps/components_tests/resource/testactorpreparation.cpp": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "3824cae9149928282caf3677b31d4f85771aff17"
+      }
+    },
+    "apps/components_tests/resource/testboundedcache.cpp": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "b3f424413750488fd1716791620e29e408ed06a4"
+      }
+    },
+    "apps/components_tests/sceneutil/testrigattachment.cpp": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "d0bdc5f8a434bc743c5b2bc56ba6cca1154279c3"
+      }
+    },
+    "components/resource/boundedcache.hpp": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "e5e636ceb8257b40b3394835b77e2292f94794da"
+      }
+    },
+    "components/sceneutil/attach.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "17cdbf5be6642feb805e6702b9e03ac9911dacb8"
+      },
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "ebe73fb6cc5fbbcf6e950d2073fe987e425335e2"
+      }
+    },
+    "components/sceneutil/rigattachment.hpp": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "b1b44b1e900e278e7319f2c4597b5cd5b7aeb2b2"
+      }
+    },
+    "components/sceneutil/templateref.hpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "9d18500e69b7e9f3144c0bcb191773a012673a9d"
+      },
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "ba46cf0a5796dcb387104d9ffc6ca8ac1e02ae7a"
+      }
+    },
+    "custom/quest-guider-incremental/Quest Guider Lite - Incremental Nearby Queries/README.md": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "59b9d2c8c467d27ba75f70ddf5ce3bd8ba317a03"
+      }
+    },
+    "custom/quest-guider-incremental/Quest Guider Lite - Incremental Nearby Queries/scripts/quest_guider_lite/main.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "3b53fc420c4f9c66d781414f07fbdbde06978584"
+      }
+    },
+    "custom/quest-guider-incremental/Quest Guider Lite - Incremental Nearby Queries/scripts/quest_guider_lite/parallelPositionRanking.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "907c8548c44e371141741139bb4d10e195f917fc"
+      }
+    },
+    "custom/quest-guider-incremental/Quest Guider Lite - Incremental Nearby Queries/scripts/quest_guider_lite/rankQuestPositions.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "09e48dde028b667eb386be421dd4f64eb287ab89"
+      }
+    },
+    "custom/quest-guider-incremental/Quest Guider Lite - Incremental Nearby Queries/scripts/quest_guider_lite/storage/nearbyQueries.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "c10b90ce10bc787676c3d40563b004fd43238d19"
+      }
+    },
+    "custom/quest-guider-incremental/package.py": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "1973aad5beb2d53a442f7b934f9e6dcb4769e91a"
+      }
+    },
+    "custom/quest-guider-incremental/provenance.json": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "976e7e8a6c464c7189cc62b4e33b33d4fea00592"
+      }
+    },
+    "custom/quest-guider-incremental/tests/fixtures/indexedQueue.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "21e733f9621c0bfcb9d8f61dc23dc53edd43e02a"
+      }
+    },
+    "custom/quest-guider-incremental/tests/fixtures/parallel-main.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "01fded5c456d5fcb2e9ff133a5afd1adbc7f176f"
+      }
+    },
+    "custom/quest-guider-incremental/tests/harness.lua": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "6902db02427d1c90550081ab7a6fa740e278bd5a"
+      }
+    },
+    "custom/quest-guider-incremental/tests/test_nearby.py": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "6401a7e4f0680f86ec1aaeff411a77292a449103"
+      }
+    },
+    "custom/town-activation/README.md": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "5506a71d03e5ad121924612136bf8481625c3095"
+      }
+    },
+    "custom/town-activation/cache-exception.cpp": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "0d1711da46b4a2e5e6ab1898fd92ec4e95428eb2"
+      }
+    },
+    "custom/town-activation/verify-tests.py": {
+      "upstream": null,
+      "purpose": "Actor construction recipes, bounded recent-model retention, incremental nearby quests and regression evidence. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "0f8c31e0d1791c1be483ea46d0ee645df214c535"
       }
     }
   }

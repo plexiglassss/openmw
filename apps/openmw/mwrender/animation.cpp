@@ -1498,29 +1498,20 @@ namespace MWRender
         Resource::SceneManager* sceneMgr = resourceSystem->getSceneManager();
         if (baseonly)
         {
-            typedef std::map<std::string, osg::ref_ptr<osg::Node>> Cache;
-            static Cache cache;
-            Cache::iterator found = cache.find(model);
-            if (found == cache.end())
-            {
-                osg::ref_ptr<osg::Node> created = sceneMgr->getInstance(VFS::Path::toNormalized(model));
-
-                if (inject)
-                {
-                    injectCustomBones(created, defaultSkeleton, resourceSystem);
-                    injectCustomBones(created, model, resourceSystem);
-                }
-
-                SceneUtil::CleanObjectRootVisitor removeDrawableVisitor;
-                created->accept(removeDrawableVisitor);
-                removeDrawableVisitor.remove();
-
-                cache.insert(std::make_pair(model, created));
-
-                return sceneMgr->getInstance(created);
-            }
-            else
-                return sceneMgr->getInstance(found->second);
+            const auto prepared = sceneMgr->getActorTemplate(VFS::Path::toNormalized(model).value(),
+                VFS::Path::toNormalized(defaultSkeleton).value(), inject, [&] {
+                    osg::ref_ptr<osg::Node> created = sceneMgr->getInstance(VFS::Path::toNormalized(model));
+                    if (inject)
+                    {
+                        injectCustomBones(created, defaultSkeleton, resourceSystem);
+                        injectCustomBones(created, model, resourceSystem);
+                    }
+                    SceneUtil::CleanObjectRootVisitor removeDrawableVisitor;
+                    created->accept(removeDrawableVisitor);
+                    removeDrawableVisitor.remove();
+                    return created;
+                });
+            return sceneMgr->getInstance(prepared);
         }
         else
         {

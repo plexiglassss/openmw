@@ -10,6 +10,9 @@ file(GLOB UNITTEST_SRC_FILES
     sceneutil/testcompilepriority.cpp
     sceneutil/testgpuskinning.cpp
     sceneutil/testinstancepreparation.cpp
+    sceneutil/testrigattachment.cpp
+    resource/testboundedcache.cpp
+        resource/testactorpreparation.cpp
     terrain/testpagingray.cpp
     terrain/testrayacceleration.cpp
     terrain/testscenerycoverage.cpp

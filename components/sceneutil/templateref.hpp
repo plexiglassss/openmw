@@ -11,7 +11,7 @@ namespace SceneUtil
     /// Holds a reference to the object a shallow copy was made from, so the template outlives everything copied from
     /// it and a cache holding the template still sees it as in use. The wrapper is what makes that reference nameable:
     /// serialize.cpp ignores "SceneUtil::TemplateRef" so scene dumps skip the template, which a bare osg::Object
-    /// parked in a user data container could not be singled out for. Nothing ever reads the reference back out.
+    /// parked in a user data container could not be singled out for. Budget accounting can follow the retained source without exposing it to scene mutation.
     class TemplateRef : public osg::Object
     {
     public:
@@ -28,6 +28,8 @@ namespace SceneUtil
         }
 
         META_Object(SceneUtil, TemplateRef)
+
+        const osg::Object* getTemplate() const { return mObject.get(); }
 
     private:
         osg::ref_ptr<const osg::Object> mObject;

@@ -61,6 +61,18 @@ namespace Misc
         return useCombinedPerformance() && enabled;
     }
 
+    inline bool useActorPreparation()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_PREPARATION");
+        return useCombinedPerformance() && enabled;
+    }
+
+    inline bool useRecentModelReuse()
+    {
+        static const bool enabled = enabledUnlessZero("OPENMW_RECENT_MODEL_REUSE");
+        return useCombinedPerformance() && enabled;
+    }
+
     inline bool useSparsePostponedPhysics()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_SPARSE_POSTPONED_PHYSICS");

@@ -9,16 +9,20 @@
 #include <mutex>
 #include <string>
 #include <span>
+#include <tuple>
 #include <vector>
 
 namespace Misc { class NativeJobPool; }
 
 #include <osg/Texture>
 #include <osg/ref_ptr>
+#include <osg/observer_ptr>
 
 #include "resourcemanager.hpp"
 #include "sceneinstancecache.hpp"
+#include "boundedcache.hpp"
 #include <components/misc/singleflight.hpp>
+#include <components/sceneutil/rigattachment.hpp>
 
 #include <components/sceneutil/lightmanager.hpp>
 #include <filesystem>
@@ -161,6 +165,14 @@ namespace Resource
         /// @note Thread safe.
         osg::ref_ptr<osg::Node> getInstance(const osg::Node* base);
 
+        std::shared_ptr<const SceneUtil::RigAttachmentPlan> getRigAttachmentPlan(
+            const osg::Node& source, std::string_view filter);
+
+        // Owner-scoped, immutable cleaned skeleton. The factory must return a
+        // detached graph; actor-specific controllers are installed only on clones.
+        osg::ref_ptr<const osg::Node> getActorTemplate(std::string model, std::string defaultSkeleton, bool inject,
+            const std::function<osg::ref_ptr<osg::Node>()>& create);
+
         /// Instance the given scene template.
         /// @see getTemplate
         /// @note Thread safe.
@@ -230,6 +242,32 @@ namespace Resource
         mutable std::shared_mutex mModelSettingsMutex;
         std::atomic_uint64_t mModelSettingsRevision{ 0 };
         SceneInstanceCache mInstanceCache;
+        using ModelRevision = SceneInstanceCache::Revision;
+        struct TemplateKey
+        {
+            const osg::Node* mNode;
+            ModelRevision mRevision;
+            std::string mFilter;
+            bool operator<(const TemplateKey& rhs) const
+            {
+                if (mNode != rhs.mNode)
+                    return std::less<const osg::Node*>{}(mNode, rhs.mNode);
+                return std::tie(mRevision, mFilter) < std::tie(rhs.mRevision, rhs.mFilter);
+            }
+        };
+        using ActorKey = std::tuple<std::string, std::string, bool, std::uint64_t, std::uint64_t>;
+        BoundedCache<TemplateKey, std::shared_ptr<const SceneUtil::RigAttachmentPlan>> mRigPlans{512, 64 * 1024 * 1024, 60};
+        BoundedCache<ActorKey, osg::ref_ptr<const osg::Node>> mActorTemplates{128, 64 * 1024 * 1024, 60};
+        BoundedCache<TemplateKey, osg::ref_ptr<const osg::Node>> mRecentModels{256, 128 * 1024 * 1024, 30};
+        struct RetentionEstimate
+        {
+            osg::observer_ptr<const osg::Node> mSource;
+            std::optional<std::size_t> mBytes;
+        };
+        BoundedCache<TemplateKey, std::shared_ptr<const RetentionEstimate>> mRetentionEstimates{ 512, 256 * 1024, 60.0 };
+        std::optional<std::size_t> retainedModelBytes(const osg::Node& source);
+        void clearPreparedModels();
+        void retainConsumedModel(const osg::Node* base);
         osg::ref_ptr<osg::Node> prepareCpuTemplate(VFS::Path::NormalizedView path, bool useErrorMarker);
 
         Misc::SingleFlight<std::string, osg::ref_ptr<const osg::Node>> mPendingTemplates;
