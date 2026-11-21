@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bbede43b179325e159e4481febab714068110cfe"
+        "blob": "367ebbb4d8463097c8f58032df5e4c2dd20273cc"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,7 +5937,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bbede43b179325e159e4481febab714068110cfe"
+        "blob": "367ebbb4d8463097c8f58032df5e4c2dd20273cc"
       },
       "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates."
     },

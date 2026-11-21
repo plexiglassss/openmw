@@ -444,7 +444,7 @@ jobs:
           [xml]$controlsXml = Get-Content -Raw map-icon-controls-early.xml
           foreach ($suiteName in @('MapIconControlsTest','MessagePositionControlsTest','TooltipControlsTest','SettingsCategoriesTest')) {
             $controlSuites = @($controlsXml.testsuites.testsuite | Where-Object { $_.name -eq $suiteName })
-            $expectedCases = if ($suiteName -eq 'MapIconControlsTest') { 6 } else { 4 }
+            $expectedCases = if ($suiteName -in @('MapIconControlsTest','SettingsCategoriesTest')) { 6 } else { 4 }
             if ($controlSuites.Count -ne 1 -or @($controlSuites[0].testcase).Count -ne $expectedCases) {
               throw "Missing required actual controls cases: $suiteName"
             }
