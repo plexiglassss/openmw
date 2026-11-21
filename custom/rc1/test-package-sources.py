@@ -82,8 +82,11 @@ class PackageSources(unittest.TestCase):
             "PredictionPromotionYieldsToOrdinaryWorkOnContinuation", "RequiredContinuationsDoNotStarveCleanup",
             "RunningPredictionYieldsToNewRequiredWork")]
         fixtures["openmw-tests.xml"] += [("SettingsCategoriesTest", name) for name in (
-            "SixPagesPreserveBindingsDelegatesAndUnknownLayoutControls",
-            "PartialLegacyJournalAndNativeFallbackShareOneReachableSection",
+            "StockPagesAndUnknownLayoutControlsKeepTheirParentsGeometryAndBindings",
+            "UnmarkedLegacyJournalStaysOnItsPageAndOwnedFallbacksMerge",
+            "NoOwnedPagesLeavesTheOriginalTabsAndSelectionIntact",
+            "MinimumSizeAppliesBeforeCenteringAndCustomHostsTrackProgrammaticResize",
+            "ProductionLayoutPreservesStockHierarchyAndScriptsViewport",
             "CategorySelectionSurvivesResizeAndReleasesHiddenInputFocus",
             "WrappedSectionsScrollOverBodyLabelsButtonsAndRevealFocusedControls")]
         for name, cases in fixtures.items():

@@ -436,6 +436,7 @@ DialogueColourSampleRemoval: "A note has been removed from your inventory."
 
 ModKeybindings: "Mod Keybindings"
 
+SettingsCustom: "Custom"
 SettingsGameplay: "Gameplay"
 SettingsInterface: "Interface"
 SettingsControls: "Controls"

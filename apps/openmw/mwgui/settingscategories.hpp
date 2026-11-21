@@ -12,11 +12,15 @@ namespace MyGUI
     class TabControl;
     class TabItem;
     class Widget;
+    class Window;
 }
 
 namespace MWGui
 {
-    // Move existing controls, retaining their identities, values and delegates.
+    void applySettingsWindowMinimumSize(MyGUI::Window* window, MyGUI::TabControl* tabs);
+
+    // Group explicitly marked custom controls; stock and third-party pages stay intact.
+    // Retain moved controls, their values and delegates.
     // MyGUI owns the widgets; this object owns only the category navigation.
     class SettingsCategories
     {
@@ -28,6 +32,7 @@ namespace MWGui
     private:
         struct Section
         {
+            std::string mId;
             MyGUI::Widget* mHost;
             MyGUI::ScrollView* mScroll;
             MyGUI::Widget* mContent;
@@ -42,8 +47,8 @@ namespace MWGui
         };
         std::vector<Page> mPages;
 
-        MyGUI::Widget* addSection(std::size_t page, const std::string& caption, MyGUI::Widget* source,
-            const std::vector<MyGUI::Widget*>& children, bool scroll, bool pack = false, bool merge = false);
+        MyGUI::Widget* addSection(std::size_t page, const std::string& id, const std::string& caption,
+            MyGUI::Widget* source, const std::vector<MyGUI::Widget*>& children, bool scroll, bool merge = false);
         void onCategoryChanged(MyGUI::ComboBox* sender, std::size_t index);
     };
 }

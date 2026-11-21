@@ -55,8 +55,11 @@ def require_rc1_cases(evidence_root):
     }
     categories = {
         ("SettingsCategoriesTest", name) for name in (
-            "SixPagesPreserveBindingsDelegatesAndUnknownLayoutControls",
-            "PartialLegacyJournalAndNativeFallbackShareOneReachableSection",
+            "StockPagesAndUnknownLayoutControlsKeepTheirParentsGeometryAndBindings",
+            "UnmarkedLegacyJournalStaysOnItsPageAndOwnedFallbacksMerge",
+            "NoOwnedPagesLeavesTheOriginalTabsAndSelectionIntact",
+            "MinimumSizeAppliesBeforeCenteringAndCustomHostsTrackProgrammaticResize",
+            "ProductionLayoutPreservesStockHierarchyAndScriptsViewport",
             "CategorySelectionSurvivesResizeAndReleasesHiddenInputFocus",
             "WrappedSectionsScrollOverBodyLabelsButtonsAndRevealFocusedControls",
         )

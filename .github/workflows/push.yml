@@ -249,6 +249,11 @@ jobs:
           if ($LASTEXITCODE) { throw 'Loading progress presentation or graphics-service regression failed' }
           python custom/performance-tests/verify-loading-quality.py --output loading-quality-preservation.json
           if ($LASTEXITCODE) { throw 'Loading optimization changed scenery, visibility or readiness behavior' }
+      - name: Verify stock menu layout preservation
+        shell: pwsh
+        run: |
+          python custom/settings-menu-repair/verify-layout.py
+          if ($LASTEXITCODE) { throw 'Stock settings layout changed outside the custom-only repair' }
       - name: Verify Ninja supplied with the Visual Studio build tools
         shell: pwsh
         run: |
@@ -914,12 +919,14 @@ jobs:
           Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
           Copy-Item custom/cell-streaming/NAVIGATION-PREPARATION.md install/NAVIGATION-PREPARATION.md
           Copy-Item navigation-geometry-tests.json,navigation-previous.xml,navigation-master-off.xml install/
+          Copy-Item custom/settings-menu-repair/README.md install/SETTINGS-MENU-REPAIR.md
+          Copy-Item stock-menu-layout.json install/
           Copy-Item custom/town-activation/README.md install/TOWN-ACTIVATION.md
           Copy-Item town-activation-native-verification.json,actor-preparation-off.xml,recent-model-reuse-off.xml,actor-preparation-master-off.xml,quest-nearby-tests.json,cache-exception.log install/
           Copy-Item Quest_Guider_Lite_Incremental_Nearby_Queries_v1.0.zip install/
           Copy-Item custom/cell-streaming/SCENERY-CONTINUITY.md install/SCENERY-CONTINUITY.md
           Copy-Item cell-streaming-tests.json,cell-packages-legacy.xml install/
-          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Tooltips; see NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nOfficial OpenMW 0.52 RC1 baseline 4ff261bf7c0d42a6cc06dd1ebc5d451802cff055`nRC1 source: rc1-source-manifest.json`nCompiled source: rc1-build-source-manifest.json; lookup optimization is committed`nHistorical cumulative source: town-performance-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
+          "Commit ${{ env.CUMULATIVE_COMMIT }}`nCombined native performance: UI geometry reuse, live compiled magic queries and shared typed cell snapshots; see COMBINED-PERFORMANCE.md`nFour optional mod adapters, TES3 actor neighbours, paging model decoding and same-executable cumulative comparison included`nNative Travel Tooltips, If The Key Fits and Been There, Done That; Options -> Custom -> Tooltips; see SETTINGS-MENU-REPAIR.md and NATIVE-TOOLTIPS.md`nNative world map location icons preserved; no AWM dependency; see NATIVE-MAP-ICONS.md`nLua UI image inheritance repair: actual Image regression required in optimized and legacy modes`nExperimental performance candidates retained: gameplay speedup has not been accepted`nOfficial OpenMW 0.52 RC1 baseline 4ff261bf7c0d42a6cc06dd1ebc5d451802cff055`nRC1 source: rc1-source-manifest.json`nCompiled source: rc1-build-source-manifest.json; lookup optimization is committed`nHistorical cumulative source: town-performance-source-manifest.json`nPreserved combined Continue and native deleveler source ce3d5a2e981999df432cf8df416352cc85842e97`nHistorical feature source manifests retain their original commits`nNative tests use the bundled CI Lua runtime; installed custom replacements, in-game appearance and game FPS remain untested`nComplete standard engine package includes bootstrap and runtime; user modlist configuration and optional FG remain separate" | Set-Content install/CI-ID.txt
           python custom/combined-performance/prepare-package.py install --rc1
           if ($LASTEXITCODE) { throw 'Combined candidate tools, adapters or native verification packaging failed' }
           python custom/cumulative/prepare-upgrade.py install --rc1
@@ -1015,6 +1022,7 @@ jobs:
           name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
             install/verification/WINDOWS-DISTRIBUTION.json
+            stock-menu-layout.json
             loading-reporter-windows.log
             atomic-save-windows.log
             save-load-content-mapping.json

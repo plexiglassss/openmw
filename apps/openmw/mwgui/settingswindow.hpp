@@ -211,7 +211,7 @@ namespace MWGui
         void layoutModControls();
         void onControllerSwitchClicked(MyGUI::Widget* sender);
 
-        void onWindowResize(MyGUI::Window* sender);
+        void onWindowResize(MyGUI::Widget* sender);
 
         void onScriptFilterChange(MyGUI::EditBox*);
         void onScriptListSelection(MyGUI::ListBox*, size_t index);

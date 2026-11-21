@@ -7,6 +7,7 @@
 #include "apps/openmw/mwgui/tooltipvisibility.hpp"
 #include "apps/openmw/mwgui/traveltooltipview.hpp"
 #include "components/mapmarkers/classification.hpp"
+#include "components/widgets/windowcaption.hpp"
 #include "apps/openmw/mwgui/resourceskin.hpp"
 
 #include <MyGUI_Button.h>
@@ -31,6 +32,13 @@
 #include <MyGUI_TextBox.h>
 #include <MyGUI_TabControl.h>
 #include <MyGUI_TabItem.h>
+#include <MyGUI_Window.h>
+
+#ifndef OPENMW_CONTROLS_STANDALONE
+#include <MyGUI_LayoutManager.h>
+#include <components/widgets/box.hpp>
+#include <components/lua_ui/util.hpp>
+#endif
 
 #include <gtest/gtest.h>
 
@@ -252,6 +260,7 @@ namespace MWGui
                     = MyGUI::newDelegate(this, &MessagePositionControlsTest::requestTag);
                 MyGUI::FactoryManager::getInstance().registerFactory<AutoSizedResourceSkin>(
                     resources.getCategoryName());
+                MyGUI::FactoryManager::getInstance().registerFactory<Gui::WindowCaption>("Widget");
                 auto& layers = MyGUI::LayerManager::getInstance();
                 layers.createLayerAt("Settings", "OverlappedLayer", 0);
                 layers.createLayerAt("Popup", "OverlappedLayer", 1);
@@ -275,6 +284,13 @@ namespace MWGui
                     return;
                 }
                 const std::map<std::string, std::string> captions{
+                    { "OMWEngine:Preferences", "Preferences" },
+                    { "OMWEngine:Audio", "Audio" },
+                    { "OMWEngine:Controls", "Controls" },
+                    { "OMWEngine:Video", "Video" },
+                    { "OMWEngine:Scripts", "Mods" },
+                    { "OMWEngine:Language", "Language" },
+                    { "OMWEngine:SettingsCustom", "Custom" },
                     { "Interface:On", "On" },
                     { "Interface:Off", "Off" },
                     { "OMWEngine:SmartMapDescription",
@@ -1412,6 +1428,16 @@ namespace MWGui
                     tab->setUserString("SettingsPage", id);
                 return tab;
             }
+            MyGUI::TabItem* customPage(const std::string& id)
+            {
+                auto* tab = page(id);
+                tab->setUserString("CustomSettingsPage", id);
+                return tab;
+            }
+            MyGUI::TabItem* customTab()
+            {
+                return mTabs->getItemAt(mTabs->getItemCount() - 1);
+            }
             MyGUI::ComboBox* selector(size_t index)
             {
                 auto* tab = mTabs->getItemAt(index);
@@ -1435,7 +1461,7 @@ namespace MWGui
             }
         };
 
-        TEST_F(SettingsCategoriesTest, SixPagesPreserveBindingsDelegatesAndUnknownLayoutControls)
+        TEST_F(SettingsCategoriesTest, StockPagesAndUnknownLayoutControlsKeepTheirParentsGeometryAndBindings)
         {
             createTabs();
             auto* prefs = page("Preferences");
@@ -1448,61 +1474,224 @@ namespace MWGui
             hud->setUserString("SettingCategory", "HUD");
             hud->setUserString("SettingName", "crosshair");
             bindClick(hud);
-            std::vector<MyGUI::Widget*> retained;
-            for (const auto* id : { "Gameplay", "Audio", "Controls", "Video", "Mods", "Language", "Journal" })
-                retained.push_back(
-                    page(id)->createWidget<MyGUI::Widget>("", { 0, 0, 100, 100 }, MyGUI::Align::Stretch));
-            auto smartMap = createSmartMapControls(page("SmartMap"), "CategoryTest");
+            std::vector<MyGUI::TabItem*> stock{ prefs };
+            std::vector<MyGUI::Widget*> retained{ game, hud };
+            for (const auto* id : { "Audio", "Controls", "Video", "Mods", "Language" })
+            {
+                auto* tab = page(id);
+                stock.push_back(tab);
+                retained.push_back(tab->createWidget<MyGUI::Widget>("", { 0, 0, 300, 300 }, MyGUI::Align::Stretch));
+            }
+            auto* unknown = page("");
+            // Familiar control names and setting categories do not establish
+            // ownership of another layout's page.
+            auto* extra = unknown->createWidget<MyGUI::Button>(
+                "MW_Button", { 4, 4, 100, 28 }, MyGUI::Align::Default, "OtherJournalTextAlignment");
+            extra->setUserString("SettingName", "delevel creatures");
+            stock.push_back(unknown);
+            retained.push_back(extra);
+            std::vector<MyGUI::Widget*> parents;
+            std::vector<MyGUI::IntCoord> coords;
+            std::vector<MyGUI::Align> aligns;
+            for (auto* widget : retained)
+            {
+                parents.push_back(widget->getParent());
+                coords.push_back(widget->getCoord());
+                aligns.push_back(widget->getAlign());
+            }
+            customPage("Gameplay")->createWidget<MyGUI::Widget>("", { 0, 0, 100, 100 }, MyGUI::Align::Stretch);
+            customPage("Journal")->createWidget<MyGUI::Widget>("", { 0, 0, 100, 100 }, MyGUI::Align::Stretch);
+            auto smartMap = createSmartMapControls(customPage("SmartMap"), "CategoryTest");
             smartMap.mSliders[0]->setScrollPosition(5);
-            auto* extra = page("")->createWidget<MyGUI::Button>("MW_Button", { 4, 4, 100, 28 }, MyGUI::Align::Default);
+            mTabs->setItemSelected(stock[4]);
             SettingsCategories categories(mTabs);
-            ASSERT_EQ(mTabs->getItemCount(), 6u);
-            const std::array<std::string, 6> ids{ "Gameplay", "Interface", "Controls", "Video", "Audio", "Mods" };
-            for (size_t i = 0; i < ids.size(); ++i)
-                EXPECT_EQ(mTabs->getItemAt(i)->getUserString("SettingsPage"), ids[i]);
-            EXPECT_EQ(ancestor<MyGUI::TabItem>(game), mTabs->getItemAt(0));
-            EXPECT_EQ(ancestor<MyGUI::TabItem>(hud), mTabs->getItemAt(1));
-            EXPECT_EQ(ancestor<MyGUI::TabItem>(extra), mTabs->getItemAt(5));
-            EXPECT_EQ(ancestor<MyGUI::TabItem>(retained[2]), mTabs->getItemAt(2));
-            EXPECT_EQ(ancestor<MyGUI::TabItem>(retained[3]), mTabs->getItemAt(3));
+            ASSERT_EQ(mTabs->getItemCount(), stock.size() + 1);
+            EXPECT_EQ(mTabs->getItemSelected(), stock[4]);
+            for (size_t i = 0; i < stock.size(); ++i)
+                EXPECT_EQ(mTabs->getItemAt(i), stock[i]);
+            for (size_t i = 0; i < retained.size(); ++i)
+            {
+                EXPECT_EQ(retained[i]->getParent(), parents[i]);
+                EXPECT_EQ(retained[i]->getCoord(), coords[i]);
+                EXPECT_EQ(retained[i]->getAlign(), aligns[i]);
+            }
+            ASSERT_EQ(selector(stock.size())->getItemCount(), 3u);
+            EXPECT_EQ(customTab()->getUserString("SettingsPage"), "Custom");
+            EXPECT_EQ(customTab()->getUserString("AllowTabOverflow"), "true");
             EXPECT_EQ(game->getScrollPosition(), 123u);
-            EXPECT_EQ(game->getUserString("SettingName"), "difficulty");
             hud->eventMouseButtonClick(hud);
             EXPECT_EQ(mClicks, 1);
             mTabs->setSize(960, 700);
             categories.layout();
             layoutSmartMapControls(smartMap);
             EXPECT_EQ(smartMap.mSliders[0]->getScrollPosition(), 5u);
-            EXPECT_EQ(smartMap.mView->getParent()->getWidth(), mTabs->getItemAt(1)->getWidth());
+            EXPECT_EQ(smartMap.mView->getParent()->getWidth(), customTab()->getWidth());
+            EXPECT_EQ(extra->getParent(), unknown);
         }
 
-        TEST_F(SettingsCategoriesTest, PartialLegacyJournalAndNativeFallbackShareOneReachableSection)
+        TEST_F(SettingsCategoriesTest, UnmarkedLegacyJournalStaysOnItsPageAndOwnedFallbacksMerge)
         {
             createTabs();
-            auto* legacy = page("");
+            auto* legacy = page("Journal");
             auto* alignment = legacy->createWidget<MyGUI::ComboBox>(
                 "MW_ComboBox", { 4, 4, 240, 28 }, MyGUI::Align::Default, "OldJournalTextAlignment");
             alignment->addItem("Left");
             alignment->addItem("Justify");
             alignment->setIndexSelected(1);
-            auto* fallback = page("Journal");
+            auto* owned = customPage("Journal");
+            auto* oldFont = owned->createWidget<MyGUI::ComboBox>(
+                "MW_ComboBox", { 4, 4, 240, 28 }, MyGUI::Align::Default, "OldJournalFontSize");
+            auto* fallback = customPage("Journal");
             auto* font = fallback->createWidget<MyGUI::ComboBox>(
                 "MW_ComboBox", { 4, 4, 240, 28 }, MyGUI::Align::Default, "NewJournalFontSizeFallback");
             SettingsCategories categories(mTabs);
+            ASSERT_EQ(mTabs->getItemCount(), 2u);
             ASSERT_EQ(selector(1)->getItemCount(), 1u);
-            EXPECT_EQ(ancestor<MyGUI::ScrollView>(font), ancestor<MyGUI::ScrollView>(alignment));
-            EXPECT_EQ(ancestor<MyGUI::TabItem>(font), mTabs->getItemAt(1));
-            EXPECT_GT(font->getTop(), alignment->getBottom());
+            EXPECT_EQ(alignment->getParent(), legacy);
+            EXPECT_EQ(alignment->getCoord(), MyGUI::IntCoord(4, 4, 240, 28));
+            EXPECT_EQ(ancestor<MyGUI::ScrollView>(font), ancestor<MyGUI::ScrollView>(oldFont));
+            EXPECT_EQ(ancestor<MyGUI::TabItem>(font), customTab());
+            EXPECT_GT(font->getTop(), oldFont->getBottom());
             EXPECT_EQ(alignment->getIndexSelected(), 1u);
         }
+
+        TEST_F(SettingsCategoriesTest, NoOwnedPagesLeavesTheOriginalTabsAndSelectionIntact)
+        {
+            createTabs();
+            auto* prefs = page("Preferences");
+            auto* language = page("Language");
+            auto* unknown = customPage("OtherExtension");
+            mTabs->setItemSelected(language);
+            SettingsCategories categories(mTabs);
+            ASSERT_EQ(mTabs->getItemCount(), 3u);
+            EXPECT_EQ(mTabs->getItemAt(0), prefs);
+            EXPECT_EQ(mTabs->getItemAt(1), language);
+            EXPECT_EQ(mTabs->getItemAt(2), unknown);
+            EXPECT_EQ(mTabs->getItemSelected(), language);
+        }
+
+        TEST_F(SettingsCategoriesTest, MinimumSizeAppliesBeforeCenteringAndCustomHostsTrackProgrammaticResize)
+        {
+            auto* window = mGui.createWidget<MyGUI::Window>(
+                "MW_Window", { 0, 0, 400, 485 }, MyGUI::Align::Default, "Settings");
+            window->setMinSize({ 640, 550 });
+            mTabs = window->createWidget<MyGUI::TabControl>(
+                "TabControl", { 8, 8, 368, 405 }, MyGUI::Align::Stretch);
+            mTabs->setButtonAutoWidth(true);
+            auto* stock = page("Preferences");
+            auto* control = stock->createWidget<MyGUI::Widget>("", { 4, 4, 300, 300 }, MyGUI::Align::Stretch);
+            auto controls = createSmartMapControls(customPage("SmartMap"), "InitialSizeTest");
+            SettingsCategories categories(mTabs);
+            customTab()->setCaption(std::string(300, 'W'));
+            const auto initial = control->getCoord();
+            const auto initialTab = stock->getSize();
+            applySettingsWindowMinimumSize(window, mTabs);
+            const MyGUI::IntSize viewport(1024, 768);
+            window->setPosition((viewport.width - window->getWidth()) / 2, (viewport.height - window->getHeight()) / 2);
+            EXPECT_EQ(window->getWidth(), 640);
+            EXPECT_GE(window->getHeight(), 550);
+            EXPECT_EQ(window->getLeft() * 2 + window->getWidth(), viewport.width);
+            EXPECT_EQ(window->getTop() * 2 + window->getHeight(), viewport.height);
+            EXPECT_EQ(control->getParent(), stock);
+            EXPECT_EQ(control->getWidth(), initial.width + stock->getWidth() - initialTab.width);
+            // No manual categories.layout(): MyGUI alignment must propagate a
+            // programmatic resize, which does not emit eventWindowChangeCoord.
+            EXPECT_EQ(controls.mView->getParent()->getWidth(), customTab()->getWidth());
+            window->setSize(900, 650);
+            EXPECT_EQ(controls.mView->getParent()->getWidth(), customTab()->getWidth());
+            EXPECT_EQ(controls.mView->getWidth(), customTab()->getWidth());
+        }
+
+#ifndef OPENMW_CONTROLS_STANDALONE
+        TEST_F(SettingsCategoriesTest, ProductionLayoutPreservesStockHierarchyAndScriptsViewport)
+        {
+            auto& factories = MyGUI::FactoryManager::getInstance();
+            factories.registerFactory<Gui::HBox>("Widget");
+            factories.registerFactory<Gui::VBox>("Widget");
+            factories.registerFactory<Gui::Spacer>("Widget");
+            factories.registerFactory<Gui::AutoSizedButton>("Widget");
+            factories.registerFactory<Gui::AutoSizedTextBox>("Widget");
+            LuaUi::registerAllWidgets();
+            auto roots = MyGUI::LayoutManager::getInstance().loadLayout("openmw_settings_window.layout", "StockTest");
+            ASSERT_EQ(roots.size(), 1u);
+            auto* window = roots.front()->castType<MyGUI::Window>();
+            mTabs = window->findWidget("StockTestSettingsTab")->castType<MyGUI::TabControl>();
+            std::vector<MyGUI::TabItem*> stock;
+            struct Original
+            {
+                MyGUI::Widget* widget;
+                MyGUI::Widget* parent;
+                MyGUI::IntCoord coord;
+                MyGUI::Align align;
+            };
+            std::vector<Original> originals;
+            const auto snapshot = [&](const auto& self, MyGUI::Widget* widget) -> void {
+                originals.push_back({ widget, widget->getParent(), widget->getCoord(), widget->getAlign() });
+                for (size_t i = 0; i < widget->getChildCount(); ++i)
+                    self(self, widget->getChildAt(i));
+            };
+            for (size_t i = 0; i < mTabs->getItemCount(); ++i)
+            {
+                auto* tab = mTabs->getItemAt(i);
+                if (tab->getUserString("CustomSettingsPage").empty())
+                {
+                    stock.push_back(tab);
+                    snapshot(snapshot, tab);
+                }
+            }
+            ASSERT_EQ(stock.size(), 6u);
+            auto messages = createMessagePositionControls(customPage("Messages"), "StockTestMessages");
+            auto icons = createMapIconControls(customPage("MapIcons"), "StockTestIcons");
+            auto map = createSmartMapControls(customPage("SmartMap"), "StockTestMap");
+            auto tooltips = createTooltipControls(customPage("Tooltips"), "StockTestTooltips");
+            customPage("Dialogue")->createWidget<MyGUI::Widget>("", { 0, 0, 100, 100 }, MyGUI::Align::Stretch);
+            SettingsCategories categories(mTabs);
+            ASSERT_EQ(mTabs->getItemCount(), 7u);
+            for (size_t i = 0; i < stock.size(); ++i)
+                EXPECT_EQ(mTabs->getItemAt(i), stock[i]);
+            for (const auto& original : originals)
+            {
+                SCOPED_TRACE(original.widget->getName());
+                EXPECT_EQ(original.widget->getParent(), original.parent);
+                EXPECT_EQ(original.widget->getCoord(), original.coord);
+                EXPECT_EQ(original.widget->getAlign(), original.align);
+            }
+            ASSERT_EQ(selector(6)->getItemCount(), 7u);
+            auto* scriptBox = window->findWidget("StockTestScriptBox");
+            auto* scriptView = window->findWidget("StockTestScriptView")->castType<MyGUI::ScrollView>();
+            auto* scriptFilter = window->findWidget("StockTestScriptFilter")->castType<MyGUI::EditBox>();
+            auto* scripts = ancestor<MyGUI::TabItem>(scriptBox);
+            EXPECT_EQ(scripts, stock[4]);
+            scriptFilter->setCaption("Preserved filter");
+            applySettingsWindowMinimumSize(window, mTabs);
+            window->setPosition((1024 - window->getWidth()) / 2, (768 - window->getHeight()) / 2);
+            categories.layout();
+            for (const MyGUI::IntSize size : { MyGUI::IntSize(640, 550), MyGUI::IntSize(900, 650) })
+            {
+                window->setSize(size);
+                categories.layout();
+                layoutMessagePositionControls(messages);
+                layoutMapIconControls(icons);
+                layoutSmartMapControls(map);
+                layoutTooltipControls(tooltips);
+                EXPECT_GT(scriptBox->getWidth(), 200);
+                EXPECT_GT(scriptView->getWidth(), 200);
+                EXPECT_GT(scriptView->getHeight(), 300);
+                EXPECT_EQ(scriptFilter->getCaption(), "Preserved filter");
+                EXPECT_EQ(ancestor<MyGUI::TabItem>(scriptBox), scripts);
+                EXPECT_EQ(map.mView->getParent()->getWidth(), customTab()->getWidth());
+            }
+        }
+#endif
 
         TEST_F(SettingsCategoriesTest, CategorySelectionSurvivesResizeAndReleasesHiddenInputFocus)
         {
             createTabs();
-            auto* journal = page("Journal");
+            page("Preferences");
+            auto* journal = customPage("Journal");
             auto* field
                 = journal->createWidget<MyGUI::EditBox>("MW_TextEdit", { 4, 4, 200, 28 }, MyGUI::Align::Default);
-            page("Language")->createWidget<MyGUI::TextBox>("SandText", { 4, 4, 200, 28 }, MyGUI::Align::Default);
+            customPage("Tooltips")->createWidget<MyGUI::TextBox>("SandText", { 4, 4, 200, 28 }, MyGUI::Align::Default);
             SettingsCategories categories(mTabs);
             mTabs->setIndexSelected(1);
             auto* pick = selector(1);
@@ -1523,7 +1712,8 @@ namespace MWGui
         TEST_F(SettingsCategoriesTest, WrappedSectionsScrollOverBodyLabelsButtonsAndRevealFocusedControls)
         {
             createTabs();
-            auto* journal = page("Journal");
+            page("Preferences");
+            auto* journal = customPage("Journal");
             auto* label = journal->createWidget<MyGUI::TextBox>("SandText", { 4, 4, 250, 28 }, MyGUI::Align::Default);
             auto* button = journal->createWidget<MyGUI::Button>("MW_Button", { 4, 50, 250, 28 }, MyGUI::Align::Default);
             auto* last

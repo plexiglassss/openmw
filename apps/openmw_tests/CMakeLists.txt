@@ -115,11 +115,12 @@ openmw_add_executable(openmw-controls-tests EXCLUDE_FROM_ALL
     ../openmw/mwgui/traveltooltipview.cpp
     ../openmw/mwgui/resourceskin.cpp
     ${PROJECT_SOURCE_DIR}/components/mapmarkers/classification.cpp
+    ${PROJECT_SOURCE_DIR}/components/widgets/windowcaption.cpp
 )
 target_link_libraries(openmw-controls-tests GTest::GTest ${MyGUI_LIBRARIES})
 # Match the MyGUI ABI definition normally inherited through components.
 target_compile_definitions(openmw-controls-tests
-    PRIVATE OPENMW_PROJECT_SOURCE_DIR=u8"${PROJECT_SOURCE_DIR}"
+    PRIVATE OPENMW_CONTROLS_STANDALONE=1 OPENMW_PROJECT_SOURCE_DIR=u8"${PROJECT_SOURCE_DIR}"
             MYGUI_DONT_USE_OBSOLETE=ON)
 if (WIN32)
     target_sources(openmw-controls-tests PRIVATE ${CMAKE_SOURCE_DIR}/files/windows/other-apps.manifest)

@@ -5,7 +5,6 @@
         <Widget type="TabControl" skin="TabControl" position="8 8 368 405" align="Stretch" name="SettingsTab">
             <Property key="ButtonAutoWidth" value="true"/>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Preferences"/>
                 <Property key="Caption" value=" #{OMWEngine:Preferences} "/>
                 <Widget type="Widget" position="4 4 352 54" align="Left Top HStretch">
                     <Widget type="TextBox" skin="NormalText" position="0 0 352 16" align="Left Top">
@@ -155,7 +154,7 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Gameplay"/>
+                <UserString key="CustomSettingsPage" value="Gameplay"/>
                 <Property key="Caption" value=" #{OMWEngine:Gameplay} "/>
                 <UserString key="AllowTabOverflow" value="true"/>
                 <Widget type="VBox" position_real="0 0 1 1" align="Stretch">
@@ -217,7 +216,6 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Audio"/>
                 <Property key="Caption" value=" #{OMWEngine:Audio} "/>
                 <Widget type="TextBox" skin="NormalText" position="4 4 352 18" align="Left Top">
                     <Property key="Caption" value="#{OMWEngine:AudioMaster}"/>
@@ -281,7 +279,6 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Controls"/>
                 <Property key="Caption" value=" #{OMWEngine:Controls} "/>
 
                 <Widget type="HBox" position="4 4 360 28">
@@ -371,7 +368,6 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Video"/>
                 <Property key="Caption" value=" #{OMWEngine:Video} "/>
                 <Widget type="TabControl" skin="TabControlInner" position="4 4 352 390" align="Stretch">
                     <Property key="ButtonAutoWidth" value="true"/>
@@ -1058,7 +1054,6 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Mods"/>
                 <Property key="Caption" value=" #{OMWEngine:Scripts} "/>
 
                 <Widget name="ScriptDisabled" type="EditBox" skin="SandText" position_real="0 0 1 1" align="HStretch Top">
@@ -1100,7 +1095,6 @@
 
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Language"/>
                 <Property key="Caption" value=" #{OMWEngine:Language} "/>
                 <Widget type="AutoSizedTextBox" skin="SandText" position="4 4 300 32" align="Left Top">
                     <Property key="Caption" value="#{OMWEngine:LanguageNote}"/>
@@ -1133,7 +1127,7 @@
                 </Widget>
             </Widget>
             <Widget type="TabItem">
-                <UserString key="SettingsPage" value="Journal"/>
+                <UserString key="CustomSettingsPage" value="Journal"/>
                 <Property key="Caption" value=" Interface "/>
                 <Widget type="HBox" position="4 48 370 28">
                     <Widget type="AutoSizedButton" skin="MW_Button" position="0 0 24 24" align="Left Top">
