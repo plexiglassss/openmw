@@ -14,6 +14,8 @@
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/compilepriority.hpp>
 #include <components/misc/combinedperformance.hpp>
+#include <components/misc/nativejobpool.hpp>
+#include <components/settings/values.hpp>
 #include <components/debug/debuglog.hpp>
 
 #include <components/diagnostics/timing.hpp>
@@ -1003,13 +1005,15 @@ namespace Terrain
         const auto build = [&](std::size_t first, std::size_t last) {
             constexpr std::size_t groupSize = 4;
             const bool batch = mBatchChunkManager && mBatchChunkManager->canPreloadBatches();
+            const bool terrainBatch = mChunkManager && mTerrainJobPool && mTerrainJobPool->workerCount()
+                && Misc::useTerrainPreparation() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
             for (auto i = first; i < last && !abort;)
             {
                 const auto begin = i;
                 std::array<ViewDataEntry*, groupSize> entries;
                 std::array<ChunkRequest, groupSize> chunks;
                 std::size_t count = 0;
-                while (i < last && i - begin < (batch ? groupSize : 1) && !abort)
+                while (i < last && i - begin < ((batch || terrainBatch) ? groupSize : 1) && !abort)
                 {
                     auto& entry = vd->getEntry(ordered[i++]);
                     updateRenderingLod(entry, vd);
@@ -1023,6 +1027,12 @@ namespace Terrain
                 }
                 if (abort)
                     return;
+                // Only private vertex data is prepared in parallel. Join before
+                // the model pipeline; view updates and graph publication stay ordered.
+                if (terrainBatch && count > 1)
+                    mChunkManager->prepareVertices(std::span(chunks).first(count), *mTerrainJobPool, abort);
+                if (abort)
+                    return;
                 const auto load = [&](std::size_t index, const BatchChunkManager::Fetch& fetch) {
                     {
                         Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
@@ -1034,8 +1044,9 @@ namespace Terrain
                 };
                 if (batch && count)
                     mBatchChunkManager->preloadChunks(std::span(chunks).first(count), vd->getViewPoint(), abort, load);
-                else if (count)
-                    load(0, {});
+                else
+                    for (std::size_t index = 0; index < count && !abort; ++index)
+                        load(index, {});
                 if (arrival && !abort)
                 {
                     std::vector<ArrivalView::Entry> ready;

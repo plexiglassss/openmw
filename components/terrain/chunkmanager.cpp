@@ -2,6 +2,7 @@
 #include "chunkmanager.hpp"
 
 #include <components/diagnostics/timing.hpp>
+#include <components/misc/combinedperformance.hpp>
 
 #include <osg/KdTree>
 
@@ -50,6 +51,7 @@ namespace Terrain
         , mSceneManager(sceneMgr)
         , mTextureManager(textureManager)
         , mCompositeMapRenderer(renderer)
+        , mVertexCache(*storage, worldspace)
         , mNodeMask(0)
         , mCompositeMapSize(512)
         , mCompositeMapLevel(1.f)
@@ -73,19 +75,38 @@ namespace Terrain
         // TODO: maybe we can refactor this code by moving all vertexLodMod code into this class.
         lod = static_cast<unsigned char>(lodFlags >> (4 * 4));
 
-        const ChunkKey key{ .mCenter = center, .mLod = lod, .mLodFlags = lodFlags };
+        const std::shared_lock buildLock(mBuildMutex);
+        const ChunkKey key{ .mCenter = center, .mLod = lod, .mSize = size, .mLodFlags = lodFlags };
         if (osg::ref_ptr<osg::Object> obj = mCache->getRefFromObjectCache(key))
             return static_cast<osg::Node*>(obj.get());
 
-        const TerrainDrawable* templateGeometry = nullptr;
-        const TemplateKey templateKey{ .mCenter = center, .mLod = lod };
-        const auto pair = mCache->lowerBound(templateKey);
-        if (pair.has_value() && templateKey == TemplateKey{ .mCenter = pair->first.mCenter, .mLod = pair->first.mLod })
-            templateGeometry = static_cast<const TerrainDrawable*>(pair->second.get());
+        const auto build = [&]() -> osg::ref_ptr<osg::Node> {
+            if (auto node = mCache->getRefFromObjectCache(key))
+                return node;
+            // Pin the template while another thread updates/evicts cache entries.
+            const TemplateKey templateKey{ .mCenter = center, .mLod = lod, .mSize = size };
+            const auto pair = mCache->lowerBound(templateKey);
+            const TerrainDrawable* templateGeometry = nullptr;
+            if (pair.has_value() && templateKey == TemplateKey{
+                    .mCenter = pair->first.mCenter, .mLod = pair->first.mLod, .mSize = pair->first.mSize })
+                templateGeometry = static_cast<const TerrainDrawable*>(pair->second.get());
+            auto node = createChunk(size, center, lod, lodFlags, compile, templateGeometry);
+            mCache->addEntryToObjectCache(key, node);
+            return node;
+        };
+        if (!Misc::useTerrainPreparation())
+            return build();
+        return mPending.get(key, build, [](const auto& future) { return future.get(); });
+    }
 
-        osg::ref_ptr<osg::Node> node = createChunk(size, center, lod, lodFlags, compile, templateGeometry);
-        mCache->addEntryToObjectCache(key, node.get());
-        return node;
+    void ChunkManager::prepareVertices(std::span<const QuadTreeWorld::ChunkRequest> chunks,
+        Misc::NativeJobPool& jobs, const std::atomic_bool& abort)
+    {
+        std::vector<VertexBufferKey> keys;
+        keys.reserve(chunks.size());
+        for (const auto& chunk : chunks)
+            keys.push_back({ chunk.mCenter, chunk.mSize, static_cast<unsigned char>(chunk.mLodFlags >> 16) });
+        mVertexCache.prepare(keys, jobs, abort);
     }
 
     void ChunkManager::updateTextureFiltering()
@@ -97,18 +118,28 @@ namespace Terrain
     void ChunkManager::reportStats(unsigned int frameNumber, osg::Stats* stats) const
     {
         Resource::reportStats("Terrain Chunk", frameNumber, mCache->getStats(), *stats);
+        Resource::reportStats("Terrain Vertices", frameNumber, mVertexCache.getStats(), *stats);
+    }
+
+    void ChunkManager::updateCache(double referenceTime)
+    {
+        Resource::NodeResourceManager<ChunkKey>::updateCache(referenceTime);
+        mVertexCache.update(referenceTime, mExpiryDelay);
     }
 
     void ChunkManager::clearCache()
     {
+        const std::unique_lock buildLock(mBuildMutex);
         Resource::NodeResourceManager<ChunkKey>::clearCache();
-
+        mVertexCache.clear();
         mBufferCache.clearCache();
     }
 
     void ChunkManager::releaseGLObjects(osg::State* state)
     {
+        const std::unique_lock buildLock(mBuildMutex);
         Resource::NodeResourceManager<ChunkKey>::releaseGLObjects(state);
+        mVertexCache.releaseGLObjects(state);
         mBufferCache.releaseGLObjects(state);
     }
 
@@ -217,7 +248,11 @@ namespace Terrain
         Diagnostics::Scope createTiming("terrain", "ground", "createChunk");
         osg::ref_ptr<TerrainDrawable> geometry(new TerrainDrawable);
 
-        if (!templateGeometry)
+        if (Misc::useTerrainPreparation())
+        {
+            geometry->setVertexBuffer(mVertexCache.get({ chunkCenter, chunkSize, lod }));
+        }
+        else if (!templateGeometry)
         {
             osg::ref_ptr<osg::Vec3Array> positions(new osg::Vec3Array);
             osg::ref_ptr<osg::Vec3Array> normals(new osg::Vec3Array);

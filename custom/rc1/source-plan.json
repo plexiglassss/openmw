@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "009ca7944ea40b5848e1d6cb91329112935ff579"
+        "blob": "1bcdd916ede0b1f997923809bba975f642846c74"
       },
       "status": "adapted_for_rc1"
     },
@@ -99,7 +99,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "734cf87a85f3ec63c0864e759bf65cfc241f3824"
+        "blob": "74101332aa7a7e385482bdc64e67abc0ab62cb64"
       },
       "status": "adapted_for_rc1"
     },
@@ -1716,7 +1716,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "69d9a9440c658182270cb68acbf8122f9313ef8c"
+        "blob": "aefa4509a6a863ecfdfcb24ca3453ad1e9ec4506"
       },
       "status": "adapted_for_rc1"
     },
@@ -2244,7 +2244,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "316514356f69df6de0259e6c551e16f4a219aaef"
+        "blob": "1b0675ff0e8afb3def817275b4fdf801305d6249"
       },
       "status": "adapted_for_rc1"
     },
@@ -2783,7 +2783,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "62868dd21ae661f5366803e338298dee1a27be0f"
+        "blob": "7439d90649194e8c2cca68c052993e5a4bdbc60b"
       },
       "status": "adapted_for_rc1"
     },
@@ -3025,9 +3025,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "62c436e78ead047fd176fa7d584ca75a318ff76a"
+        "blob": "8242d0016c8f98d5dab7d35f6383fdc27bd3a113"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "components/sceneutil/asyncpreparation.hpp": {
       "cumulative": {
@@ -3509,7 +3509,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "abe4d7f289a19f160c42974f5e43711918ffe4ca"
+        "blob": "b4c1a2e84389b05e30fad7c31def1791307e62ce"
       },
       "status": "adapted_for_rc1"
     },
@@ -3520,7 +3520,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "2b10c8fec87290b781f2f3264d86e2deccf75fe1"
+        "blob": "322f53bd2c55e21c3a81a390d10ed6298981e33e"
       },
       "status": "adapted_for_rc1"
     },
@@ -3575,7 +3575,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "04e9262cc8a1344717463c630780a9418ed0e969"
+        "blob": "8216bc66a3d5243876a9077569f3d377440483b2"
       },
       "status": "adapted_for_rc1"
     },
@@ -3586,7 +3586,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "6ea7829db897de930e1c6933d9ce9a6faeeca5da"
+        "blob": "26611e1185cf396cd68bcbb948ee80e9d871c525"
       },
       "status": "adapted_for_rc1"
     },
@@ -3751,9 +3751,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3349089eb866f07c44e27dc03c4106ca65bc1796"
+        "blob": "7da9ad1e6b9079668a3a6f66dca910e10d1c9257"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/cell-streaming/test-batch-planning.py": {
       "cumulative": {
@@ -5071,7 +5071,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e96994ee2c0697799c9f56c9b1e8c8f2e7d50fa8"
+        "blob": "e6e8b6c149f472cd99f0229f7a5d36ec3a9c4e0a"
       },
       "status": "adapted_for_rc1"
     },
@@ -5082,7 +5082,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "60069fbe1fa887740d8b17790158a3a94cdb8c2d"
+        "blob": "eb71682e204e9b6cd6a94e90d934503dc112f258"
       },
       "status": "adapted_for_rc1"
     },
@@ -5093,7 +5093,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3ec06320f39d417c5b03ceafa6ded3e5123720c4"
+        "blob": "10cb4b425dc2ddca63c51d11747d6afa78f68bcc"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "009ca7944ea40b5848e1d6cb91329112935ff579"
+        "blob": "1bcdd916ede0b1f997923809bba975f642846c74"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -5981,9 +5981,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "734cf87a85f3ec63c0864e759bf65cfc241f3824"
+        "blob": "74101332aa7a7e385482bdc64e67abc0ab62cb64"
       },
-      "purpose": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
+      "purpose": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "apps/components_tests/contentselector/testcontentmodel.cpp": {
       "upstream": null,
@@ -7825,9 +7825,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "69d9a9440c658182270cb68acbf8122f9313ef8c"
+        "blob": "aefa4509a6a863ecfdfcb24ca3453ad1e9ec4506"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "upstream": {
@@ -8454,9 +8454,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "316514356f69df6de0259e6c551e16f4a219aaef"
+        "blob": "1b0675ff0e8afb3def817275b4fdf801305d6249"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/compiler/locals.cpp": {
       "upstream": {
@@ -9166,9 +9166,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "62868dd21ae661f5366803e338298dee1a27be0f"
+        "blob": "7439d90649194e8c2cca68c052993e5a4bdbc60b"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/misc/dialoguetext.cpp": {
       "upstream": null,
@@ -9405,9 +9405,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "62c436e78ead047fd176fa7d584ca75a318ff76a"
+        "blob": "8242d0016c8f98d5dab7d35f6383fdc27bd3a113"
       },
-      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Exterior cell preparation: bounded private render clones, arrival priority, isolated Lua package snapshots, lifecycle regressions and full-build integration. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/sceneutil/asyncpreparation.hpp": {
       "upstream": null,
@@ -9874,9 +9874,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "abe4d7f289a19f160c42974f5e43711918ffe4ca"
+        "blob": "b4c1a2e84389b05e30fad7c31def1791307e62ce"
       },
-      "purpose": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prioritize required exterior work with bounded cancellation and graphics compilation; share immutable position inputs only across safe Lua read phases with action/revision invalidation. Preserve all cumulative features and verify the public query and scheduler paths. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/terrain/chunkmanager.hpp": {
       "upstream": {
@@ -9885,9 +9885,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "2b10c8fec87290b781f2f3264d86e2deccf75fe1"
+        "blob": "322f53bd2c55e21c3a81a390d10ed6298981e33e"
       },
-      "purpose": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Retained or adapted to the official RC1 source/API."
+      "purpose": "Propagate preload cancellation, keep only complete chunks, and assemble selected references independently of worker or allocation order. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/terrain/compositemaprenderer.cpp": {
       "upstream": {
@@ -9934,9 +9934,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "04e9262cc8a1344717463c630780a9418ed0e969"
+        "blob": "8216bc66a3d5243876a9077569f3d377440483b2"
       },
-      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/terrain/quadtreeworld.hpp": {
       "upstream": {
@@ -9945,9 +9945,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "6ea7829db897de930e1c6933d9ce9a6faeeca5da"
+        "blob": "26611e1185cf396cd68bcbb948ee80e9d871c525"
       },
-      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "components/terrain/rayfootprint.hpp": {
       "upstream": null,
@@ -10255,9 +10255,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "3349089eb866f07c44e27dc03c4106ca65bc1796"
+        "blob": "7da9ad1e6b9079668a3a6f66dca910e10d1c9257"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "custom/cell-streaming/test-batch-planning.py": {
       "upstream": null,
@@ -11879,17 +11879,17 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "e96994ee2c0697799c9f56c9b1e8c8f2e7d50fa8"
+        "blob": "e6e8b6c149f472cd99f0229f7a5d36ec3a9c4e0a"
       },
-      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Include the selected ordinary spell read setting in the existing capture. Launch and verify individual and collective controls, preserving historical comparison modes. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retain cumulative behavior while adding the scoped navigation geometry preparation increment and its verification. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "custom/performance-capture-followup/Test-CaptureFollowup.ps1": {
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "60069fbe1fa887740d8b17790158a3a94cdb8c2d"
+        "blob": "eb71682e204e9b6cd6a94e90d934503dc112f258"
       },
-      "purpose": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Require exactly one new streaming observation block, then reconstruct the same historical collector bytes and retain all existing capture behavior checks. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Explicitly permit one navigation-mode observation line and retain the exact original collector checksum. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "custom/performance-capture/README.txt": {
       "upstream": null,
@@ -11911,9 +11911,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "3ec06320f39d417c5b03ceafa6ded3e5123720c4"
+        "blob": "10cb4b425dc2ddca63c51d11747d6afa78f68bcc"
       },
-      "purpose": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
+      "purpose": "Continuous distant-object streaming and its lifecycle/compatibility regressions. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
     },
     "custom/performance-capture/Test-Capture.ps1": {
       "upstream": null,
@@ -13719,6 +13719,92 @@
       "ported": {
         "mode": "100644",
         "blob": "cf06325e42dc719324e7d123ce6eb08a3d55f683"
+      }
+    },
+    "apps/components_tests/terrain/testvertexpreparation.cpp": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "5026476b94cfd5f22358785488edfce14b47d286"
+      }
+    },
+    "components/terrain/terraindrawable.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "20df85b6ba293347c50f92637d3a628e58bcfe33"
+      },
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "ec9bf7f662174859ff85ea04f0cf8491132d3321"
+      }
+    },
+    "components/terrain/terraindrawable.hpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "03faafda2c7537589dcc54f0128ec9ea473e997e"
+      },
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "415ba3b834e227396ad67884b3e0794769e8e4f8"
+      }
+    },
+    "components/terrain/vertexbuffer.hpp": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "1e15d9c1bb2a3cb4c797bbd0980e521d3f1e9503"
+      }
+    },
+    "components/terrain/vertexbuffercache.cpp": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "1ba0584f2ebde45767f30166df4b42aaef819466"
+      }
+    },
+    "components/terrain/vertexbuffercache.hpp": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "dafea790449608bac5c1106c950795ef0b59abd3"
+      }
+    },
+    "custom/terrain-preparation/README.md": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "c60963ef1b0483d86c2b97ed5ac1bb8ee948630a"
+      }
+    },
+    "custom/terrain-preparation/test-chunks.py": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "47ee3237b77258af39014f2a1ac8c6f232fb8f70"
+      }
+    },
+    "custom/terrain-preparation/test-planning.py": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "5cdae39b7e0b18132535215567f1edfe9c249765"
+      }
+    },
+    "custom/terrain-preparation/verify-tests.py": {
+      "upstream": null,
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.",
+      "ported": {
+        "mode": "100644",
+        "blob": "285f1a3b86b1badcc24b03b83b074609134fe364"
       }
     }
   }

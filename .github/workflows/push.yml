@@ -228,6 +228,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Actual actor preload body regressions failed' }
           python custom/performance-tests/test-streaming-paths.py 2>&1 | Tee-Object streaming-paths-windows.log
           if ($LASTEXITCODE) { throw 'Production streaming traversal/publication regressions failed' }
+          python custom/terrain-preparation/test-planning.py
+          if ($LASTEXITCODE) { throw 'Terrain preparation order, cancellation or fallback regression failed' }
       - name: Verify loading workers remain independent of progress rendering
         timeout-minutes: 5
         shell: pwsh
@@ -614,11 +616,12 @@ jobs:
         shell: pwsh
         run: |
           ./build/components-tests.exe --gtest_output=xml:components-tests.xml
-          $componentTestExit = $LASTEXITCODE
+          if ($LASTEXITCODE) { throw 'Component regression tests failed' }
+          python custom/terrain-preparation/verify-tests.py --native components-tests.xml --output terrain-native-verification.json
+          if ($LASTEXITCODE) { throw 'Required terrain native tests did not pass' }
           Remove-Item Env:OPENMW_LUA_UI_LEGACY_LAYOUT,Env:OPENMW_LUA_UI_LEGACY_UPDATES,Env:OPENMW_COMBINED_PERFORMANCE,Env:OPENMW_LUA_CELL_QUERY_CACHE -ErrorAction SilentlyContinue
           ./build/openmw-tests.exe --gtest_output=xml:openmw-tests.xml
           if ($LASTEXITCODE) { throw 'Engine regressions failed' }
-          if ($componentTestExit) { throw 'Component regressions failed' }
           try {
             $env:OPENMW_LUA_UI_LEGACY_LAYOUT = '1'
             ./build/openmw-tests.exe --gtest_filter=LuaUiLayoutTest.*:LuaUiPropertyTest.*:ModControlsInteractionTest.* --gtest_output=xml:lua-ui-legacy-tests.xml
@@ -1014,6 +1017,8 @@ jobs:
             shrine-tooltips-source-manifest.json
             dialogue-colours-source-manifest.json
             components-tests.xml
+            terrain-native-verification.json
+            terrain-planning-tests.json
             openmw-tests.xml
             lua-ui-legacy-tests.xml
             lua-ui-layout-parity.json
@@ -1080,13 +1085,16 @@ jobs:
           python3 custom/cell-streaming/test-scenery-handover.py
           python3 custom/cell-streaming/test-static-preload.py
           python3 custom/cell-streaming/test-batch-planning.py
+          python3 custom/terrain-preparation/test-planning.py
+          python3 custom/terrain-preparation/test-chunks.py
           python3 custom/performance-tests/test-transition-preload.py
       - name: Verify complete scenery handover with actual graphics compilation
         run: |
           g++ -std=c++20 -O2 -pthread -I. custom/cell-streaming/scenery-graphics.cpp \
-            components/sceneutil/compilepriority.cpp components/sceneutil/gameplaycompile.cpp -losgUtil -losg -lOpenThreads \
+            components/sceneutil/compilepriority.cpp components/sceneutil/gameplaycompile.cpp components/terrain/buffercache.cpp -losgUtil -losg -lOpenThreads \
             -lGL -lEGL -lgtest_main -lgtest -o scenery-graphics-tests
           LIBGL_ALWAYS_SOFTWARE=1 ./scenery-graphics-tests --gtest_output=xml:scenery-native-gl-tests.xml
+          python3 custom/terrain-preparation/verify-tests.py --graphics scenery-native-gl-tests.xml --output terrain-gl-verification.json
       - name: Reproduce and verify loading progress and framebuffer retention
         run: python3 custom/frame-generation/tests/frame_contents_gl.py /usr/include
       - name: Exercise location rendering shaders on Mesa
@@ -1111,6 +1119,9 @@ jobs:
             scenery-handover-tests.json
             static-resource-preload-tests.json
             batch-planning-tests.json
+            terrain-planning-tests.json
+            terrain-chunk-tests.json
+            terrain-gl-verification.json
           if-no-files-found: error
   FrameGeneration:
     if: github.head_ref != 'fix/windows-package-20261106'

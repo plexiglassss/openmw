@@ -6,6 +6,7 @@
 #include <components/sceneutil/lightmanager.hpp>
 
 #include "compositemaprenderer.hpp"
+#include "vertexbuffer.hpp"
 
 namespace Terrain
 {
@@ -16,6 +17,7 @@ namespace Terrain
 
     TerrainDrawable::TerrainDrawable(const TerrainDrawable& copy, const osg::CopyOp& copyop)
         : osg::Geometry(copy, copyop)
+        , mVertexBuffer(getVertexArray() == copy.getVertexArray() ? copy.mVertexBuffer : nullptr)
         , mPasses(copy.mPasses)
         , mLightListCallback(copy.mLightListCallback)
     {
@@ -128,6 +130,12 @@ namespace Terrain
     void TerrainDrawable::setLightListCallback(SceneUtil::LightListCallback* lightListCallback)
     {
         mLightListCallback = lightListCallback;
+    }
+
+    void TerrainDrawable::setVertexBuffer(std::shared_ptr<const VertexBuffer> vertices)
+    {
+        vertices->attach(*this);
+        mVertexBuffer = std::move(vertices);
     }
 
     void TerrainDrawable::setupWaterBoundingBox(float waterheight, float margin)

@@ -1,6 +1,8 @@
 #include <components/sceneutil/compilepriority.hpp>
 #include <components/sceneutil/gameplaycompile.hpp>
 #include <components/terrain/scenerycoverage.hpp>
+#include <components/terrain/vertexbuffer.hpp>
+#include <components/terrain/buffercache.hpp>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <osg/GraphicsContext>
@@ -101,6 +103,53 @@ namespace
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glReadPixels(x, 16, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, value.data());
         return value;
+    }
+
+    TEST(TerrainVertexSharingGL, StitchVariantsDrawAfterSiblingReleaseAndBufferRecompile)
+    {
+        osg::ref_ptr<Context> context = new Context;
+        auto* state = context->getState();
+        Terrain::VertexBuffer vertices;
+        for (unsigned y=0; y<5; ++y)
+            for (unsigned x=0; x<5; ++x)
+            {
+                vertices.mPositions->push_back(osg::Vec3f(-1.f+x*.5f,-1.f+y*.5f,0));
+                vertices.mNormals->push_back(osg::Vec3f(0,0,1));
+                vertices.mColours->push_back(osg::Vec4ub(64,128,192,255));
+            }
+        vertices.seal();
+        Terrain::BufferCache buffers;
+        const auto shader = quad(-1,1,{1,1,1,1});
+        osg::ref_ptr<osg::Geometry> first = new osg::Geometry;
+        osg::ref_ptr<osg::Geometry> second = new osg::Geometry;
+        const auto setup = [&](osg::Geometry& g,unsigned flags) {
+            vertices.attach(g);
+            g.addPrimitiveSet(buffers.getIndexBuffer(5,flags));
+            g.setUseDisplayList(false);g.setUseVertexBufferObjects(true);
+            g.setTexCoordArrayList(osg::Geometry::ArrayList(2,buffers.getUVBuffer(5)));
+            g.setStateSet(shader->getStateSet());
+        };
+        setup(*first,0);
+        const auto draw = [&](osg::Geometry& g) {
+            glClearColor(0,0,0,1);glClear(GL_COLOR_BUFFER_BIT);
+            osg::RenderInfo info(state,nullptr);
+            g.compileGLObjects(info);
+            state->pushStateSet(g.getStateSet());state->apply();g.draw(info);state->popStateSet();
+            EXPECT_EQ(pixel(16),(std::array<unsigned char,3>{64,128,192}));
+            EXPECT_EQ(glGetError(),static_cast<GLenum>(GL_NO_ERROR));
+        };
+        draw(*first);
+        // Attach a new variant after the original VBO has already been compiled/drawn.
+        setup(*second,0x1111);
+        ASSERT_EQ(first->getVertexArray(),second->getVertexArray());
+        ASSERT_NE(first->getPrimitiveSet(0),second->getPrimitiveSet(0));
+        draw(*second);
+        first->releaseGLObjects(state);first=nullptr;
+        draw(*second);
+        vertices.releaseGLObjects(state);buffers.releaseGLObjects(state);
+        draw(*second);
+        EXPECT_EQ(vertices.mPositions->getVertexBufferObject()->getNumBufferData(),3u);
+        second->releaseGLObjects(state);
     }
 
     TEST(GameplayCompilation, SharedCompiledDependenciesDoNotStarveTheFinalReceipt)

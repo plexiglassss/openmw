@@ -2,11 +2,13 @@
 #define OPENMW_COMPONENTS_TERRAIN_CHUNKMANAGER_H
 
 #include <tuple>
+#include <shared_mutex>
 
 #include <components/resource/resourcemanager.hpp>
 
 #include "buffercache.hpp"
 #include "quadtreeworld.hpp"
+#include "vertexbuffercache.hpp"
 
 namespace osg
 {
@@ -32,11 +34,12 @@ namespace Terrain
     {
         osg::Vec2f mCenter;
         unsigned char mLod;
+        float mSize;
     };
 
     inline auto tie(const TemplateKey& v)
     {
-        return std::tie(v.mCenter, v.mLod);
+        return std::tie(v.mCenter, v.mLod, v.mSize);
     }
 
     inline bool operator<(const TemplateKey& l, const TemplateKey& r)
@@ -53,12 +56,13 @@ namespace Terrain
     {
         osg::Vec2f mCenter;
         unsigned char mLod;
+        float mSize;
         unsigned mLodFlags;
     };
 
     inline auto tie(const ChunkKey& v)
     {
-        return std::tie(v.mCenter, v.mLod, v.mLodFlags);
+        return std::tie(v.mCenter, v.mLod, v.mSize, v.mLodFlags);
     }
 
     inline bool operator<(const ChunkKey& l, const ChunkKey& r)
@@ -68,7 +72,7 @@ namespace Terrain
 
     inline bool operator<(const ChunkKey& l, const TemplateKey& r)
     {
-        return TemplateKey{ .mCenter = l.mCenter, .mLod = l.mLod } < r;
+        return TemplateKey{ .mCenter = l.mCenter, .mLod = l.mLod, .mSize = l.mSize } < r;
     }
 
     /// @brief Handles loading and caching of terrain chunks
@@ -93,6 +97,10 @@ namespace Terrain
         void reportStats(unsigned int frameNumber, osg::Stats* stats) const override;
 
         void clearCache() override;
+        void updateCache(double referenceTime) override;
+
+        void prepareVertices(std::span<const QuadTreeWorld::ChunkRequest> chunks,
+            Misc::NativeJobPool& jobs, const std::atomic_bool& abort);
 
         void releaseGLObjects(osg::State* state) override;
 
@@ -113,6 +121,9 @@ namespace Terrain
         TextureManager* mTextureManager;
         CompositeMapRenderer* mCompositeMapRenderer;
         BufferCache mBufferCache;
+        VertexBufferCache mVertexCache;
+        std::shared_mutex mBuildMutex;
+        Misc::SingleFlight<ChunkKey, osg::ref_ptr<osg::Node>> mPending;
 
         osg::ref_ptr<osg::StateSet> mMultiPassRoot;
 

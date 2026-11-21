@@ -11,6 +11,8 @@
 
 #include <components/esm/refid.hpp>
 
+namespace Misc { class NativeJobPool; }
+
 namespace osg
 {
     class NodeVisitor;
@@ -146,6 +148,8 @@ namespace Terrain
         };
         void addChunkManager(ChunkManager*);
         void addBatchChunkManager(BatchChunkManager*);
+        // Set before any view preparation starts. The pool outlives this world.
+        void setTerrainJobPool(Misc::NativeJobPool* pool) { mTerrainJobPool = pool; }
 
 
     private:
@@ -162,6 +166,7 @@ namespace Terrain
             bool asynchronous = false, double referenceTime = 0, bool separateScenery = false);
         void prepareAhead(ViewData&, const osg::Vec3f&, double referenceTime, float cellWorldSize);
         BatchChunkManager* mBatchChunkManager = nullptr;
+        Misc::NativeJobPool* mTerrainJobPool = nullptr;
         std::size_t mSceneryPrepared = 0, mSceneryRequired = 0, mSceneryAhead = 0, mSceneryCancelled = 0;
         double mSceneryRequiredMs = 0, mSceneryAheadMs = 0, mNextSceneryReport = 0;
 

@@ -25,6 +25,7 @@ namespace Terrain
 
     class CompositeMap;
     class CompositeMapRenderer;
+    struct VertexBuffer;
 
     /**
      * Subclass of Geometry that supports built in multi-pass rendering and built in LightListCallback.
@@ -54,6 +55,8 @@ namespace Terrain
 
         void setLightListCallback(SceneUtil::LightListCallback* lightListCallback);
 
+        void setVertexBuffer(std::shared_ptr<const VertexBuffer> vertices);
+
         void createClusterCullingCallback();
 
         void compileGLObjects(osg::RenderInfo& renderInfo) const override;
@@ -67,6 +70,7 @@ namespace Terrain
 
     private:
         osg::BoundingBox mWaterBoundingBox;
+        std::shared_ptr<const VertexBuffer> mVertexBuffer;
         PassVector mPasses;
 
         osg::ref_ptr<osg::ClusterCullingCallback> mClusterCullingCallback;
