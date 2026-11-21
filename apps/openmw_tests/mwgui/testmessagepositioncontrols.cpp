@@ -266,7 +266,7 @@ namespace MWGui
                 layers.createLayerAt("Popup", "OverlappedLayer", 1);
                 for (const auto* file : { "core.skin", "openmw_resources.xml", "openmw_text.skin.xml",
                          "openmw_windows.skin.xml", "openmw_button.skin.xml", "openmw_list.skin.xml",
-                         "openmw_box.skin.xml", "openmw_scroll.skin.xml" })
+                         "openmw_box.skin.xml", "openmw_scroll.skin.xml", "openmw_edit.skin.xml" })
                     ASSERT_TRUE(resources.load(file)) << file;
             }
 
@@ -1663,6 +1663,7 @@ namespace MWGui
             auto* scripts = ancestor<MyGUI::TabItem>(scriptBox);
             EXPECT_EQ(scripts, stock[4]);
             scriptFilter->setCaption("Preserved filter");
+            ASSERT_EQ(scriptFilter->getCaption(), "Preserved filter");
             applySettingsWindowMinimumSize(window, mTabs);
             window->setPosition((1024 - window->getWidth()) / 2, (768 - window->getHeight()) / 2);
             categories.layout();
