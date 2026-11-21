@@ -93,6 +93,7 @@ namespace Resource
                 "Groundcover Chunk",
                 "Object Chunk",
                 "Terrain Chunk",
+                "Terrain Vertices",
                 "Terrain Texture",
                 "Land",
                 "Blending Rules",

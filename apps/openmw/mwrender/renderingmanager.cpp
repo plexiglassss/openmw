@@ -1473,6 +1473,7 @@ namespace MWRender
             auto quadTreeWorld = std::make_unique<Terrain::QuadTreeWorld>(mSceneRoot, mRootNode, mResourceSystem,
                 mTerrainStorage.get(), Mask_Terrain, Mask_PreCompile, Mask_Debug, compMapResolution, compMapLevel,
                 lodFactor, vertexLodMod, maxCompGeometrySize, debugChunks, worldspace, expiryDelay);
+            quadTreeWorld->setTerrainJobPool(MWBase::Environment::get().getNativeJobPoolOrNull());
             if (Settings::terrain().mObjectPaging)
             {
                 newChunkMgr.mObjectPaging
