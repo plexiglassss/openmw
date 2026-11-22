@@ -187,10 +187,40 @@ def restore(code):
     print('Restored exact compiled applications and dependencies; all native tests still required.')
 
 
+def verify_source_bytes():
+    head = git('rev-parse', 'HEAD')
+    rows = subprocess.check_output(['git', 'ls-tree', '-r', '-z', COMPILED]).split(b'\0')
+    changed = []
+    checked = 0
+    for row in rows:
+        if not row:
+            continue
+        identity, raw_name = row.split(b'\t', 1)
+        mode, kind, expected = identity.decode().split()
+        name = raw_name.decode('utf-8')
+        path = Path(name)
+        require(kind == 'blob' and mode in ('100644', '100755'), 'Unsupported source entry: ' + name)
+        actual = None
+        if path.is_file() and not path.is_symlink():
+            data = path.read_bytes()
+            actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+        if actual != expected:
+            changed.append({'path': name, 'expected_blob': expected, 'actual_blob': actual})
+        checked += 1
+    audit = {'head': head, 'compiled_commit': COMPILED, 'tracked_files_checked': checked,
+             'compiled_tree': git('rev-parse', COMPILED + '^{tree}'), 'byte_mismatches': changed,
+             'index_changes': git('diff', '--cached', COMPILED, '--name-only').splitlines(),
+             'git_worktree_diff_names': git('diff', COMPILED, '--name-only').splitlines()}
+    dump('recovery-source-audit.json', audit)
+    require(head == COMPILED and checked > 0 and not changed and not audit['index_changes'],
+            'Compiled source identity/content changed: ' + json.dumps(audit))
+    return audit
+
+
 def finish(code):
-    require(git('rev-parse', 'HEAD') == COMPILED and not git('diff', 'HEAD', '--name-only'),
-            'Compiled source changed during verification')
+    source_audit = verify_source_bytes()
     receipt = json.loads((code / 'receipt.json').read_text())
+    receipt['final_source_audit'] = source_audit
     for name, row in receipt['restored_files'].items():
         require(digest(name) == row['sha256'] and Path(name).stat().st_size == row['bytes'],
                 'A restored native binary changed: ' + name)

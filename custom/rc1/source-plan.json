@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "04bcd198acc9d2ee4438fd0abac3b84b2a0cad54"
+        "blob": "0e9082f952887c151996d77e2ca2d1253226c18f"
       },
       "status": "adapted_for_rc1"
     },
@@ -5937,7 +5937,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "04bcd198acc9d2ee4438fd0abac3b84b2a0cad54"
+        "blob": "0e9082f952887c151996d77e2ca2d1253226c18f"
       },
       "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim. 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
     },
@@ -14139,7 +14139,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "5c038f17389870d2ed6f11e6ea7847e8747d9c81"
+        "blob": "26fce29459b732b538f2b2ee7d798aa74c4f5499"
       },
       "purpose": " 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
     },
@@ -14147,7 +14147,7 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "b428803d3722bd852e188c4eceb33eafd7c96670"
+        "blob": "406461da5f211a7165451f0be71dddd0df7ba4ae"
       },
       "purpose": " 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
     }

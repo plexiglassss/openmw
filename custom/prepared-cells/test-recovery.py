@@ -83,10 +83,12 @@ with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(args.native_evidence)
 with tempfile.TemporaryDirectory() as tmp:
     previous = Path.cwd()
     old_git = recovery.git
+    old_source_check = recovery.verify_source_bytes
     old_redist = os.environ.get('VCToolsRedistDir')
     try:
         os.chdir(tmp)
         recovery.git = lambda *args: recovery.COMPILED if args == ('rev-parse', 'HEAD') else ''
+        recovery.verify_source_bytes = lambda: {'test_fixture': True}
         code = Path('code'); code.mkdir()
         Path('build').mkdir(); Path('install/verification').mkdir(parents=True)
         Path('redist/x64/Microsoft.VC143.CRT').mkdir(parents=True)
@@ -117,10 +119,33 @@ with tempfile.TemporaryDirectory() as tmp:
     finally:
         os.chdir(previous)
         recovery.git = old_git
+        recovery.verify_source_bytes = old_source_check
         if old_redist is None:
             os.environ.pop('VCToolsRedistDir', None)
         else:
             os.environ['VCToolsRedistDir'] = old_redist
+
+with tempfile.TemporaryDirectory() as tmp:
+    previous, original_commit = Path.cwd(), recovery.COMPILED
+    try:
+        os.chdir(tmp)
+        subprocess.run(['git', 'init', '-q'], check=True)
+        Path('source.cpp').write_bytes(b'// exact compiled source\n')
+        subprocess.run(['git', 'add', 'source.cpp'], check=True)
+        subprocess.run(['git', '-c', 'user.name=Recovery Test', '-c', 'user.email=recovery@example.invalid',
+                        'commit', '-qm', 'Source fixture'], check=True)
+        recovery.COMPILED = recovery.git('rev-parse', 'HEAD')
+        recovery.verify_source_bytes()
+        checks.append({'case': 'accept_exact_tracked_source_bytes', 'result': 'PASS'})
+        Path('source.cpp').write_bytes(b'// changed source\n')
+        reject('reject_modified_tracked_source_bytes', recovery.verify_source_bytes)
+        audit = json.loads(Path('recovery-source-audit.json').read_text())
+        assert [r['path'] for r in audit['byte_mismatches']] == ['source.cpp']
+        Path('source.cpp').write_bytes(b'// exact compiled source\r\n')
+        reject('reject_unreviewed_source_line_endings', recovery.verify_source_bytes)
+    finally:
+        os.chdir(previous)
+        recovery.COMPILED = original_commit
 
 args.output.write_text(json.dumps({'result': 'PASS', 'checks': checks}, indent=2) + '\n')
 print('PASS:', len(checks), 'recovery/count-correction checks')

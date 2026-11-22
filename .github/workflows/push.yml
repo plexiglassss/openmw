@@ -406,8 +406,8 @@ jobs:
         run: |
           python "$env:PREPARED_RECOVERY_CODE/recover-windows.py" restore --code "$env:PREPARED_RECOVERY_CODE"
           if ($LASTEXITCODE) { throw 'Original binary provenance validation failed' }
-          cmake --build build --target qm-files
-          if ($LASTEXITCODE) { throw 'Translation resource generation failed' }
+          cmake --build build --target qm-files get-version
+          if ($LASTEXITCODE) { throw 'Translation/version resource generation failed' }
       - name: Compile the parallel native engine changes and their tests first
         if: steps.existing_engine.outputs.reused != 'true' && env.PREPARED_RECOVERY != '1'
         shell: pwsh
@@ -1066,7 +1066,7 @@ jobs:
           retention-days: 7
           if-no-files-found: error
       - name: Preserve unverified files for packaging failure recovery
-        if: failure() && steps.package.outputs.installed == 'true' && steps.package.outcome == 'failure'
+        if: failure() && steps.package.outputs.installed == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: UNVERIFIED-town-performance-package-recovery-${{ env.CUMULATIVE_COMMIT }}
@@ -1078,6 +1078,7 @@ jobs:
         with:
           name: cumulative-native-evidence-${{ env.CUMULATIVE_COMMIT }}
           path: |
+            recovery-source-audit.json
             install/verification/COMPILED-BINARY-RECOVERY.json
             install/verification/WINDOWS-DISTRIBUTION.json
             stock-menu-layout.json
