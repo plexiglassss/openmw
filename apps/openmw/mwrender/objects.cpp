@@ -96,6 +96,49 @@ namespace MWRender
             mObjectsByCell.set(ptr.mRef, ptr.getCell());
     }
 
+    void Objects::insertPreparedStatic(const MWWorld::Ptr& ptr, std::unique_ptr<ObjectAnimation> animation)
+    {
+        if (!animation || ptr.getRefData().getBaseNode() || mObjects.contains(ptr.mRef))
+            throw std::logic_error("Invalid prepared static rendering publication");
+        auto* node = dynamic_cast<SceneUtil::PositionAttitudeTransform*>(animation->getInsertNode());
+        auto* identity = node ? SceneUtil::findUserData<MWWorld::Ptr>(*node) : nullptr;
+        if (!identity || node->getNumParents() != 0 || !identity->isEmpty())
+            throw std::logic_error("Prepared static rendering was already published");
+
+        auto cell = mCellSceneNodes.find(ptr.getCell());
+        const bool newCell = cell == mCellSceneNodes.end();
+        osg::ref_ptr<osg::Group> cellNode = newCell ? new osg::Group : cell->second.get();
+        if (newCell)
+            cellNode->setName("Cell Root");
+        animation->updatePtr(ptr);
+        *identity = ptr;
+        try
+        {
+            mObjects.emplace(ptr.mRef, std::move(animation));
+            if (Misc::useCellObjectIndex())
+                mObjectsByCell.set(ptr.mRef, ptr.getCell());
+            if (newCell)
+            {
+                mCellSceneNodes.emplace(ptr.getCell(), cellNode);
+                mRootNode->addChild(cellNode);
+            }
+            cellNode->addChild(node);
+            ptr.getRefData().setBaseNode(node);
+        }
+        catch (...)
+        {
+            cellNode->removeChild(node);
+            if (newCell)
+            {
+                mRootNode->removeChild(cellNode);
+                mCellSceneNodes.erase(ptr.getCell());
+            }
+            mObjectsByCell.erase(ptr.mRef);
+            mObjects.erase(ptr.mRef);
+            throw;
+        }
+    }
+
     void Objects::insertCreature(const MWWorld::Ptr& ptr, const std::string& mesh, bool weaponsShields)
     {
         insertBegin(ptr);

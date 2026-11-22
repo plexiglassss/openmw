@@ -18,6 +18,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwworld/testpositioncellgrid.cpp
     mwworld/testpreloaddependencies.cpp
     mwworld/testpreloadplans.cpp
+    mwworld/testpreparedcell.cpp
 
     mwdialogue/testkeywordsearch.cpp
 
@@ -93,6 +94,14 @@ endif()
 if (BUILD_WITH_CODE_COVERAGE)
     target_compile_options(openmw-tests PRIVATE --coverage)
     target_link_libraries(openmw-tests gcov)
+endif()
+
+option(OPENMW_TEST_PREPARED_CELLS_GL "Exercise prepared-cell publication on a headless EGL context" OFF)
+if (OPENMW_TEST_PREPARED_CELLS_GL)
+    find_package(OpenGL REQUIRED COMPONENTS EGL)
+    target_link_libraries(openmw-tests OpenGL::EGL)
+    set_source_files_properties(mwworld/testpreparedcell.cpp PROPERTIES
+        COMPILE_DEFINITIONS OPENMW_TEST_PREPARED_CELLS_GL=1)
 endif()
 
 target_compile_definitions(openmw-tests

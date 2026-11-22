@@ -59,6 +59,9 @@
 #include "../mwworld/actionteleport.hpp"
 
 #include "cellpreloader.hpp"
+#include "preparedcell.hpp"
+#include "../mwrender/objects.hpp"
+#include "../mwrender/animation.hpp"
 #include "cellstore.hpp"
 #include "cellvisitors.hpp"
 #include "class.hpp"
@@ -149,7 +152,8 @@ namespace
     static osg::ref_ptr<SceneUtil::PositionAttitudeTransform> pagedNode = new SceneUtil::PositionAttitudeTransform;
 
     void addObject(const MWWorld::Ptr& ptr, const MWWorld::World& world, const std::vector<ESM::RefNum>& pagedRefs,
-        MWPhysics::PhysicsSystem& physics, MWRender::RenderingManager& rendering)
+        MWPhysics::PhysicsSystem& physics, MWRender::RenderingManager& rendering,
+        MWWorld::PreparedCell* preparedCell = nullptr)
     {
         if (ptr.getRefData().getBaseNode() || physics.getActor(ptr))
         {
@@ -163,12 +167,19 @@ namespace
             return getModel(ptr);
         }();
         const auto rotation = makeDirectNodeRotation(ptr);
+        const auto refnum = ptr.getCellRef().getRefNum();
+        const bool paged = refnum.hasContentFile() && std::binary_search(pagedRefs.begin(), pagedRefs.end(), refnum);
+        auto prepared = preparedCell ? preparedCell->take(ptr, model, !paged) : MWWorld::PreparedStaticObject{};
+        Diagnostics::Scope publication("prepared-cell",
+            prepared.mRendering ? "render-and-collision" : prepared.mPrepared ? "collision-only" : "fallback",
+            "publishObject");
 
         {
             Diagnostics::Scope phase("scene-object", "insert", "rendering");
             Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellRendering);
-            ESM::RefNum refnum = ptr.getCellRef().getRefNum();
-            if (!refnum.hasContentFile() || !std::binary_search(pagedRefs.begin(), pagedRefs.end(), refnum))
+            if (prepared.mRendering)
+                rendering.getObjects().insertPreparedStatic(ptr, std::move(prepared.mRendering));
+            else if (!paged)
                 ptr.getClass().insertObjectRendering(ptr, model, rendering);
             else
                 ptr.getRefData().setBaseNode(pagedNode);
@@ -191,7 +202,10 @@ namespace
         {
             Diagnostics::Scope phase("scene-object", "insert", "physics");
             Diagnostics::Loading::Timer detail(Diagnostics::Loading::Stage::CellPhysics);
-            ptr.getClass().insertObject(ptr, model, rotation, physics);
+            if (prepared.mPrepared)
+                physics.addPreparedObject(ptr, std::move(prepared.mPhysics), MWPhysics::CollisionType_World);
+            else
+                ptr.getClass().insertObject(ptr, model, rotation, physics);
         }
         {
             Diagnostics::Scope phase("scene-object", "insert", "luaNotification");
@@ -489,6 +503,10 @@ namespace MWWorld
 
         MWBase::Environment::get().getSoundManager()->stopSound(cell);
         mActiveCells.erase(cell);
+        // Rebuild fresh private static instances for a return trip. No progressed
+        // controller state or live physics handles are retained as gameplay state.
+        if (mPreloadEnabled)
+            mPreloader->prepareCell(*cell, mRendering.getReferenceTime());
         // Clean up any effects that may have been spawned while unloading all cells
         if (mActiveCells.empty())
             mRendering.notifyWorldSpaceChanged();
@@ -1052,8 +1070,14 @@ namespace MWWorld
         , mLowestPoint(std::numeric_limits<float>::max())
     {
         mPreloader = std::make_unique<CellPreloader>(rendering.getResourceSystem(), physics->getShapeManager(),
-            rendering.getTerrain(), rendering.getLandManager());
+            rendering.getTerrain(), rendering.getLandManager(), physics);
         mPreloader->setWorkQueue(mRendering.getWorkQueue());
+        if (Misc::usePreparedCells())
+        {
+            // A dense detached packet cannot occupy the queue servicing required terrain arrivals.
+            // This bounds extra concurrency to one worker; resource-lock/CPU contention is still measurable.
+            mPreloader->setPreparedWorkQueue(std::make_shared<SceneUtil::WorkQueue>(1));
+        }
         mPreloader->setExpiryDelay(Settings::cells().mPreloadCellExpiryDelay);
         mPreloader->setMinCacheSize(Settings::cells().mPreloadCellCacheMin);
         mPreloader->setMaxCacheSize(Settings::cells().mPreloadCellCacheMax);
@@ -1206,6 +1230,7 @@ namespace MWWorld
         const bool isInterior = !cell.isExterior();
         const auto description = cell.getCell()->getDescription();
         InsertVisitor insertVisitor(cell, loadingListener);
+        auto prepared = mPreloader->takePreparedCell(cell, mRendering.getReferenceTime());
         {
             Diagnostics::Scope phase("scene-cell", description, "collectObjects");
             cell.forEach(insertVisitor);
@@ -1215,7 +1240,7 @@ namespace MWWorld
             Diagnostics::Scope phase("scene-cell", description, "renderAndPhysicsObjects");
             insertVisitor.insert([&](const MWWorld::Ptr& ptr) {
                 const auto begin = Diagnostics::Loading::Clock::now();
-                addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering);
+                addObject(ptr, mWorld, mPagedRefs, *mPhysics, mRendering, prepared.get());
                 const double elapsed = Diagnostics::Loading::milliseconds(Diagnostics::Loading::Clock::now() - begin);
                 if (elapsed > slowest.back().first)
                 {
@@ -1226,6 +1251,8 @@ namespace MWWorld
             });
         }
         transition.phase("rendering and physics");
+        if (prepared)
+            mPreloader->recordPreparedCellUsage(*prepared);
         {
             Diagnostics::Scope phase("scene-cell", description, "navigationObjects");
             insertVisitor.insert([&](const MWWorld::Ptr& ptr) {

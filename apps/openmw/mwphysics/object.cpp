@@ -17,26 +17,76 @@ namespace MWPhysics
 {
     Object::Object(const MWWorld::Ptr& ptr, std::shared_ptr<Resource::BulletShapeInstance> shapeInstance,
         osg::Quat rotation, int collisionType, PhysicsTaskScheduler* scheduler)
-        : PtrHolder(ptr, osg::Vec3f())
+        : Object(std::move(shapeInstance), ptr.getRefData().getPosition().asVec3(), rotation,
+              ptr.getCellRef().getScale())
+    {
+        activate(ptr, collisionType, scheduler);
+    }
+
+    Object::Object(std::shared_ptr<Resource::BulletShapeInstance> shapeInstance, const osg::Vec3f& position,
+        osg::Quat rotation, float scale)
+        : PtrHolder(MWWorld::Ptr{}, osg::Vec3f())
         , mShapeInstance(std::move(shapeInstance))
         , mSolid(true)
-        , mScale(ptr.getCellRef().getScale(), ptr.getCellRef().getScale(), ptr.getCellRef().getScale())
-        , mPosition(ptr.getRefData().getPosition().asVec3())
+        , mScale(scale, scale, scale)
+        , mPosition(position)
         , mRotation(rotation)
-        , mTaskScheduler(scheduler)
         , mCollidedWith(ScriptedCollisionType_None)
     {
         mCollisionObject = BulletHelpers::makeCollisionObject(mShapeInstance->mCollisionShape.get(),
             Misc::Convert::toBullet(mPosition), Misc::Convert::toBullet(rotation));
         mCollisionObject->setUserPointer(this);
         mShapeInstance->setLocalScaling(mScale);
-        mTaskScheduler->addCollisionObject(mCollisionObject.get(), collisionType,
-            CollisionType_Actor | CollisionType_HeightMap | CollisionType_Projectile);
+    }
+
+    void Object::activate(const MWWorld::Ptr& ptr, int collisionType, PhysicsTaskScheduler* scheduler)
+    {
+        if (isActive() || !scheduler || ptr.isEmpty() || (mStaged && mTaskScheduler != scheduler))
+            throw std::logic_error("Invalid detached collision object activation");
+        mPtr = ptr;
+        if (mStaged)
+            scheduler->publishStagedCollisionObject(mCollisionObject.get(), collisionType,
+                CollisionType_Actor | CollisionType_HeightMap | CollisionType_Projectile);
+        else
+            scheduler->addCollisionObject(mCollisionObject.get(), collisionType,
+                CollisionType_Actor | CollisionType_HeightMap | CollisionType_Projectile);
+        mTaskScheduler = scheduler;
+        mStaged = false;
+        mResourceLifetime.reset(); // Active world ownership is no longer speculative retention.
+    }
+
+    bool Object::stage(PhysicsTaskScheduler* scheduler)
+    {
+        if (mTaskScheduler || !scheduler || !mPtr.isEmpty())
+            throw std::logic_error("Invalid dormant collision staging");
+        mCollisionObject->setCollisionFlags(
+            mCollisionObject->getCollisionFlags() | btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+        if (!scheduler->tryStageCollisionObject(mCollisionObject.get()))
+            return false;
+        mTaskScheduler = scheduler;
+        mStaged = true;
+        return true;
+    }
+
+    bool Object::unstage(bool wait)
+    {
+        if (!mStaged) return true;
+        if (wait)
+            mTaskScheduler->removeCollisionObject(mCollisionObject.get());
+        else if (!mTaskScheduler->tryRemoveCollisionObject(mCollisionObject.get()))
+            return false;
+        mTaskScheduler = nullptr;
+        mStaged = false;
+        mCollisionObject->setCollisionFlags(
+            mCollisionObject->getCollisionFlags() & ~btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+        mPtr = {};
+        return true;
     }
 
     Object::~Object()
     {
-        mTaskScheduler->removeCollisionObject(mCollisionObject.get());
+        if (mTaskScheduler)
+            mTaskScheduler->removeCollisionObject(mCollisionObject.get());
     }
 
     const std::shared_ptr<Resource::BulletShapeInstance>& Object::getShapeInstance() const

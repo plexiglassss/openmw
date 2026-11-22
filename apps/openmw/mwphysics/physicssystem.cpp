@@ -136,6 +136,7 @@ namespace MWPhysics
             mTaskScheduler->removeCollisionObject(mWaterCollisionObject.get());
 
         mTaskScheduler->releaseSharedStates();
+        discardPreparedObjects();
         mHeightFields.clear();
         mObjects.clear();
         mActors.clear();
@@ -432,6 +433,82 @@ namespace MWPhysics
 
         if (obj->isAnimated())
             mAnimatedObjects.emplace(obj.get(), false);
+    }
+
+    void PhysicsSystem::addPreparedObject(const MWWorld::Ptr& ptr, std::shared_ptr<Object> object, int collisionType)
+    {
+        if (ptr.mRef->mData.mPhysicsPostponed || !object)
+            return;
+        if (object->isActive() || getObject(ptr))
+            throw std::logic_error("Prepared collision object was already published");
+        switch (object->getShapeInstance()->mVisualCollisionType)
+        {
+            case Resource::VisualCollisionType::None: break;
+            case Resource::VisualCollisionType::Default: collisionType = CollisionType_VisualOnly; break;
+            case Resource::VisualCollisionType::Camera: collisionType = CollisionType_CameraOnly; break;
+        }
+        // Allocate owner-side indices before exposing the object to physics.
+        mObjects.emplace(ptr.mRef, object);
+        try
+        {
+            if (object->isAnimated())
+                mAnimatedObjects.emplace(object.get(), false);
+            object->activate(ptr, collisionType, mTaskScheduler.get());
+            mStagedObjects.erase(object.get());
+        }
+        catch (...)
+        {
+            mAnimatedObjects.erase(object.get());
+            mObjects.erase(ptr.mRef);
+            throw;
+        }
+    }
+
+    bool PhysicsSystem::stagePreparedObject(const std::shared_ptr<Object>& object)
+    {
+        if (!object || mStagedObjects.contains(object.get())) return true;
+        mStagedObjects.emplace(object.get(), object);
+        try
+        {
+            if (object->stage(mTaskScheduler.get())) return true;
+            mStagedObjects.erase(object.get());
+            return false;
+        }
+        catch (...) { mStagedObjects.erase(object.get()); throw; }
+    }
+
+    void PhysicsSystem::retirePreparedObjects(
+        SceneUtil::WorkQueue& queue, std::chrono::steady_clock::time_point deadline)
+    {
+        mPreparedRetirement.flush(queue, false);
+        auto it = mStagedSweepCursor ? mStagedObjects.upper_bound(mStagedSweepCursor) : mStagedObjects.begin();
+        if (it == mStagedObjects.end()) it = mStagedObjects.begin();
+        for (std::size_t visited = 0; it != mStagedObjects.end() && visited < 64
+            && mPreparedRetirement.getSize() < SceneUtil::UnrefQueue::MaxQueuedObjects
+            && std::chrono::steady_clock::now() < deadline; ++visited)
+        {
+            mStagedSweepCursor = it->first;
+            if (it->second.use_count() == 1 && it->second->unstage(false))
+            {
+                mPreparedRetirement.push(it->second);
+                it = mStagedObjects.erase(it);
+            }
+            else ++it;
+        }
+        if (it == mStagedObjects.end()) mStagedSweepCursor = nullptr;
+        mPreparedRetirement.flush(queue, false);
+    }
+
+    void PhysicsSystem::discardPreparedObjects(SceneUtil::WorkQueue* queue)
+    {
+        for (auto& [key, object] : mStagedObjects)
+        {
+            object->unstage();
+            if (queue) mPreparedRetirement.push(object);
+        }
+        mStagedObjects.clear();
+        mStagedSweepCursor = nullptr;
+        if (queue) mPreparedRetirement.flush(*queue);
     }
 
     void PhysicsSystem::remove(const MWWorld::Ptr& ptr)

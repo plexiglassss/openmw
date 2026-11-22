@@ -16,6 +16,8 @@
 
 #include <components/misc/framestats.hpp>
 #include <components/vfs/pathutil.hpp>
+#include <components/sceneutil/unrefqueue.hpp>
+#include <chrono>
 
 #include "../mwworld/ptr.hpp"
 
@@ -147,6 +149,11 @@ namespace MWPhysics
     public:
         PhysicsSystem(Resource::ResourceSystem* resourceSystem, std::unique_ptr<btIDebugDraw> debugDrawer);
         virtual ~PhysicsSystem();
+        void addPreparedObject(const MWWorld::Ptr& ptr, std::shared_ptr<Object> object, int collisionType);
+        bool stagePreparedObject(const std::shared_ptr<Object>& object);
+        void retirePreparedObjects(SceneUtil::WorkQueue& queue, std::chrono::steady_clock::time_point deadline);
+        void discardPreparedObjects(SceneUtil::WorkQueue* queue = nullptr);
+        std::size_t stagedObjectCount() const { return mStagedObjects.size(); }
 
         Resource::BulletShapeManager* getShapeManager();
 
@@ -313,6 +320,10 @@ namespace MWPhysics
         HeightFieldMap mHeightFields;
 
         bool mDebugDrawEnabled;
+        // Own dormant handles until explicitly detached, including after their prediction is cancelled.
+        std::map<Object*, std::shared_ptr<Object>, std::less<>> mStagedObjects;
+        Object* mStagedSweepCursor = nullptr;
+        SceneUtil::UnrefQueue mPreparedRetirement;
 
         float mTimeAccum;
 

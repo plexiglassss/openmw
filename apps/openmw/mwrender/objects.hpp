@@ -36,6 +36,7 @@ namespace MWRender
 {
 
     class Animation;
+    class ObjectAnimation;
 
     class Objects
     {
@@ -60,6 +61,7 @@ namespace MWRender
 
         /// @param allowLight If false, no lights will be created, and particles systems will be removed.
         void insertModel(const MWWorld::Ptr& ptr, const std::string& model, bool allowLight = true);
+        void insertPreparedStatic(const MWWorld::Ptr& ptr, std::unique_ptr<ObjectAnimation> animation);
 
         void insertNPC(const MWWorld::Ptr& ptr);
         void insertCreature(const MWWorld::Ptr& ptr, const std::string& model, bool weaponsShields);

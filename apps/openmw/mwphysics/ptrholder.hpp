@@ -51,6 +51,8 @@ namespace MWPhysics
         osg::Vec3d getPreviousPosition() const { return mPreviousPosition; }
 
     protected:
+        // Declared first, released last, including after derived resources and collision handles.
+        std::shared_ptr<void> mResourceLifetime;
         MWWorld::Ptr mPtr;
         std::unique_ptr<btCollisionObject> mCollisionObject;
         osg::Vec3f mVelocity;

@@ -1,14 +1,17 @@
 """Require executed Windows tests for detached preparation and Lua setup parity."""
 from pathlib import Path
+import argparse
 import hashlib
 import json
 import xml.etree.ElementTree as ET
 
-root = Path(__file__).resolve().parents[2]
+parser = argparse.ArgumentParser()
+parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[2])
+root = parser.parse_args().root.resolve()
 requirements = {
     'components-tests.xml': {'SceneInstanceCacheTest': 6, 'InstancePreparation': 3,
                              'WorkQueueCancellation': 3, 'CellPackagesTest': 4,
-                             'AsyncPreparation': 17, 'LuaScriptCache': 7,
+                             'AsyncPreparation': 22, 'LuaScriptCache': 7,
                              'StreamingLookAhead': 4, 'CompileReadiness': 3,
                              'SceneryCoverage': 6, 'NextGridPreparation': 2,
                              'CompileReadinessCache': 5, 'ShaderManagerTest': 12,

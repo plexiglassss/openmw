@@ -33,6 +33,7 @@ namespace MWRender
 {
     class LandManager;
 }
+namespace MWPhysics { class PhysicsSystem; }
 
 namespace Loading
 {
@@ -44,12 +45,13 @@ namespace MWWorld
     class CellStore;
     class TerrainPreloadItem;
     class ExteriorArrivalJob;
+    class PreparedCell;
 
     class CellPreloader
     {
     public:
         CellPreloader(Resource::ResourceSystem* resourceSystem, Resource::BulletShapeManager* bulletShapeManager,
-            Terrain::World* terrain, MWRender::LandManager* landManager);
+            Terrain::World* terrain, MWRender::LandManager* landManager, MWPhysics::PhysicsSystem* physics = nullptr);
         ~CellPreloader();
 
         /// Ask a background thread to preload rendering meshes and collision shapes for objects in this cell.
@@ -60,6 +62,10 @@ namespace MWWorld
         double preparationLeadTime(double configured);
 
         void notifyLoaded(MWWorld::CellStore* cell);
+        void prepareCell(MWWorld::CellStore& cell, double timestamp);
+        std::shared_ptr<PreparedCell> takePreparedCell(MWWorld::CellStore& cell, double timestamp);
+        void recordPreparedCellUsage(const PreparedCell& cell);
+        void stagePreparedCells();
 
         void clear();
 
@@ -83,6 +89,7 @@ namespace MWWorld
         std::size_t getCacheSize() const { return mPreloadCells.size(); }
 
         void setWorkQueue(std::shared_ptr<SceneUtil::WorkQueue> workQueue);
+        void setPreparedWorkQueue(std::shared_ptr<SceneUtil::WorkQueue> workQueue);
 
         void setTerrainPreloadPositions(std::span<const PositionCellGrid> positions);
 
@@ -105,6 +112,8 @@ namespace MWWorld
     private:
         void clearAllTasks();
         struct StaticPreloads;
+        struct PreparedCells;
+        std::unique_ptr<PreparedCells> mPreparedCells;
         std::unique_ptr<StaticPreloads> mStaticPreloads;
         SceneUtil::PreparationCost mPreparationCost;
         void retireArrival();
@@ -119,9 +128,11 @@ namespace MWWorld
 
         Resource::ResourceSystem* mResourceSystem;
         Resource::BulletShapeManager* mBulletShapeManager;
+        MWPhysics::PhysicsSystem* mPhysics;
         Terrain::World* mTerrain;
         MWRender::LandManager* mLandManager;
         std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue;
+        std::shared_ptr<SceneUtil::WorkQueue> mPreparedWorkQueue;
         double mExpiryDelay;
         std::size_t mMinCacheSize = 0;
         std::size_t mMaxCacheSize = 0;

@@ -640,12 +640,51 @@ namespace MWPhysics
         collisionObject->getBroadphaseHandle()->m_collisionFilterMask = collisionFilterMask;
     }
 
+    void PhysicsTaskScheduler::publishStagedCollisionObject(btCollisionObject* object, int group, int mask)
+    {
+        MaybeExclusiveLock lock(mCollisionWorldMutex, mLockingPolicy);
+        auto* proxy = object->getBroadphaseHandle();
+        if (!proxy || proxy->m_collisionFilterGroup != 0 || proxy->m_collisionFilterMask != 0)
+            throw std::logic_error("Collision staging handle is not dormant");
+        // This engine uses direct ray/sweep/contact queries, not persistent dynamics pair dispatch.
+        // Their needsCollision callbacks read both filters on every query, including immediate queries.
+        proxy->m_collisionFilterGroup = group;
+        proxy->m_collisionFilterMask = mask;
+        object->setCollisionFlags(object->getCollisionFlags() & ~btCollisionObject::CF_DISABLE_VISUALIZE_OBJECT);
+    }
+
     void PhysicsTaskScheduler::addCollisionObject(
         btCollisionObject* collisionObject, int collisionFilterGroup, int collisionFilterMask)
     {
         MaybeExclusiveLock lock(mCollisionWorldMutex, mLockingPolicy);
         mCollisionObjects.insert(collisionObject);
         mCollisionWorld->addCollisionObject(collisionObject, collisionFilterGroup, collisionFilterMask);
+    }
+
+    bool PhysicsTaskScheduler::tryStageCollisionObject(btCollisionObject* object)
+    {
+        std::unique_lock lock(mCollisionWorldMutex, std::defer_lock);
+        if (mLockingPolicy != LockingPolicy::NoLocks && !lock.try_lock())
+            return false;
+        mCollisionObjects.insert(object);
+        try { mCollisionWorld->addCollisionObject(object, 0, 0); }
+        catch (...)
+        {
+            mCollisionWorld->removeCollisionObject(object);
+            mCollisionObjects.erase(object);
+            throw;
+        }
+        return true;
+    }
+
+    bool PhysicsTaskScheduler::tryRemoveCollisionObject(btCollisionObject* object)
+    {
+        std::unique_lock lock(mCollisionWorldMutex, std::defer_lock);
+        if (mLockingPolicy != LockingPolicy::NoLocks && !lock.try_lock())
+            return false;
+        mCollisionObjects.erase(object);
+        mCollisionWorld->removeCollisionObject(object);
+        return true;
     }
 
     void PhysicsTaskScheduler::removeCollisionObject(btCollisionObject* collisionObject)

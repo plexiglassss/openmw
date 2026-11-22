@@ -41,7 +41,7 @@ namespace SceneUtil
         };
     }
 
-    void UnrefQueue::flush(SceneUtil::WorkQueue& workQueue)
+    void UnrefQueue::flush(SceneUtil::WorkQueue& workQueue, bool waitForCapacity)
     {
         reap();
         if (mObjects.empty())
@@ -55,6 +55,11 @@ namespace SceneUtil
                 reap();
                 if (mQueuedObjects == MaxQueuedObjects)
                 {
+                    if (!waitForCapacity)
+                    {
+                        mObjects.erase(mObjects.begin(), mObjects.begin() + begin);
+                        return;
+                    }
                     // Only under a large detached backlog: cap extra retention
                     // without dropping references or waiting on unrelated jobs.
                     Diagnostics::Scope measured("resource-cleanup", "backlog-cap", "wait");

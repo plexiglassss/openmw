@@ -25,6 +25,8 @@ namespace SceneUtil
             std::shared_ptr<std::atomic_bool> mCompletion;
             std::function<void()> mCancel;
             std::size_t mEstimatedBytes = 0;
+            // Optional ownership extension for resources staged outside the job cache.
+            std::function<void(std::shared_ptr<void>)> mRetainCharge;
         };
         using Factory = std::function<Prepared(const std::atomic_bool&)>;
         struct Result
@@ -37,8 +39,28 @@ namespace SceneUtil
     private:
         class Job final : public WorkItem
         {
+            // Declared first, destroyed last: retirement credit is returned only
+            // after the result/factory and their retained resources are released.
+            struct Charge
+            {
+                std::shared_ptr<std::atomic_size_t> mTotal;
+                std::size_t mBytes = 64ull * 1024 * 1024;
+                explicit Charge(std::shared_ptr<std::atomic_size_t> total) : mTotal(std::move(total))
+                { mTotal->fetch_add(mBytes, std::memory_order_relaxed); }
+                ~Charge() { mTotal->fetch_sub(mBytes, std::memory_order_release); }
+                void resize(std::size_t bytes)
+                {
+                    if (bytes >= mBytes)
+                        mTotal->fetch_add(bytes - mBytes, std::memory_order_relaxed);
+                    else
+                        mTotal->fetch_sub(mBytes - bytes, std::memory_order_release);
+                    mBytes = bytes;
+                }
+            };
+            std::shared_ptr<Charge> mCharge;
         public:
-            explicit Job(Factory factory) : mFactory(std::move(factory)) {}
+            Job(Factory factory, std::shared_ptr<std::atomic_size_t> total)
+                : mCharge(std::make_shared<Charge>(std::move(total))), mFactory(std::move(factory)) {}
             void abort() override
             {
                 mAbort.store(true, std::memory_order_release);
@@ -58,8 +80,15 @@ namespace SceneUtil
                     catch (...) { mFailed = true; }
                 }
                 mFactory = {};
+                mCharge->resize(mResult.mEstimatedBytes);
+                try
+                {
+                    if (mResult.mRetainCharge)
+                        mResult.mRetainCharge(mCharge);
+                }
+                catch (...) { mFailed = true; }
                 mPrepared.store(true, std::memory_order_release);
-                if (mAbort.load(std::memory_order_acquire))
+                if (mFailed || mAbort.load(std::memory_order_acquire))
                     cancelPrepared();
             }
             bool ready() const
@@ -156,6 +185,22 @@ namespace SceneUtil
             return {};
         }
 
+        Result peek(const Key& key) const
+        {
+            const auto found = mEntries.find(key);
+            if (found == mEntries.end()) return {};
+            const auto& job = found->second.mJob;
+            return job->ready() ? Result{ true, false, job->mResult.mValue }
+                                : Result{ false, job->failed(), {} };
+        }
+
+        // Owner thread only. Does not refresh prediction retention or allow map mutation.
+        template <class Function> void forEachReady(Function&& function)
+        {
+            for (const auto& [key, entry] : mEntries)
+                if (entry.mJob->ready()) function(key, entry.mJob->mResult.mValue);
+        }
+
         // Retire speculation before the required path takes over. Values still
         // leave through the worker unref queue, never through the calling cull.
         bool cancel(const Key& key)
@@ -199,19 +244,16 @@ namespace SceneUtil
             return result;
         }
 
-        Result request(const Key& key, double now, Factory factory)
+        // Owner-thread preflight before constructing an expensive immutable input snapshot.
+        // request still checks admission itself; this does not reserve worker execution.
+        bool canRequest() const
         {
-            if (mEntries.contains(key))
-                return poll(key, now);
             std::size_t pendingCpu = 0;
             std::size_t unresolved = 0;
-            std::size_t estimatedBytes = 0;
             for (const auto& [existing, entry] : mEntries)
             {
                 pendingCpu += !entry.mJob->isDone();
                 unresolved += !entry.mJob->ready() && !entry.mJob->failed();
-                estimatedBytes += entry.mJob->mPrepared.load(std::memory_order_acquire)
-                    ? entry.mJob->mResult.mEstimatedBytes : 64ull * 1024 * 1024;
             }
             for (const auto& job : mRetired)
             {
@@ -222,9 +264,18 @@ namespace SceneUtil
             // preparation slot. The separate bound prevents an unbounded GPU
             // backlog; existing callers retain the original unresolved limit.
             if (pendingCpu >= mMaximumPending || unresolved >= mMaximumUnresolved || mEntries.size() >= mMaximumEntries
-                || estimatedBytes >= mEstimatedByteBudget)
+                || estimatedBytes() >= mEstimatedByteBudget)
+                return false;
+            return true;
+        }
+
+        Result request(const Key& key, double now, Factory factory)
+        {
+            if (mEntries.contains(key))
+                return poll(key, now);
+            if (!canRequest())
                 return {};
-            std::shared_ptr<Job> job = std::make_shared<Job>(std::move(factory));
+            std::shared_ptr<Job> job = std::make_shared<Job>(std::move(factory), mChargedBytes);
             mEntries.emplace(key, Entry{ job, now });
             try
             {
@@ -243,10 +294,12 @@ namespace SceneUtil
 
         std::size_t submitted() const { return mSubmitted; }
         std::size_t size() const { return mEntries.size(); }
+        std::size_t estimatedBytes() const { return mChargedBytes->load(std::memory_order_acquire); }
         bool contains(const Key& key) const { return mEntries.contains(key); }
 
     private:
         std::shared_ptr<WorkQueue> mQueue;
+        std::shared_ptr<std::atomic_size_t> mChargedBytes = std::make_shared<std::atomic_size_t>(0);
         const std::size_t mMaximumPending;
         const std::size_t mMaximumEntries;
         const std::size_t mMaximumUnresolved;

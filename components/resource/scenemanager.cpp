@@ -1585,6 +1585,7 @@ namespace Resource
 
     void SceneManager::releaseGLObjects(osg::State* state)
     {
+        ++mGraphicsRevision;
         mInstanceCache.releaseGLObjects(state);
         for (const auto& plan : mRigPlans.values())
             plan->mTemplate->releaseGLObjects(state);
@@ -1703,7 +1704,9 @@ namespace Resource
                 int refcount = (*it)->_subgraphToCompile->referenceCount();
                 if ((*it)->_subgraphToCompile->asDrawable())
                     refcount -= 1; // ref by CompileList.
-                if (refcount <= 2) // ref by ObjectCache + ref by _subgraphToCompile.
+                if (refcount <= 2 && !(*it)->_compileCompletedCallback)
+                    // Completion-gated preparations own their cancellation. Dropping
+                    // them here can leave a valid CPU packet permanently unready.
                 {
                     // no other ref = not needed anymore.
                     it = sets.erase(it);
