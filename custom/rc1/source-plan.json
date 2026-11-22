@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5a9dbf402300b274cce973069d8abd047afb4524"
+        "blob": "04bcd198acc9d2ee4438fd0abac3b84b2a0cad54"
       },
       "status": "adapted_for_rc1"
     },
@@ -3817,9 +3817,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "e3ac30e54c475740a9c260fb6c2745665eec2534"
+        "blob": "5d6759531a0d38de5a8e19e0b0d19e4dce4da1b3"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/combined-performance/.gitattributes": {
       "cumulative": {
@@ -5937,9 +5937,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "5a9dbf402300b274cce973069d8abd047afb4524"
+        "blob": "04bcd198acc9d2ee4438fd0abac3b84b2a0cad54"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Isolated prepared-cell experiment: detached static construction, dormant collision staging, lifecycle and query parity, bounded scheduling, native validation and separately labelled packaging; see custom/prepared-cells/README.md. No cumulative promotion or seamless-performance claim. 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -10490,9 +10490,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "e3ac30e54c475740a9c260fb6c2745665eec2534"
+        "blob": "5d6759531a0d38de5a8e19e0b0d19e4dce4da1b3"
       },
-      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API."
+      "purpose": "Bound compound graphics preparation by shader/buffer constituents with original finalization, and adapt bounded exterior prediction to measured resource cost and queue age; preserve all cumulative520 features and execute publication, admission and real-GL progress regressions. Retained or adapted to the official RC1 source/API. 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
     },
     "custom/combined-performance/.gitattributes": {
       "upstream": null,
@@ -14134,6 +14134,22 @@
         "mode": "100644",
         "blob": "b844df6a270c755221e44d79a43ab7dafad5e5de"
       }
+    },
+    "custom/prepared-cells/recover-windows.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "5c038f17389870d2ed6f11e6ea7847e8747d9c81"
+      },
+      "purpose": " 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
+    },
+    "custom/prepared-cells/test-recovery.py": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "b428803d3722bd852e188c4eceb33eafd7c96670"
+      },
+      "purpose": " 2026-11-22 isolated recovery: preserve exact f6 compiled binaries, correct the 22-case preparation census, rerun all Windows native/package checks, and record separate verification provenance."
     }
   }
 }
