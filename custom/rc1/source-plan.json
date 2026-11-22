@@ -12914,9 +12914,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "5cdae39b7e0b18132535215567f1edfe9c249765"
+        "blob": "3a52a0aa316415054444f0f344595feffeeb1286"
       },
-      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Terrain preparation, shared immutable buffers and required regression evidence. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md.; Extend the legacy planning harness interface for staged arrival while trapping untested staged branches; existing ordering and cancellation assertions retained."
     },
     "custom/terrain-preparation/verify-tests.py": {
       "upstream": null,

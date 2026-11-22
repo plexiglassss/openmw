@@ -1,7 +1,9 @@
 """Exercise the production preload grouping body with counted scene boundaries.
 
-Real vertex/cache/pool and GL tests run separately. This test checks the actual
-ordering and cancellation decisions without simulating a graphics driver.
+Real vertex/cache/pool and GL tests run separately. This test checks the legacy
+grouping modes' actual ordering and cancellation decisions. Staged continuation
+is exercised by the full native StagedArrival/StagedTerrain fixtures; the stubs
+below assert if this smaller harness accidentally enters those paths.
 """
 from pathlib import Path
 import hashlib
@@ -53,10 +55,20 @@ struct BatchChunkManager {
  }
 };
 struct Arrival {
- struct Entry {struct Key {Node* node;unsigned flags;};Key key;std::shared_ptr<Node> node;std::size_t bytes;};
+ struct Entry {struct Key {Node* node;unsigned flags;};Key key;std::shared_ptr<Node> node;std::size_t bytes;std::shared_ptr<std::atomic_bool> graphicsReady{};};
+ std::vector<int> mCompileContexts;
  std::vector<int> visible;
  void publish(const std::vector<Entry>& entries){for(const auto& e:entries)visible.push_back(e.node->id);}
+ bool waitForDistantCapacity(const std::atomic_bool&,const std::function<bool()>&){assert(false);return false;}
+ void cancel(){assert(false);}
+ bool enqueueCompile(int){assert(false);return false;}
+ void publishGround(const Entry&){assert(false);}
+ void markActiveReady(){assert(false);}
 };
+namespace SceneUtil {
+ struct Receipt {std::shared_ptr<std::atomic_bool> mReady;std::size_t mEstimatedBytes=0;int mSet=0;};
+ Receipt prepareCompileReadiness(const std::shared_ptr<Node>&,const std::vector<int>&){assert(false);return {};}
+}
 using ArrivalView=Arrival;
 struct Footprint {std::size_t measure(Node&){return 1;}};
 struct Result {std::vector<int> loads,visible;std::vector<unsigned> groups;unsigned progress=0,nearCalls=0;bool aborted=false;};
@@ -73,13 +85,15 @@ Result exercise(unsigned workers,bool modelBatch,bool cancel,bool fail,bool cach
  std::vector<unsigned> ordered(8);std::iota(ordered.begin(),ordered.end(),0);
  const std::size_t near=3;const int grid=0;const float cellWorldSize=8192;const bool separateScenery=false;
  auto arrival=std::make_shared<Arrival>();Footprint footprint;Visitor nearCompile;
+ const auto validArrival=[](const Arrival&){return true;};
  int compileValue=0;auto* compile=&compileValue;std::size_t nearCompileSets=0;
  Result result;
  const auto advance=[&]{++result.progress;};
  const auto updateRenderingLod=[](ViewDataEntry&,ViewData*){};
  const auto getChunkRequest=[](const ViewDataEntry& e,int){return ChunkRequest{e.mNode->id,e.mNode->id<3};};
  const auto loadRenderingNode=[&](ViewDataEntry& e,ViewData*,float,const ChunkRequest& request,
-  bool,const std::atomic_bool*,const BatchChunkManager::Fetch*,bool,int,bool){
+  bool,const std::atomic_bool*,const BatchChunkManager::Fetch*,bool,int,bool,bool groundOnly=false){
+  assert(!groundOnly);
   if(fail && request.id==4)throw std::runtime_error("injected node failure");
   result.loads.push_back(request.id);e.mRenderingNode=std::make_shared<Node>(*e.mNode);e.mRenderingComplete=true;
  };
@@ -126,9 +140,9 @@ with tempfile.TemporaryDirectory(prefix='terrain-planning-') as temp:
     for name, changes in [('enabled', {'OPENMW_TERRAIN_PREPARATION':'1','OPENMW_COMBINED_PERFORMANCE':'1'}),
                           ('terrain-off', {'OPENMW_TERRAIN_PREPARATION':'0','OPENMW_COMBINED_PERFORMANCE':'1'}),
                           ('master-off', {'OPENMW_TERRAIN_PREPARATION':'1','OPENMW_COMBINED_PERFORMANCE':'0'})]:
-        env=dict(os.environ,OPENMW_NATIVE_JOBS='1',**changes)
+        env=dict(os.environ,OPENMW_NATIVE_JOBS='1',OPENMW_PREPARED_CELLS='0',OPENMW_STAGED_ARRIVAL='0',**changes)
         subprocess.run([str(exe)], env=env, check=True)
         cases.append(name)
     (root/'terrain-planning-tests.json').write_text(json.dumps({
         'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'modes_passed':cases,
-        'scope':'Production grouping body with counted scene boundaries; native geometry and GL tested separately.'},indent=2)+'\n')
+        'scope':'Legacy production grouping body with counted scene boundaries; staged continuation, native geometry and GL tested separately.'},indent=2)+'\n')
