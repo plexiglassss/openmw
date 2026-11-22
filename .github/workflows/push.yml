@@ -406,8 +406,10 @@ jobs:
         run: |
           python "$env:PREPARED_RECOVERY_CODE/recover-windows.py" restore --code "$env:PREPARED_RECOVERY_CODE"
           if ($LASTEXITCODE) { throw 'Original binary provenance validation failed' }
-          cmake --build build --target qm-files get-version
-          if ($LASTEXITCODE) { throw 'Translation/version resource generation failed' }
+          python "$env:PREPARED_RECOVERY_CODE/recover-windows.py" resources --code "$env:PREPARED_RECOVERY_CODE"
+          if ($LASTEXITCODE) { throw 'Isolated translation resource generation failed' }
+          cmake --build build --target get-version
+          if ($LASTEXITCODE) { throw 'Version resource generation failed' }
       - name: Compile the parallel native engine changes and their tests first
         if: steps.existing_engine.outputs.reused != 'true' && env.PREPARED_RECOVERY != '1'
         shell: pwsh

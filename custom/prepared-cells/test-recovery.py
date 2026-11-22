@@ -84,6 +84,7 @@ with tempfile.TemporaryDirectory() as tmp:
     previous = Path.cwd()
     old_git = recovery.git
     old_source_check = recovery.verify_source_bytes
+    old_translations = recovery.TRANSLATION_SHA256
     old_redist = os.environ.get('VCToolsRedistDir')
     try:
         os.chdir(tmp)
@@ -103,7 +104,10 @@ with tempfile.TemporaryDirectory() as tmp:
                 target.parent.mkdir(exist_ok=True); target.write_bytes(path.read_bytes())
         Path('build/CMakeCache.txt').write_text('new cache')
         (code / 'original-CMakeCache.txt').write_text('original cache')
-        recovery.dump(code / 'receipt.json', {'restored_files': files})
+        Path('install/resources/translations').mkdir(parents=True)
+        qm = Path('install/resources/translations/control.qm'); qm.write_bytes(b'translation fixture')
+        recovery.TRANSLATION_SHA256 = {'control.qm': recovery.digest(qm)}
+        recovery.dump(code / 'receipt.json', {'restored_files': files, 'translation_generation': {'output_qm_sha256': recovery.TRANSLATION_SHA256}})
         Path('redist/x64/Microsoft.VC143.CRT/vcruntime140.dll').write_bytes(b'runner CRT')
         Path('install/vcruntime140.dll').write_bytes(b'runner CRT')
         recovery.finish(code)
@@ -116,10 +120,17 @@ with tempfile.TemporaryDirectory() as tmp:
         path.write_bytes(b'runner CRT')
         path = Path('install/unexpected.dll'); path.write_bytes(b'unidentified module')
         reject('reject_unidentified_native_module', lambda: recovery.finish(code))
+        path.unlink()
+        qm.write_bytes(b'changed translation')
+        reject('reject_changed_installed_translation', lambda: recovery.finish(code))
+        qm.write_bytes(b'translation fixture')
+        recovery.dump(code / 'receipt.json', {'restored_files': files, 'translation_generation': {'output_qm_sha256': {}}})
+        reject('reject_missing_translation_generation_proof', lambda: recovery.finish(code))
     finally:
         os.chdir(previous)
         recovery.git = old_git
         recovery.verify_source_bytes = old_source_check
+        recovery.TRANSLATION_SHA256 = old_translations
         if old_redist is None:
             os.environ.pop('VCToolsRedistDir', None)
         else:

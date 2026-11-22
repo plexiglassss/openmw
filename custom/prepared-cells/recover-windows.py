@@ -22,6 +22,40 @@ ARTIFACT = 14732787779
 BYTES = 81365741
 DIGEST = '7772f267a187d463738196bba812f47ced71276125cf04f07b5bb44f56f6610c'
 REPOSITORY = 'plexiglassss/openmw'
+# Deterministic output of the ordinary Qt CMake path in failed run221;
+# the source archive's only mutation was lupdate on seven TS files.
+TRANSLATION_ORIGIN_ARTIFACT = 14734311108
+TRANSLATION_ORIGIN_SHA256 = '1c5b9b3d6c3e6ef48abbcd6a10c558ec11a2882cf564acaa9e7916fe4445c1b5'
+TRANSLATION_SHA256 = {
+    "components_bg.qm": "1a1104d518e84733226b4755d22024951c1837eef4880b214ca53ccab060d2f1",
+    "components_de.qm": "57c2b29b3a4c3cb7a1e64d37fdce2b08b8a90eb49560d5ec6d8e261384c8dbfe",
+    "components_en.qm": "ae7be3a1e0712f997f96ea669a8a41f67e585c293c60f07db1e90973c9a61860",
+    "components_fr.qm": "abaff4ab71c70cff93e0fc4fee7d7dc9d763fa5ea765db976f19f2e6b8a82de4",
+    "components_pl.qm": "82af490ff981f7bcd0799f6c1d9acd607b91384ce0c9591d5c6ea745952b2cbb",
+    "components_ru.qm": "53c67fb8baeca7dcd05df05908a4adac5f5580f83637a2fbe865f174ae32af20",
+    "components_sv.qm": "c965e953596d17712bb4ec1d38e22f508bd6a06350f7f731523829a8d7b747d3",
+    "launcher_bg.qm": "6253fa3e80d9e4f29ece3bf8f55af8b3fa0de112ab30ed604675627ff1ab3a27",
+    "launcher_de.qm": "63bc7e408f74ddac5ebc170e30b2d145d5cc11a2477643c84639966b44ca0451",
+    "launcher_en.qm": "4a2f4852cafbefa06d343eb6b5c73e233d36383f478f66be276df44516b1b381",
+    "launcher_fr.qm": "079e6b1350d6b47adfbd7eb52a4fc64f25a0f09189d2c221ac0edd32c0a90888",
+    "launcher_pl.qm": "a6db20b793cdb461ae112ffd67ab5da4ba621047bde1c48873b1f8434def4a9d",
+    "launcher_ru.qm": "fea1bf05ceac8a7f6d1c6f1c1da0c536639ec0a96dfd7e63cdf27198f95a989d",
+    "launcher_sv.qm": "55d0ef0068ca8878701c3bb5425ee58a8beae3d7e9d0e4a3c99808c56169174b",
+    "qtbase_bg.qm": "e448ac9e3f16c29eb27af3012efe21052daa78fabfb34cd6dff2f69ee3bd3cdb",
+    "qtbase_de.qm": "957823f398829213550d5a39ac2eff27f68c0fc2404b280acac461eacee0ede3",
+    "qtbase_en.qm": "9959b510b15d18937848ad13007e30459d2e993c67e564badbfc18f935695c85",
+    "qtbase_fr.qm": "314243a55c32679ad473fdfe48dc7d66e973ad0fc8bf2164480c58dddb50c1a7",
+    "qtbase_pl.qm": "ce99032a3b0bf8abad758895cc22837088ead99fd2d2514e2d180693081cfe57",
+    "qtbase_ru.qm": "3da6605668f9178d11a838c4515478084dcfb4f9cf22f99d7a92b492db9c224b",
+    "qt_sv.qm": "4b4b6ff7fd237c9da0301b4946132e68653d15eb5faf38e4c5fbfebb12dd97f7",
+    "wizard_bg.qm": "ae8b345ff9552304bcee05e99936792c4f48da4153f46ca48f50f6f9d6a85253",
+    "wizard_de.qm": "63bc7e408f74ddac5ebc170e30b2d145d5cc11a2477643c84639966b44ca0451",
+    "wizard_en.qm": "72aa5370e21f4eb6f0e83264e840d7a11ed68a93ff26e1321495abe03ea868de",
+    "wizard_fr.qm": "a6d64aa3827532689492b704c4847b6bd7500f8636d274b79715075b3b1deb0b",
+    "wizard_pl.qm": "2085f31da9a9f6f77d7fafa15d69686b76bc5b9b29b5b8b35e74ee34721890e2",
+    "wizard_ru.qm": "ce90b6adf50c65fcd4b8081b802c564ffb64fe66b548edbf5fccb96629dce8c6",
+    "wizard_sv.qm": "80542901ed2f48487e806b51a1f485957760d4b89764b375013c148282909093"
+}
 ALLOWED = {'.github/workflows/push.yml', 'custom/rc1/source-plan.json',
            'custom/cell-streaming/verify-tests.py', 'custom/prepared-cells/recover-windows.py',
            'custom/prepared-cells/test-recovery.py'}
@@ -187,6 +221,60 @@ def restore(code):
     print('Restored exact compiled applications and dependencies; all native tests still required.')
 
 
+def resources(code):
+    """Use the ordinary Qt generators without modifying the committed TS inputs."""
+    verify_source_bytes()
+    root = Path.cwd()
+    qt = Path(cache(Path('build/CMakeCache.txt').read_text())['Qt6_DIR']).parents[2]
+    executables = {name: qt / 'bin' / (name + '.exe') for name in ('lupdate', 'lrelease', 'qmake')}
+    temporary = code / 'translation-inputs'
+    temporary.mkdir(exist_ok=False)
+    output = root / 'build/resources/translations'
+    output.mkdir(parents=True, exist_ok=True)
+    groups = {'components': ('components/contentselector', 'components/process'),
+              'wizard': ('apps/wizard',), 'launcher': ('apps/launcher',)}
+    inputs, generated, languages = {}, {}, set()
+    for prefix, sources in groups.items():
+        originals = sorted((root / 'files/lang').glob(prefix + '_*.ts'))
+        require(len(originals) == 7, 'Unexpected translation source census')
+        copies = []
+        for source in originals:
+            target = temporary / source.name
+            shutil.copyfile(source, target)
+            inputs[source.relative_to(root).as_posix()] = digest(source)
+            copies.append(target)
+            languages.add(source.stem.split('_', 1)[1])
+        # CMake's translations target uses these same source groups and options.
+        subprocess.run([str(executables['lupdate']), '-locations', 'none',
+                        *[str(root / p) for p in sources], '-ts', *map(str, copies)],
+                       cwd=root / 'apps/launcher', check=True)
+        for source in copies:
+            generated[source.name] = digest(source)
+            subprocess.run([str(executables['lrelease']), '-silent', str(source),
+                            '-qm', str(output / (source.stem + '.qm'))], check=True)
+    qt_version = subprocess.check_output([str(executables['qmake']), '-query', 'QT_VERSION'], text=True).strip()
+    require(qt_version == '6.6.3', 'Translation tool version differs')
+    qt_translations = Path(subprocess.check_output([str(executables['qmake']), '-query',
+                                                    'QT_INSTALL_TRANSLATIONS'], text=True).strip())
+    qt_files = {}
+    for language in sorted(languages):
+        candidates = [qt_translations / ('qtbase_' + language + '.qm'), qt_translations / ('qt_' + language + '.qm')]
+        source = next((p for p in candidates if p.is_file()), None)
+        require(source is not None, 'Missing Qt translation: ' + language)
+        shutil.copyfile(source, output / source.name)
+        qt_files[source.name] = digest(source)
+    outputs = {p.name: digest(p) for p in output.glob('*.qm')}
+    require(outputs == TRANSLATION_SHA256, 'Generated translations differ from the ordinary Qt build')
+    require(all(digest(root / p) == sha for p, sha in inputs.items()), 'Translation input source was modified')
+    receipt = json.loads((code / 'receipt.json').read_text())
+    receipt['translation_generation'] = {'mode': 'ordinary_Qt_generators_on_temporary_TS_copies', 'qt_version': qt_version,
+        'comparison_origin_artifact': TRANSLATION_ORIGIN_ARTIFACT, 'comparison_origin_sha256': TRANSLATION_ORIGIN_SHA256,
+        'original_ts_sha256': inputs, 'generated_ts_sha256': generated, 'qt_files_sha256': qt_files,
+        'output_qm_sha256': outputs, 'tools_sha256': {n: digest(p) for n, p in executables.items()}}
+    dump(code / 'receipt.json', receipt)
+    verify_source_bytes()
+
+
 def verify_source_bytes():
     head = git('rev-parse', 'HEAD')
     rows = subprocess.check_output(['git', 'ls-tree', '-r', '-z', COMPILED]).split(b'\0')
@@ -221,6 +309,10 @@ def finish(code):
     source_audit = verify_source_bytes()
     receipt = json.loads((code / 'receipt.json').read_text())
     receipt['final_source_audit'] = source_audit
+    require(receipt['translation_generation']['output_qm_sha256'] == TRANSLATION_SHA256, 'Missing translation generation proof')
+    for name, sha in TRANSLATION_SHA256.items():
+        require(digest('install/resources/translations/' + name) == sha,
+                'Installed generated translation differs: ' + name)
     for name, row in receipt['restored_files'].items():
         require(digest(name) == row['sha256'] and Path(name).stat().st_size == row['bytes'],
                 'A restored native binary changed: ' + name)
@@ -262,7 +354,7 @@ def finish(code):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('phase', choices=('prepare', 'restore', 'finish'))
+    parser.add_argument('phase', choices=('prepare', 'restore', 'resources', 'finish'))
     parser.add_argument('--code', type=Path, required=True)
     args = parser.parse_args()
-    {'prepare': prepare, 'restore': restore, 'finish': finish}[args.phase](args.code.resolve())
+    {'prepare': prepare, 'restore': restore, 'resources': resources, 'finish': finish}[args.phase](args.code.resolve())
