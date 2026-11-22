@@ -4,6 +4,35 @@ This branch prototypes advance preparation and dormant static-collision staging 
 
 The accepted cumulative baseline is `ddf30674aab696073fdea33e71a635d18dd4c98e` (the same source tree as tested build `e5b6f104a05c9bb7ef425026eede0e25bc6e67dd`). No cumulative branch promotion is part of this experiment.
 
+## Staged arrival iteration (22 November)
+
+`Run-Prepared-Cells-Experiment.cmd` now enables both `OPENMW_PREPARED_CELLS=1` and
+`OPENMW_STAGED_ARRIVAL=1`. The baseline launcher explicitly disables both. Launching
+`openmw.exe` directly keeps both experiments off unless the environment enables them.
+
+The terrain-arrival wait can finish once active-grid chunks and all selected landscape
+fallback tiles are CPU-ready. The loading screen still covers required cell activation. Nearby cell activation, collision, actors, navigation and
+scripts still follow their required normal paths. Distant objects continue preparing in the
+background and can appear progressively over continuous terrain. Their cull admission
+requires a graphics compilation callback, with a shared four-chunk/two-millisecond budget.
+The backlog is limited to eight chunks/256 MiB estimated, plus one indivisible chunk;
+this is not a bound on the final visible world or the duration of an individual GL call.
+
+Rendering rays reuse the arrival LOD selection instead of selecting another cold view.
+They can use CPU-ready full nodes before GL completion. Ground-only tiles never count
+as complete object coverage. Missing possible hits, unsupported visitors and new LODs
+retain exact synchronous fallback. Arbitrary rays can therefore still block.
+
+Ordinary terrain preload has its own worker so speculative cell jobs cannot fill its queue.
+Arrival producers use a separate bounded two-worker queue; an unpresented prediction
+waiting for graphics or camera admission cannot occupy the ordinary model-preload queue.
+Shared resource locks and indivisible loads remain possible waits. This source change is
+built afresh; the previous f6 binary recovery is explicitly disabled.
+
+These are testable mechanisms, not an established city FPS or seamless-transition gain.
+Use the same Balmora/Vivec/Ebonheart route and check nearby objects, distant scenery,
+water, reverse transitions, targeting and collisions. Keep this package isolated.
+
 ## Implemented
 
 - Immutable snapshots of eligible loaded exterior ESM3 static references. Workers never receive live gameplay references.
@@ -19,7 +48,11 @@ The accepted cumulative baseline is `ddf30674aab696073fdea33e71a635d18dd4c98e` (
 
 ## Enable and compare
 
-The experiment is **off by default**. Use `OPENMW_PREPARED_CELLS=1` before launching this branch's executable. `0` or an unset variable keeps the ordinary activation path. The setting is read once per process. Existing cell-preloading settings remain respected.
+The experiments are **off by default**. The experiment launcher enables both switches.
+`OPENMW_PREPARED_CELLS=1` alone enables the earlier static-preparation experiment;
+the staged terrain continuation also needs `OPENMW_STAGED_ARRIVAL=1`. `0` or an unset
+variable keeps that experiment disabled. The settings are read once per process.
+Existing cell-preloading settings remain respected.
 
 Windows packages include `Run-Prepared-Cells-Experiment.cmd` and `Run-Prepared-Cells-Baseline.cmd`. Keep the package in its own folder. Neither launcher edits settings or installed mods.
 

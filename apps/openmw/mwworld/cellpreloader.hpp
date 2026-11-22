@@ -133,6 +133,11 @@ namespace MWWorld
         MWRender::LandManager* mLandManager;
         std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue;
         std::shared_ptr<SceneUtil::WorkQueue> mPreparedWorkQueue;
+        // A terrain request must not queue behind speculative cell/model jobs.
+        std::shared_ptr<SceneUtil::WorkQueue> mTerrainWorkQueue;
+        // A parked predicted arrival must not occupy the ordinary model queue.
+        // Two slots allow a required target to pass one cancelling indivisible job.
+        std::shared_ptr<SceneUtil::WorkQueue> mArrivalWorkQueue;
         double mExpiryDelay;
         std::size_t mMinCacheSize = 0;
         std::size_t mMaxCacheSize = 0;

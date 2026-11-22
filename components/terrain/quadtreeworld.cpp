@@ -13,6 +13,7 @@
 #include <components/vfs/manager.hpp>
 #include <components/resource/scenemanager.hpp>
 #include <components/sceneutil/compilepriority.hpp>
+#include <components/shader/shadermanager.hpp>
 #include <components/misc/combinedperformance.hpp>
 #include <components/misc/nativejobpool.hpp>
 #include <components/settings/values.hpp>
@@ -430,7 +431,7 @@ namespace Terrain
 
     void QuadTreeWorld::loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize,
         const ChunkRequest& request, bool compile, const std::atomic_bool* abort, const BatchChunkManager::Fetch* fetch,
-        bool asynchronous, double referenceTime, bool separateScenery)
+        bool asynchronous, double referenceTime, bool separateScenery, bool groundOnly)
     {
         if (entry.needsRendering(asynchronous && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
         {
@@ -442,6 +443,8 @@ namespace Terrain
             {
                 if (abort && abort->load(std::memory_order_relaxed))
                     return;
+                if (groundOnly && m != mChunkManager.get())
+                    continue;
                 if (separateScenery && !request.mActiveGrid && m->usesSceneryCoverage())
                     continue;
                 osg::ref_ptr<osg::Node> n;
@@ -470,6 +473,7 @@ namespace Terrain
             {
                 entry.mRenderingNode = pat;
                 entry.mRenderingComplete = true;
+                entry.mRenderingGroundFallback = groundOnly;
                 entry.mRenderingReadyForCamera = asynchronous || request.mActiveGrid;
                 entry.mRenderingSeparateScenery = separateScenery && !request.mActiveGrid;
             }
@@ -642,7 +646,36 @@ namespace Terrain
         osg::Object* viewer = isCullVisitor ? static_cast<osgUtil::CullVisitor*>(&nv)->getCurrentCamera() : nullptr;
         bool needsUpdate = true;
         osg::Vec3f viewPoint = viewer ? nv.getViewPoint() : nv.getEyePoint();
-        ViewData* vd = mViewDataMap->getViewData(viewer, viewPoint, mActiveGrid, needsUpdate);
+        const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
+        const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
+        auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
+        if (arrival && !validArrival(*arrival))
+        {
+            arrival->cancel();
+            arrival.reset();
+        }
+        if (arrival && (!arrival->matches(viewPoint, mActiveGrid, cellWorldSize, arrival->mRevision)
+                || !nv.getFrameStamp()))
+            arrival.reset();
+        if (arrival && !arrival->mCompileContexts.empty())
+        {
+            const auto* compile = mResourceSystem->getSceneManager()->getIncrementalCompileOperation();
+            const bool contextsChanged = std::any_of(arrival->mContextIds.begin(), arrival->mContextIds.end(),
+                [](const auto& entry) {
+                    return !entry.first->getState() || entry.first->getState()->getContextID() != entry.second;
+                });
+            if (compile != arrival->mCompile || !compile || contextsChanged
+                || compile->getContextSet() != arrival->mCompileContexts)
+            {
+                arrival->cancel();
+                arrival.reset();
+            }
+        }
+        // Reuse the worker's selection, like the normal nearest-camera view reuse.
+        // The intersector still traverses from its real origin with its original mask.
+        const bool staged = Misc::useStagedArrival() && arrival && arrival->activeReady();
+        const auto selectionPoint = staged ? arrival->mPoint : viewPoint;
+        ViewData* vd = mViewDataMap->getViewData(viewer, selectionPoint, mActiveGrid, needsUpdate);
         if (needsUpdate)
         {
             std::optional<Diagnostics::Scope> selectTiming;
@@ -652,21 +685,13 @@ namespace Terrain
             vd->reset();
             DefaultLodCallback lodCallback(
                 mLodFactor, mMinSize, mViewDistance, mActiveGrid, ESM::getCellSize(mWorldspace));
-            mRootNode->traverseNodes(vd, viewPoint, &lodCallback);
+            mRootNode->traverseNodes(vd, selectionPoint, &lodCallback);
         }
-
-        const float cellWorldSize = static_cast<float>(ESM::getCellSize(mWorldspace));
         const bool asynchronous = isCullVisitor && nv.getFrameStamp() && Misc::useAsyncObjectPaging();
         const bool separateScenery = isCullVisitor && mBatchChunkManager
             && mBatchChunkManager->usesSceneryCoverage();
         std::vector<ChunkRequest> scenery;
 
-        const auto ray = isCullVisitor ? std::optional<RayFootprint>{} : getRayFootprint(nv);
-        auto arrival = (isCullVisitor || ray) ? mVisibleArrival.load() : nullptr;
-        if (arrival && (!validArrival(*arrival) || !arrival->matches(viewPoint, mActiveGrid, cellWorldSize, arrival->mRevision)))
-            arrival.reset();
-        if (arrival && !nv.getFrameStamp())
-            arrival.reset(); // offscreen visitors without a frame clock keep normal synchronous semantics
         for (unsigned int i = 0; i < vd->getNumEntries(); ++i)
         {
             ViewDataEntry& entry = vd->getEntry(i);
@@ -679,9 +704,27 @@ namespace Terrain
                 const auto request = getChunkRequest(entry, mActiveGrid);
                 if (separateScenery && !request.mActiveGrid)
                     scenery.push_back(request);
-                if (entry.needsRendering(asynchronous && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
+                if (staged && isCullVisitor && !entry.needsRendering(true, false))
+                    arrival->acknowledgeVisible({ entry.mNode, entry.mLodFlags });
+                if (entry.needsRendering((asynchronous || staged) && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
                 {
-                    if (arrival && !entry.mRenderingNode && (isCullVisitor || request.mActiveGrid
+                    bool deferDistant = false;
+                    if (staged && isCullVisitor)
+                    {
+                        const auto prepared = arrival->cameraNode({ entry.mNode, entry.mLodFlags },
+                            nv.getFrameStamp()->getFrameNumber());
+                        if (prepared.node)
+                        {
+                            entry.mRenderingNode = prepared.node;
+                            entry.mRenderingComplete = true;
+                            entry.mRenderingGroundFallback = prepared.ground;
+                            entry.mRenderingReadyForCamera = true;
+                            entry.mRenderingSeparateScenery = false;
+                            deferDistant = prepared.ground;
+                        }
+                    }
+                    if (!deferDistant && arrival && (!entry.mRenderingNode || entry.mRenderingGroundFallback)
+                        && (isCullVisitor || request.mActiveGrid
                             || !mBatchChunkManager || !mBatchChunkManager->usesSceneryCoverage()))
                     {
                         const ArrivalView::Key key{ entry.mNode, entry.mLodFlags };
@@ -691,6 +734,7 @@ namespace Terrain
                         // are never withheld to satisfy an attachment quota.
                         entry.mRenderingNode = std::move(prepared);
                         entry.mRenderingComplete = true;
+                        entry.mRenderingGroundFallback = false;
                         entry.mRenderingReadyForCamera = isCullVisitor;
                         entry.mRenderingSeparateScenery = separateScenery && !request.mActiveGrid;
                     }
@@ -710,7 +754,8 @@ namespace Terrain
                         if (std::none_of(mChunkManagers.begin(), mChunkManagers.end(), mayHit))
                             continue;
                     }
-                    if (entry.needsRendering(asynchronous && !request.mActiveGrid, separateScenery && !request.mActiveGrid))
+                    if (!deferDistant && entry.needsRendering((asynchronous || staged) && !request.mActiveGrid,
+                            separateScenery && !request.mActiveGrid))
                         loadRenderingNode(entry, vd, cellWorldSize, request, false, nullptr, nullptr,
                             asynchronous, referenceTime, separateScenery);
                 }
@@ -720,7 +765,10 @@ namespace Terrain
                 std::optional<Diagnostics::Scope> traverseTiming;
                 if (!isCullVisitor)
                     traverseTiming.emplace("terrain", "ray", "traverseRenderingNode");
+                const auto begin = std::chrono::steady_clock::now();
                 entry.mRenderingNode->accept(nv);
+                if (staged && isCullVisitor && !getChunkRequest(entry, mActiveGrid).mActiveGrid)
+                    arrival->chargeTraversal(std::chrono::steady_clock::now() - begin);
             }
         }
 
@@ -831,14 +879,38 @@ namespace Terrain
 
     std::shared_ptr<ArrivalView> QuadTreeWorld::createArrival(const osg::Vec3f& point, const osg::Vec4i& grid)
     {
-        return std::make_shared<ArrivalView>(point, grid, mArrivalRevision.load(), mResourceSystem->getVFS()->getIndexRevision(),
-            mResourceSystem->getSceneManager()->modelSettingsRevision());
+        auto result = std::make_shared<ArrivalView>(point, grid, mArrivalRevision.load(),
+            mResourceSystem->getVFS()->getIndexRevision(), mResourceSystem->getSceneManager()->modelSettingsRevision());
+        if (Misc::useStagedArrival())
+            if (auto* compile = mResourceSystem->getSceneManager()->getIncrementalCompileOperation())
+            {
+                result->mCompile = compile;
+                result->mGraphicsRevision = mResourceSystem->getSceneManager()->graphicsRevision();
+                result->mShaderRevision = mResourceSystem->getSceneManager()->getShaderManager().compileRevision();
+                result->mCompileContexts = compile->getContextSet();
+                for (auto* context : result->mCompileContexts)
+                {
+                    if (!context || !context->getState())
+                    {
+                        result->mCompileContexts.clear();
+                        result->mContextOwners.clear();
+                        result->mContextIds.clear();
+                        break; // No initialized graphics set: retain the full synchronous arrival.
+                    }
+                    result->mContextOwners.emplace_back(context);
+                    result->mContextIds.emplace(context, context->getState()->getContextID());
+                }
+            }
+        return result;
     }
 
     bool QuadTreeWorld::validArrival(const ArrivalView& view) const
     {
-        return view.mRevision == mArrivalRevision.load() && view.mVfsRevision == mResourceSystem->getVFS()->getIndexRevision()
-            && view.mModelRevision == mResourceSystem->getSceneManager()->modelSettingsRevision();
+        return !view.cancelled() && view.mRevision == mArrivalRevision.load() && view.mVfsRevision == mResourceSystem->getVFS()->getIndexRevision()
+            && view.mModelRevision == mResourceSystem->getSceneManager()->modelSettingsRevision()
+            && (view.mCompileContexts.empty()
+                || (view.mGraphicsRevision == mResourceSystem->getSceneManager()->graphicsRevision()
+                    && view.mShaderRevision == mResourceSystem->getSceneManager()->getShaderManager().compileRevision()));
     }
 
     void QuadTreeWorld::showArrival(std::shared_ptr<ArrivalView> view)
@@ -932,7 +1004,7 @@ namespace Terrain
         {
             const auto& entry = cached->getEntry(i);
             // An incomplete camera view has no continuation once it is retained indoors.
-            if (!entry.mRenderingNode || !entry.mRenderingComplete)
+            if (!entry.mRenderingNode || !entry.mRenderingComplete || entry.mRenderingGroundFallback)
                 return {};
             const auto payload = footprint.measure(*entry.mRenderingNode);
             bytes += payload + sizeof(ArrivalView::Entry);
@@ -1009,11 +1081,21 @@ namespace Terrain
                 && Misc::useTerrainPreparation() && Misc::useNativeJobs() && Settings::general().mNativeJobsEnabled;
             for (auto i = first; i < last && !abort;)
             {
+                const bool stagedDistant = Misc::useStagedArrival() && arrival && first >= near
+                    && first != 0 && compile && !separateScenery && !arrival->mCompileContexts.empty();
+                if (arrival && (!validArrival(*arrival)
+                        || (stagedDistant && !arrival->waitForDistantCapacity(abort,
+                            [&] { return validArrival(*arrival); }))))
+                {
+                    abort = true;
+                    arrival->cancel();
+                    return;
+                }
                 const auto begin = i;
                 std::array<ViewDataEntry*, groupSize> entries;
                 std::array<ChunkRequest, groupSize> chunks;
                 std::size_t count = 0;
-                while (i < last && i - begin < ((batch || terrainBatch) ? groupSize : 1) && !abort)
+                while (i < last && i - begin < ((!stagedDistant && (batch || terrainBatch)) ? groupSize : 1) && !abort)
                 {
                     auto& entry = vd->getEntry(ordered[i++]);
                     updateRenderingLod(entry, vd);
@@ -1036,17 +1118,23 @@ namespace Terrain
                 const auto load = [&](std::size_t index, const BatchChunkManager::Fetch& fetch) {
                     {
                         Diagnostics::Loading::Timer timer(Diagnostics::Loading::Stage::RenderNodes);
-                        loadRenderingNode(*entries[index], vd, cellWorldSize, chunks[index], true, &abort,
+                        loadRenderingNode(*entries[index], vd, cellWorldSize, chunks[index], !stagedDistant, &abort,
                             fetch ? &fetch : nullptr, false, 0, separateScenery);
                     }
                     if (!abort)
                         advance();
                 };
-                if (batch && count)
+                if (batch && count && !stagedDistant)
                     mBatchChunkManager->preloadChunks(std::span(chunks).first(count), vd->getViewPoint(), abort, load);
                 else
                     for (std::size_t index = 0; index < count && !abort; ++index)
                         load(index, {});
+                if (arrival && !validArrival(*arrival))
+                {
+                    abort = true;
+                    arrival->cancel();
+                    return;
+                }
                 if (arrival && !abort)
                 {
                     std::vector<ArrivalView::Entry> ready;
@@ -1054,8 +1142,25 @@ namespace Terrain
                     {
                         const auto& entry = vd->getEntry(ordered[j]);
                         if (entry.mRenderingNode)
+                        {
+                            std::shared_ptr<std::atomic_bool> graphicsReady;
+                            std::size_t compileBytes = 0;
+                            if (Misc::useStagedArrival() && j >= near && compile && !separateScenery
+                                && !arrival->mCompileContexts.empty())
+                            {
+                                auto receipt = SceneUtil::prepareCompileReadiness(
+                                    entry.mRenderingNode, arrival->mCompileContexts);
+                                graphicsReady = receipt.mReady;
+                                compileBytes = receipt.mEstimatedBytes;
+                                if (!arrival->enqueueCompile(receipt.mSet))
+                                {
+                                    abort = true;
+                                    return;
+                                }
+                            }
                             ready.push_back({ { entry.mNode, entry.mLodFlags }, entry.mRenderingNode,
-                                footprint.measure(*entry.mRenderingNode) });
+                                footprint.measure(*entry.mRenderingNode) + compileBytes, std::move(graphicsReady) });
+                        }
                     }
                     arrival->publish(ready);
                     if (first == 0 && near != 0 && compile && Misc::useArrivalCompilePriority())
@@ -1068,6 +1173,27 @@ namespace Terrain
             }
         };
         build(0, near);
+        const bool staged = Misc::useStagedArrival() && arrival && compile && !separateScenery
+            && near != 0 && !arrival->mCompileContexts.empty();
+        if (staged && !abort)
+        {
+            // Keep continuous landscape everywhere before releasing the loading screen.
+            // Distant object construction remains on this private worker view.
+            for (auto i = near; i < ordered.size() && !abort; ++i)
+            {
+                auto& full = vd->getEntry(ordered[i]);
+                updateRenderingLod(full, vd);
+                auto ground = full;
+                ground.mRenderingNode = nullptr;
+                loadRenderingNode(ground, vd, cellWorldSize, getChunkRequest(full, grid), true,
+                    &abort, nullptr, false, 0, false, true);
+                if (!abort && ground.mRenderingNode)
+                    arrival->publishGround({ { ground.mNode, ground.mLodFlags }, ground.mRenderingNode,
+                        footprint.measure(*ground.mRenderingNode), {} });
+            }
+            if (!abort)
+                arrival->markActiveReady();
+        }
         if (arrival && !abort)
         {
             Log(Debug::Info) << "Exterior arrival graphics priority: pendingNearSets=" << nearCompileSets

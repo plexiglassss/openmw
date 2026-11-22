@@ -163,7 +163,7 @@ namespace Terrain
         ChunkRequest getChunkRequest(const ViewDataEntry& entry, const osg::Vec4i& gridbounds) const;
         void loadRenderingNode(ViewDataEntry& entry, ViewData* vd, float cellWorldSize, const ChunkRequest& request,
             bool compile, const std::atomic_bool* abort = nullptr, const BatchChunkManager::Fetch* fetch = nullptr,
-            bool asynchronous = false, double referenceTime = 0, bool separateScenery = false);
+            bool asynchronous = false, double referenceTime = 0, bool separateScenery = false, bool groundOnly = false);
         void prepareAhead(ViewData&, const osg::Vec3f&, double referenceTime, float cellWorldSize);
         BatchChunkManager* mBatchChunkManager = nullptr;
         Misc::NativeJobPool* mTerrainJobPool = nullptr;

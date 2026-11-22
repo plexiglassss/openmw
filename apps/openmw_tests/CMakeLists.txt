@@ -51,6 +51,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwlua/testspatialdistance.cpp
     mwlua/testpositionsnapshots.cpp
     mwworld/testarrivalcancellation.cpp
+    mwworld/teststagedterrain.cpp
     mwlua/testparallelqueries.cpp
     mwlua/testvfsiterators.cpp
 

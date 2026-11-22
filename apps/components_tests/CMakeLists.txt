@@ -18,6 +18,7 @@ file(GLOB UNITTEST_SRC_FILES
     terrain/testscenerycoverage.cpp
     terrain/testpreloadprediction.cpp
     terrain/testvertexpreparation.cpp
+    terrain/teststagedarrival.cpp
 
     esm/testfixedstring.cpp
     esm/testrefid.cpp

@@ -71,6 +71,16 @@ namespace Misc
         return enabled;
     }
 
+    // Second prepared-cell iteration: independently reversible and off by default.
+    inline bool useStagedArrival()
+    {
+        static const bool enabled = [] {
+            const char* value = std::getenv("OPENMW_STAGED_ARRIVAL");
+            return value && std::string_view(value) == "1";
+        }();
+        return usePreparedCells() && enabled;
+    }
+
     inline bool useActorPreparation()
     {
         static const bool enabled = enabledUnlessZero("OPENMW_ACTOR_PREPARATION");

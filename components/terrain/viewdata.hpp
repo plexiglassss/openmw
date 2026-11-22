@@ -28,6 +28,9 @@ namespace Terrain
         osg::ref_ptr<osg::Node> mRenderingNode;
         // Incomplete legacy/preload views must not be retained as arrivals.
         bool mRenderingComplete = true;
+        // Complete landscape, with distant objects still owned by the arrival worker.
+        // Never sufficient for an exact intersection query or a retained full view.
+        bool mRenderingGroundFallback = false;
         // Camera coverage is complete through prepared resources or the required
         // immediate draw path. This is not itself a graphics-completion receipt.
         // Exact queries and synchronous preload do not certify camera coverage.
@@ -35,7 +38,7 @@ namespace Terrain
         bool mRenderingSeparateScenery = false;
         bool needsRendering(bool cameraReadiness = false, bool separateScenery = false) const
         {
-            return !mRenderingNode || !mRenderingComplete || (cameraReadiness && !mRenderingReadyForCamera)
+            return !mRenderingNode || !mRenderingComplete || mRenderingGroundFallback || (cameraReadiness && !mRenderingReadyForCamera)
                 || mRenderingSeparateScenery != separateScenery;
         }
     };

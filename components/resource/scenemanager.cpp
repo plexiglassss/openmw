@@ -1603,6 +1603,8 @@ namespace Resource
 
     void SceneManager::setIncrementalCompileOperation(osgUtil::IncrementalCompileOperation* ico)
     {
+        if (mIncrementalCompileOperation != ico)
+            ++mGraphicsRevision;
         mIncrementalCompileOperation = ico;
     }
 

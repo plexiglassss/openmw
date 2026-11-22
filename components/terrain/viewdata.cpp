@@ -126,6 +126,7 @@ namespace Terrain
             // clear cached data
             mRenderingNode = nullptr;
             mRenderingComplete = true;
+            mRenderingGroundFallback = false;
             mRenderingReadyForCamera = false;
             mRenderingSeparateScenery = false;
             return true;

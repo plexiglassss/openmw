@@ -889,7 +889,7 @@ namespace MWWorld
         std::shared_ptr<Terrain::ArrivalView> mView;
         ExteriorArrivalJob(Terrain::World* world, std::shared_ptr<Terrain::ArrivalView> view)
             : mWorld(world), mWorkView(world->createView()), mView(std::move(view)) {}
-        void abort() override { mAbort = true; }
+        void abort() override { mAbort = true; mView->cancel(); mProgress.complete(); }
         bool matches(Terrain::World* world, const PositionCellGrid& pos, float tolerance) const
         {
             return mWorld == world && !mAbort && world->validArrival(*mView)
@@ -911,6 +911,11 @@ namespace MWWorld
                 mWorld->preloadArrival(mWorkView.get(), mView, mAbort, mProgress, [&](std::size_t near, std::size_t far) {
                     if (!mAbort && mWorld->validArrival(*mView))
                     {
+                        if (Misc::useStagedArrival() && mView->activeReady())
+                        {
+                            mReady = true;
+                            mProgress.complete();
+                        }
                         Log(Debug::Info) << "Exterior arrival active ready: nearChunks=" << near
                             << " distantChunks=" << far << " workerMs=" << elapsed();
                     }
@@ -932,7 +937,10 @@ namespace MWWorld
             }
             // A failed or interrupted far pass must allow the normal visitor to complete missing entries.
             if (!mView->complete())
+            {
+                mReady = false;
                 mView->finish(false);
+            }
             mProgress.complete();
         }
     };
@@ -1178,7 +1186,8 @@ namespace MWWorld
             {
                 if (Misc::useResponsiveArrivalCancellation() && mWorkQueue)
                 {
-                    const bool removed = mWorkQueue->cancelWorkItem(mArrivalJob.get());
+                    auto& queue = mArrivalWorkQueue ? mArrivalWorkQueue : mWorkQueue;
+                    const bool removed = queue->cancelWorkItem(mArrivalJob.get());
                     if (!removed && !mArrivalJob->isDone())
                         mRetiredArrivals.push_back(mArrivalJob);
                     Log(Debug::Info) << "Exterior arrival cancelled: queuedRemoved=" << removed
@@ -1221,10 +1230,13 @@ namespace MWWorld
     {
         if (!mWorkQueue || !world)
             return false;
+        if (Misc::useStagedArrival() && !mArrivalWorkQueue)
+            mArrivalWorkQueue = std::make_shared<SceneUtil::WorkQueue>(2);
+        auto& queue = mArrivalWorkQueue ? mArrivalWorkQueue : mWorkQueue;
         if (mArrivalJob && mArrivalJob->matches(world, target, terrainPreloadMergeDistance))
         {
             if (required && Misc::useResponsiveArrivalCancellation())
-                mWorkQueue->promoteWorkItem(mArrivalJob.get(), true);
+                queue->promoteWorkItem(mArrivalJob.get(), true);
             return true;
         }
         std::erase_if(mRetiredArrivals, [](const auto& job) { return job->isDone(); });
@@ -1247,7 +1259,7 @@ namespace MWWorld
         if (!view)
             return false;
         auto job = std::make_shared<ExteriorArrivalJob>(world, std::move(view));
-        mWorkQueue->addWorkItem(job, required);
+        queue->addWorkItem(job, required);
         mArrivalWorld = world;
         mArrivalJob = std::move(job);
         return true;
@@ -1381,7 +1393,14 @@ namespace MWWorld
             {
                 mTerrainPreloadItem = std::make_shared<TerrainPreloadItem>(mTerrainViews, mTerrain, positions);
                 mTerrainPreloadItem->markEnqueued();
-                mWorkQueue->addWorkItem(mTerrainPreloadItem);
+                if (Misc::useStagedArrival())
+                {
+                    if (!mTerrainWorkQueue)
+                        mTerrainWorkQueue = std::make_shared<SceneUtil::WorkQueue>(1);
+                    mTerrainWorkQueue->addWorkItem(mTerrainPreloadItem, true);
+                }
+                else
+                    mWorkQueue->addWorkItem(mTerrainPreloadItem);
             }
         }
     }

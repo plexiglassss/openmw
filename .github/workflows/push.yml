@@ -1,7 +1,7 @@
 name: OpenMW RC1 - cumulative custom features
 on:
   push:
-    branches: [openmw-0.52-rc1-custom]
+    branches: [openmw-0.52-rc1-custom, experimental/prepared-cell-streaming-20261121]
   pull_request:
     branches: [openmw-0.52-rc1-custom]
     types: [opened, synchronize, reopened]
@@ -19,11 +19,10 @@ jobs:
     if: github.head_ref != 'fix/windows-package-20261106'
     runs-on: windows-2022
     env:
-      # This branch finishes validation of exact f6 binaries from failed run 219.
-      # Any native/source-input change fails the recovery allowlist; no silent reuse.
-      PREPARED_RECOVERY: ${{ (github.head_ref || github.ref_name) == 'experimental/prepared-cell-streaming-20261121' && '1' || '0' }}
+      # Native iteration: build and verify the current source, never recover old binaries.
+      PREPARED_RECOVERY: '0'
       PREPARED_VERIFIER_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
-      CUMULATIVE_COMMIT: ${{ (github.head_ref || github.ref_name) == 'experimental/prepared-cell-streaming-20261121' && 'f6b6bc529d5fc0f53ddb4fbe2c8f1ac68efec160' || github.event.pull_request.head.sha || github.sha }}
+      CUMULATIVE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       # Keep tracked bytes identical to the verified source on Windows too.
       GIT_CONFIG_COUNT: "1"
       GIT_CONFIG_KEY_0: core.autocrlf
@@ -700,6 +699,25 @@ jobs:
           }
           python custom/prepared-cells/verify-tests.py --off prepared-off.xml --on prepared-on.xml --components components-tests.xml --output prepared-cell-verification.json
           if ($LASTEXITCODE) { throw 'Prepared-cell required executed evidence failed' }
+          Remove-Item Env:OPENMW_PREPARED_CELLS,Env:OPENMW_STAGED_ARRIVAL -ErrorAction SilentlyContinue
+          ./build/openmw-tests.exe --gtest_filter=StagedArrival.* --gtest_output=xml:staged-arrival-off.xml
+          if ($LASTEXITCODE) { throw 'Staged arrival baseline regressions failed' }
+          try {
+            $env:OPENMW_PREPARED_CELLS = '1'
+            $env:OPENMW_STAGED_ARRIVAL = '1'
+            ./build/openmw-tests.exe --gtest_filter=StagedArrival.*:StagedTerrain.*:ArrivalCancellation.* --gtest_output=xml:staged-arrival-on.xml
+            if ($LASTEXITCODE) { throw 'Staged terrain, query and cancellation regressions failed' }
+          } finally {
+            Remove-Item Env:OPENMW_PREPARED_CELLS,Env:OPENMW_STAGED_ARRIVAL -ErrorAction SilentlyContinue
+          }
+          python custom/prepared-cells/verify-staged.py --off staged-arrival-off.xml --on staged-arrival-on.xml --components components-tests.xml --output staged-arrival-verification.json
+          if ($LASTEXITCODE) { throw 'Staged arrival executed evidence failed' }
+          python custom/prepared-cells/test-staged-verifier.py --off staged-arrival-off.xml --on staged-arrival-on.xml --components components-tests.xml --output staged-verifier-tests.json
+          if ($LASTEXITCODE) { throw 'Staged arrival evidence verifier negative tests failed' }
+          $captureTokens = $null
+          $captureErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'custom/prepared-cells/Prepared-Cell-Capture/Start-Capture.ps1'), [ref]$captureTokens, [ref]$captureErrors)
+          if ($captureErrors.Count) { throw ($captureErrors | Out-String) }
           python custom/prepared-cells/test-verifier.py --off prepared-off.xml --on prepared-on.xml --components components-tests.xml --output prepared-verifier-tests.json
           if ($LASTEXITCODE) { throw 'Prepared-cell evidence verifier negative tests failed' }
           try {
@@ -967,7 +985,9 @@ jobs:
           Copy-Item custom/gpu-skinning/README.md install/GPU-SKINNING.md
           Copy-Item custom/prepared-cells/README.md install/PREPARED-CELLS-EXPERIMENT.md
           Copy-Item custom/prepared-cells/*.cmd install/
+          Copy-Item custom/prepared-cells/Prepared-Cell-Capture install/Prepared-Cell-Capture -Recurse
           Copy-Item prepared-off.xml,prepared-on.xml,prepared-cell-verification.json,prepared-verifier-tests.json install/verification/
+          Copy-Item staged-arrival-off.xml,staged-arrival-on.xml,staged-arrival-verification.json,staged-verifier-tests.json install/verification/
           Copy-Item custom/cell-streaming/README.md install/CELL-STREAMING.md
           Copy-Item custom/cell-streaming/NAVIGATION-PREPARATION.md install/NAVIGATION-PREPARATION.md
           Copy-Item navigation-geometry-tests.json,navigation-previous.xml,navigation-master-off.xml install/
