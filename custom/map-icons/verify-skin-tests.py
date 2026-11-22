@@ -15,11 +15,14 @@ def executed(path, suite):
 
 components = executed('components-tests.xml', 'MapIconSkinTest')
 controls = executed('openmw-tests.xml', 'MapIconControlsTest')
+visibility = executed('openmw-tests.xml', 'MapIconVisibilityTest')
 assert {'OrderedDestinationAndDoorRecordFallbacks', 'MissingTypedArtKeepsOriginalAndMissingOriginalKeepsFallback',
         'MaximumAppliesAfterZoomAndClusteringAndPreservesVisibility'} <= set(components)
 assert {'IndependentLocalBaseAndMaximumSlidersRetainTheirValues',
         'RecycledMarkerKeepsOneCompleteTileWhenArtworkSizeChanges'} <= set(controls)
+assert {'DoorArtworkRefreshKeepsFogAboveDoorsAndNotesAboveFog'} <= set(visibility)
 result = {'result': 'PASS', 'skin_and_size': components, 'native_options': controls,
+          'fog_draw_order': visibility,
           'scope': 'Windows shipping engine and component tests, with synthetic test textures and rules.'}
 Path('map-icon-skin-tests.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
 print('PASS: ordered local rules, missing texture fallbacks, capped map zoom, and independent native controls')
