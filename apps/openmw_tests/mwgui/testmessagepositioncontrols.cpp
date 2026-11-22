@@ -226,16 +226,25 @@ namespace MWGui
             void doRender(MyGUI::IVertexBuffer*, MyGUI::ITexture* texture, size_t count) override
             {
                 mVertices[texture] += count;
+                if (count)
+                    mDrawOrder.push_back(texture);
             }
             size_t verticesFor(const MyGUI::ITexture* texture) const
             {
                 const auto found = mVertices.find(texture);
                 return found == mVertices.end() ? 0 : found->second;
             }
+            bool drawnBefore(const MyGUI::ITexture* first, const MyGUI::ITexture* second) const
+            {
+                const auto a = std::find(mDrawOrder.begin(), mDrawOrder.end(), first);
+                const auto b = std::find(mDrawOrder.begin(), mDrawOrder.end(), second);
+                return a != mDrawOrder.end() && b != mDrawOrder.end() && a < b;
+            }
 
         private:
             MyGUI::RenderTargetInfo mInfo{};
             std::map<const MyGUI::ITexture*, size_t> mVertices;
+            std::vector<const MyGUI::ITexture*> mDrawOrder;
         };
 
         class MessagePositionControlsTest : public testing::Test
@@ -864,6 +873,64 @@ namespace MWGui
                 ControlsRenderTarget target(mRenderer.getViewSize());
                 MyGUI::LayerManager::getInstance().renderToTarget(&target, true);
                 EXPECT_EQ(target.verticesFor(texture), 6u);
+            }
+        }
+
+        using MapIconVisibilityTest = MessagePositionControlsTest;
+
+        TEST_F(MapIconVisibilityTest, DoorArtworkRefreshKeepsFogAboveDoorsAndNotesAboveFog)
+        {
+            // Use the actual map ScrollView, ImageBox marker and native widget
+            // depth ordering. The platform substitutes textures, not MyGUI's
+            // render-item batching or the resulting draw order.
+            ASSERT_TRUE(MyGUI::ResourceManager::getInstance().load("openmw_map_window.skin.xml"));
+            MyGUI::FactoryManager::getInstance().registerFactory<MapImageMarker>("Widget");
+            mPanel = mGui.createWidget<MyGUI::Widget>(
+                "", { 0, 0, 300, 300 }, MyGUI::Align::Default, "Settings");
+            auto* map = mPanel->createWidget<MyGUI::ScrollView>(
+                "MW_MapView", { 0, 0, 256, 256 }, MyGUI::Align::Default);
+            map->setCanvasSize(512, 512);
+            auto* background = map->createWidget<MyGUI::ImageBox>(
+                "ImageBox", { 0, 0, 512, 512 }, MyGUI::Align::Default);
+            background->setDepth(4);
+            background->setImageTexture("MapVisibilityBackground");
+            auto* fog = map->createWidget<MyGUI::ImageBox>(
+                "ImageBox", { 0, 0, 512, 512 }, MyGUI::Align::Default);
+            fog->setDepth(2);
+            fog->setImageTexture("MapVisibilityFog");
+            auto* note = map->createWidget<MyGUI::ImageBox>(
+                "ImageBox", { 100, 100, 16, 16 }, MyGUI::Align::Default);
+            note->setDepth(0);
+            note->setImageTexture("MapVisibilityNote");
+            auto* door = map->createWidget<MapImageMarker>(
+                "ImageBox", { 100, 100, 24, 24 }, MyGUI::Align::Default);
+            door->setDepth(3);
+            const auto* fogTexture = mRenderer.getTexture("MapVisibilityFog");
+            const auto* noteTexture = mRenderer.getTexture("MapVisibilityNote");
+            for (int i = 0; i < 6; ++i)
+            {
+                SCOPED_TRACE(i);
+                const std::string path = "MapVisibilityDoor" + std::to_string(i);
+                auto* texture = mRenderer.getTexture(path);
+                texture->createManual(32, 32, MyGUI::TextureUsage::Static, MyGUI::PixelFormat::R8G8B8A8);
+                door->setMarkerImage(path, 32);
+                map->setViewOffset({ -i * 3, -i * 4 });
+                if (i == 0)
+                {
+                    // Record the original no-redraw path without requiring a
+                    // particular MyGUI version to keep exhibiting the defect.
+                    ControlsRenderTarget before(mRenderer.getViewSize());
+                    MyGUI::LayerManager::getInstance().renderToTarget(&before, false);
+                    RecordProperty("door_before_fog_without_redraw", before.drawnBefore(texture, fogTexture));
+                }
+                // LocalMapBase::redraw uses this operation immediately after
+                // creating doors or refreshing their artwork.
+                map->getParent()->_updateChilds();
+                ControlsRenderTarget target(mRenderer.getViewSize());
+                MyGUI::LayerManager::getInstance().renderToTarget(&target, false);
+                EXPECT_EQ(target.verticesFor(texture), 6u);
+                EXPECT_TRUE(target.drawnBefore(texture, fogTexture));
+                EXPECT_TRUE(target.drawnBefore(fogTexture, noteTexture));
             }
         }
 

@@ -228,6 +228,11 @@ jobs:
           if ($LASTEXITCODE) { throw 'Map icon classifier compilation failed' }
           python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-classification.json --cmake-copy
           if ($LASTEXITCODE) { throw 'Map icon classification, assets or allocation checks failed' }
+      - name: Verify interior door markers stay stable during map dragging
+        shell: pwsh
+        run: |
+          python custom/map-icon-visibility/test-door-refresh.py --compiler cl --output map-icon-visibility-tests.json
+          if ($LASTEXITCODE) { throw 'Native map door refresh regression failed' }
       - name: Verify actor preload ordering, cancellation and optional resource fallback
         shell: pwsh
         run: |
@@ -902,6 +907,8 @@ jobs:
           Copy-Item custom/cell-streaming/BATCH-20261119.md install/STREAMING-BATCH.md
           Copy-Item streaming-batch-tests.json install/
           Copy-Item custom/map-icons/README.md install/NATIVE-MAP-ICONS.md
+          Copy-Item custom/map-icon-visibility/README.md install/MAP-ICON-VISIBILITY-FIX.md
+          Copy-Item map-icon-visibility-tests.json install/
           Copy-Item custom/native-tooltips/README.md install/NATIVE-TOOLTIPS.md
           Copy-Item native-tooltip-tests.json install/
           python custom/map-icons/verify-classification.py --binary ./map-icons-classifier.exe --receipt map-icons-package.json --resources install/resources/vfs
@@ -1048,6 +1055,7 @@ jobs:
             map-icons-classification.json
             map-icons-package.json
             map-icon-controls-early.xml
+            map-icon-visibility-tests.json
             components-tests-early.xml
             lua-lifetime-*.xml
             lookup-*.xml

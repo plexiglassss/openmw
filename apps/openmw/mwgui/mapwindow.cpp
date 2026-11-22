@@ -375,6 +375,7 @@ namespace MWGui
         if (!mActiveCell) return;
         for (auto* widget : currentDoorMarkersWidgets())
             styleDoorMarker(widget);
+        redraw();
     }
 
     void LocalMapBase::centerView()
@@ -445,6 +446,8 @@ namespace MWGui
     {
         if (&cell == mActiveCell)
             return; // don't do anything if we're still in the same cell
+
+        mInteriorDoorMarkersReady = false;
 
         // Remove all interior door markers
         mDoorMarkersToRecycle.insert(
@@ -722,6 +725,13 @@ namespace MWGui
 
     void LocalMapBase::updateDoorMarkers()
     {
+        // Interior markers cover the whole cell on their first deferred update.
+        // Panning, zooming and loading another map tile must keep those widgets:
+        // appending duplicates leaks icons above the fog, while hiding/recycling
+        // a pressed marker would release its mouse capture during a drag.
+        if (!mActiveCell->isExterior() && mInteriorDoorMarkersReady)
+            return;
+
         std::vector<MWBase::World::DoorMarker> doors;
         MWBase::World* world = MWBase::Environment::get().getWorld();
         MWWorld::WorldModel* worldModel = MWBase::Environment::get().getWorldModel();
@@ -781,6 +791,14 @@ namespace MWGui
 
         for (auto* widget : currentDoorMarkersWidgets())
             updateMarkerCoordinates(widget, doorMarkerSize(*widget->getUserData<MarkerUserData>()));
+
+        if (!mActiveCell->isExterior())
+            mInteriorDoorMarkersReady = true;
+
+        // ImageBox texture changes can append render items after the fog. Apply
+        // widget depths now, before a frame can expose an unexplored door.
+        if (!doors.empty())
+            redraw();
     }
 
     void LocalMapBase::updateMagicMarkers()
