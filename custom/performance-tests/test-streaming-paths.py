@@ -107,7 +107,8 @@ public:
  };
  struct BatchChunkManager:ChunkManager {using Fetch=std::function<osg::ref_ptr<osg::Node>()>;};
  float mMinSize=1;std::vector<ChunkManager*> mChunkManagers;BatchChunkManager* mBatchChunkManager=nullptr;
- void loadRenderingNode(ViewDataEntry&,ViewData*,float,const ChunkRequest&,bool,const std::atomic_bool*,const BatchChunkManager::Fetch*,bool,double,bool=false);
+ osg::ref_ptr<ChunkManager> mChunkManager;
+ void loadRenderingNode(ViewDataEntry&,ViewData*,float,const ChunkRequest&,bool,const std::atomic_bool*,const BatchChunkManager::Fetch*,bool,double,bool=false,bool=false);
 };
 ''' + function(terrain, '    void QuadTreeWorld::loadRenderingNode') + r'''
 }
@@ -164,7 +165,7 @@ public:
 int main(){
  using namespace Terrain;
  QuadTreeWorld world;QuadTreeWorld::ChunkManager ground;QuadTreeWorld::BatchChunkManager objects;
- world.mChunkManagers={&ground,&objects};world.mBatchChunkManager=&objects;
+ world.mChunkManagers={&ground,&objects};world.mBatchChunkManager=&objects;world.mChunkManager=&ground;
  ViewData view;QuadTreeNode tile;ViewDataEntry entry;entry.mNode=&tile;QuadTreeWorld::ChunkRequest request;
  auto load=[&](ViewDataEntry& target,bool async){world.loadRenderingNode(target,&view,8192,request,false,nullptr,nullptr,async,1);};
  objects.result={true,false,{}};load(entry,true);
@@ -185,6 +186,14 @@ int main(){
  assert(compatibility.mRenderingComplete && objects.synchronous==5);
  ViewDataEntry empty;empty.mNode=&tile;objects.result={true,true,{}};load(empty,true);
  assert(empty.mRenderingComplete && empty.mRenderingNode->children.size()==1 && objects.synchronous==5);
+ // Ground fallback must skip object construction and remain incomplete for an exact query.
+ ViewDataEntry fallback;fallback.mNode=&tile;
+ world.loadRenderingNode(fallback,&view,8192,request,false,nullptr,nullptr,false,1,false,true);
+ assert(fallback.mRenderingGroundFallback && fallback.mRenderingNode->children.size()==1);
+ assert(fallback.mRenderingNode->children.front()==&ground.node && objects.synchronous==5);
+ assert(fallback.needsRendering(false));
+ load(fallback,false);
+ assert(!fallback.mRenderingGroundFallback && fallback.mRenderingNode->children.size()==2 && objects.synchronous==6);
  std::atomic_bool abort{true};ViewDataEntry stopped;stopped.mNode=&tile;
  world.loadRenderingNode(stopped,&view,8192,request,false,&abort,nullptr,true,1);assert(!stopped.mRenderingNode);
  for(int kind=0;kind<3;++kind){
@@ -262,7 +271,7 @@ def run(source, name):
         else:
             command=['c++','-std=c++20','-O2','-Wall','-Wextra','-Werror','-I'+str(Path.cwd()),str(cpp),'-o',str(exe)]
         subprocess.run(command,check=True)
-        subprocess.run([str(exe)],check=True)
+        subprocess.run([str(exe)],env=dict(os.environ,OPENMW_PREPARED_CELLS='0',OPENMW_STAGED_ARRIVAL='0'),check=True)
 
 run(source, 'streaming')
 
@@ -348,6 +357,7 @@ run(source,'moved-source')
 # reporter are controlled doubles; native tests exercise real prediction math,
 # queue cancellation and graphics readiness. This verifies routing/ordering only.
 source = r'''
+#include <components/misc/combinedperformance.hpp>
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -418,6 +428,9 @@ public:
     terrain, '    void QuadTreeWorld::prepareAhead') + r'''
 struct View {};
 struct ArrivalView {bool completed=false;int failed=0,mRevision=0;
+ // This extracted worker harness retains the legacy-mode assertions below;
+ // the native StagedArrival suite exercises early readiness and cancellation.
+ bool activeReady()const{assert(false);return false;}void cancel(){assert(false);}
  bool complete()const{return completed;}void finish(bool ok){completed=ok;if(!ok)++failed;}
  bool matches(osg::Vec3f,osg::Vec4i,float,int)const{return true;}std::size_t bytes()const{return 42;}};
 struct World {

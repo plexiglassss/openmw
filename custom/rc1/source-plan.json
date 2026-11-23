@@ -5115,7 +5115,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "23fba5203f5e4aefe52871cd154b6a65648b0bfe"
+        "blob": "4f5b78075244772cc52b04712abfe5ff2231b227"
       },
       "status": "adapted_for_rc1"
     },
@@ -12626,9 +12626,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "23fba5203f5e4aefe52871cd154b6a65648b0bfe"
+        "blob": "4f5b78075244772cc52b04712abfe5ff2231b227"
       },
-      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Update the streaming routing fixture to the reviewed seven-argument AsyncPreparation constructor and explicitly verify CPU2/unresolved8 for normal requests, CPU2/unresolved2 for diagnostic bridges; production engine bytes unchanged. Retained or adapted to the official RC1 source/API."
+      "purpose": "Prepare predicted exterior scenery before visibility; finish required camera geometry through existing demand semantics, wait for full arrival CPU coverage, cancel duplicate speculation, preserve prior cumulative fixes and graphics readiness boundaries. Keep complete distant scenery during asynchronous optimized-batch preparation; retain validated arrivals and ready sibling batches, bound optional work and retirement, prepare static next-grid resources without gameplay side effects, and verify production handover/ownership plus real graphics compilation. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Update the streaming routing fixture to the reviewed seven-argument AsyncPreparation constructor and explicitly verify CPU2/unresolved8 for normal requests, CPU2/unresolved2 for diagnostic bridges; production engine bytes unchanged. Retained or adapted to the official RC1 source/API.; Adapt counted traversal/arrival doubles to the staged interfaces, preserve legacy mode checks and verify ground fallback routing."
     },
     "custom/performance-tests/test-transition-preload.py": {
       "upstream": null,
