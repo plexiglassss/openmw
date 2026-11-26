@@ -1,4 +1,5 @@
 #include "renderingmanager.hpp"
+#include "negativelighttracker.hpp"
 
 #include <components/diagnostics/timing.hpp>
 
@@ -214,6 +215,7 @@ namespace MWRender
         , mViewer(viewer)
         , mRootNode(rootNode)
         , mResourceSystem(resourceSystem)
+        , mNegativeLightTracker(std::make_shared<NegativeLightTracker>())
         , mWorkQueue(workQueue)
         , mNavigator(navigator)
         , mNightEyeFactor(0.f)
@@ -309,7 +311,7 @@ namespace MWRender
         mRecastMesh = std::make_unique<RecastMesh>(mRootNode, Settings::navigator().mEnableRecastMeshRender);
         mPathgrid = std::make_unique<Pathgrid>(mRootNode);
 
-        mObjects = std::make_unique<Objects>(mResourceSystem, sceneRoot, unrefQueue);
+        mObjects = std::make_unique<Objects>(mResourceSystem, sceneRoot, unrefQueue, mNegativeLightTracker);
 
         if (getenv("OPENMW_DONT_PRECOMPILE") == nullptr)
         {
@@ -459,10 +461,17 @@ namespace MWRender
         updateProjectionMatrix();
 
         mViewer->getCamera()->setClearMask(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        mNegativeLightTracker->setCallback([this](const void* cell) {
+            if (cell == mLocationRenderingCell)
+                updateLocationRenderingProfile(mLocationRenderingCell);
+        });
     }
 
     RenderingManager::~RenderingManager()
     {
+        // Animations can outlive scene removal while queued for disposal. Never
+        // leave a callback capturing a renderer whose members are being destroyed.
+        mNegativeLightTracker->setCallback({});
         // let background loading thread finish before we delete anything else
         mWorkQueue = nullptr;
     }
@@ -653,10 +662,11 @@ namespace MWRender
         mPostProcessor->getStateUpdater()->setSunVec(osg::Vec4f(-sunlightPos, 0.f));
     }
 
-    void RenderingManager::loadLocationRenderingProfiles(const std::vector<std::string>& activeContent)
+    void RenderingManager::loadLocationRenderingProfiles(
+        const std::filesystem::path& file, const std::vector<std::string>& activeContent)
     {
         updateLocationRenderingProfile(nullptr);
-        mLocationRenderingProfiles.load(*mResourceSystem->getVFS(), activeContent);
+        mLocationRenderingProfiles.load(file, activeContent);
 
         const auto& profiles = mLocationRenderingProfiles.profiles();
         const bool profileUsesNormalMaps = std::any_of(profiles.begin(), profiles.end(), [](const auto& profile) {
@@ -673,6 +683,7 @@ namespace MWRender
 
     void RenderingManager::updateLocationRenderingProfile(const MWWorld::Cell* cell)
     {
+        mLocationRenderingCell = cell;
         const bool ordinaryNormalMaps = Settings::shaders().mAutoUseObjectNormalMaps;
         const bool ordinarySpecularMaps = Settings::shaders().mAutoUseObjectSpecularMaps;
         mStateUpdater->setOrdinaryAutomaticObjectMaps(ordinaryNormalMaps, ordinarySpecularMaps);
@@ -684,7 +695,8 @@ namespace MWRender
                 specularMaps->set(ordinarySpecularMaps);
         }
         const LocationRenderingProfile* profile = cell && Settings::shaders().mLocationRenderingProfiles
-            ? mLocationRenderingProfiles.find(cell->getNameId(), cell->isExterior())
+            ? mLocationRenderingProfiles.find(
+                  cell->getNameId(), cell->isExterior(), mNegativeLightTracker->count(cell) != 0)
             : nullptr;
         if (profile)
         {
@@ -1265,6 +1277,9 @@ namespace MWRender
     void RenderingManager::clear()
     {
         updateLocationRenderingProfile(nullptr);
+        if (mPlayerAnimation)
+            mPlayerAnimation->setNegativeLightTracker(nullptr);
+        mNegativeLightTracker->clear();
         mSky->setMoonColour(false);
 
         notifyWorldSpaceChanged();
@@ -1320,6 +1335,7 @@ namespace MWRender
     {
         mPlayerAnimation = std::make_unique<NpcAnimation>(player, player.getRefData().getBaseNode(), mResourceSystem, 0,
             NpcAnimation::VM_Normal, mFirstPersonFieldOfView);
+        mPlayerAnimation->setNegativeLightTracker(mNegativeLightTracker);
 
         mCamera->setAnimation(mPlayerAnimation.get());
         mCamera->attachTo(player);

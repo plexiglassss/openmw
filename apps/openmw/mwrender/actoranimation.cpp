@@ -569,6 +569,7 @@ namespace MWRender
             mLightListCallback->getIgnoredLightSources().insert(lightSource.get());
 
         mItemLights.insert(std::make_pair(item, lightSource));
+        trackNegativeLight(lightSource.get(), SceneUtil::LightCommon(*esmLight));
     }
 
     void ActorAnimation::removeHiddenItemLight(const MWWorld::ConstPtr& item)
@@ -586,6 +587,7 @@ namespace MWRender
         }
 
         mInsert->removeChild(iter->second);
+        untrackNegativeLight(iter->second.get());
         mItemLights.erase(iter);
     }
 

@@ -1131,7 +1131,8 @@ void OMW::Engine::prepareEngine()
     mSoundManager->warmStoreSounds();
     listener->loadingOff();
 
-    mWorld->init(mMaxRecastLogLevel, mViewer, std::move(rootNode), mWorkQueue, *mUnrefQueue);
+    mWorld->init(mMaxRecastLogLevel, mViewer, std::move(rootNode), mWorkQueue, *mUnrefQueue,
+        mCfgMgr.getUserConfigPath() / "location-rendering.yaml");
     mEnvironment.setWorldScene(mWorld->getWorldScene());
     mWorld->setupPlayer();
     mWorld->setRandomSeed(mRandomSeed);

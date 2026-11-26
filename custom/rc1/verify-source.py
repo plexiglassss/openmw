@@ -17,6 +17,18 @@ UNION_TREE = "a34a506e66cfe3666a1fce8c90c9a4d2f3bbd199"
 UNION_PARENTS = ["f6f8542512fc35508d9f0fdcb3725475a01aff60", "afa9a970b81ce193b5d6d3a36d24c995353e665d"]
 PLAYER_FEATURE = "e39f2dd83a8308589cbd9940978fe142c713590b"
 INVENTORY_SHA256 = "a98bcde73147416496aa7c158cdc272fe87b5f943e28ed6eb8120a1b99749f6c"
+INTENTIONAL_RETIREMENTS = {
+    "files/data/shader_profiles/horror_mod.yaml": {
+        "authorization": "User requested the shared YAML as the only profile source on 2026-11-25 and authorized implementation on 2026-11-26.",
+        "replacement": "location-rendering.yaml in the active user configuration directory; generic conditional and explicit profiles",
+        "required_paths": [
+            "apps/openmw/mwrender/locationrenderingprofiles.cpp",
+            "apps/openmw/mwrender/locationrenderingprofiles.hpp",
+            "docs/source/reference/modding/location-rendering-profiles.rst",
+            "apps/openmw_tests/mwrender/testlocationrenderingprofiles.cpp",
+        ],
+    },
+}
 
 
 def git(*args):
@@ -64,10 +76,19 @@ def verify():
     prior = tree(union)
     coverage = plan["cumulative_path_coverage"]
     require(set(coverage) == set(historical_plan["files"]), "Cumulative feature paths omitted or added")
+    require(plan.get("intentional_retirements") == INTENTIONAL_RETIREMENTS,
+            "Intentional feature retirement differs from the reviewed user instruction")
     for path, row in coverage.items():
         require(row["cumulative"] == prior.get(path), "Historical feature identity changed: " + path)
-        require(row["ported"] is not None and row["ported"] == actual.get(path), "Cumulative feature missing or changed: " + path)
-        status = "exactly_retained" if prior.get(path) == actual.get(path) else "adapted_for_rc1"
+        if path in INTENTIONAL_RETIREMENTS:
+            require(row["ported"] is None and path not in actual,
+                    "Retired per-mod profile returned: " + path)
+            for replacement in INTENTIONAL_RETIREMENTS[path]["required_paths"]:
+                require(replacement in actual, "Missing replacement for retired profile: " + replacement)
+            status = "superseded_by_shared_configuration"
+        else:
+            require(row["ported"] is not None and row["ported"] == actual.get(path), "Cumulative feature missing or changed: " + path)
+            status = "exactly_retained" if prior.get(path) == actual.get(path) else "adapted_for_rc1"
         require(row["status"] == status, "Incorrect feature preservation classification: " + path)
     changed = {p for p in original.keys() | actual.keys() if original.get(p) != actual.get(p)}
     require(changed == set(plan["changes"]) | {PLAN}, "Unrecorded changes relative to official RC1")
@@ -103,6 +124,7 @@ def verify():
         "source_plan_sha256": hashlib.sha256((ROOT / PLAN).read_bytes()).hexdigest(),
         "tracked_paths_verified": len(actual), "exact_rc1_delta_paths": len(plan["changes"]),
         "preserved_ancestry_verified": True,
+        "intentional_retirements": INTENTIONAL_RETIREMENTS,
         "lookup_optimization": "committed source; no CI transformation",
         "historical_gates": "run separately at their original commits",
         "gameplay_tested": False,

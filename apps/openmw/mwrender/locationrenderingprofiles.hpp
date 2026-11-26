@@ -3,6 +3,7 @@
 
 #include <compare>
 #include <cstddef>
+#include <filesystem>
 #include <iosfwd>
 #include <map>
 #include <set>
@@ -10,9 +11,9 @@
 #include <string_view>
 #include <vector>
 
-namespace VFS
+namespace SceneUtil
 {
-    class Manager;
+    struct LightCommon;
 }
 
 namespace MWRender
@@ -35,6 +36,7 @@ namespace MWRender
         int mPriority = 0;
         std::vector<std::string> mRequiredContent;
         std::vector<std::string> mInteriors;
+        bool mContainsNegativeLight = false;
         LocationRenderingShaderSettings mShaders;
     };
 
@@ -42,21 +44,26 @@ namespace MWRender
     // Matching is literal and case-insensitive; wildcards and regular expressions
     // are intentionally not interpreted.
     LocationRenderingProfile parseLocationRenderingProfile(std::istream& stream);
+    bool isQualifyingNegativeLight(const SceneUtil::LightCommon& light);
 
     class LocationRenderingProfiles
     {
     public:
         void clear();
-        void load(const VFS::Manager& vfs, const std::vector<std::string>& activeContent);
+        void load(const std::filesystem::path& file, const std::vector<std::string>& activeContent);
         bool add(const LocationRenderingProfile& profile, const std::vector<std::string>& activeContent);
-        const LocationRenderingProfile* find(std::string_view cellName, bool exterior) const;
+        const LocationRenderingProfile* find(
+            std::string_view cellName, bool exterior, bool containsNegativeLight = false) const;
         std::size_t size() const { return mCells.size(); }
         const std::vector<LocationRenderingProfile>& profiles() const { return mProfiles; }
 
     private:
         std::vector<LocationRenderingProfile> mProfiles;
-        std::map<std::string, std::map<int, std::size_t>, std::less<>> mCells;
+        using Priorities = std::map<int, std::vector<std::size_t>>;
+        std::map<std::string, Priorities, std::less<>> mCells;
+        Priorities mNegativeLights;
         std::set<std::string, std::less<>> mIds;
+        void reportConflicts() const;
     };
 }
 

@@ -2,16 +2,17 @@
 
 #include <components/debug/debuglog.hpp>
 #include <components/misc/strings/lower.hpp>
-#include <components/vfs/manager.hpp>
-#include <components/vfs/recursivedirectoryiterator.hpp>
+#include <components/sceneutil/lightcommon.hpp>
 
 #include <yaml-cpp/yaml.h>
 
 #include <algorithm>
 #include <cctype>
+#include <fstream>
 #include <initializer_list>
 #include <istream>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 
 namespace MWRender
@@ -99,8 +100,9 @@ namespace MWRender
         {
             validateId(profile.mId);
             validateText(profile.mName, "name");
-            if (profile.mInteriors.empty())
-                throw std::runtime_error("Location rendering profile requires at least one interior cell");
+            if (profile.mInteriors.empty() == !profile.mContainsNegativeLight)
+                throw std::runtime_error(
+                    "Location rendering profile requires either interior cells or a negative-light condition");
             for (const std::string& name : profile.mRequiredContent)
             {
                 validateText(name, "required-content");
@@ -112,14 +114,10 @@ namespace MWRender
         }
     }
 
-    LocationRenderingProfile parseLocationRenderingProfile(std::istream& stream)
+    static LocationRenderingProfile parseProfile(const YAML::Node& root)
     {
-        const YAML::Node root = YAML::Load(stream);
-        validateKeys(root,
-            { "format", "id", "name", "enabled", "priority", "required-content", "match", "shaders" }, "root");
+        validateKeys(root, { "id", "name", "enabled", "priority", "required-content", "match", "shaders" }, "profile");
 
-        if (!root["format"] || !root["format"].IsScalar() || root["format"].as<int>() != 2)
-            throw std::runtime_error("Unsupported location rendering profile format (expected 2)");
         if (!root["id"] || !root["id"].IsScalar())
             throw std::runtime_error("Location rendering profile requires an id");
         if (!root["name"] || !root["name"].IsScalar())
@@ -143,10 +141,19 @@ namespace MWRender
         result.mRequiredContent = readStringList(root, "required-content", false);
 
         const YAML::Node match = root["match"];
-        validateKeys(match, { "type", "cells" }, "match");
+        validateKeys(match, { "type", "cells", "condition" }, "match");
         if (!match["type"] || !match["type"].IsScalar() || match["type"].as<std::string>() != "interior")
             throw std::runtime_error("Location rendering profile match.type must be 'interior'");
-        result.mInteriors = readStringList(match, "cells", true);
+        if (static_cast<bool>(match["cells"]) == static_cast<bool>(match["condition"]))
+            throw std::runtime_error("Location rendering match requires exactly one of cells or condition");
+        if (match["condition"])
+        {
+            if (!match["condition"].IsScalar() || match["condition"].as<std::string>() != "contains-negative-light")
+                throw std::runtime_error("Unknown location rendering condition (expected contains-negative-light)");
+            result.mContainsNegativeLight = true;
+        }
+        else
+            result.mInteriors = readStringList(match, "cells", true);
 
         const YAML::Node shaders = root["shaders"];
         validateKeys(shaders,
@@ -162,36 +169,91 @@ namespace MWRender
         return result;
     }
 
+    LocationRenderingProfile parseLocationRenderingProfile(std::istream& stream)
+    {
+        return parseProfile(YAML::Load(stream));
+    }
+
+    bool isQualifyingNegativeLight(const SceneUtil::LightCommon& light)
+    {
+        // Radius zero can still emit: the renderer applies a minimum radius.
+        // Alpha and pulse/flicker intensity do not determine authored darkness.
+        return light.mNegative && (light.mColor.r() != 0.f || light.mColor.g() != 0.f || light.mColor.b() != 0.f);
+    }
+
     void LocationRenderingProfiles::clear()
     {
         mProfiles.clear();
         mCells.clear();
+        mNegativeLights.clear();
         mIds.clear();
     }
 
-    void LocationRenderingProfiles::load(const VFS::Manager& vfs, const std::vector<std::string>& activeContent)
+    void LocationRenderingProfiles::load(
+        const std::filesystem::path& file, const std::vector<std::string>& activeContent)
     {
         clear();
-        for (const VFS::Path::Normalized& path : vfs.getRecursiveDirectoryIterator("shader_profiles/"))
+        try
         {
-            const std::string& name = path.value();
-            if (!name.ends_with(".yaml") && !name.ends_with(".yml") && !name.ends_with(".json"))
-                continue;
-            try
+            if (!std::filesystem::exists(file))
             {
-                auto stream = vfs.get(path);
-                const auto profile = parseLocationRenderingProfile(*stream);
+                Log(Debug::Info) << "Location rendering profiles: no shared file at " << file
+                                 << "; using global settings";
+                return;
+            }
+            std::ifstream stream(file);
+            if (!stream)
+                throw std::runtime_error("Could not open shared location rendering file");
+            const auto documents = YAML::LoadAll(stream);
+            if (documents.size() != 1)
+                throw std::runtime_error("Shared location rendering file must contain exactly one YAML document");
+            const YAML::Node& root = documents.front();
+            validateKeys(root, { "format", "profiles" }, "document");
+            if (!root["format"] || !root["format"].IsScalar() || root["format"].as<int>() != 3)
+                throw std::runtime_error("Unsupported shared location rendering format (expected 3)");
+            const auto entries = root["profiles"];
+            if (!entries || !entries.IsSequence())
+                throw std::runtime_error("Shared location rendering file requires a profiles list");
+
+            std::vector<LocationRenderingProfile> parsed;
+            std::map<std::string, std::size_t, std::less<>> ids;
+            for (std::size_t i = 0; i < entries.size(); ++i)
+            {
+                try
+                {
+                    auto profile = parseProfile(entries[i]);
+                    ++ids[Misc::StringUtils::lowerCase(profile.mId)];
+                    parsed.push_back(std::move(profile));
+                }
+                catch (const std::exception& error)
+                {
+                    Log(Debug::Warning) << "Location rendering profiles: skipping entry " << i + 1 << " at line "
+                                        << entries[i].Mark().line + 1 << " in " << file << ": " << error.what();
+                }
+            }
+            for (const auto& profile : parsed)
+            {
+                // Reject every duplicate, rather than allowing document order to
+                // decide which occurrence supplies the runtime settings.
+                if (ids.at(Misc::StringUtils::lowerCase(profile.mId)) != 1)
+                {
+                    Log(Debug::Warning) << "Location rendering profiles: duplicate id '" << profile.mId << "' in "
+                                        << file << "; all occurrences skipped";
+                    continue;
+                }
                 if (add(profile, activeContent))
-                    Log(Debug::Info) << "Location rendering profile: loaded '" << profile.mName << "' from " << name
-                                     << " (" << profile.mInteriors.size() << " interiors, priority "
-                                     << profile.mPriority << ")";
+                    Log(Debug::Info) << "Location rendering profile: loaded '" << profile.mName << "' from " << file
+                                     << " (priority " << profile.mPriority << ")";
                 else
-                    Log(Debug::Info) << "Location rendering profile: inactive or disabled " << name;
+                    Log(Debug::Info) << "Location rendering profile: inactive or disabled '" << profile.mId << "'";
             }
-            catch (const std::exception& error)
-            {
-                Log(Debug::Warning) << "Location rendering profile: skipping " << name << ": " << error.what();
-            }
+            reportConflicts();
+        }
+        catch (const std::exception& error)
+        {
+            clear();
+            Log(Debug::Warning) << "Location rendering profiles: could not load " << file << ": " << error.what()
+                                << "; using global settings";
         }
     }
 
@@ -218,35 +280,80 @@ namespace MWRender
         if (mIds.contains(normalizedId))
             throw std::runtime_error("Repeated location rendering profile id: " + profile.mId);
 
-        // Check every priority before publishing any cell. A higher-priority
-        // winner must not hide a conflict between two lower-priority profiles.
-        std::vector<std::string> cells;
-        cells.reserve(profile.mInteriors.size());
-        for (const std::string& name : profile.mInteriors)
-        {
-            cells.push_back(Misc::StringUtils::lowerCase(name));
-            const auto found = mCells.find(cells.back());
-            if (found == mCells.end())
-                continue;
-            const auto existing = found->second.find(profile.mPriority);
-            if (existing != found->second.end())
-                throw std::runtime_error("Location rendering profiles have equal priority at cell '" + name + "': '"
-                    + mProfiles.at(existing->second).mId + "' and '" + profile.mId + "'");
-        }
-
         const std::size_t index = mProfiles.size();
         mProfiles.push_back(profile);
         mIds.insert(normalizedId);
-        for (std::string& cell : cells)
-            mCells[std::move(cell)].emplace(profile.mPriority, index);
+        if (profile.mContainsNegativeLight)
+            mNegativeLights[profile.mPriority].push_back(index);
+        else
+            for (const std::string& cell : profile.mInteriors)
+                mCells[Misc::StringUtils::lowerCase(cell)][profile.mPriority].push_back(index);
         return true;
     }
 
-    const LocationRenderingProfile* LocationRenderingProfiles::find(std::string_view cellName, bool exterior) const
+    void LocationRenderingProfiles::reportConflicts() const
     {
-        if (exterior || mCells.empty())
+        const auto report = [&](std::string_view cell, int priority, const std::vector<std::size_t>& entries) {
+            if (entries.empty())
+                return;
+            const auto& first = mProfiles.at(entries.front());
+            if (std::all_of(entries.begin(), entries.end(),
+                    [&](std::size_t index) { return mProfiles.at(index).mShaders == first.mShaders; }))
+                return;
+            std::ostringstream names;
+            for (std::size_t index : entries)
+                names << " '" << mProfiles.at(index).mId << "'";
+            Log(Debug::Warning) << "Location rendering profiles: contradictory priority " << priority << " at " << cell
+                                << ':' << names.str()
+                                << "; a tied winning match uses global settings (set distinct priorities)";
+        };
+        for (const auto& [priority, entries] : mNegativeLights)
+            report("negative-light interiors", priority, entries);
+        for (const auto& [cell, priorities] : mCells)
+            for (const auto& [priority, entries] : priorities)
+            {
+                report(cell, priority, entries);
+                if (const auto condition = mNegativeLights.find(priority); condition != mNegativeLights.end())
+                {
+                    auto combined = entries;
+                    combined.insert(combined.end(), condition->second.begin(), condition->second.end());
+                    report(cell + " when negative lighting is present", priority, combined);
+                }
+            }
+    }
+
+    const LocationRenderingProfile* LocationRenderingProfiles::find(
+        std::string_view cellName, bool exterior, bool containsNegativeLight) const
+    {
+        if (exterior)
             return nullptr;
         const auto found = mCells.find(Misc::StringUtils::lowerCase(cellName));
-        return found == mCells.end() ? nullptr : &mProfiles.at(found->second.rbegin()->second);
+        const Priorities* literal = found == mCells.end() ? nullptr : &found->second;
+        const Priorities* conditional = containsNegativeLight && !mNegativeLights.empty() ? &mNegativeLights : nullptr;
+        if (!literal && !conditional)
+            return nullptr;
+
+        const int priority = !literal ? conditional->rbegin()->first
+            : !conditional            ? literal->rbegin()->first
+                                      : std::max(literal->rbegin()->first, conditional->rbegin()->first);
+        const LocationRenderingProfile* selected = nullptr;
+        bool conflict = false;
+        for (const Priorities* candidates : { literal, conditional })
+        {
+            if (!candidates)
+                continue;
+            const auto entries = candidates->find(priority);
+            if (entries == candidates->end())
+                continue;
+            for (std::size_t index : entries->second)
+            {
+                const auto& profile = mProfiles.at(index);
+                if (selected && selected->mShaders != profile.mShaders)
+                    conflict = true;
+                if (!selected || profile.mId < selected->mId)
+                    selected = &profile;
+            }
+        }
+        return conflict ? nullptr : selected;
     }
 }

@@ -81,6 +81,7 @@ namespace MWRender
 
     void CreatureWeaponAnimation::updateParts()
     {
+        removeExtraLight();
         mAmmunition.reset();
         mWeapon.reset();
         mShield.reset();

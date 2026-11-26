@@ -249,7 +249,8 @@ namespace MWWorld
     }
 
     void World::init(Debug::Level maxRecastLogLevel, osgViewer::Viewer* viewer, osg::ref_ptr<osg::Group> rootNode,
-        const std::shared_ptr<SceneUtil::WorkQueue>& workQueue, SceneUtil::UnrefQueue& unrefQueue)
+        const std::shared_ptr<SceneUtil::WorkQueue>& workQueue, SceneUtil::UnrefQueue& unrefQueue,
+        const std::filesystem::path& locationRenderingFile)
     {
         mPhysics = std::make_unique<MWPhysics::PhysicsSystem>(
             mResourceSystem, std::make_unique<MWRender::DebugDrawer>(rootNode));
@@ -267,7 +268,7 @@ namespace MWWorld
 
         mRendering = std::make_unique<MWRender::RenderingManager>(
             viewer, rootNode, mResourceSystem, workQueue, *mNavigator, mGroundcoverStore, unrefQueue);
-        mRendering->loadLocationRenderingProfiles(mContentFiles);
+        mRendering->loadLocationRenderingProfiles(locationRenderingFile, mContentFiles);
         mProjectileManager = std::make_unique<ProjectileManager>(
             mRendering->getLightRoot()->asGroup(), mResourceSystem, mRendering.get(), mPhysics.get());
 

@@ -867,11 +867,8 @@ jobs:
         run: |
           cmake --install build --prefix install
           if ($LASTEXITCODE) { throw 'Installation failed' }
-          $env:OPENMW_TEST_PROFILE_DATA = (Resolve-Path 'install/resources/vfs').Path
-          try {
-            ./build/openmw-tests.exe --gtest_filter=LocationRenderingProfileTest.* --gtest_output=xml:location-rendering-profile-tests.xml
-            if ($LASTEXITCODE) { throw 'Location rendering tests on the installed data failed' }
-          } finally { Remove-Item Env:OPENMW_TEST_PROFILE_DATA -ErrorAction SilentlyContinue }
+          ./build/openmw-tests.exe --gtest_filter=LocationRenderingProfileTest.*:NegativeLightLifecycleTest.* --gtest_output=xml:location-rendering-profile-tests.xml
+          if ($LASTEXITCODE) { throw 'Shared profile and actual scene light lifecycle tests failed' }
           python custom/combined-performance/tests/verify-rendering-profile.py install
           if ($LASTEXITCODE) { throw 'Installed location rendering resources or native regression proof is incomplete' }
           Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value 'installed=true'
@@ -887,6 +884,7 @@ jobs:
           Copy-Item custom/dialogue-colours/README.md install/DIALOGUE-COLOURS.md
           Copy-Item custom/shrine-tooltips/README.md install/SHRINE-TOOLTIPS.md
           Copy-Item custom/gameplay-responsiveness/README.md install/GAMEPLAY-RESPONSIVENESS.md
+          Copy-Item custom/automatic-lighting/README.md install/AUTOMATIC-LIGHTING.md
           Copy-Item gameplay-responsiveness-source-manifest.json install/
           Copy-Item custom/message-position/README.md install/MESSAGE-POSITION.md
           Copy-Item custom/cumulative/README.md install/CUMULATIVE-UPGRADE.md
@@ -1135,7 +1133,13 @@ jobs:
         with:
           ref: ${{ env.CUMULATIVE_COMMIT }}
       - name: Install headless GL test dependencies
-        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl-dev libegl1 libgl1-mesa-dri libopenscenegraph-dev libgtest-dev g++
+        run: sudo apt-get update && sudo apt-get install -y libgl-dev libegl-dev libegl1 libgl1-mesa-dri libopenscenegraph-dev libgtest-dev libyaml-cpp-dev g++
+      - name: Parse the actual Lumenaire output with the production shared-profile reader
+        run: |
+          g++ -std=c++20 -O2 -pthread -I. custom/automatic-lighting/verify-generated-profile.cpp \
+            apps/openmw/mwrender/locationrenderingprofiles.cpp components/debug/debuglog.cpp \
+            components/files/conversion.cpp -lyaml-cpp -o verify-generated-profile
+          ./verify-generated-profile custom/automatic-lighting/fixtures/location-rendering.yaml
       - name: Exercise production scenery handover and detached static preparation
         run: |
           python3 custom/cell-streaming/test-scenery-handover.py

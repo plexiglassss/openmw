@@ -25,6 +25,7 @@ file(GLOB UNITTEST_SRC_FILES
     mwmechanics/testmagiceffectaccounting.cpp
 
     mwrender/testlocationrenderingprofiles.cpp
+    mwrender/testnegativelighttracking.cpp
     mwrender/testcellobjectindex.cpp
     mwrender/testsavedglobalmap.cpp
 
