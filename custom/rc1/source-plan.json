@@ -99,7 +99,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ccc0f3ba8eb4730d365a1482da709f7f3bb72503"
+        "blob": "29db2c658b2b422813ea659751d563dc87522408"
       },
       "status": "adapted_for_rc1"
     },
@@ -5978,9 +5978,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ccc0f3ba8eb4730d365a1482da709f7f3bb72503"
+        "blob": "29db2c658b2b422813ea659751d563dc87522408"
       },
-      "purpose": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
+      "purpose": "Combine the verified unified UI and navigation/graphics preparation build entries; retain both regression suites and all earlier compilation/package gates. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. 2026-11-25: register the native saved AI target remapping regression suite."
     },
     "apps/components_tests/contentselector/testcontentmodel.cpp": {
       "upstream": null,
@@ -14063,6 +14063,33 @@
         "blob": "40d428f159e2c717aaf6726c8e60e1f46ed246a4"
       },
       "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Retained or adapted to the official RC1 source/API."
+    },
+    "components/esm3/aisequence.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "e448582bad4674740fc77023384373adf44fd47c"
+      },
+      "ported": {
+        "mode": "100644",
+        "blob": "fbbb2eb309ad39b2c0bbef535d8e226306602ee2"
+      },
+      "purpose": "2026-11-25: remap modern cached AI actor references through the save content mapping; clear references whose content provider is absent; preserve legacy and dynamic reference semantics."
+    },
+    "apps/components_tests/esm3/testaitargetmapping.cpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "63261b025a17be0d78edbc6d871f79a7280653d9"
+      },
+      "purpose": "2026-11-25: 53 native regressions for all four target package types, load-order changes, legacy/dynamic/missing references, repeated save/load and mixed queues."
+    },
+    "custom/ai-target-remapping/README.md": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "3603c87267a285adcc6dfd4470fd8a5492b18bc2"
+      },
+      "purpose": "2026-11-25: document the generic saved AI target correction, invariants, native tests, and limits on already-resaved targets."
     }
   },
   "intentional_retirements": {

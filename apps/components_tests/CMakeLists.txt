@@ -102,6 +102,7 @@ file(GLOB UNITTEST_SRC_FILES
     esm3/readerscache.cpp
     esm3/testsaveload.cpp
     esm3/testesmwriter.cpp
+    esm3/testaitargetmapping.cpp
     esm3/testinfoorder.cpp
     esm3/testcstringids.cpp
     esm3/testlocationmarkers.cpp
