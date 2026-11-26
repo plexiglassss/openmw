@@ -1,4 +1,6 @@
 #include "animation.hpp"
+#include "locationrenderingprofiles.hpp"
+#include "negativelighttracker.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -568,6 +570,37 @@ namespace MWRender
     void Animation::updatePtr(const MWWorld::Ptr& ptr)
     {
         mPtr = ptr;
+        updateNegativeLightMembership();
+    }
+
+    void Animation::setNegativeLightTracker(std::shared_ptr<NegativeLightTracker> tracker)
+    {
+        if (mNegativeLightTracker == tracker)
+            return;
+        if (mNegativeLightTracker)
+            mNegativeLightTracker->erase(this);
+        mNegativeLightTracker = std::move(tracker);
+        updateNegativeLightMembership();
+    }
+
+    void Animation::updateNegativeLightMembership()
+    {
+        if (mNegativeLightTracker)
+            mNegativeLightTracker->set(
+                this, mPtr.isInCell() ? mPtr.getCell()->getCell() : nullptr, mNegativeLightSources.size());
+    }
+
+    void Animation::trackNegativeLight(const SceneUtil::LightSource* source, const SceneUtil::LightCommon& light)
+    {
+        if (source && isQualifyingNegativeLight(light))
+            mNegativeLightSources.insert(source);
+        updateNegativeLightMembership();
+    }
+
+    void Animation::untrackNegativeLight(const SceneUtil::LightSource* source)
+    {
+        mNegativeLightSources.erase(source);
+        updateNegativeLightMembership();
     }
 
     void Animation::setAccumulation(const osg::Vec3f& accum)
@@ -1529,6 +1562,7 @@ namespace MWRender
 
     void Animation::setObjectRoot(const std::string& model, bool forceskeleton, bool baseonly, bool isCreature)
     {
+        removeExtraLight();
         osg::ref_ptr<osg::StateSet> previousStateset;
         if (mObjectRoot)
         {
@@ -1676,8 +1710,18 @@ namespace MWRender
     {
         bool exterior = mPtr.isInCell() && mPtr.getCell()->getCell()->isExterior();
 
+        // Keep a direct source replacement transactional. Equipment paths that
+        // detach an old part first also settle their membership before drawing.
+        mNegativeLightSources.erase(mExtraLightSource.get());
         mExtraLightSource = SceneUtil::addLight(parent, esmLight, Mask_Lighting, exterior);
         mExtraLightSource->setActorFade(mActorFade);
+        trackNegativeLight(mExtraLightSource.get(), esmLight);
+    }
+
+    void Animation::removeExtraLight()
+    {
+        untrackNegativeLight(mExtraLightSource.get());
+        mExtraLightSource = nullptr;
     }
 
     void Animation::addEffect(std::string_view model, std::string_view effectId, bool loop, std::string_view bonename,
@@ -1999,6 +2043,9 @@ namespace MWRender
 
     void Animation::removeFromSceneImpl()
     {
+        // Scene removal occurs before deferred destruction on the unref queue.
+        // Detach here so no callback can escape from an asynchronous destructor.
+        setNegativeLightTracker(nullptr);
         if (mGlowLight != nullptr)
             mInsert->removeChild(mGlowLight);
 

@@ -102,7 +102,7 @@ ClampLightingTooltip: |-
     Prevents overly bright or shifted colors but can dull lighting.
 LocationRenderingProfiles: "Location Rendering Profiles"
 LocationRenderingProfilesTooltip: |-
-    Apply installed shader_profiles configuration files in their matched interior cells.
+    Apply shared location rendering rules in matching interiors, including automatic compatibility for attached negative lights.
 
     Profiles can temporarily override clamp lighting, forced per-pixel lighting, and automatic object normal/specular maps without changing your saved global settings. Disable this to use the global shader settings everywhere.
 ClassicFalloff: "Classic Falloff"

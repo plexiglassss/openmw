@@ -88,7 +88,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ab3dc4c7302c596ca9b3c74ce7d1746cee138fdf"
+        "blob": "ddbab90300128b8a11cd6497be894c6d84406e9f"
       },
       "status": "adapted_for_rc1"
     },
@@ -539,7 +539,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dada0e2d68b803c5ffabccbaa62d60c1ca51b186"
+        "blob": "f1351a5937651bf3188f8f145a81afc190c08843"
       },
       "status": "adapted_for_rc1"
     },
@@ -1540,7 +1540,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b01655d2130d6a8e1e80e6d88a8eb0b0edced993"
+        "blob": "cf78e391bbc1cb64effa3d3bbd838c6a1da78d56"
       },
       "status": "adapted_for_rc1"
     },
@@ -1617,9 +1617,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "8884f0d9b340be72dda2394da2df476aca60d7b3"
+        "blob": "891d7cab076b3fb054525701652a88abed77587d"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/openmw/mwrender/locationrenderingprofiles.hpp": {
       "cumulative": {
@@ -1628,9 +1628,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b8704ab6d5079dfbac3e4c07a303f015fd0ba10f"
+        "blob": "cd2fc7b550caa6b600090ceaab9b112dff1a4d8c"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/openmw/mwrender/npcanimation.cpp": {
       "cumulative": {
@@ -1639,7 +1639,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "0159e3f50e5813dc5492b32b46ebc1184d257e2e"
+        "blob": "a9abf9151a7c4d172b23dae759708d3b7306092c"
       },
       "status": "adapted_for_rc1"
     },
@@ -1683,7 +1683,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ade785a24958a83d5231e9faba5076beed5ab0af"
+        "blob": "a43330bedbe13cbdfd284c08353d799fb475b2e1"
       },
       "status": "adapted_for_rc1"
     },
@@ -1694,7 +1694,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d0609f6d0ab6b9a09a34d11d9a970ba6135751d8"
+        "blob": "df3d275bd3c01402192fed94cf9d13a9b8a41074"
       },
       "status": "adapted_for_rc1"
     },
@@ -1716,7 +1716,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "aefa4509a6a863ecfdfcb24ca3453ad1e9ec4506"
+        "blob": "c8f6066ca98073c8be28aef65b0fd8117b72e485"
       },
       "status": "adapted_for_rc1"
     },
@@ -1727,7 +1727,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ed5e90fc7dd6fc6a0232a0208451d3e49cdb1b05"
+        "blob": "f512fb5f4d3dbf1a8eb2afe75cd156cab7011954"
       },
       "status": "adapted_for_rc1"
     },
@@ -1958,7 +1958,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "4574a36f6ad8b2071a872c96bc505d3a7fb9aec1"
+        "blob": "c2575f8c0ecfc7cb51445b2456fba4dff2733fc7"
       },
       "status": "adapted_for_rc1"
     },
@@ -1969,7 +1969,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "2e5c770a957bbed4372ba41abbabb22a476d6091"
+        "blob": "d14b389d133e99e1515298b1c689d5a3cae5802a"
       },
       "status": "adapted_for_rc1"
     },
@@ -2002,7 +2002,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "967b026bf134905873d4201ef47289d22a4be72b"
+        "blob": "c24b5f7409593f66ca20c0e83ae9463578c642d9"
       },
       "status": "adapted_for_rc1"
     },
@@ -2167,9 +2167,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "3f4b0a4fab3d6c19d0d7019fc32be65ccdf51570"
+        "blob": "3309d8afcdd7d052330bc8cda313b682e790337a"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "apps/openmw_tests/mwrender/testsavedglobalmap.cpp": {
       "cumulative": {
@@ -3927,9 +3927,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "903450b6b31811e274280f478ad03c033b36e5fe"
+        "blob": "418e36a31bbfcf2d79b78c4e3e27ec7a36594d38"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "cumulative": {
@@ -4587,9 +4587,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "1935498266d874b38dd482421b0926afefcaf8c7"
+        "blob": "fd8fc18eca7701528e64c5234859f0cb97fbc4c1"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "custom/combined-performance/tests/verify-sparse-hud.py": {
       "cumulative": {
@@ -5313,9 +5313,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "06c76acd389b4328472543a3c1db4609aa81137f"
+        "blob": "1df2cb5ead5c6149d0cbcb2f36354b86ce7b65d6"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "docs/source/reference/modding/settings/cells.rst": {
       "cumulative": {
@@ -5346,9 +5346,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "43926bc311879205f6291bd38d688e9142ff9c90"
+        "blob": "49c1eea450ababe533687f93b9ec0d9c5dd835b4"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "files/data/CMakeLists.txt": {
       "cumulative": {
@@ -5357,9 +5357,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "a3c4469d6cd4d57214f550566393a27a08a79b21"
+        "blob": "b63340695ead58348de5ab6289703814240c4244"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "files/data/builtin.omwscripts": {
       "cumulative": {
@@ -5379,7 +5379,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bdad40eac6abd28bcc4c28b45489361f66c9bb8f"
+        "blob": "21fe7757f50a9e87a04814506424535f06616d05"
       },
       "status": "adapted_for_rc1"
     },
@@ -5443,11 +5443,8 @@
         "mode": "100644",
         "blob": "4f9c4d7b30d31020be8694e697b33ec7baf94d5f"
       },
-      "ported": {
-        "mode": "100644",
-        "blob": "4f9c4d7b30d31020be8694e697b33ec7baf94d5f"
-      },
-      "status": "exactly_retained"
+      "ported": null,
+      "status": "superseded_by_shared_configuration"
     },
     "files/data/textures/mapmarkers/barrow.png": {
       "cumulative": {
@@ -5709,7 +5706,7 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ce3ce0042393f4e59892f54e801cd86b00815778"
+        "blob": "c54543cc57d386a4dac63ca563456d828057534c"
       },
       "status": "adapted_for_rc1"
     },
@@ -5819,9 +5816,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "9b41e0585415d82aff07bcb87e53f09da31c08f1"
+        "blob": "d28e35f854a0784a02833ff766c3e60378018a88"
       },
-      "status": "exactly_retained"
+      "status": "adapted_for_rc1"
     },
     "files/shaders/lib/light/objectlighting.glsl": {
       "cumulative": {
@@ -5937,9 +5934,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ab3dc4c7302c596ca9b3c74ce7d1746cee138fdf"
+        "blob": "ddbab90300128b8a11cd6497be894c6d84406e9f"
       },
-      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Fix interior map icon exposure during dragging by retaining each cell door widget set, immediately restoring fog depth after new artwork, and executing production lifecycle plus real MyGUI draw-order regressions."
+      "purpose": "Retain both cumulative spell/UI gates and the latest cell-streaming batch verification. Retained or adapted to the official RC1 source/API.; 2026-11-20: Run loading worker/progress regression and visual-source preservation checks on Windows; include their results in the cumulative package. Require executed Smart Map policy, native controls and settings tests; package guide and receipt with existing cumulative/performance tests retained. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Fix interior map icon exposure during dragging by retaining each cell door widget set, immediately restoring fog depth after new artwork, and executing production lifecycle plus real MyGUI draw-order regressions. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     ".github/workflows/windows.yml": {
       "upstream": {
@@ -6412,9 +6409,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "dada0e2d68b803c5ffabccbaa62d60c1ca51b186"
+        "blob": "f1351a5937651bf3188f8f145a81afc190c08843"
       },
-      "purpose": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API."
+      "purpose": "Recover and verify the native engine worker, deterministic bulk queries and bounded resource preparation. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/engine.hpp": {
       "upstream": {
@@ -7691,6 +7688,17 @@
       },
       "purpose": "Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API."
     },
+    "apps/openmw/mwrender/actoranimation.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "a3468e40d2a4ee4bddf541204a7fcb5d86791b48"
+      },
+      "ported": {
+        "mode": "100644",
+        "blob": "ef1d131c4b0d69fcff8d566d38fcfa135c9e6271"
+      },
+      "purpose": "Register and unregister actual hidden inventory light attachments with the world negative-light tracker."
+    },
     "apps/openmw/mwrender/animation.cpp": {
       "upstream": {
         "mode": "100644",
@@ -7698,9 +7706,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "b01655d2130d6a8e1e80e6d88a8eb0b0edced993"
+        "blob": "cf78e391bbc1cb64effa3d3bbd838c6a1da78d56"
       },
-      "purpose": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md."
+      "purpose": "Actor resource prediction, owned preload snapshots and direct native regression coverage. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Retained or adapted to the official RC1 source/API. 2026-11-21 actor preparation, recent model reuse and incremental quest scans; see custom/town-activation/README.md. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/animation.hpp": {
       "upstream": {
@@ -7709,9 +7717,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ee2d786eaeb7ecec7bdeee64758e3e44ed8fb03b"
+        "blob": "1c8bdd571733d78f64c9647a374da71dc0bddb8c"
       },
-      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts."
+      "purpose": "Integrate cumulative custom behavior with RC1 native ownership, API and regression contracts. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/characterpreview.cpp": {
       "upstream": {
@@ -7723,6 +7731,17 @@
         "blob": "e678fff45220f1921ae5d09541e6236c1c3b1369"
       },
       "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form. Retained or adapted to the official RC1 source/API."
+    },
+    "apps/openmw/mwrender/creatureanimation.cpp": {
+      "upstream": {
+        "mode": "100644",
+        "blob": "2a4449672371e390fc620a659be8d88ea118bb09"
+      },
+      "ported": {
+        "mode": "100644",
+        "blob": "c6eff737203a8471b247e986793a1c31707f0f7c"
+      },
+      "purpose": "Remove carried-light membership when creature equipment attachments are rebuilt."
     },
     "apps/openmw/mwrender/globalmap.cpp": {
       "upstream": {
@@ -7783,17 +7802,25 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "8884f0d9b340be72dda2394da2df476aca60d7b3"
+        "blob": "891d7cab076b3fb054525701652a88abed77587d"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/locationrenderingprofiles.hpp": {
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "b8704ab6d5079dfbac3e4c07a303f015fd0ba10f"
+        "blob": "cd2fc7b550caa6b600090ceaab9b112dff1a4d8c"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
+    },
+    "apps/openmw/mwrender/negativelighttracker.hpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "250c21b8558390261802fa682c3752e007be85c3"
+      },
+      "purpose": "Track actual authored negative scene-light membership by owner and cell, notifying only zero crossings without frame scans."
     },
     "apps/openmw/mwrender/npcanimation.cpp": {
       "upstream": {
@@ -7802,9 +7829,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "0159e3f50e5813dc5492b32b46ebc1184d257e2e"
+        "blob": "a9abf9151a7c4d172b23dae759708d3b7306092c"
       },
-      "purpose": "Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form. Retained or adapted to the official RC1 source/API."
+      "purpose": "Refresh both carried slots once per inventory pose while preserving current equipment, ammunition and form. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/npcanimation.hpp": {
       "upstream": {
@@ -7846,9 +7873,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ade785a24958a83d5231e9faba5076beed5ab0af"
+        "blob": "a43330bedbe13cbdfd284c08353d799fb475b2e1"
       },
-      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/objects.hpp": {
       "upstream": {
@@ -7857,9 +7884,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "d0609f6d0ab6b9a09a34d11d9a970ba6135751d8"
+        "blob": "df3d275bd3c01402192fed94cf9d13a9b8a41074"
       },
-      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API."
+      "purpose": "Cell streaming batch: indexed renderer unloading, validated preload plan reuse, cost-sensitive retention and cooperative resource cleanup; native regressions and complete cumulative Windows verification. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/precipitationocclusion.cpp": {
       "upstream": {
@@ -7879,9 +7906,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "aefa4509a6a863ecfdfcb24ca3453ad1e9ec4506"
+        "blob": "c8f6066ca98073c8be28aef65b0fd8117b72e485"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Budget background graphics work, preserve visible work and resume composite terrain texture layers in order. Prepare bounded groups on native workers while assembling, attaching and reporting the same terrain nodes on the owner. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Continuous distant-object streaming: asynchronous camera misses, explicit graphics completion, immutable partial views, resource generations and regression coverage. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. 2026-11-21 terrain preparation and buffer reuse; see custom/terrain-preparation/README.md. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/renderingmanager.hpp": {
       "upstream": {
@@ -7890,9 +7917,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ed5e90fc7dd6fc6a0232a0208451d3e49cdb1b05"
+        "blob": "f512fb5f4d3dbf1a8eb2afe75cd156cab7011954"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Retained or adapted to the official RC1 source/API."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Select and invalidate the actual destination terrain manager and bind prepared resources to their rendering configuration. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwrender/transparentpass.cpp": {
       "upstream": {
@@ -8197,9 +8224,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "4574a36f6ad8b2071a872c96bc505d3a7fb9aec1"
+        "blob": "c2575f8c0ecfc7cb51445b2456fba4dff2733fc7"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Expose existing measured actor velocity calculation with invalid-step guard; preserve normal spell target velocity calculation."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Expose the door record ID with the already-collected native marker without loading destination cells. Correct the reported city FPS and cell-transition regression: default to complete optimized scenery, bound gameplay graphics compilation by elapsed time while allowing cheap dependencies to progress, preserve unrelated source-cell preparation and reject affected stale results; retain all cumulative engine/UI/gameplay features and full Windows tools. Retained or adapted to the official RC1 source/API. Expose existing measured actor velocity calculation with invalid-step guard; preserve normal spell target velocity calculation. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwworld/worldimp.hpp": {
       "upstream": {
@@ -8208,9 +8235,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "2e5c770a957bbed4372ba41abbabb22a476d6091"
+        "blob": "d14b389d133e99e1515298b1c689d5a3cae5802a"
       },
-      "purpose": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Retained or adapted to the official RC1 source/API. Declare measured physics-step actor velocity accessor."
+      "purpose": "Preserve the scalar rendering result and owner-thread scene traversal while batching compatible visual queries. Retained or adapted to the official RC1 source/API. Declare measured physics-step actor velocity accessor. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw/mwworld/worldmodel.cpp": {
       "upstream": {
@@ -8257,9 +8284,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "967b026bf134905873d4201ef47289d22a4be72b"
+        "blob": "c24b5f7409593f66ca20c0e83ae9463578c642d9"
       },
-      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates."
+      "purpose": "Preserve verified HBFS god-mode repair 809fc3b3 alongside transition readiness; retain both regression suites, and require the five magic-effect tests in cumulative Windows validation. Generic spatial actor and immutable distance-query optimization; preserve exact results, mutation ordering, independent fallback switches and executed regression/package evidence. Actor resource follow-up: preserve latest UI/HBFS behavior, warm bounded immutable actor dependencies, and expose slow insertion/cull subphases. Reviewed 17 November controls/save/barter follow-up. Track postponed collision work by registered object identity, prepare exact-scale detached collision instances before activation, and verify lifecycle/geometry parity and cumulative packaging. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. 2026-11-20 save/load and repeated-work update; see custom/save-load-performance/README.md. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "apps/openmw_tests/controls-test-main.cpp": {
       "upstream": null,
@@ -8452,9 +8479,17 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "3f4b0a4fab3d6c19d0d7019fc32be65ccdf51570"
+        "blob": "3309d8afcdd7d052330bc8cda313b682e790337a"
       },
-      "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Retained or adapted to the official RC1 source/API."
+      "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
+    },
+    "apps/openmw_tests/mwrender/testnegativelighttracking.cpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "7bc6c76a9c917c234ff4dec88ed296149edf1d74"
+      },
+      "purpose": "Exercise real Objects/Animation insertion, removal, movement, clear/recreation, emitter eligibility and attachment behavior."
     },
     "apps/openmw_tests/mwrender/testsavedglobalmap.cpp": {
       "upstream": null,
@@ -10390,6 +10425,30 @@
       },
       "purpose": "Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline."
     },
+    "custom/automatic-lighting/README.md": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "29c86f1a74a236e7ffb4e2b985daea2eca4e6a57"
+      },
+      "purpose": "Document the sole shared profile source, automatic generator integration, migration, preservation limits and verification."
+    },
+    "custom/automatic-lighting/fixtures/location-rendering.yaml": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "d9820d257ab97c25ee001c1913bc565a54379bc8"
+      },
+      "purpose": "Unmodified actual Lumenaire CLI output used as a generator-to-production-reader interoperability fixture, never installed as user configuration."
+    },
+    "custom/automatic-lighting/verify-generated-profile.cpp": {
+      "upstream": null,
+      "ported": {
+        "mode": "100644",
+        "blob": "7ac6377209496d38430e79e2b4a87e17f96a91f1"
+      },
+      "purpose": "Require the production engine parser to accept real generated YAML and enforce generic matching, shader values and interior-only scope."
+    },
     "custom/cell-streaming/ACTIVATION-20261118.md": {
       "upstream": null,
       "ported": {
@@ -10570,9 +10629,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "903450b6b31811e274280f478ad03c033b36e5fe"
+        "blob": "418e36a31bbfcf2d79b78c4e3e27ec7a36594d38"
       },
-      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Describe generic preparation and how to interpret non-additive trace durations. Document the saved world-map stages and comparison procedure. Retained or adapted to the official RC1 source/API."
+      "purpose": "Give mods a batched property-only update and reduce repeated native work while retaining the full update path. Document the normal spell-read behavior, measurement and isolated comparison mode. Package and document independent controls, complete optional gameplay adapters and API contracts. Document and deliver the cumulative town fixes, detailed capture entry point and exact input/output of the earlier lookup patch. Describe generic preparation and how to interpret non-additive trace durations. Document the saved world-map stages and comparison procedure. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "custom/combined-performance/Run-Combined.cmd": {
       "upstream": null,
@@ -11050,9 +11109,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "1935498266d874b38dd482421b0926afefcaf8c7"
+        "blob": "fd8fc18eca7701528e64c5234859f0cb97fbc4c1"
       },
-      "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Retained or adapted to the official RC1 source/API."
+      "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "custom/combined-performance/tests/verify-sparse-hud.py": {
       "upstream": null,
@@ -12802,9 +12861,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "165e10895d6d7cebf43f8439d2278b8d246e2f49"
+        "blob": "8828f832089987628ba1ac52123627a9342ab734"
       },
-      "purpose": "RC1 provenance, source verification and installation documentation."
+      "purpose": "RC1 provenance, source verification and installation documentation. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "custom/review-tests/lua-arrival-benchmark.cpp": {
       "upstream": null,
@@ -13485,9 +13544,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "06c76acd389b4328472543a3c1db4609aa81137f"
+        "blob": "1df2cb5ead5c6149d0cbcb2f36354b86ce7b65d6"
       },
-      "purpose": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides. Retained or adapted to the official RC1 source/API."
+      "purpose": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "docs/source/reference/modding/settings/GUI.rst": {
       "upstream": {
@@ -13540,9 +13599,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "43926bc311879205f6291bd38d688e9142ff9c90"
+        "blob": "49c1eea450ababe533687f93b9ec0d9c5dd835b4"
       },
-      "purpose": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides. Retained or adapted to the official RC1 source/API."
+      "purpose": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "files/data/CMakeLists.txt": {
       "upstream": {
@@ -13551,9 +13610,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "a3c4469d6cd4d57214f550566393a27a08a79b21"
+        "blob": "b63340695ead58348de5ab6289703814240c4244"
       },
-      "purpose": "Ship both the unified keybinding entry module and its required model helper through the existing built-in resource install list. Retained or adapted to the official RC1 source/API."
+      "purpose": "Ship both the unified keybinding entry module and its required model helper through the existing built-in resource install list. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "files/data/builtin.omwscripts": {
       "upstream": {
@@ -13584,9 +13643,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "bdad40eac6abd28bcc4c28b45489361f66c9bb8f"
+        "blob": "21fe7757f50a9e87a04814506424535f06616d05"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Cooperative cell-resource preparation, preserved arrival priority, six grouped settings pages, AWM v11 rebuild isolation, or their validation and packaging; preserve the cumulative baseline. Restore native settings pages and limit grouping to explicitly owned custom sections; correct initial minimum sizing and resize handling, with production-layout and package regression gates. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "files/data/mygui/openmw_mainmenu.skin.xml": {
       "upstream": {
@@ -13658,14 +13717,6 @@
         "blob": "07eeeb7ac7326ca30cf5508d4ac20dc43075b15d"
       },
       "purpose": "Avoid building native widgets for unopened settings pages and redoing expensive unchanged static label work. Retained or adapted to the official RC1 source/API."
-    },
-    "files/data/shader_profiles/horror_mod.yaml": {
-      "upstream": null,
-      "ported": {
-        "mode": "100644",
-        "blob": "4f9c4d7b30d31020be8694e697b33ec7baf94d5f"
-      },
-      "purpose": "Ship the unmodified editable Horror data and document user-controlled profile settings and overrides. Retained or adapted to the official RC1 source/API."
     },
     "files/data/textures/mapmarkers/barrow.png": {
       "upstream": null,
@@ -13870,9 +13921,9 @@
       },
       "ported": {
         "mode": "100644",
-        "blob": "ce3ce0042393f4e59892f54e801cd86b00815778"
+        "blob": "c54543cc57d386a4dac63ca563456d828057534c"
       },
-      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Configure and document targeted exterior prediction independently of broad door scanning. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features."
+      "purpose": "Add data-driven location selection, settings and scene lifecycle integration on the accepted cumulative source. Expose and persist world/local base sizes, local door enablement, the shared vanilla/type palette, and maximum zoom size. Configure and document targeted exterior prediction independently of broad door scanning. Reviewed 17 November controls/save/barter follow-up. Retained or adapted to the official RC1 source/API. Add native Smart Map behavior, settings, documented controls or required regression coverage as applicable; preserve existing cumulative features. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "files/shaders/CMakeLists.txt": {
       "upstream": {
@@ -13974,9 +14025,9 @@
       "upstream": null,
       "ported": {
         "mode": "100644",
-        "blob": "9b41e0585415d82aff07bcb87e53f09da31c08f1"
+        "blob": "d28e35f854a0784a02833ff766c3e60378018a88"
       },
-      "purpose": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Retained or adapted to the official RC1 source/API."
+      "purpose": "Support location-specific shader state and mesh-authored maps, preserve the ordinary scene and handle shader stages safely. Retained or adapted to the official RC1 source/API. Shared automatic lighting: replace per-mod profile discovery with the single active-user-config YAML and validate lifecycle-based generic matching while preserving unrelated RC1 features."
     },
     "files/shaders/lib/light/objectlighting.glsl": {
       "upstream": null,
@@ -14013,5 +14064,27 @@
       },
       "purpose": "Verify render profile loading, installed VFS data, generic matching, shader resource and Windows package behavior alongside the native-jobs regression suite. Guarded GPU NIF skinning with immutable vertex arrays, double-buffered palettes, matching object/shadow/depth deformation, posed CPU picking and custom-program fallbacks; preserve cumulative Windows features and execute native/GL regressions. Retained or adapted to the official RC1 source/API."
     }
+  },
+  "intentional_retirements": {
+    "files/data/shader_profiles/horror_mod.yaml": {
+      "authorization": "User requested the shared YAML as the only profile source on 2026-11-25 and authorized implementation on 2026-11-26.",
+      "replacement": "location-rendering.yaml in the active user configuration directory; generic conditional and explicit profiles",
+      "required_paths": [
+        "apps/openmw/mwrender/locationrenderingprofiles.cpp",
+        "apps/openmw/mwrender/locationrenderingprofiles.hpp",
+        "docs/source/reference/modding/location-rendering-profiles.rst",
+        "apps/openmw_tests/mwrender/testlocationrenderingprofiles.cpp"
+      ]
+    }
+  },
+  "automatic_lighting": {
+    "accepted_base": "54ce2b4258983b234b1218b8973e636f50ab61f5",
+    "authorization_date": "2026-11-26",
+    "shared_format": 3,
+    "shared_file": "active user openmw.cfg directory/location-rendering.yaml",
+    "condition": "contains-negative-light",
+    "scope": "actual scene emitters in interiors; no mod/cell names in runtime logic",
+    "retired_profile": "files/data/shader_profiles/horror_mod.yaml",
+    "source_identity_is_not_gameplay_evidence": true
   }
 }

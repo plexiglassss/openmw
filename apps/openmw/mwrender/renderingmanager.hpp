@@ -92,6 +92,7 @@ namespace Debug
 
 namespace MWRender
 {
+    class NegativeLightTracker;
     class IntersectionVisitorWithIgnoreList;
 
     class EffectManager;
@@ -139,7 +140,8 @@ namespace MWRender
 
         void preloadCommonAssets(const MWWorld::WeatherStore&);
 
-        void loadLocationRenderingProfiles(const std::vector<std::string>& activeContent);
+        void loadLocationRenderingProfiles(
+            const std::filesystem::path& file, const std::vector<std::string>& activeContent);
         void updateLocationRenderingProfile(const MWWorld::Cell* cell);
 
         double getReferenceTime() const;
@@ -340,6 +342,8 @@ namespace MWRender
 
         LocationRenderingProfiles mLocationRenderingProfiles;
         std::string mActiveLocationRenderingProfile;
+        const MWWorld::Cell* mLocationRenderingCell = nullptr;
+        std::shared_ptr<NegativeLightTracker> mNegativeLightTracker;
 
         std::shared_ptr<SceneUtil::WorkQueue> mWorkQueue;
 

@@ -36,6 +36,7 @@ namespace MWRender
 {
 
     class Animation;
+    class NegativeLightTracker;
 
     class Objects
     {
@@ -50,12 +51,13 @@ namespace MWRender
         osg::ref_ptr<osg::Group> mRootNode;
         Resource::ResourceSystem* mResourceSystem;
         SceneUtil::UnrefQueue& mUnrefQueue;
+        std::shared_ptr<NegativeLightTracker> mNegativeLightTracker;
 
         void insertBegin(const MWWorld::Ptr& ptr);
 
     public:
         Objects(Resource::ResourceSystem* resourceSystem, const osg::ref_ptr<osg::Group>& rootNode,
-            SceneUtil::UnrefQueue& unrefQueue);
+            SceneUtil::UnrefQueue& unrefQueue, std::shared_ptr<NegativeLightTracker> negativeLightTracker = {});
         ~Objects();
 
         /// @param allowLight If false, no lights will be created, and particles systems will be removed.

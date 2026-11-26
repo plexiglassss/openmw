@@ -52,6 +52,7 @@ namespace MWRender
     class ResetAccumRootCallback;
     class RotateController;
     class TransparencyUpdater;
+    class NegativeLightTracker;
 
     using ActiveControllersVector = std::vector<std::pair<osg::ref_ptr<osg::Node>, osg::ref_ptr<osg::Callback>>>;
 
@@ -242,6 +243,8 @@ namespace MWRender
         osg::ref_ptr<SceneUtil::GlowUpdater> mGlowUpdater;
         osg::ref_ptr<TransparencyUpdater> mTransparencyUpdater;
         osg::ref_ptr<SceneUtil::LightSource> mExtraLightSource;
+        std::shared_ptr<NegativeLightTracker> mNegativeLightTracker;
+        std::unordered_set<const SceneUtil::LightSource*> mNegativeLightSources;
 
         float mAlpha;
         float mActorFade;
@@ -304,6 +307,10 @@ namespace MWRender
 
         /** Adds an additional light to the given node using the specified ESM record. */
         void addExtraLight(osg::ref_ptr<osg::Group> parent, const SceneUtil::LightCommon& light);
+        void removeExtraLight();
+        void trackNegativeLight(const SceneUtil::LightSource* source, const SceneUtil::LightCommon& light);
+        void untrackNegativeLight(const SceneUtil::LightSource* source);
+        void updateNegativeLightMembership();
 
         void clearAnimSources();
 
@@ -326,6 +333,8 @@ namespace MWRender
         void animationEnded(AnimState& state) const;
 
     public:
+        // Called only for animations attached to the world renderer, never previews.
+        void setNegativeLightTracker(std::shared_ptr<NegativeLightTracker> tracker);
         Animation(
             const MWWorld::Ptr& ptr, osg::ref_ptr<osg::Group> parentNode, Resource::ResourceSystem* resourceSystem);
 

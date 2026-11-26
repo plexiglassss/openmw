@@ -25,10 +25,11 @@ namespace MWRender
 {
 
     Objects::Objects(Resource::ResourceSystem* resourceSystem, const osg::ref_ptr<osg::Group>& rootNode,
-        SceneUtil::UnrefQueue& unrefQueue)
+        SceneUtil::UnrefQueue& unrefQueue, std::shared_ptr<NegativeLightTracker> negativeLightTracker)
         : mRootNode(rootNode)
         , mResourceSystem(resourceSystem)
         , mUnrefQueue(unrefQueue)
+        , mNegativeLightTracker(std::move(negativeLightTracker))
     {
     }
 
@@ -92,6 +93,7 @@ namespace MWRender
 
         mObjects.emplace(
             ptr.mRef, std::make_unique<ObjectAnimation>(ptr, animationMesh, mResourceSystem, animated, allowLight));
+        mObjects.at(ptr.mRef)->setNegativeLightTracker(mNegativeLightTracker);
         if (Misc::useCellObjectIndex())
             mObjectsByCell.set(ptr.mRef, ptr.getCell());
     }
@@ -118,6 +120,7 @@ namespace MWRender
         ActorAnimation* listener = anim.get();
         if (mObjects.emplace(ptr.mRef, std::move(anim)).second)
         {
+            listener->setNegativeLightTracker(mNegativeLightTracker);
             if (Misc::useCellObjectIndex())
                 mObjectsByCell.set(ptr.mRef, ptr.getCell());
             ptr.getClass().getContainerStore(ptr).setContListener(listener);
@@ -134,6 +137,7 @@ namespace MWRender
             mObjects.emplace(ptr.mRef,
                 std::make_unique<ESM4NpcAnimation>(
                     ptr, osg::ref_ptr<osg::Group>(ptr.getRefData().getBaseNode()), mResourceSystem));
+            mObjects.at(ptr.mRef)->setNegativeLightTracker(mNegativeLightTracker);
             if (Misc::useCellObjectIndex())
                 mObjectsByCell.set(ptr.mRef, ptr.getCell());
         }
@@ -145,6 +149,7 @@ namespace MWRender
             NpcAnimation* listener = anim.get();
             if (mObjects.emplace(ptr.mRef, std::move(anim)).second)
             {
+                listener->setNegativeLightTracker(mNegativeLightTracker);
                 if (Misc::useCellObjectIndex())
                     mObjectsByCell.set(ptr.mRef, ptr.getCell());
                 ptr.getClass().getInventoryStore(ptr).setInvListener(listener);

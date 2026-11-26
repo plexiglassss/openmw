@@ -40,8 +40,9 @@ Shaders Settings
    :default: true
    :location: :bdg-info:`In Game > Settings > Options > Video > Lights`
 
-   Enable external location rendering profiles found under ``shader_profiles/``
-   in active data directories. Profiles match exact interior cell names and may
+   Enable profiles from ``location-rendering.yaml`` next to the active user
+   ``openmw.cfg``. Profiles match exact interior cell names or the presence of
+   qualifying attached negative lights in the current interior, and may
    temporarily override clamp lighting, forced per-pixel lighting, and automatic
    object normal/specular map discovery. The saved global shader settings are not
    rewritten.

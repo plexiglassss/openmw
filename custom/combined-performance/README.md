@@ -2,11 +2,13 @@
 
 This Windows build combines the `5e66b560` native-jobs engine and its `a0395b81` distribution with configurable location rendering profiles.
 
-## Horror Mod lighting
+## Automatic location rendering
 
-The bundled profile is an editable file at `resources/vfs/shader_profiles/horror_mod.yaml`. Extracting the full package makes it available automatically. With `Horror Mod.esp` active and **Options → Video → Lights → Location Rendering Profiles** enabled, the listed interiors use the four shader values in the file. Other cells use your normal settings. The switch is on by default.
+The sole profile source is `location-rendering.yaml` in OpenMW's active user configuration directory, beside the user `openmw.cfg`. The engine no longer reads per-mod `shader_profiles` directories and does not bundle a Horror profile. A missing or empty shared file leaves ordinary global rendering active.
 
-To customize the interiors or shader values, edit the YAML while OpenMW is closed and restart the game. A copy at `shader_profiles/horror_mod.yaml` in a higher-priority mod folder overrides the bundled copy and can be kept across engine upgrades. Set `enabled: false` to disable this profile alone.
+Lumenaire's automatic negative-light mode can generate the shared format-3 file and preserve native negative-light definitions in the same run. Its generic `contains-negative-light` condition selects the configured rendering profile in qualifying interiors, including lights created at runtime. There are no mod names or cell lists built into the engine. Exterior rendering remains governed by the ordinary global settings.
+
+With generator-managed profiles, edit policy and optional custom rules in `lumenaire.toml`, regenerate, and restart OpenMW. Do not edit the generated YAML directly. **Options → Video → Lights → Location Rendering Profiles** remains the master switch; switching it off restores global rendering. Engine upgrades do not replace the user configuration file.
 
 ## Using the engine
 

@@ -1,7 +1,7 @@
 #ifndef OPENMW_LOCATION_RENDERING_PROFILE_GLSL
 #define OPENMW_LOCATION_RENDERING_PROFILE_GLSL
 
-// External shader_profiles/*.yaml files select these temporary scene values.
+// The shared location-rendering.yaml selects these temporary scene values.
 // The user's saved global shader settings remain unchanged.
 uniform bool locationRenderingProfileActive;
 uniform bool locationProfileClampLighting;
