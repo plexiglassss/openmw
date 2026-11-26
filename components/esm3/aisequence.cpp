@@ -45,7 +45,11 @@ namespace ESM
                 esm.getHNOT(refNum.mIndex, name);
             }
             else if (esm.peekNextSub(name))
+            {
                 refNum = esm.getFormId(true, name);
+                if (!esm.applyContentFileMapping(refNum))
+                    refNum = {};
+            }
             else
                 refNum = {};
         }
